@@ -1,16 +1,17 @@
 import { Context as KoaContext } from 'koa'
 import { Middleware as ComposeMiddleware } from 'koa-compose'
-import { Bot, ModelsPack, DatedValue, Lambda, BaseLambda, IUser } from '../types'
-import { Conf } from './configure'
-import { Commander } from './commander'
-import { Onfido } from './plugins/onfido'
-import { Remediation } from './remediation'
-import { Deployment } from './deployment'
-import { Alerts } from './alerts'
-import { Applications } from './applications'
-import { Friends } from './friends'
-import { EmailBasedVerifier } from './email-based-verifier'
-import { DocumentCheckerAPI } from './plugins/documentChecker'
+import { Bot, ModelsPack, DatedValue, Lambda, BaseLambda, IUser } from '../../types'
+import { Conf } from '../configure'
+import { Commander } from '../commander'
+import { Onfido } from '../plugins/onfido'
+import { Remediation } from '../remediation'
+import { Deployment } from '../deployment'
+import { Alerts } from '../alerts'
+import { Applications } from '../applications'
+import { Friends } from '../friends'
+import { EmailBasedVerifier } from '../email-based-verifier'
+import { SMSBasedVerifier } from '../sms-based-verifier'
+import { DocumentCheckerAPI } from '../plugins/documentChecker'
 import {
   ITradleObject,
   IIdentity,
@@ -25,9 +26,10 @@ import {
   VersionInfo,
   Registry,
   ILambdaContextComponents,
-} from '../types'
+} from '../../types'
 
-export * from '../types'
+export * from '../plugin-types'
+export * from '../../types'
 
 export {
   Conf,
@@ -116,6 +118,7 @@ export interface IBotComponents extends ILambdaContextComponents {
   deployment?: Deployment
   commands?: Commander
   emailBasedVerifier?: EmailBasedVerifier
+  smsBasedVerifier?: SMSBasedVerifier
   documentChecker?: DocumentCheckerAPI
   [x:string]: any
 }
@@ -196,21 +199,15 @@ export interface IPBAppStub {
   status: string
 }
 
+export interface IMyProduct {
+  myProductId: string
+  owner: ResourceStub
+  revoked: boolean
+}
+
 export interface IFormRequest extends ITradleObject {
   form: string
   prefill?: any
-}
-
-export interface IWillRequestFormArg {
-  user: IPBUser
-  application?: IPBApp
-  formRequest: IFormRequest
-}
-
-export interface IOnFormsCollectedArg {
-  req: IPBReq
-  user: IPBUser
-  application: IPBApp
 }
 
 // deprecated
@@ -236,6 +233,7 @@ export interface ICommandOutput1 {
 
 export interface IDeferredCommandParams {
   command: ICommandParams
+  confirmationCode?: string
   ttl?: number
   dateExpires?: number
   extra?: any
@@ -288,61 +286,6 @@ export type Name = {
   formatted?:string
 }
 
-interface IOnPendingApplicationCollisionArg {
-  req: IPBReq
-  pending: ResourceStub[]
-}
-
-interface IGetRequiredFormsArg {
-  user: IPBUser
-  application: IPBApp
-  productModel: any
-}
-
-export interface IPluginLifecycleMethods {
-  onmessage?: (req:IPBReq) => boolean|void | Promise<boolean|void>
-  willRequestForm?: (opts:IWillRequestFormArg) => void | Promise<void>
-  onFormsCollected?: (opts:IOnFormsCollectedArg) => void | Promise<void>
-  onPendingApplicationCollision?: (opts:IOnPendingApplicationCollisionArg) => void | Promise<void>
-  onRequestForExistingProduct?: (req:IPBReq) => void | Promise<void>
-  onCommand?: ({ req: IPBReq, command: string }) => void | Promise<void>
-  getRequiredForms?: (opts: IGetRequiredFormsArg) => Promise<void|string[]>
-  [toBeDefined: string]: any
-}
-
-export interface IPluginExports<BotComponent> {
-  plugin: IPluginLifecycleMethods
-  api?: BotComponent
-  [customExport: string]: any
-}
-
-export interface IPluginOpts {
-  logger: Logger
-  conf?: any
-}
-
-export type CreatePlugin<BotComponent> = (components:IBotComponents, opts:IPluginOpts) => IPluginExports<BotComponent>
-
-export type ValidatePluginConfOpts = {
-  bot: Bot
-  conf: IConfComponents
-  pluginConf: any
-  [other:string]: any
-}
-
-export type UpdatePluginConfOpts = ValidatePluginConfOpts
-
-export type ValidatePluginConf = (opts:ValidatePluginConfOpts) => Promise<void>
-export type UpdatePluginConf = (opts:UpdatePluginConfOpts) => Promise<void>
-export interface IPlugin<BotComponent> {
-  name?: string
-  createPlugin: CreatePlugin<BotComponent>
-  validateConf?: ValidatePluginConf
-  updateConf?: UpdatePluginConf
-}
-
-export type IPlugins = Registry<IPlugin<any>>
-
 export type ClaimType = 'bulk' | 'prefill'
 
 export type ClaimStub = {
@@ -361,9 +304,10 @@ export interface IDeploymentConf extends ITradleObject {
   name: string
   domain: string
   logo?: string
-  stackPrefix: string
+  stackName: string
   region: string
   adminEmail?: string
+  blockchain: string
   // configurationLink?: string
 }
 
@@ -396,9 +340,8 @@ export interface IMyDeploymentConf {
   // same as ICallHomePayload
   identity: IIdentity
   deploymentUUID: string
+  adminEmail: string
   apiUrl: string
-  service: string
-  stage: string
   stackName: string
   stackId: string
   referrerUrl: string
@@ -420,6 +363,15 @@ export interface CallHomeOpts extends StackDeploymentInfo {
 export interface IDeploymentConfForm extends ITradleObject {
   adminEmail: string
   hrEmail: string
+}
+
+export interface IChildDeployment {
+  identity: ResourceStub
+  friend: ResourceStub
+  org: ResourceStub
+  stackId: string
+  apiUrl: string
+  version: MiniVersionInfo
 }
 
 export interface IPBotLambdaOpts extends ILambdaOpts<IPBMiddlewareContext> {

@@ -97,7 +97,6 @@ export class Remediation {
   public keyToClaimIds: IKeyValueStore
   public store: ContentAddressedStore
   public conf: any
-  private _removeHandler: Function
   constructor ({
     bot,
     productsAPI,
@@ -206,53 +205,38 @@ export class Remediation {
     }
 
     const claimId = stubToId({ claimType, key, nonce })
+    const dataHash = claimId
     const provider = await this.bot.getPermalink()
+    const importDataPayload = {
+      host: this.bot.apiBaseUrl,
+      provider,
+      dataHash,
+    }
+
     const qrData = QR.toHex({
       schema: 'ImportData',
-      data: {
-        host: this.bot.apiBaseUrl,
-        provider,
-        dataHash: claimId
-      }
+      data: importDataPayload,
     })
+
+    const [mobile, web] = ['mobile', 'web'].map(platform => this.bot.appLinks.getImportDataLink({
+      platform,
+      schema: 'ImportData',
+      ...importDataPayload,
+    }))
 
     return {
       key,
       nonce: typeof nonce === 'string' ? nonce : nonce.toString('hex'),
       claimId,
       claimType,
-      qrData
-    }
-  }
-
-  public getClaimIdFromPayload = (payload:ITradleObject) => {
-    const { contextId } = payload
-    if (payload[TYPE] === PRODUCT_REQUEST && this.isPrefillClaimId(contextId)) {
-      return contextId
-    }
-  }
-
-  public isPrefillClaim = (payload:ITradleObject) => {
-    if (payload[TYPE] === PRODUCT_REQUEST) {
-      const claimId = this.getClaimIdFromPayload(payload)
-      return !!claimId
-    }
-  }
-
-  public isPrefillClaimId = (claimId:string):boolean => {
-    if (claimId.length <= 64) return false
-
-    try {
-      idToStub(claimId)
-      return true
-    } catch (err) {
-      return false
+      qrData,
+      links: { mobile, web },
     }
   }
 
   public handlePrefillClaim = async (opts: IHandlePrefillClaimOpts) => {
     let { user, application, payload, claimId } = opts
-    if (!claimId) claimId = this.getClaimIdFromPayload(payload)
+    if (!claimId) claimId = getClaimIdFromPayload(payload)
     if (!claimId) throw new Errors.InvalidInput(`expected a claim-prefill product request`)
 
     const { key } = idToStub(claimId)
@@ -469,7 +453,7 @@ export class Remediation {
     if (!key) key = stub.key
 
     const ids = await this.getClaimIdsForKey({ key })
-    const claim = ids.find(id => id == claimId)
+    const claim = ids.find(id => id === claimId)
     if (!claim) {
       throw new Errors.NotFound(`claim with id: ${claimId}`)
     }
@@ -489,3 +473,29 @@ export class Remediation {
 }
 
 export const createRemediation = (opts: RemediationOpts) => new Remediation(opts)
+
+export const isPrefillClaim = (payload:ITradleObject) => {
+  if (payload[TYPE] === PRODUCT_REQUEST) {
+    const claimId = getClaimIdFromPayload(payload)
+    return !!claimId
+  }
+}
+
+const getClaimIdFromPayload = (payload:ITradleObject) => {
+  const { contextId } = payload
+  if (payload[TYPE] === PRODUCT_REQUEST && isPrefillClaimId(contextId)) {
+    return contextId
+  }
+}
+
+const isPrefillClaimId = (claimId:string):boolean => {
+  if (claimId.length <= 64) return false
+
+  try {
+    idToStub(claimId)
+    return true
+  } catch (err) {
+    return false
+  }
+}
+

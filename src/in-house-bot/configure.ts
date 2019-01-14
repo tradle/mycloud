@@ -18,6 +18,7 @@ import {
   Logger,
   Bucket,
   Buckets,
+  StackUtils,
   IIdentity,
   IPrivKey,
   ITradleObject,
@@ -472,9 +473,9 @@ export class Conf {
       Errors.rethrow(err, 'developer')
     }
 
-    // may not be necessary as updateInfra updates lambdas' Environment
-    // and forces reinit
-    await bot.forceReinitializeContainers()
+    // // may not be necessary as updateInfra updates lambdas' Environment
+    // // and forces reinit
+    // await this.bot.forceReinitializeContainers()
   }
 
   public update = async ({ bot, update }: {
@@ -508,11 +509,12 @@ export class Conf {
     if (terms) {
       await this.setTermsAndConditions(terms)
       updated.terms = true
-    } else if ('terms' in update) {
-      this.logger.debug('deleting T & C')
-      await this.termsAndConditions.del()
-      updated.terms = true
     }
+    // else if ('terms' in update) {
+    //   this.logger.debug('deleting T & C')
+    //   await this.termsAndConditions.del()
+    //   updated.terms = true
+    // }
 
     // await this.save({
     //   bot: conf.bot,
@@ -537,6 +539,19 @@ export class Conf {
       org ? this.org.put(org) : RESOLVED_PROMISE,
       bot ? this.botConf.put(bot) : RESOLVED_PROMISE,
     ])
+  }
+
+  public static ensureStackParametersDidNotChange = async ({ from, to }: {
+    from: any
+    to: any
+  }) => {
+    for (let key in to) {
+      let prev = String(from[key])
+      let latest = String(to[key])
+      if (latest !== prev) {
+        throw new Errors.InvalidInput(`parameter "${key}" is immutable, you can't change it from "${prev}" to "${latest}"`)
+      }
+    }
   }
 }
 

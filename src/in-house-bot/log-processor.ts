@@ -108,6 +108,7 @@ const XRAY_SPAM = [
   '_X_AMZN_TRACE_ID is missing required data',
   'Subsegment streaming threshold set to',
   'capturing all http requests with AWSXRay',
+  'AWSXray is off'
 ]
 
 // const MONTHS = [
@@ -545,6 +546,8 @@ export const generateAlertEmail = (alert: ParsedAlertEvent) => {
 
   const { stackName, accountId } = alert
   const subject = truncate(`${alert.body.function.name} (${accountId}): ${errorMsgs[0]}`, { length: 100 })
+    .replace(/[\r\n]/g, ' ')
+
   let body = json2yaml.stringify(gist)
   if (errorMsgs.length) {
     body = `ERRORS: ${errorMsgs.join('\n')}

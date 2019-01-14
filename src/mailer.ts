@@ -27,6 +27,13 @@ const REGIONS = [
 
 const toArray = val => val ? [].concat(val) : []
 
+export const validateSendOpts = (opts: IMailerSendEmailOpts) => {
+  const { subject } = opts
+  if (/[\r\n]/.test(subject)) {
+    throw new Errors.InvalidInput(`email subject cannot include line breaks: ${subject}`)
+  }
+}
+
 export const interpetSendOpts = (opts: IMailerSendEmailOpts): SES.SendEmailRequest => {
   const body = { Data: opts.body }
   const req:SES.SendEmailRequest = {
@@ -58,6 +65,7 @@ export default class Mailer implements IMailer {
   }
 
   public send = async (opts: IMailerSendEmailOpts):Promise<IMailerSendEmailResult> => {
+    validateSendOpts(opts)
     this.logger.debug('sending email', _.omit(opts, 'body'))
     const res = await this.client.sendEmail(interpetSendOpts(opts)).promise()
     return {
@@ -84,7 +92,7 @@ export default class Mailer implements IMailer {
       Errors.rethrow(err, 'developer')
       return {
         result: false,
-        reason: err.message
+        reason: err.message || `failed to check if ${address} is verified as a sender email`
       }
     }
 

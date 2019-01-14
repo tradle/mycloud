@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: parameter echo
+
+Parameters:
+  SourceDeploymentBucket:
+    Type: String
+
+  ApiGatewayRestApi:
+    Type: String
+
+  ApiGatewayRestApiRootResourceId:
+    Type: String
+
+Resources:
+  Dummy:
+    Type: AWS::CloudFormation::WaitConditionHandle
+
+Outputs:
+  SourceDeploymentBucket:
+    Value:
+      Ref: SourceDeploymentBucket
+
+  ApiGatewayRestApi:
+    Value:
+      Ref: ApiGatewayRestApi
+
+  ApiGatewayRestApiRootResourceId:
+    Value:
+      Ref: ApiGatewayRestApiRootResourceId

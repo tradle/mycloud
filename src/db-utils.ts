@@ -23,7 +23,14 @@ import {
 import { prettify, alphabetical, format } from './string-utils'
 import { sha256 } from './crypto'
 import Errors from './errors'
-import { Env, StreamRecordType, IStreamRecord } from './types'
+import {
+  Env,
+  StreamRecordType,
+  IStreamRecord,
+  AwsApis,
+  Logger,
+  IServiceMap,
+} from './types'
 
 export type PropPath = string|string[]
 export type PathAndValuePair = [PropPath, any]
@@ -59,7 +66,6 @@ type ItemWorker = (item:any) => Promise<boolean|void>
 const alwaysTrue = (...any) => true
 const MAX_BATCH_SIZE = 25
 const CONSISTENT_READ_EVERYTHING = true
-const TABLE_BUCKET_REGEX = /-bucket-\d+$/
 const defaultBackoffFunction = (retryCount:number) => {
   const delay = Math.pow(2, retryCount) * 500
   return Math.min(jitter(delay, 0.1), 10000)
@@ -80,33 +86,34 @@ export {
   unmarshallDBItem
 }
 
-const renderDefinitions = ({ definitions, stackName }) => {
+const renderDefinitions = ({ definitions, serviceMap }: {
+  definitions: any
+  serviceMap: IServiceMap
+}) => {
   definitions = _.cloneDeep(definitions)
-  _.forEach(definitions, resource => {
+  _.forEach(definitions, (resource, logicalId) => {
     if (resource.Type === 'AWS::DynamoDB::Table') {
-      resource.Properties.TableName = format(resource.Properties.TableName, {
-        stackName
-      })
+      resource.Properties.TableName = serviceMap.Table[logicalId]
     }
   })
 
   return definitions
 }
 
-function createDBUtils ({ aws, logger, env }) {
-  const getDefinitions = (() => {
-    let definitions
-    return () => {
-      if (!definitions) {
-        definitions = renderDefinitions({
-          definitions: require('./definitions'),
-          stackName: env.STACK_NAME
-        })
-      }
+function createDBUtils ({ aws, logger, env, serviceMap }: {
+  aws: AwsApis
+  logger: Logger
+  env: Env
+  serviceMap: IServiceMap
+}) {
+  const getDefinitions = _.memoize(() => renderDefinitions({
+    definitions: require('./definitions'),
+    serviceMap,
+  }))
 
-      return definitions
-    }
-  })();
+  const getTableBuckets = _.memoize(() => [
+    getDefinitions().Bucket0
+  ])
 
   const getCachedDefinition = tableName => {
     const definitions = getDefinitions()
@@ -126,20 +133,6 @@ function createDBUtils ({ aws, logger, env }) {
       warn: (...data) => dynogelsLogger.warn('', data),
       level: 'warn'
     }
-  }
-
-  let tableBuckets
-  const getTableBuckets = () => {
-    const definitions = getDefinitions()
-    if (!tableBuckets) {
-      tableBuckets = Object.keys(definitions)
-        .filter(logicalId => {
-          return TABLE_BUCKET_REGEX.test(definitions[logicalId].Properties.TableName)
-        })
-        .map(logicalId => definitions[logicalId].Properties)
-    }
-
-    return tableBuckets
   }
 
   function getTable (TableName) {
@@ -313,6 +306,7 @@ function createDBUtils ({ aws, logger, env }) {
     let response
     while (keepGoing && (lastEvaluatedKey || retry)) {
       try {
+        // @ts-ignore
         response = await aws.docClient[method](params).promise()
       } catch (err) {
         if (err.retryable) {
@@ -388,7 +382,7 @@ function createDBUtils ({ aws, logger, env }) {
       opts.ExclusiveStartTableName = LastEvaluatedTableName
     }
 
-    return tables.filter(name => name.startsWith(env.SERVERLESS_PREFIX))
+    return tables.filter(name => name.startsWith(env.STACK_RESOURCE_PREFIX))
   }
 
   const get = async (params:AWS.DynamoDB.GetItemInput) => {

@@ -14,6 +14,7 @@ import {
 } from '../types'
 import { getLatestForms, getStatusMessageForCheck } from '../utils'
 import Errors from '../../errors'
+import { post } from '../../utils'
 
 const { TYPE, TYPES } = constants
 const { VERIFICATION } = TYPES
@@ -26,6 +27,8 @@ const NTECH_API_RESOURCE = {
   [TYPE]: 'tradle.API',
   name: PROVIDER
 }
+
+const REQUEST_TIMEOUT = 10000
 
 export const name = 'facial-recognition'
 
@@ -121,13 +124,19 @@ export class FacialRecognitionAPI {
     form.append('photo2', photoID);
     form.append('threshold', this.conf.threshold);
     try {
-      let res = await fetch(this.conf.url + '/v1/verify', { method: 'POST', body: form, headers: {'Authorization':'Token ' + this.conf.token}});
+      const res = await post(this.conf.url + '/v1/verify', form, {
+        headers: {
+          Authorization: 'Token ' + this.conf.token
+        },
+        timeout: REQUEST_TIMEOUT,
+      })
+
       rawData = await res.json() // whatever is returned may be not JSON
-      this.logger.debug('Face recognition check, match:', rawData);
+      this.logger.debug('Face recognition check, match:', rawData)
     } catch (err) {
       debugger
       error = `Check was not completed for "${buildResource.title({models, resource: photoID})}": ${err.message}`
-      this.logger.error('Face recognition check', err)
+      this.logger.error('Face recognition check error', err)
       return { status: false, rawData: {}, error }
     }
 
@@ -173,9 +182,13 @@ export class FacialRecognitionAPI {
 
 
     if (rawData.code) {
+      this.logger.error('Face recognition check failed', {
+        param: rawData.param,
+        reason: rawData.reason
+      })
+
       // error happens
       error = `Check was not completed for "${buildResource.title({models, resource: photoID})}": ${rawData.code}`
-      this.logger.error('Face recognition check failed: ' + rawData.param + '->' + rawData.reason);
       return { status: false, rawData, error }
     }
 

@@ -1,10 +1,13 @@
 
 import acceptAll from 'lodash/stubTrue'
 import isMatch from 'lodash/isMatch'
+import { parseE164, getAWSRegionByCallingCode } from './geo'
 import {
   AwsApis,
   Logger,
   SNSMessage,
+  ISMS,
+  ISendSMSOpts,
 } from './types'
 
 import {
@@ -13,7 +16,17 @@ import {
   pickNonNull,
 } from './utils'
 
-export class SNSUtils {
+const MESSAGE_ATTRIBUTES = {
+  smsType: 'AWS.SNS.SMS.SMSType',
+  senderId: 'AWS.SNS.SMS.SenderID'
+}
+
+const SMS_PRIORITY = {
+  high: 'Transactional',
+  low: 'Promotional',
+}
+
+export class SNSUtils implements ISMS {
   private aws: AwsApis
   private logger: Logger
   constructor ({ aws, logger }: {
@@ -131,6 +144,29 @@ export class SNSUtils {
     await this._client(topic).publish(
       pickNonNull(params) as AWS.SNS.PublishInput
     ).promise()
+  }
+
+  public sendSMS = async ({ phoneNumber, message, senderId, highPriority }: ISendSMSOpts) => {
+    const { callingCode, number } = parseE164(phoneNumber)
+    const region = getAWSRegionByCallingCode(callingCode)
+    const client = this.aws.create('SNS', region) as AWS.SNS
+    this.logger.silly('sending SMS', { region, callingCode, number })
+    const params: AWS.SNS.PublishInput = {
+      PhoneNumber: callingCode + number,
+      Message: message,
+      MessageAttributes: {}
+    }
+
+    if (senderId) {
+      params.MessageAttributes[MESSAGE_ATTRIBUTES.senderId] = { DataType: 'String', StringValue: 'Tradle' }
+    }
+
+    params.MessageAttributes[MESSAGE_ATTRIBUTES.smsType] = {
+      DataType: 'String',
+      StringValue: highPriority ? SMS_PRIORITY.high : SMS_PRIORITY.low,
+    }
+
+    await client.publish(params).promise()
   }
 
   private _client = (arnOrRegion?: string) => {

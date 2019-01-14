@@ -56,8 +56,6 @@ const listApplications = `{
         _time
         _author
         _authorTitle
-        _virtual
-        time
         _t
         _s
         applicant {

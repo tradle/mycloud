@@ -7,7 +7,7 @@ import Promise from 'bluebird'
 import Cache from 'lru-cache'
 import sinon from 'sinon'
 import ModelsPack from '@tradle/models-pack'
-import Logger from '../logger'
+import Logger, { noopLogger } from '../logger'
 import KV from '../kv'
 import KVS3 from '../kv-s3'
 import { importKey, randomString, sha256, signWithPemEncodedKey, verifyWithPemEncodedKey } from '../crypto'
@@ -33,6 +33,7 @@ import { createTestBot } from '../'
 import { Bucket } from '../bucket'
 import { createSilentLogger } from './utils'
 import { models as PingPongModels } from '../ping-pong-models'
+import { TaskManager } from '../task-manager'
 import {
   IKeyValueStore,
   Bot
@@ -888,8 +889,7 @@ test('batchProcess', loudAsync(async (t) => {
   // series
   await batchProcess({
     data: [0, 1, 2],
-    batchSize: 10,
-    series: true,
+    batchSize: 1,
     processOne: (num, idx) => {
       t.equal(idx, i)
       t.equal(num, i++)
@@ -897,7 +897,7 @@ test('batchProcess', loudAsync(async (t) => {
     }
   })
 
-  // parallel
+  // parallel, max concurrency > input size
   let time = Date.now()
   await batchProcess({
     data: [100, 100, 100],
@@ -908,27 +908,18 @@ test('batchProcess', loudAsync(async (t) => {
   t.ok(Math.abs(Date.now() - time - 100) < 100)
   time = Date.now()
 
-  // parallel, limited batch size
-  await batchProcess({
-    data: [100, 100, 100],
-    batchSize: 1,
-    processOne: millis => wait(millis)
-  })
-
-  t.ok(Math.abs(Date.now() - time - 300) < 100)
-
-  // parallel, limited batch size
+  // parallel, settle
   let results = await batchProcess({
     data: [100, 100, 100],
-    batchSize: 1,
-    processOne: millis => timeoutIn({ millis }),
+    batchSize: 10,
+    processOne: millis => timeoutIn(millis),
     settle: true
   })
 
   t.ok(results.every(r => r.reason))
 
   time = Date.now()
-  // parallel, process batch
+  // parallel, max concurrency < input size
   results = await batchProcess({
     data: [100, 100, 100, 100],
     batchSize: 2,
@@ -940,19 +931,6 @@ test('batchProcess', loudAsync(async (t) => {
   })
 
   t.ok(Math.abs(Date.now() - time - 400) < 100)
-
-  time = Date.now()
-  // series, process batch
-  results = await batchProcess({
-    data: [100, 100, 100, 100],
-    batchSize: 2,
-    processOne: millis => wait(millis),
-    series: true,
-    settle: true
-  })
-
-  t.ok(Math.abs(Date.now() - time - 400) < 100)
-
   t.end()
 }))
 
@@ -1175,6 +1153,31 @@ test('scheduler', loudAsync(async (t) => {
   clock.restore()
   t.end()
 }))
+
+test('task manager', loudAsync(async (t) => {
+  const tasks = new TaskManager({ logger: noopLogger })
+  const good = tasks.add({
+    name: 'a',
+    promise: Promise.delay(100).then(() => 'a')
+  })
+
+  const bad = tasks.add({
+    name: 'b',
+    promise: Promise.delay(200).then(() => {
+      throw new Error('b')
+    })
+  })
+
+  t.equal(await good, 'a')
+  t.equal(tasks.length(), 1)
+
+  const results = await tasks.awaitAllSettled()
+  t.equal(results[0].isRejected, true)
+  t.equal(tasks.length(), 0)
+
+  t.end()
+}))
+
 
 // import * as DBKey from '../db-key'
 // test.only('db-key', t => {

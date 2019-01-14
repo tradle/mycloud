@@ -64,89 +64,6 @@ if (!baseMessageModel.indexes) {
   ]
 }
 
-// const formModel = core['tradle.Form']
-// if (!formModel.properties.verifications) {
-//   formModel.properties.verifications = {
-//     type: 'array',
-//     readOnly: true,
-//     items: {
-//       backlink: 'document',
-//       ref: 'tradle.Verification'
-//     }
-//   }
-// }
-
-// const appSubModel = {
-//   type: 'tradle.Model',
-//   id: 'tradle.ApplicationSubmission',
-//   title: 'Application Submission',
-//   properties: {
-//     application: {
-//       type: 'object',
-//       ref: 'tradle.Application'
-//     },
-//     submission: {
-//       type: 'object',
-//       ref: 'tradle.Object'
-//     },
-//     // a: {
-//     //   type: 'string'
-//     // },
-//     // b: {
-//     //   type: 'string'
-//     // },
-//     context: {
-//       type: 'string'
-//     }
-//   },
-//   required: [
-//     'application',
-//     'submission',
-//     // 'bType',
-//   ],
-//   primaryKeys: {
-//     hashKey: 'application.permalink',
-//     rangeKey: 'submission.permalink'
-//   },
-//   indexes: [
-//     {
-//       hashKey: 'context',
-//       rangeKey: '_time'
-//     }
-//   ]
-// }
-
-// core[appSubModel.id] = appSubModel
-
-const appModel = core['tradle.Application']
-// appModel.properties.checks.items.backlink = 'application'
-// appModel.properties.submissions = {
-//   type: 'array',
-//   items: {
-//     ref: 'tradle.ApplicationSubmission',
-//     backlink: 'application'
-//   }
-// }
-
-// appModel.properties.emailChecks = {
-//   type: 'array',
-//   items: {
-//     ref: 'tradle.EmailCheck',
-//     backlink: 'application'
-//   }
-// }
-
-if (!appModel.indexes) {
-  appModel.indexes = []
-}
-
-if (!appModel.indexes.find(i => i.hashKey === 'context')) {
-  appModel.indexes.push({
-    hashKey: 'context',
-    rangeKey: '_time'
-  })
-}
-
 const jsonItem = {
   type: 'tradle.Model',
   id: 'tradle.POJO',
@@ -163,39 +80,6 @@ const jsonItem = {
 }
 
 core[jsonItem.id] = jsonItem
-
-// const cloudEventModel = {
-//   type: 'tradle.Model',
-//   id: 'tradle.cloud.Event',
-//   title: 'Event',
-//   properties: {
-//     topic: {
-//       type: 'string'
-//     },
-//     timeR: {
-//       type: 'string'
-//     },
-//     dateN: {
-//       type: 'string'
-//     },
-//     data: {
-//       type: 'object',
-//       range: 'json'
-//     }
-//   },
-//   primaryKeys: {
-//     hashKey: 'topic',
-//     rangeKey: 'timeR',
-//   },
-//   required: [
-//     'topic',
-//     'timeR',
-//     'dateN',
-//     'data'
-//   ]
-// }
-
-// models[cloudEventModel.id] = cloudEventModel
 
 const models = extend(
   {},

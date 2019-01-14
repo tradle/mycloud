@@ -3,10 +3,7 @@ import { ICommand } from '../types'
 export const command:ICommand = {
   name: 'model',
   examples: [
-    '/model'
-  ],
-  aliases: [
-    '/model id',
+    '/model <id>'
   ],
   description: 'get a model by its id',
   exec: async ({ commander, req, args }) => {

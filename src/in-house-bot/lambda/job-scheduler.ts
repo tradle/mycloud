@@ -41,12 +41,12 @@ const COMMON_JOBS:Job[] = [
   {
     name: 'sealpending',
     function: SEALPENDING_FUNCTION,
-    period: 10 * MINUTE,
+    period: 7 * MINUTE,
   },
   {
     name: 'pollchain',
     function: POLLCHAIN_FUNCTION,
-    period: 10 * MINUTE,
+    period: 11 * MINUTE,
   },
   {
     name: 'retryDelivery',
@@ -58,12 +58,12 @@ const COMMON_JOBS:Job[] = [
     function: DEFAULT_JOB_RUNNER_FUNCTION,
     period: 17 * MINUTE,
   },
-  {
-    name: 'documentChecker',
-    function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: MINUTE,
-    requiresComponents: ['documentChecker']
-  },
+  // {
+  //   name: 'documentChecker',
+  //   function: DEFAULT_JOB_RUNNER_FUNCTION,
+  //   period: MINUTE,
+  //   requiresComponents: ['documentChecker']
+  // },
   // {
   //   name: 'cleanupTmpSNSTopics',
   //   function: DEFAULT_JOB_RUNNER_FUNCTION,
@@ -72,6 +72,18 @@ const COMMON_JOBS:Job[] = [
   //   requiresComponents: ['deployment']
   // },
 ]
+
+const { env, logger } = lambda
+if (env.SEALING_MODE === 'batch') {
+  logger.debug('scheduling batch sealing job')
+  COMMON_JOBS.push({
+    name: 'createSealBatch',
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
+    period: env.SEAL_BATCHING_PERIOD || 5,
+  })
+} else {
+  logger.debug('sealing in single mode')
+}
 
 const addJobs = once((components: ILambdaContextComponents) => {
   COMMON_JOBS.forEach(job => {

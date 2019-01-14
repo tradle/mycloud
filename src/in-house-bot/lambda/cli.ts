@@ -1,10 +1,3 @@
-// require('../../cli/utils').loadRemoteEnv()
-// process.nextTick(() => {
-//   lambda.handler('/getconf --conf', {
-//     done: (err, result) => console.log(err||result)
-//   })
-// })
-
 import pick from 'lodash/pick'
 import { fromCli } from '../lambda'
 import { IPBMiddlewareContext } from '../types'
@@ -18,11 +11,13 @@ lambda.use(async (ctx:IPBMiddlewareContext, next) => {
   }
 
   const { productsAPI, commands } = components
+  const command = event
   const { result, error } = await commands.execFromString({
-    command: event,
+    command,
     sudo: true
   })
 
+  lambda.logger.debug(`executed command: ${command}`)
   ctx.body = {
     result,
     error: error && pick(error, ['name', 'type', 'message'])

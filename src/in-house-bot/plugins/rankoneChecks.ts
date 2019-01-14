@@ -19,7 +19,9 @@ import {
 
 import {
   getLatestForms,
-  doesCheckExist,
+  // doesCheckExist,
+  getChecks,
+  hasPropertiesChanged,
   getStatusMessageForCheck,
   ensureThirdPartyServiceConfigured,
   getThirdPartyServiceInfo,
@@ -44,6 +46,7 @@ const RANKONE_API_RESOURCE = {
   name: PROVIDER
 }
 const DEFAULT_THRESHOLD = 0.8
+const REQUEST_TIMEOUT = 10000
 
 export const name = 'rankone-checks'
 
@@ -73,30 +76,45 @@ export class RankOneCheckAPI {
       // not enough info
       return
     }
-    if (await doesCheckExist({bot: this.bot, type: FACIAL_RECOGNITION, eq: {selfie: selfieStub.link, photoID: photoIDStub.link}, application, provider: PROVIDER}))
-      return
-
-    // const { items } = await this.bot.db.find({
-    //   filter: {
-    //     EQ: {
-    //       [TYPE]: FACIAL_RECOGNITION,
-    //       'application._permalink': application._permalink,
-    //       'provider': PROVIDER,
-    //       'selfie._link': selfieStub.link,
-    //       'photoID._link': photoIDStub.link,
-    //     }
-    //   }
-    // })
-    // if (items.length)
+    // if (await doesCheckExist({bot: this.bot, type: FACIAL_RECOGNITION, eq: {selfie: selfieStub.link, photoID: photoIDStub.link}, application, provider: PROVIDER}))
     //   return
-
     this.logger.debug('Face recognition both selfie and photoId ready');
+
+    // const [photoID, selfie] = await Promise.all([
+    //     photoIDStub,
+    //     selfieStub
+    //   ].map(stub => this.bot.getResource(stub, { resolveEmbeds: true })))
 
     const [photoID, selfie] = await Promise.all([
         photoIDStub,
         selfieStub
-      ].map(stub => this.bot.getResource(stub, { resolveEmbeds: true })))
+      ].map(stub => this.bot.getResource(stub)))
 
+    let selfieLink = selfie._link
+    let photoIdLink = photoID._link
+    let items = await getChecks({bot: this.bot, type: FACIAL_RECOGNITION, application, provider: PROVIDER})
+    if (items.length) {
+      let checks = items.filter(r => r.selfie._link === selfieLink || r.photoID._link === photoIdLink)
+      if (checks.length) {
+        let r = checks[0]
+        // debugger
+        if (r.selfie._link === selfieLink && r.photoID._link === photoIdLink) {
+          this.logger.debug(`Rankone: check already exists for ${photoID.firstName} ${photoID.lastName} ${photoID.documentType.title}`)
+          return
+        }
+// debugger
+        // Check what changed photoID or Selfie.
+        // If it was Selfie then create a new check since Selfi is not editable
+        if (r.selfie._link === selfieLink) {
+          let changed = await hasPropertiesChanged({ resource: photoID, bot: this.bot, propertiesToCheck: ['scan'] })
+          if (!changed) {
+            this.logger.debug(`Rankone: nothing to check the 'scan' didn't change ${photoID.firstName} ${photoID.lastName} ${photoID.documentType.title}`)
+            return
+          }
+        }
+      }
+    }
+    await Promise.all([this.bot.resolveEmbeds(selfie), this.bot.resolveEmbeds(photoID)])
     return { selfie, photoID }
   }
 
@@ -135,12 +153,16 @@ export class RankOneCheckAPI {
     }
 
     try {
-      rawData = await post(`${apiUrl}/verify`, form, { headers })
+      rawData = await post(`${apiUrl}/verify`, form, {
+        headers,
+        timeout: REQUEST_TIMEOUT,
+      })
+
       this.logger.debug('Face recognition check, match:', rawData)
     } catch (err) {
       debugger
-      error = `Check was not completed for "${buildResource.title({models, resource: photoID})}": ${err.message}`
-      this.logger.error('Face recognition check', err)
+      error = `check was not completed for "${buildResource.title({models, resource: photoID})}": ${err.message}`
+      this.logger.error('Face recognition check error', err)
       return { status: 'error', rawData: {}, error }
     }
 
@@ -178,10 +200,13 @@ export class RankOneCheckAPI {
       checkR.score = rawData.similarity
     // debugger
     checkR.message = getStatusMessageForCheck({models: this.bot.models, check: checkR})
+
+    this.logger.debug(`Creating RankOne ${FACIAL_RECOGNITION} for: ${photoID.firstName} ${photoID.lastName}`);
     const check = await this.bot.draft({ type: FACIAL_RECOGNITION })
       .set(checkR)
       .signAndSave()
 
+    this.logger.debug(`Created RankOne ${FACIAL_RECOGNITION} for: ${photoID.firstName} ${photoID.lastName}`);
     return check.toJSON()
   }
 

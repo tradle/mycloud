@@ -172,7 +172,8 @@ export default class Friends {
 
   public list = async () => {
     const { items } = await this.db.list(FRIEND_TYPE, {
-      allowScan: true
+      allowScan: true,
+      limit: Infinity,
     })
 
     return items

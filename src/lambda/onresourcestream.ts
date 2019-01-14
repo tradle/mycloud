@@ -1,8 +1,9 @@
 // @ts-ignore
 import Promise from 'bluebird'
 import omit from 'lodash/omit'
+import pick from 'lodash/pick'
+import notNull from 'lodash/identity'
 import groupBy from 'lodash/groupBy'
-import { TYPE } from '@tradle/constants'
 import {
   ILambdaExecutionContext,
   Bot,
@@ -11,9 +12,12 @@ import {
   Model,
   DB
 } from '../types'
+
+import { utils as dynamoUtils } from '@tradle/dynamodb'
 // import { createMiddleware as createMessageMiddleware } from '../middleware/onmessagestream'
 import Errors from '../errors'
 import Events from '../events'
+import { TYPE, TYPES } from '../constants'
 
 const promiseUndefined = Promise.resolve(undefined)
 // when to give up trying to find an object in object storage
@@ -56,6 +60,14 @@ const getBody = async (bot: Bot, item: any) => {
     }
   }
 
+  const { logger } = bot
+  if (dynamoUtils.isObjectMinified(item)) {
+    logger.silly('object is minified!', pick(item, [TYPE]))
+  } else {
+    logger.silly('object is NOT minified!', pick(item, [TYPE]))
+  }
+
+  // logger.silly('object is minified, fetching from object storage')
   const body = await bot.objects.getWithRetry(item._link, {
     logger: bot.logger,
     maxAttempts: 10,
@@ -99,6 +111,28 @@ export const createMiddleware = () => async (ctx:ILambdaExecutionContext, next) 
   await next()
 }
 
+export const batchSeals = async ({ bot, records }: {
+  bot: Bot
+  records: IStreamRecord[]
+}) => {
+  const { sealBatcher } = bot
+  if (!sealBatcher) {
+    bot.logger.debug('seal batcher not set up')
+    return
+  }
+
+  const sealable = records
+    .map(r => r.value)
+    .filter(notNull)
+    .filter(r => r._link && r[TYPE] !== TYPES.SEALABLE_BATCH)
+
+  if (sealable.length) {
+    await sealBatcher.createMicroBatchForResources(sealable)
+  } else {
+    bot.logger.debug('no sealable records', records.map(r => r.value).filter(notNull).map(r => r._t))
+  }
+}
+
 export const processRecords = async ({ bot, records }: {
   bot: Bot
   records: IStreamRecord[]
@@ -109,6 +143,7 @@ export const processRecords = async ({ bot, records }: {
   //   record.laneId = getLaneId(record)
   // })
 
+  const sealBatchPromise = batchSeals({ bot, records })
   const byCat = groupBy(records, Events.getEventCategory)
   if (byCat.resource) {
     byCat.resource.forEach(r => {
@@ -132,6 +167,10 @@ export const processRecords = async ({ bot, records }: {
     perItemTimeout: SAFETY_MARGIN_MILLIS,
     timeout: Math.max(timeLeft - 1000, 0)
   })
+
+  if (sealBatchPromise) {
+    await sealBatchPromise
+  }
 }
 
 const isMessageRecord = (r: IStreamRecord) => r.value && r.value[TYPE] === 'tradle.Message'

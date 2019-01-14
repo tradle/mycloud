@@ -182,9 +182,7 @@ test('init, update', loudAsync(async (t) => {
     t.same(event, expectedEvent)
   })
 
-  await initLambda.handler(originalCreateEvent, {
-    done: t.error
-  } as ILambdaAWSExecutionContext)
+  await initLambda.handler(originalCreateEvent, {} as ILambdaAWSExecutionContext)
 
   t.equal(stackInitFired, true, 'triggered stack:init bot event')
   removeInitHook()
@@ -195,9 +193,7 @@ test('init, update', loudAsync(async (t) => {
   let stackUpdateFired
   bot.hookSimple('stack:update', () => stackUpdateFired = true)
 
-  await initLambda.handler(originalUpdateEvent, {
-    done: t.error
-  } as ILambdaAWSExecutionContext)
+  await initLambda.handler(originalUpdateEvent, {} as ILambdaAWSExecutionContext)
 
   t.equal(stackUpdateFired, true, 'triggered stack:update bot event')
   t.equal(cfnResponseStub.getCall(callCount++).args[2], cfnResponse.SUCCESS)
@@ -222,7 +218,7 @@ test('init, update', loudAsync(async (t) => {
 }))
 
 test(`onmessage`, loudAsync(async (t) => {
-  t.plan(6)
+  t.plan(5)
 
   const sandbox = sinon.createSandbox()
   const bot = createTestBot()
@@ -297,7 +293,7 @@ test(`onmessage`, loudAsync(async (t) => {
   bot.hook('message', async ({ event }) => {
     const { user } = event
     user.bill = 'ted'
-    // 2, 3, 4
+    // 3, 4, 5
     t.equal(user.id, message._author)
     t.same(event.message, message)
     t.same(event.payload, payload)
@@ -306,7 +302,6 @@ test(`onmessage`, loudAsync(async (t) => {
   // const conversation = await bot.hookrs.history('bob')
   // console.log(conversation)
 
-  // #5
   const data = await IotMessage.encode({
     type: 'messages',
     payload: [message]
@@ -323,9 +318,7 @@ test(`onmessage`, loudAsync(async (t) => {
   await onmessageLambda.handler({
     // clientId: 'ted',
     data
-  }, {
-    done: t.error
-  } as ILambdaAWSExecutionContext)
+  }, {} as ILambdaAWSExecutionContext)
 
   await promiseCreates
   sandbox.restore()
@@ -426,7 +419,6 @@ test(`seal events stream`, loudAsync(async (t) => {
   // @ts-ignore
   {
     getRemainingTimeInMillis: () => 20000,
-    done: t.error
   } as ILambdaAWSExecutionContext)
 
   t.equal(read, true)
@@ -475,7 +467,7 @@ test('onmessagestream', loudAsync(async (t) => {
       ]
     },
     "recipientPubKey": "p256:04fffcaea5138d242b161f44d7310a20eefbbb2c39d8bed1061ec5df62c568d99eab7a6137cc4829ac4e2159f759dedf38ba34b6f4e42a0d9eb9486226402ed6ec",
-    "time": 1500317965602
+    "_time": 1500317965602
   }
 
   const payload = {
@@ -557,7 +549,6 @@ test('onmessagestream', loudAsync(async (t) => {
   {
     // #6
     getRemainingTimeInMillis: () => 20000,
-    done: t.error
   } as ILambdaAWSExecutionContext)
 
   sandbox.stub(bot.users, 'get').callsFake(async (id) => {
@@ -595,7 +586,6 @@ test('onmessagestream', loudAsync(async (t) => {
     { value: outbound }
   ]), {
     // #6
-    done: t.error
   } as ILambdaAWSExecutionContext)
 
   // const result = await bot.graphql.execute(`

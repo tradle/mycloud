@@ -15,7 +15,13 @@ import {
 
 import { InvalidSignature } from './errors'
 import { PERMALINK, PREVLINK } from './constants'
-import { IECMiniPubKey, IPrivKey, IIdentity } from './types'
+import {
+  IECMiniPubKey,
+  IPrivKey,
+  IIdentity,
+  ObjectLinks,
+  ITradleObject,
+} from './types'
 
 const doSign = promisify(protocol.sign.bind(protocol))
 const SIGN_WITH_HASH = 'sha256'
@@ -276,6 +282,11 @@ export const sha256 = (data:any, enc:HexOrBase64='base64') => {
   return crypto.createHash('sha256').update(data).digest(enc)
 }
 
+// yes, pretty lame
+export const randomDigits = (length: number) => {
+  return crypto.randomBytes(length).map(byte => byte % 10).join('')
+}
+
 export const randomString = (bytes: number, enc='hex') => {
   return crypto.randomBytes(bytes).toString('hex')
 }
@@ -288,13 +299,14 @@ export const calcLink = object => utils.hexLink(omitVirtual(object))
 
 export const getLink = object => object._link || calcLink(object)
 
-export const getLinks = object => {
+export const getLinks = (object: ITradleObject):ObjectLinks => {
   const link = getLink(object)
-  return {
-    link,
-    permalink: getPermalink(object),
-    prevlink: object[PREVLINK]
-  }
+  const permalink = getPermalink(object)
+  const prevlink = object[PREVLINK]
+  const links: ObjectLinks = { link, permalink }
+  if (prevlink) links.prevlink = prevlink
+
+  return links
 }
 
 export const getPermalink = (object) => {

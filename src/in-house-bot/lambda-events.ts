@@ -37,3 +37,5 @@ export const DOCUMENT_CHECKER_WEBHOOK_EVENT = 'documentChecker:webhook'
 export const DOCUMENT_CHECKER_JOB = 'documentChecker:poll'
 
 export const GET_QR = 'get_qr'
+// map URL sent via SMS to the real URL
+export const SHORT_TO_LONG_URL_MAPPING = 'shortToLongUrlMapping'

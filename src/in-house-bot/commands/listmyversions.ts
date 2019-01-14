@@ -4,6 +4,9 @@ import { ICommand } from '../types'
 export const command:ICommand = {
   adminOnly: true,
   name: 'listmyversions',
+  aliases: [
+    'list-my-versions',
+  ],
   examples: [
     '/listmyversions',
     '/listmyversions --limit 1',

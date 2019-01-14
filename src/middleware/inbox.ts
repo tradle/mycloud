@@ -16,7 +16,7 @@ export const onMessage = () => async (ctx: ILambdaExecutionContext, next) => {
   await next()
 }
 
-export const createSuccessHandler = async () => {}
+export const createSuccessHandler = () => async () => {}
 export const createErrorHandler = () => async ({ message, error }) => {
   Errors.ignore(error, Errors.Duplicate)
 }

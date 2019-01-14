@@ -1,15 +1,23 @@
 
 import Wallet from 'ethereumjs-wallet'
 import BN from 'bn.js'
-import promisify from 'pify'
 import fetch from 'node-fetch'
 import Network from '@tradle/ethereum-adapter'
-import { processResponse } from '../utils'
+import { get } from '../utils'
+import Errors from '../errors'
 
 const debug = require('debug')('tradle:sls:ethereum-adapter')
 const FAUCET_BASE_URL = 'http://faucet.ropsten.be:3001/donate'
+// const GWEI = 1000000000
+// const GAS_LIMIT = 21000
+// MAX_PRICE_IN_WEI is 15 * GWEI * GAS_LIMIT
+const MAX_PRICE_IN_WEI = new BN('315000000000000', 10)
 
-export = function getNetworkAdapters ({ networkName='ropsten', privateKey }) {
+export = function getNetworkAdapters ({ networkName, privateKey }) {
+  if (!networkName) {
+    throw new Errors.InvalidInput('expected string "networkName"')
+  }
+
   let wallet
   let transactor
   if (privateKey) {
@@ -23,8 +31,11 @@ export = function getNetworkAdapters ({ networkName='ropsten', privateKey }) {
       networkName,
       privateKey,
       pollingInterval: 10000,
-      etherscan: true,
-      autostart: false
+      etherscan: {
+        maxRequestsPerSecond: 5,
+      },
+      autostart: false,
+      maxPriceInWei: MAX_PRICE_IN_WEI,
     }
   })
 
@@ -33,7 +44,6 @@ export = function getNetworkAdapters ({ networkName='ropsten', privateKey }) {
   }
 
   const blockchain = network.createBlockchainAPI()
-  const getBalance = promisify(blockchain.addresses.balance)
   const recharge = async ({ address, minBalance, force }) => {
     const minBalanceBN = minBalance.startsWith('0x')
       ? new BN(minBalance.slice(2), 16)
@@ -43,7 +53,7 @@ export = function getNetworkAdapters ({ networkName='ropsten', privateKey }) {
       let balance
       blockchain.start()
       try {
-        balance = await getBalance(address)
+        balance = await blockchain.addresses.balance(address)
         debug(`current balance: ${balance}, min balance: ${minBalance}`)
       } finally {
         blockchain.stop()
@@ -59,8 +69,7 @@ export = function getNetworkAdapters ({ networkName='ropsten', privateKey }) {
 
     debug(`recharging ${address} from faucet at ${FAUCET_BASE_URL}`)
 
-    const res = await fetch(`${FAUCET_BASE_URL}/${address}`)
-    return await processResponse(res)
+    return await get(`${FAUCET_BASE_URL}/${address}`)
   }
 
   return {

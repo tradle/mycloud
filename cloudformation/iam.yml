@@ -1,0 +1,410 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MyCloud IAM
+
+Parameters:
+  Namespace:
+    Type: String
+
+  ObjectsBucket:
+    Type: String
+
+  SecretsBucket:
+    Type: String
+
+  PrivateConfBucket:
+    Type: String
+
+  FileUploadBucket:
+    Type: String
+
+  LogsBucket:
+    Type: String
+
+  DeploymentBucket:
+    Type: String
+
+  IotParentTopic:
+    Type: String
+
+  BucketEncryptionKeyArn:
+    Type: String
+    Default: ""
+
+Conditions:
+  DoAllowEncrypt:
+    Fn::Not:
+      - Fn::Equals:
+        - Ref: BucketEncryptionKeyArn
+        - ""
+
+Resources:
+
+  # role assumed by all IoT clients
+  IotClientRole:
+    Type: AWS::IAM::Role
+    Description: role assumed by every connecting client
+    Properties:
+      RoleName:
+        Fn::Sub: ${Namespace}-iotClientRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+              AWS:
+                - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
+                # would be nice to use the below Fn::GetAtt
+                # but it creates a circular dep
+                # - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:role/${{self:custom.prefix}}${{self:provider.region}}-lambdaRole'
+                # -
+                # Fn::GetAtt:
+                #   - IamRoleLambdaExecution
+                #   - Arn
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName:
+            Fn::Sub: '${Namespace}-${AWS::Region}-iotClientRolePolicy'
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # - Effect: Allow
+              #   Action:
+              #     - dynamodb:*
+              #   Resource:
+              #     - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Bucket0Table'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:::log-group:/aws/lambda/*:*:*
+              # restrict client connect by client id
+              - Effect: Allow
+                Action: ["iot:Connect"]
+                Resource:
+                  Fn::Join:
+                    - ""
+                    - - Fn::Sub: 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:client/'
+                      - '${iot:ClientId}'
+
+              # allow all clients to publish to the send topic
+              - Effect: "Allow"
+                Action: ["iot:Publish"]
+                Resource:
+                  Fn::Join:
+                    - ""
+                    - - Fn::Sub: 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/${IotParentTopic}/'
+                      - '${iot:ClientId}/pub/outbox'
+                #   - arn:aws:iot:::topic/${{self:custom.prefixIOTTopic}}message
+                #   - arn:aws:iot:::topic/${{self:custom.prefixIOTTopic}}restore
+
+              # # restrict client topic subscriptions by their client id
+              - Effect: "Allow"
+                Action: ["iot:Subscribe"]
+                Resource:
+                  Fn::Join:
+                    - ""
+                    - - Fn::Sub: 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/${IotParentTopic}/'
+                      - '${iot:ClientId}/sub/*'
+              # restrict messages clients receive by their client id
+              # this has the same function as the Subscribe rule above
+              # provided the Subscribe policy is upheld, this policy should always give a pass
+              - Effect: "Allow"
+                Action: ["iot:Receive"]
+                Resource:
+                  Fn::Join:
+                    - ""
+                    - - Fn::Sub: 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/${IotParentTopic}/'
+                      - '${iot:ClientId}/sub/*'
+
+              - Fn::If:
+                - DoAllowEncrypt
+                - Effect: Allow
+                  Action:
+                    - kms:GenerateDataKey
+                  Resource:
+                    Ref: BucketEncryptionKeyArn
+                - Ref: AWS::NoValue
+
+  AutoScalingDynamoDBRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - application-autoscaling.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName:
+            Fn::Sub: ${Namespace}-${AWS::Region}-AutoScalingDynamoDBPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:DescribeTable
+                  - dynamodb:UpdateTable
+                Resource:
+                  Fn::Sub: "arn:aws:dynamodb:${AWS::Region}:*:table/${Namespace}*"
+              - Effect: Allow
+                Action:
+                  - cloudwatch:DescribeAlarms
+                  - cloudwatch:PutMetricAlarm
+                  - cloudwatch:DeleteAlarms
+                Resource: "*"
+
+# S3 Bucket Policies
+
+  ObjectsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: ObjectsBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: PreventDeleteBucket
+            Action:
+              - s3:DeleteBucket
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: ObjectsBucket
+            Principal:
+              AWS: "*"
+
+          - Sid: PreventDeleteObjects
+            Action:
+              - s3:DeleteObject
+              - s3:DeleteObjectVersion
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: ObjectsBucket
+                  - '/*'
+            Principal:
+              AWS: "*"
+
+
+  SecretsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: SecretsBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: PreventDeleteBucket
+            Action:
+              - s3:DeleteBucket
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: SecretsBucket
+            Principal:
+              AWS: "*"
+
+          - Sid: PreventDeleteObjects
+            Action:
+              - s3:DeleteObject
+              - s3:DeleteObjectVersion
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: SecretsBucket
+                  - '/*'
+            Principal:
+              AWS: "*"
+
+
+  PrivateConfBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: PrivateConfBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: PreventDeleteBucket
+            Action:
+              - s3:DeleteBucket
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: PrivateConfBucket
+            Principal:
+              AWS: "*"
+
+          - Sid: PreventDeleteObjects
+            Action:
+              - s3:DeleteObject
+              - s3:DeleteObjectVersion
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: PrivateConfBucket
+                  - '/*'
+            Principal:
+              AWS: "*"
+
+
+  FileUploadBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: FileUploadBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: PreventDeleteBucket
+            Action:
+              - s3:DeleteBucket
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: FileUploadBucket
+            Principal:
+              AWS: "*"
+
+          - Sid: PreventDeleteObjects
+            Action:
+              - s3:DeleteObject
+              - s3:DeleteObjectVersion
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: FileUploadBucket
+                  - '/*'
+            Principal:
+              AWS: "*"
+
+
+          # FileUploadBucket specific
+          - Sid: PutAccess
+            Action:
+              - s3:PutObject
+            Effect: Allow
+            Resource:
+              Fn::Join:
+                - ""
+                - - "arn:aws:s3:::"
+                  - Ref: FileUploadBucket
+                  - /
+                  # ${aws:userid} will change on every session
+                  # which will prevent users from clobbering old uploads
+                  - ${aws:userid}
+                  - "/*"
+            Principal:
+              AWS:
+                Fn::GetAtt: IotClientRole.Arn
+
+  LogsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: LogsBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: PreventDeleteBucket
+            Action:
+              - s3:DeleteBucket
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: LogsBucket
+            Principal:
+              AWS: "*"
+
+          - Sid: PreventDeleteObjects
+            Action:
+              - s3:DeleteObject
+              - s3:DeleteObjectVersion
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: LogsBucket
+                  - '/*'
+            Principal:
+              AWS: "*"
+
+
+
+  DeploymentBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: DeploymentBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: PreventDeleteBucket
+            Action:
+              - s3:DeleteBucket
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: DeploymentBucket
+            Principal:
+              AWS: "*"
+
+          - Sid: PreventDeleteObjects
+            Action:
+              - s3:DeleteObject
+              - s3:DeleteObjectVersion
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: DeploymentBucket
+                  - '/*'
+            Principal:
+              AWS: "*"
+
+Outputs:
+  IotClientRole:
+    Value:
+      Fn::GetAtt: IotClientRole.Arn
+
+  AutoScalingDynamoDBRole:
+    Value:
+      Fn::GetAtt: AutoScalingDynamoDBRole.Arn
+
+  StackName:
+    Value:
+      Ref: AWS::StackName
+
+  StackId:
+    Value:
+      Ref: AWS::StackId

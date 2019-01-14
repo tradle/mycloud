@@ -3,7 +3,7 @@ import cors from 'kcors'
 import once from 'lodash/once'
 import { bodyParser } from '../middleware/body-parser'
 import { route } from '../middleware/noop-route'
-import { Lambda, Bot, ILambdaExecutionContext } from '../types'
+import { Lambda, Bot, ILambdaExecutionContext, MiddlewareHttp } from '../types'
 import { fromHTTP } from '../lambda'
 import { onMessage as onMessageInInbox, createSuccessHandler, createErrorHandler } from '../middleware/inbox'
 import { onMessage } from '../middleware/onmessage'
@@ -14,14 +14,19 @@ const MODELS_PACK = 'tradle.ModelsPack'
 
 export const createMiddleware = () => {
   const hookUp = once(async (bot: Bot) => {
+    const { logger } = bot
     bot.tasks.add({
       name: 'getkeys',
       promiser: bot.identity.getPrivate
     })
 
-    const { logger } = bot
     bot.hook(EventTopics.message.inbound.sync, async (ctx, next) => {
-      const { type, payload } = ctx.event
+      const { type, payload, user } = ctx.event
+      bot.tasks.add({
+        name: 'reset-delivery-error',
+        promiser: () => bot.delivery.http.resetError({ counterparty: user.id })
+      })
+
       if (type === MODELS_PACK) {
         try {
           await bot.modelStore.addModelsPack({
@@ -35,9 +40,9 @@ export const createMiddleware = () => {
           logger.error(err.message, { modelsPack: payload })
           return // prevent further processing
         }
-      }
 
-      await next()
+        await next()
+      }
     })
   })
 

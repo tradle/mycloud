@@ -7,6 +7,10 @@ import {
   Logger,
   IOrganization,
   LowFundsInput,
+  ITradleObject,
+  ResourceStub,
+  MiniVersionInfo,
+  IChildDeployment,
 } from './types'
 
 interface VersionEmailInput {
@@ -54,7 +58,7 @@ export class Alerts {
     blockchain,
     networkName,
     address,
-    balance,
+    balance=0,
     minBalance=this.bot.blockchain.minBalance
   }: LowFundsInput) => {
     await this._emailAdmin({
@@ -72,6 +76,88 @@ Address: ${address}
 Grumpily,
 Your MyCloud
 `,
+    })
+  }
+
+  public childUpdated = async ({ from, to }: {
+    from: IChildDeployment
+    to: IChildDeployment
+  }) => {
+    const { identity } = from
+    if (!identity) return
+
+    const friend = await this.bot.friends.getByIdentityPermalink(identity._permalink)
+    const fromTag = from.version.tag
+    const toTag = to.version.tag
+    this._emailAdmin({
+      subject: `[MyCloud.UPDATED]: ${friend.name} ${fromTag} -> ${toTag}`,
+      body: `Dearest,
+
+This is your MyCloud. One of your children has updated their MyCloud
+
+From version: ${fromTag}   (#${from.version.commit})
+To version:   ${toTag}     (#${to.version.commit})
+
+The culprit:
+
+Name: ${friend.name}
+Identity: ${identity._permalink}
+Domain: ${friend.domain}
+Org: ${friend.org._displayName || friend.org._permalink}
+StackId: ${to.stackId}
+API Url: ${to.apiUrl}
+`
+    })
+  }
+
+  public childRolledBack = async ({ from, to }: {
+    from?: IChildDeployment
+    to: IChildDeployment
+  }) => {
+    const { identity } = to
+    if (!identity) return
+
+    const friend = await this.bot.friends.getByIdentityPermalink(identity._permalink)
+    const { version } = to
+    this._emailAdmin({
+      subject: `[MyCloud.ROLLBACK]: ${friend.name} rolled back MyCloud (${version.tag})`,
+      body: `Yo,
+
+This is your MyCloud. One of your children has attempted to update their MyCloud, but rolled back.
+
+Version rolled back to:   ${version.tag}     (#${version.commit})
+
+The culprit:
+
+Name: ${friend.name}
+Identity: ${identity._permalink}
+Domain: ${friend.domain}
+Org: ${friend.org._displayName || friend.org._permalink}
+StackId: ${to.stackId}
+API Url: ${to.apiUrl}
+`
+    })
+  }
+
+  public childLaunched = async (childDeployment: IChildDeployment) => {
+    const { identity } = childDeployment
+    if (!identity) return
+
+    const friend = await this.bot.friends.getByIdentityPermalink(identity._permalink)
+    const { tag } = childDeployment.version
+    this._emailAdmin({
+      subject: `[MyCloud.NEW]: ${friend.name} (${tag})`,
+      body: `Yo,
+
+This is your MyCloud. You have a new baby:
+
+Name: ${friend.name}
+Identity: ${identity._permalink}
+Domain: ${friend.domain}
+Org: ${friend.org._displayName || friend.org._permalink}
+StackId: ${childDeployment.stackId}
+API Url: ${childDeployment.apiUrl}
+`
     })
   }
 

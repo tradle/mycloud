@@ -2,6 +2,8 @@ import { parse as parseUrl } from 'url'
 import omit from 'lodash/omit'
 import { uriEscapePath } from 'aws-sdk/lib/util'
 import parseS3Url from 'amazon-s3-uri'
+import emptyBucket from 'empty-aws-bucket'
+import caseless from 'caseless'
 import { sha256 } from './crypto'
 import { alphabetical } from './string-utils'
 import Errors from './errors'
@@ -47,6 +49,37 @@ interface S3UtilsOpts {
   env?: Env
 }
 
+type HeaderToS3PutOption = {
+  [x: string]: keyof S3.PutObjectRequest
+}
+
+const mapToS3PutOption:HeaderToS3PutOption = {
+  ContentType: 'ContentType',
+  'content-type': 'ContentType',
+  ContentEncoding: 'ContentEncoding',
+  'content-encoding': 'ContentEncoding',
+}
+
+const toS3PutOption = caseless(mapToS3PutOption)
+
+const mapHeadersToS3PutOptions = (headers:any):Partial<S3.PutObjectRequest> => {
+  const putOpts:Partial<S3.PutObjectRequest> = {}
+  for (let name in headers) {
+    let s3Option = toS3PutOption.get(name)
+    if (!s3Option) {
+      throw new Errors.InvalidInput(`unrecognized header: ${name}`)
+    }
+
+    putOpts[s3Option] = headers[name]
+  }
+
+  return putOpts
+}
+
+interface S3ObjWithBody extends S3.Object {
+  Body: S3.Body
+}
+
 export default class S3Utils {
   public s3: S3
   public logger: Logger
@@ -78,7 +111,7 @@ export default class S3Utils {
   public put = async ({ key, value, bucket, headers = {}, acl }: BucketPutOpts): Promise<S3.Types.PutObjectOutput> => {
     // logger.debug('putting', { key, bucket, type: value[TYPE] })
     const opts: S3.Types.PutObjectRequest = {
-      ...headers,
+      ...mapHeadersToS3PutOptions(headers),
       Bucket: bucket,
       Key: key,
       Body: toStringOrBuf(value)
@@ -152,20 +185,20 @@ export default class S3Utils {
     map: Function,
     [x: string]: any
   }) => {
-    const params: S3.Types.ListObjectsRequest = {
+    const params: S3.Types.ListObjectsV2Request = {
       Bucket: bucket,
       ...opts
     }
 
     let Marker
     while (true) {
-      let { NextMarker, Contents } = await this.s3.listObjects(params).promise()
+      let { Contents, ContinuationToken } = await this.s3.listObjectsV2(params).promise()
       if (getBody) {
         await batchProcess({
           data: Contents,
           batchSize: 20,
           processOne: async (item) => {
-            const withBody = await this.s3.getObject({ Bucket: bucket, Key: item.Key }).promise()
+            const withBody = await this.get({ bucket, key: item.Key })
             let result = map({ ...item, ...withBody })
             if (isPromise(result)) await result
           }
@@ -177,10 +210,18 @@ export default class S3Utils {
         }))
       }
 
-      if (!NextMarker) break
+      if (!ContinuationToken) break
 
-      params.Marker = NextMarker
+      params.ContinuationToken = ContinuationToken
     }
+  }
+
+  public listObjects = async (opts):Promise<S3ObjWithBody[]> => {
+    return await this.listBucket({ ...opts, getBody: true }) as S3ObjWithBody[]
+  }
+
+  public listObjectsWithKeyPrefix = async (opts):Promise<S3ObjWithBody[]> => {
+    return await this.listBucketWithPrefix({ ...opts, getBody: true }) as S3ObjWithBody[]
   }
 
   public listBucket = async ({ bucket, ...opts })
@@ -503,35 +544,8 @@ export default class S3Utils {
   public emptyBucket = async ({ bucket }: {
     bucket: string
   }) => {
-    const { s3, logger } = this
-    const Bucket = bucket
-    const deleteVersions = versions => this.deleteVersions({ bucket, versions })
-    // get the list of all objects in the bucket
-    const { Versions } = await s3.listObjectVersions({ Bucket }).promise()
-
-    // before we can delete the bucket, we must delete all versions of all objects
-    if (Versions.length > 0) {
-      logger.debug(`deleting ${Versions.length} object versions`)
-      await deleteVersions(Versions)
-    }
-
-    // check for any files marked as deleted previously
-    const { DeleteMarkers } = await s3.listObjectVersions({ Bucket }).promise()
-
-    // if the bucket contains delete markers, delete them
-    if (DeleteMarkers.length > 0) {
-      logger.debug(`deleting ${DeleteMarkers.length} object delete markers`)
-      await deleteVersions(DeleteMarkers)
-    }
-
-    // if there are any non-versioned contents, delete them too
-    const { Contents } = await s3.listObjectsV2({ Bucket }).promise()
-
-    // if the bucket contains delete markers, delete them
-    if (Contents.length > 0) {
-      logger.debug(`deleting ${Contents.length} objects`)
-      await deleteVersions(Contents)
-    }
+    const { s3 } = this
+    return emptyBucket({ s3, bucket })
   }
 
   public createReplicationRole = async ({ iam, source, targets }: {
@@ -640,6 +654,11 @@ export default class S3Utils {
 
     const targets = await Promise.all(willCreate.map(async (region) => {
       const params = getParams(region)
+      this.logger.debug('creating regional bucket', {
+        bucket: params.Bucket,
+        region,
+      })
+
       await this.s3.createBucket(params).promise()
 
       if (this.versioningAvailable) {
@@ -705,8 +724,8 @@ export default class S3Utils {
     return toDel
   }
 
-  public listBucketWithPrefix = async ({ bucket, prefix }) => {
-    return await this.listBucket({ bucket, Prefix: prefix })
+  public listBucketWithPrefix = async ({ bucket, prefix, ...opts }) => {
+    return await this.listBucket({ bucket, Prefix: prefix, ...opts })
   }
 
   public copyFilesBetweenBuckets = async ({ source, target, keys, prefix, acl }: BucketCopyOpts) => {

@@ -6,8 +6,7 @@ export const command:ICommand = {
     '/listproducts'
   ],
   aliases: [
-    '/lsproducts',
-    '/ls-products'
+    'list-products'
   ],
   description: 'see a list of products',
   exec: async ({ commander, req }) => {

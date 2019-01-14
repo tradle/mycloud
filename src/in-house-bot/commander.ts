@@ -64,8 +64,12 @@ export const CUSTOMER_COMMANDS_NAMES = [
   'listproducts',
   'forgetme',
   'tours',
-  'updatemycloud'
 ]
+
+CUSTOMER_COMMANDS_NAMES.forEach(name => {
+  const command = Commands.get(name)
+  if (!command) throw new Error(`command not found: ${name}`)
+})
 
 // export const SUDO_COMMANDS_NAMES = EMPLOYEE_COMMANDS_NAMES.concat(SUDO_ONLY_COMMANDS_NAMES)
 
@@ -192,13 +196,16 @@ export class Commander {
   }
 
   public hasCommand = (ctx:ICommandContext):boolean => {
-    return this.getAvailableCommands(ctx).includes(ctx.commandName)
+    // a bit roundabout, to support aliases
+    const command = this.getCommandByName(ctx.commandName)
+    return this.getAvailableCommands(ctx).includes(command.name)
   }
 
   public ensureHasCommand = (ctx:ICommandContext) => {
     if (this.hasCommand(ctx)) return
 
     if (ctx.employee && this.hasCommand({ ...ctx, sudo: true })) {
+      // sudo is required
       throw new Errors.Forbidden(FORBIDDEN_MESSAGE)
     }
 
@@ -206,23 +213,22 @@ export class Commander {
   }
 
   public defer = async (opts: IDeferredCommandParams):Promise<string> => {
-    const { command, extra, ttl, dateExpires } = opts
+    const { command, extra, ttl, dateExpires, confirmationCode=genConfirmationCode() } = opts
 
     this._ensureCommandExists(command)
     if (!(ttl || dateExpires)) {
       throw new Errors.InvalidInput('expected "ttl" or "dateExpires')
     }
 
-    const code = genConfirmationCode()
     const dateCreated = Date.now()
-    await this.store.put(code, {
+    await this.store.put(confirmationCode, {
       command,
       extra,
       dateCreated,
       dateExpires: dateExpires || (dateCreated + ttl * 1000)
     })
 
-    return code
+    return confirmationCode
   }
 
   // public defer = async (opts: IDeferredCommandInput):Promise<string> => {

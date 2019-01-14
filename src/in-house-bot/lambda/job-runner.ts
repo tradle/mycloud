@@ -22,7 +22,11 @@ lambda.use(async (ctx) => {
   hookIn(bot)
 
   if (!job.name) {
-    throw new Errors.InvalidInput(`job missing name: ${JSON.stringify(job)}`)
+    ctx.body = {
+      error: Errors.exportMini(new Errors.InvalidInput(`job missing name: ${JSON.stringify(job)}`))
+    }
+
+    return
   }
 
   logger.debug(`running job: ${job.name}`)

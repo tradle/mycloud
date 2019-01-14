@@ -23,7 +23,7 @@ import { configureLambda } from '../in-house-bot'
 
 const bot = createRemoteBot()
 const { db, dbUtils, env } = bot
-const { SERVERLESS_PREFIX } = env
+const { STACK_RESOURCE_PREFIX } = env
 // const { clear } = dbUtils
 const readline = require('readline')
 

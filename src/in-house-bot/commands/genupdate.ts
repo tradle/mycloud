@@ -2,9 +2,11 @@ import { ICommand } from '../types'
 
 export const command:ICommand = {
   name: 'genupdate',
-  description: 'get a link to update your MyCloud',
+  adminOnly: true,
+  description: 'generate a MyCloud update package',
   examples: [
-    '/genupdate --provider <identityPermalink>',
+    '/genupdate --tag <versionTag> --stack-id <stackId> --provider [identityPermalink]',
+    '/genupdate --tag <versionTag> --region <awsRegion> --manual',
   ],
   exec: async ({ commander, req, ctx, args }) => {
     const { deployment, productsAPI, employeeManager, logger } = commander
@@ -12,44 +14,18 @@ export const command:ICommand = {
       throw new Error('"deployment" plugin not configured. Please add to plugins in bot.json')
     }
 
-    let { provider, stackId, adminEmail } = args
-    if (req.payload) { // incoming message
-      if (provider) {
-        if (!employeeManager.isEmployee(req.user)) {
-          throw new Error(`oops, you don't have the security clearance`)
-        }
-      } else {
-        if (req.user.friend) {
-          provider = req.user.id
-        }
-
-        throw new Error(`hm, this operation isn't for you`)
-      }
+    let { provider, stackId, tag, manual, region } = args
+    if (!(provider || manual)) {
+      throw new Error('expected string "provider" or flag "manual"')
     }
 
-    // if (!(provider || (stackId && adminEmail))) {
-    //   throw new Error('expected "--provider" or "--stack-id" + "--admin-email"')
-    // }
-
-    if (!provider) {
-      throw new Error('expected string "provider"')
-    }
-
-    const versionInfo = await deployment.getLatestVersionInfo()
-    const update = await deployment.genUpdatePackage({
-      createdBy: provider,
-      versionInfo
+    const { templateUrl } = await deployment.genUpdatePackageForStackWithVersion({
+      tag,
+      region,
+      stackOwner: provider,
+      stackId,
     })
 
-    logger.debug('generated mycloud update link', { url: update.updateUrl })
-    return update
-  },
-  sendResult: async ({ commander, req, to, args, result }) => {
-    const { url } = result
-    await commander.sendSimpleMessage({
-      req,
-      to,
-      message: `🚀 [Click to update your MyCloud](${url})`
-    })
+    return { templateUrl }
   }
 }

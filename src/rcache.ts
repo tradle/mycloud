@@ -2,7 +2,8 @@ import _ from 'lodash'
 import {
   Model,
   IHasModels,
-  ITradleObject
+  ITradleObject,
+  ResourceStub,
 } from './types'
 
 import { mixin as modelsMixin } from './models-mixin'
@@ -11,15 +12,17 @@ import { Resource, IResourcePersister } from './resource'
 
 export class RCache implements IHasModels {
   public store: IResourcePersister
-  private byPermalink: Map<String, Resource>
+  private byPermalink: Map<string, Resource>
   // public byLink: Map<String, Resource>
 
   get models() { return this.store.models }
 
   // IHasModels
   public buildResource: (model: string|Model) => any
-  public buildStub: (resource: ITradleObject) => any
-  public validate: (resource: ITradleObject) => any
+  public buildStub: (resource: ITradleObject) => ResourceStub
+  public validateResource: (resource: ITradleObject) => void
+  public validatePartialResource: (resource: ITradleObject) => void
+  public getModel: (id: string) => Model
 
   constructor({ store }: {
     store: IResourcePersister
@@ -27,7 +30,7 @@ export class RCache implements IHasModels {
     modelsMixin(this)
 
     this.store = store
-    this.byPermalink = new Map<String, Resource>()
+    this.byPermalink = new Map<string, Resource>()
   }
 
   public get = (permalink: string) => {

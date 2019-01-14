@@ -1,4 +1,5 @@
 import fetch from 'node-fetch'
+import _ from 'lodash'
 
 import { buildResourceStub } from '@tradle/build-resource'
 import constants from '@tradle/constants'
@@ -15,7 +16,11 @@ import {
   Applications
 } from '../types'
 
-import { getCheckParameters, getStatusMessageForCheck, doesCheckExist } from '../utils'
+import {
+  getCheckParameters,
+  getStatusMessageForCheck,
+  doesCheckNeedToBeCreated,
+} from '../utils'
 
 const {TYPE} = constants
 const VERIFICATION = 'tradle.Verification'
@@ -90,27 +95,18 @@ class ComplyAdvantageAPI {
 
     let isPerson = criteria  &&  criteria.entity_type === 'person' || isPersonForm(payload)
 // debugger
+    // if (await doesCheckExist({bot: this.bot, type: SANCTIONS_CHECK, eq: {form: payload._link}, application, provider: PROVIDER}))
+    //   return
+    // Check that props that are used for checking changed
     let propertiesToCheck
     if (isPerson)
       propertiesToCheck = ['firstName', 'lastName', 'dateOfBirth']
     else
       propertiesToCheck = ['companyName', 'registrationDate']
 
-    if (await doesCheckExist({bot: this.bot, type: SANCTIONS_CHECK, eq: {form: payload._link}, application, provider: PROVIDER}))
+    let createCheck = await doesCheckNeedToBeCreated({bot: this.bot, type: SANCTIONS_CHECK, application, provider: PROVIDER, form: payload, propertiesToCheck, prop: 'form'})
+    if (!createCheck)
       return
-// debugger
-//     const { items } = await this.bot.db.find({
-//       filter: {
-//         EQ: {
-//           [TYPE]: SANCTIONS_CHECK,
-//           'application._permalink': application._permalink,
-//           'provider': PROVIDER,
-//           'form._link': payload._link
-//         }
-//       }
-//     })
-//     if (items.length)
-//       return
 
     let defaultMap:any = isPerson && defaultPersonPropMap || defaultPropMap
 
@@ -125,7 +121,7 @@ class ComplyAdvantageAPI {
     let name
     if (isPerson) {
       if (!firstName  ||  !lastName  ||  !dateOfBirth) {
-        this.logger.debug(`running sanctions plugin. Not enough information to run the check for: ${payload[TYPE]}`);
+        this.logger.debug(`${PROVIDER}. Not enough information to run the check for: ${payload[TYPE]}`);
         let status = {
           status: 'fail',
           message: !dateOfBirth  &&  'No date of birth was provided'
@@ -137,10 +133,10 @@ class ComplyAdvantageAPI {
       name = firstName + ' ' + lastName
     }
     else {
-      this.logger.debug(`running sanctions plugin for: ${companyName}`);
+      this.logger.debug(`${PROVIDER} for: ${companyName}`);
 
       if (!companyName  ||  !registrationDate) {
-        this.logger.debug(`running sanctions plugin. Not enough information to run the check for: ${payload[TYPE]}`);
+        this.logger.debug(`${PROVIDER}. Not enough information to run the check for: ${payload[TYPE]}`);
         let status = {
           status: 'fail',
           message: !registrationDate  &&  ' No registration date was provided'
@@ -159,10 +155,10 @@ class ComplyAdvantageAPI {
     else {
       let hasVerification
       if (hits  &&  hits.length)
-        this.logger.debug(`found sanctions for: ${companyName ||  name}`);
+        this.logger.debug(`${PROVIDER} found sanctions for: ${companyName ||  name}`);
       else {
         hasVerification = true
-        this.logger.debug(`creating verification for: ${companyName || name}`);
+        this.logger.debug(`${PROVIDER} creating verification for: ${companyName || name}`);
       }
       pchecks.push(this.createCheck({application, rawData: rawData, status, form: payload}))
       if (hasVerification)
@@ -176,21 +172,49 @@ class ComplyAdvantageAPI {
     let search_term = criteria  &&  criteria.search_term
 
     let isCompany = companyName  &&  registrationDate
-    if (!search_term)
-      search_term = isCompany  &&  companyName || (firstName + ' ' + lastName)
-    let date = isCompany  &&  registrationDate  ||  dateOfBirth
-
-    let year = new Date(date).getFullYear()
-    let body:any = {
-      search_term,
-      fuzziness: criteria  &&  criteria.fuzziness  ||  1,
-      share_url: 1,
-      client_ref: search_term.replace(' ', '_') + year,
-      filters: {
-        types: criteria  &&  criteria.filter  &&  criteria.filter.types || ['sanction'],
-        birth_year: year
+    let body:any
+    if (isCompany) {
+      body = {
+        search_term: search_term  ||  companyName,
+        filters: {
+          birth_year: new Date(registrationDate).getFullYear()
+        }
       }
     }
+    else {
+      body = {
+        search_term: {
+          first_name: firstName,
+          last_name: lastName,
+        },
+        filters: {
+          birth_year: new Date(dateOfBirth).getFullYear()
+        }
+      }
+    }
+    _.merge(body, {
+      share_url: 1,
+      fuzziness: criteria.fuzziness || 0,
+      filters: {
+        types: criteria  &&  criteria.filter  &&  criteria.filter.types || ['sanction']
+      }
+    })
+    // debugger
+    // if (!search_term)
+    //   search_term = isCompany  &&  companyName || (firstName + ' ' + lastName)
+    // let date = isCompany  &&  registrationDate  ||  dateOfBirth
+
+    // let year = new Date(date).getFullYear()
+    // let body:any = {
+    //   search_term,
+    //   fuzziness: isCompany  &&  criteria  &&  criteria.fuzziness  ||  0,
+    //   share_url: 1,
+    //   // client_ref: search_term.replace(' ', '_') + year,
+    //   filters: {
+    //     types: criteria  &&  criteria.filter  &&  criteria.filter.types || ['sanction'],
+    //     birth_year: year
+    //   }
+    // }
     body = JSON.stringify(body)
 
     let url = `${BASE_URL}?api_key=${this.conf.credentials.apiKey}`
@@ -206,7 +230,7 @@ class ComplyAdvantageAPI {
                             })
       json = await res.json()
     } catch (err) {
-      this.logger.debug('something went wrong', err)
+      this.logger.debug(`${PROVIDER} something went wrong`, err)
       json = {status: 'failure', message: err.message}
       status = {
         status: 'error',
@@ -225,6 +249,7 @@ class ComplyAdvantageAPI {
     if (!entityType)
       entityType = isCompany  &&  ['company', 'organisation', 'organization']  ||  ['person']
     let hits = rawData.hits.filter((hit) => entityType.includes(hit.doc.entity_type));
+// debugger
     rawData.hits = hits
     rawData = sanitize(rawData).sanitized
     if (hits  &&  hits.length) {
@@ -249,7 +274,7 @@ class ComplyAdvantageAPI {
       date = Date.parse(dateStr) - (new Date().getTimezoneOffset() * 60 * 1000)
     else
       date = new Date().getTime()
-debugger
+// debugger
     let resource:any = {
       [TYPE]: SANCTIONS_CHECK,
       status: status.status,
@@ -271,12 +296,12 @@ debugger
         resource.providerReferenceNumber = rawData.ref
     }
 
-    this.logger.debug(`Creating SanctionsCheck for: ${rawData.submitted_term}`);
+    this.logger.debug(`${PROVIDER} Creating SanctionsCheck for: ${rawData.submitted_term}`);
     const check = await this.bot.draft({ type: SANCTIONS_CHECK })
         .set(resource)
         .signAndSave()
     // const check = await this.bot.signAndSave(resource)
-    this.logger.debug(`Created SanctionsCheck for: ${rawData.submitted_term}`);
+    this.logger.debug(`${PROVIDER} Created SanctionsCheck for: ${rawData.submitted_term}`);
   }
 
   public createVerification = async ({ user, application, form, rawData }) => {

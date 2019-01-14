@@ -14,7 +14,6 @@ import * as AWS from 'aws-sdk-mock'
 import * as serviceMap from './service-map'
 
 const debug = require('debug')('tradle:sls:test:env')
-const sinon = require('sinon')
 const localIP = getLocalIP()
 const props = {
   AWS_REGION: 'us-east-1',

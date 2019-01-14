@@ -16,6 +16,7 @@ import {
   ORG_SIG,
   TIMESTAMP,
   VERSION,
+  PROTOCOL_VERSION,
   TYPES as BASE_TYPES,
 } from '@tradle/constants'
 
@@ -35,11 +36,11 @@ const TYPES = {
   BACKLINK_ITEM: 'tradle.BacklinkItem',
   SEAL_STATE: 'tradle.SealState',
   DELIVERY_ERROR: 'tradle.DeliveryError',
+  SEALABLE_BATCH: 'tradle.SealableBatch',
 }
 
 const UNSIGNED_TYPES = [
   'tradle.IotSession',
-  'tradle.MyCloudFriend',
   'tradle.PubKey',
   'tradle.products.Customer',
   TYPES.SEAL_STATE,
@@ -67,6 +68,7 @@ const constants = {
   RECIPIENT,
   TIMESTAMP,
   VERSION,
+  PROTOCOL_VERSION,
   TYPES,
   IDENTITY_KEYS_KEY: 'keys.json',
   PRIVATE_CONF_BUCKET: {
@@ -105,6 +107,7 @@ const constants = {
   LAUNCH_STACK_BASE_URL: 'https://console.aws.amazon.com/cloudformation/home',
   WEB_APP_URL: 'https://app.tradle.io',
   MOBILE_APP_URL: 'https://link.tradle.io',
+  APP_SCHEME: 'tradle://',
   PUSH_SERVER_URL: {
     // dev: 'https://push1.tradle.io',
     dev: 'https://push1-prod.tradle.io',
@@ -139,6 +142,12 @@ const constants = {
   FORBIDDEN_PAYLOAD_TYPES: UNSIGNED_TYPES,
   ADMIN_ALERTS_TOPIC_NAME: 'AdminAlerts',
   SIGNATURE_FRESHNESS_LEEWAY: 5 * unitToMillis.minute,
+  DEFAULT_SESSION_TTL_SECONDS: 3600,
+  MAX_SESSION_TTL_SECONDS: 3600,
+  MIN_SESSION_TTL_SECONDS: 900,
+  STRIP_PROTOCOL_VERSION_BEFORE_SIGN: true,
+  MAX_DELIVERY_ATTEMPTS: 20,
+  BATCH_SEALING_PROTOCOL_VERSION: 'v1',
 }
 
 export = constants

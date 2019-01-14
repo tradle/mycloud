@@ -41,6 +41,7 @@ import {
 const SealModel = models['tradle.Seal']
 const SealStateModel = models['tradle.SealState']
 const SEAL_MODEL_ID = 'tradle.Seal'
+const BATCH_SEAL_STATE_MODEL_ID = 'tradle.BatchSealState'
 const MAX_ERRORS_RECORDED = 10
 const WATCH_TYPE = {
   this: 't',
@@ -79,7 +80,7 @@ type CreateSealWithObjectOpts = {
   counterparty?: string
 }
 
-type CreateSealOpts = CreateSealWithHeaderHashOpts | CreateSealWithObjectOpts
+export type CreateSealOpts = CreateSealWithHeaderHashOpts | CreateSealWithObjectOpts
 
 interface ISealRecordOpts extends Partial<ISealDataIdentifier> {
   key?: IECMiniPubKey
@@ -230,9 +231,30 @@ export default class Seals {
     this.objects = objects
     this.db = db
     this.logger = logger
-    this.sealPending = blockchain.wrapOperation(this._sealPending)
-    this.syncUnconfirmed = blockchain.wrapOperation(this._syncUnconfirmed)
+
+    const wrapWithStop = fn => async (...args) => {
+      try {
+        return await fn.apply(this, args)
+      } finally {
+        if (this.blockchain.stop) {
+          this.blockchain.stop()
+        }
+      }
+    }
+
+    this.sealPending = wrapWithStop(this._sealPending)
+    this.syncUnconfirmed = wrapWithStop(this._syncUnconfirmed)
   }
+
+  // public batchUnsealed = async (opts: ILimitOpts) => {
+  //   const unsealed = await this.getUnsealed(opts)
+  // }
+
+  // public static createBatchState = async ({ seals }: {
+  //   seals: Seal[]
+  // }) => {
+
+  // }
 
   public watch = (opts: WatchOpts) => {
     return this.createSealRecord({ ...opts, write: false })
@@ -342,6 +364,8 @@ export default class Seals {
     this.logger.info(`found ${pending.length} pending seals`)
     if (!pending.length) return ret
 
+    this.blockchain.start()
+
     let aborted
     // TODO: update balance after every tx
     let balance
@@ -361,10 +385,12 @@ export default class Seals {
       } catch (err) {
         Errors.rethrow(err, 'developer')
         if (Errors.matches(err, Errors.LowFunds)) {
-          this.logger.error(`aborting, insufficient funds, send funds to ${key.fingerprint}`)
+          this.logger.debug(`aborting, insufficient funds, send funds to ${key.fingerprint}`)
           ret.error = {
             name: 'LowFunds',
             message: err.message,
+            blockchain: key.type,
+            networkName: key.networkName,
             address: key.fingerprint,
           }
         }
@@ -372,6 +398,7 @@ export default class Seals {
     })
 
     ret.seals = results.filter(notNull)
+    this.logger.debug(`wrote ${ret.seals.length} seals`)
     return ret
   }
 
@@ -649,9 +676,6 @@ export default class Seals {
 
   private _syncUnconfirmed = async (opts: SyncOpts = {}):Promise<Seal[]> => {
     const { blockchain, getUnconfirmed, network, table } = this
-    // start making whatever connections
-    // are necessary
-    blockchain.start()
 
     const unconfirmed = await getUnconfirmed(opts)
     if (!unconfirmed.length) {
@@ -659,12 +683,15 @@ export default class Seals {
       return []
     }
 
+    this.blockchain.start()
     const batches = _.chunk(unconfirmed, SYNC_BATCH_SIZE)
     const results = await Promise.mapSeries(batches, batch => this._syncUnconfirmedBatch(batch, opts))
     return _.flatten(results)
   }
 
   private _syncUnconfirmedBatch = async (unconfirmed:Seal[], opts: SyncOpts) => {
+    this.logger.debug(`syncing ${unconfirmed.length} seals`)
+
     const { onProgress=promiseNoop } = opts
     const changedSealMap:SealMap = {}
     const addresses = unconfirmed.map(({ address }) => address)
@@ -921,3 +948,16 @@ const normalizeMiniPub = ({ pub, curve }) => ({
   pub: Buffer.isBuffer(pub) ? pub : Buffer.from(pub, 'hex'),
   curve
 })
+
+const createBatchState = ({ seals }: { seals: Seal[] }) => {
+  const links = seals.map(seal => seal.link)
+  const merkleRoot = protocol.merkleTreeFromHashes(links.map(link => new Buffer(link, 'hex')))
+  const batchSealItem = {
+    [TYPE]: BATCH_SEAL_STATE_MODEL_ID,
+    _time: Date.now(),
+    links,
+    merkleRoot,
+    unsealed: true,
+    unconfirmed: true,
+  }
+}

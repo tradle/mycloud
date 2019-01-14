@@ -1,0 +1,249 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: KMS keys
+
+Parameters:
+  Namespace:
+    Type: String
+
+  ExistingEncryptionKey:
+    Type: String
+    Default: ""
+
+  ExistingBucketEncryptionKey:
+    Type: String
+    Default: ""
+
+  NeedBucketEncryptionKey:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+
+Conditions:
+  DoCreateEncryptionKey:
+    Fn::Equals: [ Ref: ExistingEncryptionKey, ""]
+
+  DoCreateBucketEncryptionKey:
+    Fn::And:
+      - Fn::Equals: [ Ref: ExistingBucketEncryptionKey, ""]
+      - Fn::Equals: [ Ref: NeedBucketEncryptionKey, "true"]
+
+  HaveOrCreatingBucketEncryptionKey:
+    Fn::Or:
+      # exists
+      - Fn::Not:
+        - Fn::Equals: [ Ref: ExistingBucketEncryptionKey, ""]
+      # will create
+      - Fn::Equals: [ Ref: NeedBucketEncryptionKey, "true"]
+
+Resources:
+  EncryptionKey:
+    Condition: DoCreateEncryptionKey
+    Type: AWS::KMS::Key
+    DeletionPolicy: Retain
+    Properties:
+      Description: 'Encryption key for secrets'
+      Enabled: True
+      EnableKeyRotation: False
+      Tags:
+        - Key: tradle
+          Value:
+            Fn::Sub: '${AWS::StackName}-${AWS::Region}'
+
+      KeyPolicy:
+        Version: '2012-10-17'
+        Id:
+          Fn::Sub: '${AWS::StackName}-${AWS::Region}-default-key'
+        Statement:
+          - Sid: 'allowAdminAccess'
+            Effect: Allow
+            Principal:
+              AWS:
+                - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
+            Action:
+              - 'kms:Create*'
+              - 'kms:Describe*'
+              - 'kms:Enable*'
+              - 'kms:List*'
+              - 'kms:Put*'
+              - 'kms:Update*'
+              - 'kms:Revoke*'
+              - 'kms:Disable*'
+              - 'kms:Get*'
+              - 'kms:Delete*'
+              - 'kms:TagResource'
+              - 'kms:UntagResource'
+              - 'kms:ScheduleKeyDeletion'
+              - 'kms:CancelKeyDeletion'
+              # Ideally we wouldn't have this, but without it,
+              # we can't create IAM policies that allow these actions
+              - 'kms:Decrypt'
+              - 'kms:GenerateDataKey'
+            Resource: '*'
+
+          - Sid: 'allowAttachPersistentResources'
+            Effect: Allow
+            Principal:
+              AWS:
+                - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+
+            # Condition:
+            #   ForAllValues:StringEquals:
+            #     kms:GrantOperations:
+            #       - 'Decrypt'
+
+            # https://docs.aws.amazon.com/kms/latest/developerguide/policy-conditions.html#conditions-kms-grant-is-for-aws-resource
+            Condition:
+              Bool:
+                "kms:GrantIsForAWSResource": true
+
+            Resource: '*'
+
+  BucketEncryptionKey:
+    Condition: DoCreateBucketEncryptionKey
+    Type: AWS::KMS::Key
+    DeletionPolicy: Retain
+    Properties:
+      Description: 'Encryption key for database and buckets'
+      Enabled: True
+      EnableKeyRotation: False
+      Tags:
+        - Key: tradle
+          Value:
+            Fn::Sub: '${AWS::StackName}-${AWS::Region}'
+
+      KeyPolicy:
+        Version: '2012-10-17'
+        Id:
+          Fn::Sub: '${AWS::StackName}-${AWS::Region}-db-key'
+        Statement:
+          - Sid: 'allowAdminAccess'
+            Effect: Allow
+            Principal:
+              AWS:
+                - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
+            Action:
+              - 'kms:Create*'
+              - 'kms:Describe*'
+              - 'kms:Enable*'
+              - 'kms:List*'
+              - 'kms:Put*'
+              - 'kms:Update*'
+              - 'kms:Revoke*'
+              - 'kms:Disable*'
+              - 'kms:Get*'
+              - 'kms:Delete*'
+              - 'kms:TagResource'
+              - 'kms:UntagResource'
+              - 'kms:ScheduleKeyDeletion'
+              - 'kms:CancelKeyDeletion'
+              # Ideally we wouldn't have this, but without it,
+              # we can't create IAM policies that allow these actions
+              - 'kms:Decrypt'
+              - 'kms:GenerateDataKey'
+            Resource: '*'
+
+          - Sid: 'allowAttachPersistentResources'
+            Effect: Allow
+            Principal:
+              AWS:
+                - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+
+            # Condition:
+            #   ForAllValues:StringEquals:
+            #     kms:GrantOperations:
+            #       - 'Decrypt'
+
+            # https://docs.aws.amazon.com/kms/latest/developerguide/policy-conditions.html#conditions-kms-grant-is-for-aws-resource
+            Condition:
+              Bool:
+                "kms:GrantIsForAWSResource": true
+
+            Resource: '*'
+
+  EncryptionKeyAlias:
+    Type: 'AWS::KMS::Alias'
+    Properties:
+      AliasName:
+        Fn::Sub: 'alias/${Namespace}-enc-key'
+      TargetKeyId:
+        Fn::If:
+          - DoCreateEncryptionKey
+          - Ref: EncryptionKey
+          - Ref: ExistingEncryptionKey
+
+  BucketEncryptionKeyAlias:
+    Type: 'AWS::KMS::Alias'
+    Condition: HaveOrCreatingBucketEncryptionKey
+    Properties:
+      AliasName:
+        Fn::Sub: 'alias/${Namespace}-bucket-enc-key'
+      TargetKeyId:
+        Fn::If:
+          - DoCreateBucketEncryptionKey
+          - Ref: BucketEncryptionKey
+          - Ref: ExistingBucketEncryptionKey
+
+Outputs:
+
+  EncryptionKey:
+    Value:
+      Fn::If:
+        - DoCreateEncryptionKey
+        - Ref: EncryptionKey
+        - Ref: ExistingEncryptionKey
+
+  EncryptionKeyArn:
+    Value:
+      Fn::Join:
+        - ''
+        - - Fn::Sub: 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/'
+          - Fn::If:
+            - DoCreateEncryptionKey
+            - Ref: EncryptionKey
+            - Ref: ExistingEncryptionKey
+
+  BucketEncryptionKey:
+    Value:
+      Fn::If:
+        - DoCreateBucketEncryptionKey
+        - Ref: BucketEncryptionKey
+        - Ref: ExistingBucketEncryptionKey
+
+  BucketEncryptionKeyArn:
+    Value:
+      Fn::Join:
+        - ''
+        - - Fn::Sub: 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/'
+          - Fn::If:
+            - DoCreateBucketEncryptionKey
+            - Ref: BucketEncryptionKey
+            - Ref: ExistingBucketEncryptionKey
+
+  EncryptionKeyAlias:
+    Value:
+      Ref: EncryptionKeyAlias
+
+  BucketEncryptionKeyAlias:
+    Value:
+      Fn::If:
+        - HaveOrCreatingBucketEncryptionKey
+        - Ref: BucketEncryptionKeyAlias
+        - ""
+
+  StackName:
+    Value:
+      Ref: AWS::StackName
+
+  StackId:
+    Value:
+      Ref: AWS::StackId

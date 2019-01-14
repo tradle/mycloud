@@ -2,6 +2,634 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+# [2.4.0-rc.2](https://github.com/tradle/serverless/compare/v2.4.0-rc.1...v2.4.0-rc.2) (2019-01-13)
+
+
+
+<a name="2.1.2"></a>
+## [2.1.2](https://github.com/tradle/serverless/compare/v2.1.2-rc.1...v2.1.2) (2018-11-23)
+
+
+### Bug Fixes
+
+* pre-deploy parameter overwrite condition ([b687123](https://github.com/tradle/serverless/commit/b687123))
+
+
+
+<a name="2.1.2-rc.1"></a>
+## [2.1.2-rc.1](https://github.com/tradle/serverless/compare/v2.1.2-rc.0...v2.1.2-rc.1) (2018-11-22)
+
+
+### Bug Fixes
+
+* wrong export name for plugin ([bc9d368](https://github.com/tradle/serverless/commit/bc9d368))
+
+
+### Features
+
+* validateConf added ([0cdba79](https://github.com/tradle/serverless/commit/0cdba79))
+
+
+
+<a name="2.1.2-rc.0"></a>
+## [2.1.2-rc.0](https://github.com/tradle/serverless/compare/v2.1.1...v2.1.2-rc.0) (2018-11-20)
+
+
+### Bug Fixes
+
+* error handling ([0830479](https://github.com/tradle/serverless/commit/0830479))
+
+
+
+<a name="2.1.1"></a>
+## [2.1.1](https://github.com/tradle/serverless/compare/v2.1.0...v2.1.1) (2018-11-20)
+
+
+### Bug Fixes
+
+* symantec cert issue in chrome 70 ([dbd38da](https://github.com/tradle/serverless/commit/dbd38da))
+
+
+### Features
+
+* validateConf added ([d228440](https://github.com/tradle/serverless/commit/d228440))
+
+
+
+<a name="2.1.0"></a>
+# [2.1.0](https://github.com/tradle/serverless/compare/v2.1.0-rc.4...v2.1.0) (2018-11-16)
+
+
+
+<a name="2.1.0-rc.4"></a>
+# [2.1.0-rc.4](https://github.com/tradle/serverless/compare/v2.1.0-rc.3...v2.1.0-rc.4) (2018-11-16)
+
+
+### Bug Fixes
+
+* better search for person ([cfcecf9](https://github.com/tradle/serverless/commit/cfcecf9))
+* no need to check the same images ([abaf7d8](https://github.com/tradle/serverless/commit/abaf7d8))
+
+
+
+<a name="2.1.0-rc.3"></a>
+# [2.1.0-rc.3](https://github.com/tradle/serverless/compare/v2.1.0-rc.2...v2.1.0-rc.3) (2018-11-09)
+
+
+
+<a name="2.1.0-rc.2"></a>
+# [2.1.0-rc.2](https://github.com/tradle/serverless/compare/v2.1.0-rc.1...v2.1.0-rc.2) (2018-11-08)
+
+
+
+<a name="2.1.0-rc.1"></a>
+# [2.1.0-rc.1](https://github.com/tradle/serverless/compare/v2.0.1...v2.1.0-rc.1) (2018-11-08)
+
+
+### Bug Fixes
+
+* application should not be created here ([94d811d](https://github.com/tradle/serverless/commit/94d811d))
+* deployment test for >2.0.0 ([688e7a6](https://github.com/tradle/serverless/commit/688e7a6))
+* graphql sample query ([19983db](https://github.com/tradle/serverless/commit/19983db))
+* phone could be string; added generic check message and some required props like: status, aspects, provider ([b8d6af5](https://github.com/tradle/serverless/commit/b8d6af5))
+* remove setSMSAttributes step in publishing sms messages ([cb301f3](https://github.com/tradle/serverless/commit/cb301f3))
+
+
+### Features
+
+* add verify-phone-number plugin ([0c5bfdf](https://github.com/tradle/serverless/commit/0c5bfdf))
+* customer onboarding by registered agency ([15c9b78](https://github.com/tradle/serverless/commit/15c9b78))
+
+
+
+<a name="2.1.0-rc.0"></a>
+# [2.1.0-rc.0](https://github.com/tradle/serverless/compare/v2.0.1...v2.1.0-rc.0) (2018-11-07)
+
+
+### Bug Fixes
+
+* application should not be created here ([94d811d](https://github.com/tradle/serverless/commit/94d811d))
+* graphql sample query ([19983db](https://github.com/tradle/serverless/commit/19983db))
+* phone could be string; added generic check message and some required props like: status, aspects, provider ([b8d6af5](https://github.com/tradle/serverless/commit/b8d6af5))
+* remove setSMSAttributes step in publishing sms messages ([cb301f3](https://github.com/tradle/serverless/commit/cb301f3))
+
+
+### Features
+
+* add verify-phone-number plugin ([0c5bfdf](https://github.com/tradle/serverless/commit/0c5bfdf))
+* customer onboarding by registered agency ([15c9b78](https://github.com/tradle/serverless/commit/15c9b78))
+
+
+
+<a name="2.0.1"></a>
+## [2.0.1](https://github.com/tradle/serverless/compare/v2.0.1-rc.2...v2.0.1) (2018-11-04)
+
+
+
+<a name="2.0.1-rc.2"></a>
+## [2.0.1-rc.2](https://github.com/tradle/serverless/compare/v2.0.1-rc.1...v2.0.1-rc.2) (2018-11-04)
+
+
+### Bug Fixes
+
+* friends.list() ([a8120bc](https://github.com/tradle/serverless/commit/a8120bc))
+
+
+
+<a name="2.0.1-rc.1"></a>
+## [2.0.1-rc.1](https://github.com/tradle/serverless/compare/v2.0.1-rc.0...v2.0.1-rc.1) (2018-11-04)
+
+
+### Bug Fixes
+
+* grant IotClientRole GenerateDataKey access for bucket encryption key ([938bf5d](https://github.com/tradle/serverless/commit/938bf5d))
+* low funds alerts text ([912c0eb](https://github.com/tradle/serverless/commit/912c0eb))
+
+
+
+<a name="2.0.1-rc.0"></a>
+## [2.0.1-rc.0](https://github.com/tradle/serverless/compare/v2.0.0...v2.0.1-rc.0) (2018-11-03)
+
+
+### Bug Fixes
+
+* backwards compat ([0560808](https://github.com/tradle/serverless/commit/0560808))
+* deploy stack parameters when using serverless ([03afcc0](https://github.com/tradle/serverless/commit/03afcc0))
+* fuzzy delete resources script ([78d84f6](https://github.com/tradle/serverless/commit/78d84f6))
+* iam permissions for backwards compat naming convention ([fd5a8a0](https://github.com/tradle/serverless/commit/fd5a8a0))
+
+
+
+<a name="2.0.0"></a>
+# [2.0.0](https://github.com/tradle/serverless/compare/v2.0.0-trans.0...v2.0.0) (2018-11-01)
+
+
+### Features
+
+* split stack, enable restore from retained resources ([d9442e6](https://github.com/tradle/serverless/commit/d9442e6))
+
+
+
+<a name="1.12.0-rc.6"></a>
+# [1.12.0-rc.6](https://github.com/tradle/serverless/compare/v1.12.0-rc.5...v1.12.0-rc.6) (2018-10-31)
+
+
+### Bug Fixes
+
+* explicit ref to ApiGatewayRestApi ([01d18ad](https://github.com/tradle/serverless/commit/01d18ad))
+
+
+
+<a name="1.12.0-rc.5"></a>
+# [1.12.0-rc.5](https://github.com/tradle/serverless/compare/v1.12.0-rc.4...v1.12.0-rc.5) (2018-10-31)
+
+
+### Bug Fixes
+
+* rm explicit ref to deployment bucket in outputs ([26fc88e](https://github.com/tradle/serverless/commit/26fc88e))
+
+
+
+<a name="1.12.0-rc.4"></a>
+# [1.12.0-rc.4](https://github.com/tradle/serverless/compare/v1.11.0-rc.15...v1.12.0-rc.4) (2018-10-31)
+
+
+### Bug Fixes
+
+* add ExistingApiGatewayRestApiRootResourceId param ([95acec5](https://github.com/tradle/serverless/commit/95acec5))
+* apigateway refs in template ([06e3066](https://github.com/tradle/serverless/commit/06e3066))
+
+
+
+<a name="1.12.0-rc.2"></a>
+# [1.12.0-rc.2](https://github.com/tradle/serverless/compare/v1.11.0-rc.13...v1.12.0-rc.2) (2018-10-31)
+
+
+
+<a name="1.12.0-rc.1"></a>
+# [1.12.0-rc.1](https://github.com/tradle/serverless/compare/v1.12.0-rc.0...v1.12.0-rc.1) (2018-10-31)
+
+
+### Bug Fixes
+
+* don't delete params for updated template ([84912ab](https://github.com/tradle/serverless/commit/84912ab))
+
+
+
+<a name="1.12.0-rc.0"></a>
+# [1.12.0-rc.0](https://github.com/tradle/serverless/compare/v1.11.2...v1.12.0-rc.0) (2018-10-31)
+
+
+
+<a name="1.11.2"></a>
+## [1.11.2](https://github.com/tradle/serverless/compare/v1.11.1...v1.11.2) (2018-10-31)
+
+
+
+<a name="1.11.1"></a>
+## [1.11.1](https://github.com/tradle/serverless/compare/v1.11.0-rc.12...v1.11.1) (2018-10-31)
+
+
+### Bug Fixes
+
+* add bucket0table stream to template outputs ([3d1921a](https://github.com/tradle/serverless/commit/3d1921a))
+* add missing template file ([7e9f780](https://github.com/tradle/serverless/commit/7e9f780))
+* bucket encryption condition in template ([45114f0](https://github.com/tradle/serverless/commit/45114f0))
+* buckets template encryption settings ([c1d2721](https://github.com/tradle/serverless/commit/c1d2721))
+* cli utils.validateTemplatesAtPath ([1d36d2c](https://github.com/tradle/serverless/commit/1d36d2c))
+* copy substack templates for child deployment, in addition to lambda code ([2c344d5](https://github.com/tradle/serverless/commit/2c344d5))
+* default vars ([e3e5a01](https://github.com/tradle/serverless/commit/e3e5a01))
+* deployment plugin err handling, applications.requestEdit validation ([17e89d6](https://github.com/tradle/serverless/commit/17e89d6))
+* dynamodb iam permissions ([f7e5557](https://github.com/tradle/serverless/commit/f7e5557))
+* get-custom-resource-create-event script ([325b75f](https://github.com/tradle/serverless/commit/325b75f))
+* hardcoded us-east-1 in ServiceEndpoint output ([4b01133](https://github.com/tradle/serverless/commit/4b01133))
+* LogsBucket output ([4cba7ae](https://github.com/tradle/serverless/commit/4cba7ae))
+* missing param in template ([a220754](https://github.com/tradle/serverless/commit/a220754))
+* oninit lambda for restore-stack edge case ([05a708e](https://github.com/tradle/serverless/commit/05a708e))
+* permission required to create regional bucket deployments at runtime ([127cdbe](https://github.com/tradle/serverless/commit/127cdbe))
+* postinstall script - default vars.json generation ([2b15e24](https://github.com/tradle/serverless/commit/2b15e24))
+* pre-deploy plugin ([7ca1b09](https://github.com/tradle/serverless/commit/7ca1b09))
+* pre-deploy plugin ([dd20bbd](https://github.com/tradle/serverless/commit/dd20bbd))
+* re-enable alerts plugin ([fda9b77](https://github.com/tradle/serverless/commit/fda9b77))
+* rm ExistingDeploymentBucket param ([074d5a6](https://github.com/tradle/serverless/commit/074d5a6))
+* s3 iam permissions ([97cd755](https://github.com/tradle/serverless/commit/97cd755))
+* tables template encryption settings ([fa76cbd](https://github.com/tradle/serverless/commit/fa76cbd))
+* template - pass through existing bucket0 stream arn ([5c50acc](https://github.com/tradle/serverless/commit/5c50acc))
+* typo ([76bbd62](https://github.com/tradle/serverless/commit/76bbd62))
+* **deployment:** edge case for creating regional deployment buckets ([0834554](https://github.com/tradle/serverless/commit/0834554))
+* **deployment:** normalize stack name ([3548e46](https://github.com/tradle/serverless/commit/3548e46))
+* **deployment-plugin:** generated template parameters ([89d3cba](https://github.com/tradle/serverless/commit/89d3cba))
+* use source deployment bucket for child stack templates, if available ([94e0d1c](https://github.com/tradle/serverless/commit/94e0d1c))
+* var name in template ([f1c98d9](https://github.com/tradle/serverless/commit/f1c98d9))
+
+
+### Features
+
+* add stackUtils.getStackParameterValues, configure.ensureStackParametersDidNotChange, check immutable params on stack update ([96d7ad5](https://github.com/tradle/serverless/commit/96d7ad5))
+* sketch out bucket, table encryption in template ([abd45c8](https://github.com/tradle/serverless/commit/abd45c8))
+
+
+
+<a name="2.0.0-trans.0"></a>
+# [2.0.0-trans.0](https://github.com/tradle/serverless/compare/v1.11.0...v2.0.0-trans.0) (2018-11-01)
+
+
+
+<a name="1.11.0"></a>
+# [1.11.0](https://github.com/tradle/serverless/compare/v1.11.0-rc.16...v1.11.0) (2018-11-01)
+
+
+
+<a name="1.11.0-rc.16"></a>
+# [1.11.0-rc.16](https://github.com/tradle/serverless/compare/v1.11.0-rc.15...v1.11.0-rc.16) (2018-11-01)
+
+
+### Bug Fixes
+
+* enums ([5905384](https://github.com/tradle/serverless/commit/5905384))
+* prepare for transition to parameterized stack - retain serverless deployment bucket ([266f265](https://github.com/tradle/serverless/commit/266f265))
+
+
+
+<a name="1.11.0-rc.15"></a>
+# [1.11.0-rc.15](https://github.com/tradle/serverless/compare/v1.11.0-rc.14...v1.11.0-rc.15) (2018-10-31)
+
+
+
+<a name="1.11.0-rc.14"></a>
+# [1.11.0-rc.14](https://github.com/tradle/serverless/compare/v1.11.0-rc.13...v1.11.0-rc.14) (2018-10-31)
+
+
+
+<a name="1.11.0-rc.13"></a>
+# [1.11.0-rc.13](https://github.com/tradle/serverless/compare/v1.11.0-rc.12...v1.11.0-rc.13) (2018-10-31)
+
+
+### Bug Fixes
+
+* circular dep in template ([d443cdc](https://github.com/tradle/serverless/commit/d443cdc))
+* cli commands option parsing ([d9d8c54](https://github.com/tradle/serverless/commit/d9d8c54))
+* eth min balance ([d54f354](https://github.com/tradle/serverless/commit/d54f354))
+* low funds alerts ([b461936](https://github.com/tradle/serverless/commit/b461936))
+* set-version serverless plugin for initial deployment ([592d450](https://github.com/tradle/serverless/commit/592d450))
+* test-eventstream ([a0d6c2e](https://github.com/tradle/serverless/commit/a0d6c2e))
+* ts-and-cs message ([3bd29fa](https://github.com/tradle/serverless/commit/3bd29fa))
+
+
+### Features
+
+* add required-forms plugin ([53f406b](https://github.com/tradle/serverless/commit/53f406b))
+
+
+
+<a name="1.11.0-rc.12"></a>
+# [1.11.0-rc.12](https://github.com/tradle/serverless/compare/v1.11.0-rc.11...v1.11.0-rc.12) (2018-10-18)
+
+
+### Bug Fixes
+
+* alert on new child deployment ([0ba3de6](https://github.com/tradle/serverless/commit/0ba3de6))
+* low funds alert ([68e633f](https://github.com/tradle/serverless/commit/68e633f))
+
+
+
+<a name="1.11.0-rc.11"></a>
+# [1.11.0-rc.11](https://github.com/tradle/serverless/compare/v1.11.0-rc.10...v1.11.0-rc.11) (2018-10-17)
+
+
+### Bug Fixes
+
+* don't fail lambda if iot lifecycle event hits an error, as that will cause a retry ([f42d1ad](https://github.com/tradle/serverless/commit/f42d1ad))
+* images should be uploaded one at a time ([6151538](https://github.com/tradle/serverless/commit/6151538))
+* no need to run verifications if upload failed; and don't get token when report request ([e70510f](https://github.com/tradle/serverless/commit/e70510f))
+
+
+### Features
+
+* monitor failed http requests, mark as frozen on lambda freeze ([7b10fcd](https://github.com/tradle/serverless/commit/7b10fcd))
+
+
+
+<a name="1.11.0-rc.10"></a>
+# [1.11.0-rc.10](https://github.com/tradle/serverless/compare/v1.11.0-rc.9...v1.11.0-rc.10) (2018-10-15)
+
+
+### Bug Fixes
+
+* avoid unnecessary blockchain api calls ([e97d316](https://github.com/tradle/serverless/commit/e97d316))
+
+
+
+<a name="1.11.0-rc.9"></a>
+# [1.11.0-rc.9](https://github.com/tradle/serverless/compare/v1.11.0-rc.8...v1.11.0-rc.9) (2018-10-15)
+
+
+
+<a name="1.11.0-rc.8"></a>
+# [1.11.0-rc.8](https://github.com/tradle/serverless/compare/v1.11.0-rc.7...v1.11.0-rc.8) (2018-10-14)
+
+
+### Bug Fixes
+
+* email subject validation ([fbb68be](https://github.com/tradle/serverless/commit/fbb68be))
+
+
+
+<a name="1.11.0-rc.7"></a>
+# [1.11.0-rc.7](https://github.com/tradle/serverless/compare/v1.11.0-rc.6...v1.11.0-rc.7) (2018-10-14)
+
+
+
+<a name="1.11.0-rc.6"></a>
+# [1.11.0-rc.6](https://github.com/tradle/serverless/compare/v1.11.0-rc.5...v1.11.0-rc.6) (2018-10-14)
+
+
+
+<a name="1.11.0-rc.5"></a>
+# [1.11.0-rc.5](https://github.com/tradle/serverless/compare/v1.11.0-rc.4...v1.11.0-rc.5) (2018-10-14)
+
+
+### Bug Fixes
+
+* missed parameter ([8eabc41](https://github.com/tradle/serverless/commit/8eabc41))
+
+
+### Features
+
+* 'warning' status added for checks ([8105a60](https://github.com/tradle/serverless/commit/8105a60))
+
+
+
+<a name="1.11.0-rc.4"></a>
+# [1.11.0-rc.4](https://github.com/tradle/serverless/compare/v1.11.0-rc.3...v1.11.0-rc.4) (2018-10-14)
+
+
+### Bug Fixes
+
+* upload 2 images where applicable ([83e621e](https://github.com/tradle/serverless/commit/83e621e))
+
+
+
+<a name="1.11.0-rc.3"></a>
+# [1.11.0-rc.3](https://github.com/tradle/serverless/compare/v1.11.0-rc.2...v1.11.0-rc.3) (2018-10-12)
+
+
+
+<a name="1.11.0-rc.2"></a>
+# [1.11.0-rc.2](https://github.com/tradle/serverless/compare/v1.11.0-rc.1...v1.11.0-rc.2) (2018-10-12)
+
+
+### Bug Fixes
+
+* applications.listEmployees ([bbaf339](https://github.com/tradle/serverless/commit/bbaf339))
+* banter responder ([258cb2b](https://github.com/tradle/serverless/commit/258cb2b))
+* clamp sessionTTL based on STS limits ([ed80d1e](https://github.com/tradle/serverless/commit/ed80d1e))
+* mis-registered listproducts cli command ([a1600b0](https://github.com/tradle/serverless/commit/a1600b0))
+* return error instead of failing on invalid job event ([fadebd5](https://github.com/tradle/serverless/commit/fadebd5))
+* rm unnecessary forceReinitializeContainer call ([1e0fa59](https://github.com/tradle/serverless/commit/1e0fa59))
+* use consistentRead in identities.getPubKeyMapping for recent item lookups ([a0e87c6](https://github.com/tradle/serverless/commit/a0e87c6))
+* wait for addContact() to finish before preauth exit ([3116aff](https://github.com/tradle/serverless/commit/3116aff))
+
+
+### Features
+
+* authentiscan with keesing reimplemented for WebAPI ([f9cfde1](https://github.com/tradle/serverless/commit/f9cfde1))
+* support SESSION_TTL env var ([d2639ac](https://github.com/tradle/serverless/commit/d2639ac))
+
+
+
+<a name="1.11.0-rc.1"></a>
+# [1.11.0-rc.1](https://github.com/tradle/serverless/compare/v1.11.0-rc.0...v1.11.0-rc.1) (2018-10-10)
+
+
+### Bug Fixes
+
+* rm documentChecker job from scheduler ([18c8287](https://github.com/tradle/serverless/commit/18c8287))
+
+
+
+<a name="1.11.0-rc.0"></a>
+# [1.11.0-rc.0](https://github.com/tradle/serverless/compare/v1.10.1-rc.0...v1.11.0-rc.0) (2018-10-10)
+
+
+### Bug Fixes
+
+* **dev:** service-map for ApiGW emulation ([ad6e820](https://github.com/tradle/serverless/commit/ad6e820))
+* add bodyParser() to documentChecker-webhook ([ccaf5bc](https://github.com/tradle/serverless/commit/ccaf5bc))
+* better check to decide if the check needs to be created ([958f794](https://github.com/tradle/serverless/commit/958f794))
+* better check to decide if the check needs to be created ([747926c](https://github.com/tradle/serverless/commit/747926c))
+* logging ([2b40d16](https://github.com/tradle/serverless/commit/2b40d16))
+* no need create check if check already exists or if props that are checked here didn't change ([91f0b4e](https://github.com/tradle/serverless/commit/91f0b4e))
+* reimplementing for WebAPI ([4b9eeb4](https://github.com/tradle/serverless/commit/4b9eeb4))
+* typo in optimizations ([6d27d89](https://github.com/tradle/serverless/commit/6d27d89))
+
+
+### Features
+
+* Keesing document checker re-implemented with WebAPI ([3e0c665](https://github.com/tradle/serverless/commit/3e0c665))
+* Keesing WebAPI project ([2a5b6f7](https://github.com/tradle/serverless/commit/2a5b6f7))
+* re-implemented for WebAPI since SOAP works only with static IP ([4824d02](https://github.com/tradle/serverless/commit/4824d02))
+
+
+
+<a name="1.10.1-rc.0"></a>
+## [1.10.1-rc.0](https://github.com/tradle/serverless/compare/v1.10.0...v1.10.1-rc.0) (2018-10-08)
+
+
+### Bug Fixes
+
+* set timeouts on third party checks ([33d89e3](https://github.com/tradle/serverless/commit/33d89e3))
+
+
+
+<a name="1.10.0"></a>
+# [1.10.0](https://github.com/tradle/serverless/compare/v1.10.0-rc.4...v1.10.0) (2018-10-07)
+
+
+
+<a name="1.10.0-rc.4"></a>
+# [1.10.0-rc.4](https://github.com/tradle/serverless/compare/v1.10.0-rc.3...v1.10.0-rc.4) (2018-10-07)
+
+
+### Bug Fixes
+
+* allow lambda to del from private conf bucket ([0e74e25](https://github.com/tradle/serverless/commit/0e74e25))
+
+
+
+<a name="1.10.0-rc.3"></a>
+# [1.10.0-rc.3](https://github.com/tradle/serverless/compare/v1.10.0-rc.2...v1.10.0-rc.3) (2018-10-07)
+
+
+
+<a name="1.10.0-rc.2"></a>
+# [1.10.0-rc.2](https://github.com/tradle/serverless/compare/v1.10.0-rc.1...v1.10.0-rc.2) (2018-10-07)
+
+
+### Bug Fixes
+
+* bug when models pack has lenses but no models ([dd03e6c](https://github.com/tradle/serverless/commit/dd03e6c))
+
+
+
+<a name="1.10.0-rc.1"></a>
+# [1.10.0-rc.1](https://github.com/tradle/serverless/compare/v1.10.0-rc.0...v1.10.0-rc.1) (2018-10-07)
+
+
+
+<a name="1.10.0-rc.0"></a>
+# [1.10.0-rc.0](https://github.com/tradle/serverless/compare/v1.9.0...v1.10.0-rc.0) (2018-10-06)
+
+
+
+<a name="1.9.0"></a>
+# [1.9.0](https://github.com/tradle/serverless/compare/v1.9.0-rc.5...v1.9.0) (2018-10-06)
+
+
+
+<a name="1.9.0-rc.5"></a>
+# [1.9.0-rc.5](https://github.com/tradle/serverless/compare/v1.9.0-rc.4...v1.9.0-rc.5) (2018-10-06)
+
+
+### Bug Fixes
+
+* don't fail, return error from import-data-utils ([a8b1c6d](https://github.com/tradle/serverless/commit/a8b1c6d))
+* don't store resource bodies in events table ([8f7ef78](https://github.com/tradle/serverless/commit/8f7ef78))
+* fallback to context.done for now, until lambda return value mystery is solved ([56e8834](https://github.com/tradle/serverless/commit/56e8834))
+* initialize lambda logger only once ([9e91039](https://github.com/tradle/serverless/commit/9e91039))
+* local dev env lambda return value ([bb1ebe6](https://github.com/tradle/serverless/commit/bb1ebe6))
+* local graphql server mode ([f6f9d4d](https://github.com/tradle/serverless/commit/f6f9d4d))
+* make local lambda testing more convenient ([08ca161](https://github.com/tradle/serverless/commit/08ca161))
+* remediation plugin doesn't require conf ([08509e2](https://github.com/tradle/serverless/commit/08509e2))
+* rm tradle.MyCloudFriend from unsigned types list ([0da0fdc](https://github.com/tradle/serverless/commit/0da0fdc))
+
+
+### Features
+
+* add child rollback alert, normalize alert subjects ([9cf49b3](https://github.com/tradle/serverless/commit/9cf49b3))
+* add getModel to models-mixin ([cd38ee0](https://github.com/tradle/serverless/commit/cd38ee0))
+* allow firing employees ([59bfba1](https://github.com/tradle/serverless/commit/59bfba1))
+* enable point-in-time recovery for tables ([571b19f](https://github.com/tradle/serverless/commit/571b19f))
+
+
+
+<a name="1.9.0-rc.4"></a>
+# [1.9.0-rc.4](https://github.com/tradle/serverless/compare/v1.9.0-rc.3...v1.9.0-rc.4) (2018-10-02)
+
+
+### Bug Fixes
+
+* lambda return value ([8742c12](https://github.com/tradle/serverless/commit/8742c12))
+
+
+
+<a name="1.9.0-rc.3"></a>
+# [1.9.0-rc.3](https://github.com/tradle/serverless/compare/v1.9.0-rc.2...v1.9.0-rc.3) (2018-10-02)
+
+
+### Bug Fixes
+
+* lambda lifecycle - scrap callback, return promise ([0d42d2f](https://github.com/tradle/serverless/commit/0d42d2f))
+* syncclock async task ([3455df4](https://github.com/tradle/serverless/commit/3455df4))
+
+
+
+<a name="1.9.0-rc.2"></a>
+# [1.9.0-rc.2](https://github.com/tradle/serverless/compare/v1.9.0-rc.1...v1.9.0-rc.2) (2018-10-02)
+
+
+### Bug Fixes
+
+* ignore timeouts of old requests ([16b8b7c](https://github.com/tradle/serverless/commit/16b8b7c))
+
+
+
+<a name="1.9.0-rc.1"></a>
+# [1.9.0-rc.1](https://github.com/tradle/serverless/compare/v1.9.0-rc.0...v1.9.0-rc.1) (2018-10-02)
+
+
+### Bug Fixes
+
+* reset delivery error when counterparty sends a message ([b8216f0](https://github.com/tradle/serverless/commit/b8216f0))
+
+
+### Features
+
+* alert on new child deployment ([4b2aa1b](https://github.com/tradle/serverless/commit/4b2aa1b))
+* allow admin to export keys if on dev stage ([3dc71dc](https://github.com/tradle/serverless/commit/3dc71dc))
+
+
+
+<a name="1.9.0-rc.0"></a>
+# [1.9.0-rc.0](https://github.com/tradle/serverless/compare/v1.8.0...v1.9.0-rc.0) (2018-09-30)
+
+
+### Features
+
+* alert admin about child deployment updates ([d13b3fb](https://github.com/tradle/serverless/commit/d13b3fb))
+
+
+
+<a name="1.8.0"></a>
+# [1.8.0](https://github.com/tradle/serverless/compare/v1.8.0-rc.14...v1.8.0) (2018-09-30)
+
+
+
+<a name="1.8.0-rc.14"></a>
+# [1.8.0-rc.14](https://github.com/tradle/serverless/compare/v1.8.0-rc.13...v1.8.0-rc.14) (2018-09-30)
+
+
+### Bug Fixes
+
+* edge case when child deployment hasn't specified blockchain network ([4c19fac](https://github.com/tradle/serverless/commit/4c19fac))
+
+
+
+<a name="1.8.0-rc.13"></a>
+# [1.8.0-rc.13](https://github.com/tradle/serverless/compare/v1.8.0-rc.12...v1.8.0-rc.13) (2018-09-30)
+
+
+
 <a name="1.8.0-rc.12"></a>
 # [1.8.0-rc.12](https://github.com/tradle/serverless/compare/v1.8.0-rc.11...v1.8.0-rc.12) (2018-09-29)
 

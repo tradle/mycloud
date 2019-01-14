@@ -401,7 +401,7 @@ Domain ${domain} (and namespace ${pack.namespace}) belongs to ${fIdentityPermali
 
   private onMissingModel = async (id):Promise<void> => {
     const modelsPack = await this.getModelsPackByDomain(getDomain(id))
-    if (modelsPack) {
+    if (modelsPack && modelsPack.models) {
       this.cache.addModels(modelsPack.models)
     }
 
@@ -425,8 +425,8 @@ export const getModelsPackConfKey = domainOrPack => {
 export const createModelStore = (components:ModelStoreOpts) => new ModelStore(components)
 export const toggleDomainVsNamespace = str => str.split('.').reverse().join('.')
 export const ensureNoModelsRemoved = (current: ModelsPack, updated: ModelsPack) => {
-  const before = current.models.map(m => m.id)
-  const after = updated.models.map(m => m.id)
+  const before = (current.models || []).map(m => m.id)
+  const after = (updated.models || []).map(m => m.id)
   const lost = _.difference(before, after)
   if (lost.length) {
     throw new Errors.InvalidInput(`models cannot be removed: ${lost.join(', ')}`)

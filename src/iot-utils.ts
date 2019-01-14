@@ -1,4 +1,3 @@
-
 import IotMessage from '@tradle/iot-message'
 import { cachifyPromiser } from './utils'
 import { AwsApis, Env, Logger } from './types'
@@ -20,6 +19,8 @@ export interface IIotEndpointInfo {
   parentTopic: string
   clientIdPrefix: string
 }
+
+const isATSEndpoint = endpoint => endpoint.includes('-ats.iot')
 
 export default class Iot implements IIotEndpointInfo {
   public endpointInfo: IIotEndpointInfo
@@ -64,13 +65,16 @@ export default class Iot implements IIotEndpointInfo {
   }
 
   public fetchEndpoint = async () => {
-    const { endpointAddress } = await this.services.iot.describeEndpoint().promise()
+    const { endpointAddress } = await this.services.iot.describeEndpoint({
+      endpointType: 'iot:Data-ATS',
+    }).promise()
+
     return endpointAddress
   }
 
   public getEndpoint = cachifyPromiser(async () => {
     // hack ./aws needs sync access to this var
-    if (!this.env.IOT_ENDPOINT) {
+    if (!(this.env.IOT_ENDPOINT && isATSEndpoint(this.env.IOT_ENDPOINT))) {
       this.env.IOT_ENDPOINT = await this.fetchEndpoint()
     }
 

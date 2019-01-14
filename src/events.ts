@@ -1,12 +1,17 @@
 import uniqBy from 'lodash/uniqBy'
 import { TYPE } from '@tradle/constants'
-import { sha256 } from './crypto'
+import { sha256, getLinks } from './crypto'
 import {
   Logger,
   IStreamRecord,
   IStreamEventDBRecord,
-  ISaveEventPayload
+  ISaveEventPayload,
+  ObjectLinks,
 } from './types'
+
+import {
+  pickNonNull,
+} from './utils'
 
 const notNull = obj => !!obj
 const SEPARATOR = ':'
@@ -65,11 +70,13 @@ export default class Events {
     return changes.map(this.fromSaveEvent)
   }
 
-  public fromSaveEvent = ({ value, old }: ISaveEventPayload):EventPartial => {
+  public fromSaveEvent = (event: ISaveEventPayload):EventPartial => {
+    const { value, old } = event
     const topic = value ? topics.resource.save : topics.resource.delete
+    const data = getEventData(event)
     return {
       topic: topic.toString(),
-      data: value || old,
+      data,
       time: value ? getPayloadTime(value) : Date.now()
     }
   }
@@ -221,7 +228,7 @@ const bumpSuffix = (id) => {
 
 const getTopicName = (str: string) => parseTopic(str).original
 
-const registry = new Set<String>()
+const registry = new Set<string>()
 
 export class EventTopic {
   constructor(private name: string) {
@@ -233,7 +240,6 @@ export class EventTopic {
   get sync():EventTopic { return new EventTopic(toSyncEvent(this.name)) }
   get async():EventTopic { return new EventTopic(toAsyncEvent(this.name)) }
   get batch():EventTopic {
-    debugger
     return new EventTopic(toBatchEvent(this.name))
   }
 
@@ -274,6 +280,9 @@ export const topics = {
   logging: {
     logs: new EventTopic('logs:logs'),
     alert: new EventTopic('logs:alert'),
+  },
+  blockchain: {
+    lowFunds: new EventTopic('blockchain:lowfunds'),
   }
 }
 
@@ -312,4 +321,40 @@ export const parseTopic = topic => {
   }
 
   return info
+}
+
+export const getEventData = ({ value, old }: ISaveEventPayload) => {
+  const latest = value || old
+  const data = pickNonNull({
+    type: latest[TYPE],
+    link: latest._link,
+    permalink: latest._permalink,
+    prevlink: latest._prevlink,
+    havePreviousVersion: !!old,
+  })
+
+  if (data.link) return data
+
+  const { type } = data
+  if (type === 'tradle.PubKey') {
+    return { ...data, fingerprint: latest.fingerprint }
+  }
+
+  if (type === 'tradle.IotSession') {
+    return { ...data, clientId: latest.clientId }
+  }
+
+  if (type === 'tradle.BacklinkItem') {
+    return latest
+  }
+
+  if (type === 'tradle.DeliveryError') {
+    return { ...data, counterparty: latest.counterparty }
+  }
+
+  if (type === 'tradle.POJO') {
+    return { ...data, key: latest.key }
+  }
+
+  return data
 }

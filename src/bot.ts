@@ -19,7 +19,7 @@ import { createDBUtils } from './db-utils'
 import { createAWSWrapper } from './aws'
 import { StreamProcessor } from './stream-processor'
 import * as utils from './utils'
-import { TYPE, SIG, ORG, ORG_SIG } from './constants'
+import { TYPE, TYPES, SIG, ORG, ORG_SIG, BATCH_SEALING_PROTOCOL_VERSION } from './constants'
 const VERSION = require('./version')
 const {
   defineGetter,
@@ -55,6 +55,7 @@ import {
   HooksFireFn,
   HooksHookFn,
   Seal,
+  SealBatcher,
   IBotMessageEvent,
   ISaveEventPayload,
   GetResourceIdentifierInput,
@@ -70,6 +71,8 @@ import {
   VersionInfo,
   IDebug,
   IBlockchainIdentifier,
+  UpdateResourceOpts,
+  ResourceStub,
 } from './types'
 
 import { createLinker, appLinks as defaultAppLinks } from './app-links'
@@ -85,7 +88,8 @@ import Messages from './messages'
 import Identities from './identities'
 import Auth from './auth'
 import Push from './push'
-import Seals from './seals'
+import Seals, { CreateSealOpts } from './seals'
+import { createSealBatcher } from './batch-seals'
 import Blockchain from './blockchain'
 import Backlinks from './backlinks'
 import Delivery from './delivery'
@@ -157,6 +161,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public delivery: Delivery
   public discovery: Discovery
   public seals: Seals
+  public sealBatcher?: SealBatcher
   public blockchain: Blockchain
   public init: Init
   public userSim: User
@@ -225,8 +230,10 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
   // IHasModels
   public buildResource: (model: string|Model) => any
-  public buildStub: (resource: ITradleObject) => any
-  public validate: (resource: ITradleObject) => any
+  public validateResource: (resource: ITradleObject) => void
+  public validatePartialResource: (resource: ITradleObject) => void
+  public buildStub: (resource: ITradleObject) => ResourceStub
+  public getModel: (id: string) => Model
 
   public get hook(): HooksHookFn { return this.middleware.hook }
   public get hookSimple(): HooksHookFn { return this.middleware.hookSimple }
@@ -330,7 +337,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const dbUtils = bot.dbUtils = createDBUtils({
       aws,
       logger: logger.sub('db-utils'),
-      env
+      env,
+      serviceMap,
     })
 
     const tables = bot.tables = getTables({ dbUtils, serviceMap })
@@ -389,7 +397,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       s3Utils: bot.s3Utils
     })
 
-    const stackName = bot.stackUtils.thisStackName
     const secrets = bot.secrets = new Secrets({
       obfuscateSecretName: name => crypto.obfuscateSecretName(bot.defaultEncryptionKey, name),
       credstash: createCredstash({
@@ -493,7 +500,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     bot.conf = bot.kv.sub('bot:conf:')
 
     const auth = bot.auth = new Auth({
-      env,
       uploadFolder: bot.serviceMap.Bucket.FileUpload,
       logger: bot.logger.sub('auth'),
       aws,
@@ -504,6 +510,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       objects,
       tasks,
       modelStore,
+      sessionTTL: env.SESSION_TTL,
     })
 
     const events = bot.events = new Events({
@@ -552,6 +559,16 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     bot.define('streamProcessor', './stream-processor', StreamProcessor => new StreamProcessor({
       store: bot.conf.sub('stream-state')
     }))
+
+    if (this.env.SEALING_MODE === 'batch') {
+      this.logger.debug('sealing in batch mode')
+      bot.define('sealBatcher', './batch-seals', ({ createSealBatcher }) => createSealBatcher({
+        db,
+        folder: bot.buckets.Objects.folder(`seals/batch/${BATCH_SEALING_PROTOCOL_VERSION}`),
+        logger: logger.sub('batch-seals'),
+        safetyBuffer: 2,
+      }))
+    }
 
     // this.define('faucet', './faucet', createFaucet => createFaucet({
     //   networkName: BLOCKCHAIN.networkName,
@@ -711,6 +728,22 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public get presignEmbeddedMediaLinks() { return this.objects.presignEmbeddedMediaLinks }
   public get getStackResourceName() { return this.env.getStackResourceName }
 
+  public sealIfNotBatching = async (opts: CreateSealOpts) => {
+    if (!this.sealBatcher) {
+      return await this.seal(opts)
+    }
+  }
+
+  // public maybeEnqueueSeal = async (opts: CreateSealOpts) => {
+  //   const shouldQueueImmediately = !this.sealBatcher ||
+  //     // @ts-ignore
+  //     (opts.object && opts.object[TYPE] === TYPES.SEALABLE_BATCH)
+
+  //   if (shouldQueueImmediately) {
+  //     await this.seals.create(opts)
+  //   }
+  // }
+
   public sendSimpleMessage = async ({ to, message }) => {
     return await this.send({
       to,
@@ -776,12 +809,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     await this.lambdaUtils.scheduleReinitializeContainers()
   }
 
-  public validateResource = (resource: ITradleObject) => validateResource.resource({
-    models: this.models,
-    resource
-  })
-
-  public updateResource = async ({ type, permalink, props }) => {
+  public updateResource = async ({ type, permalink, props }: UpdateResourceOpts) => {
     if (!(type && permalink)) {
       throw new Errors.InvalidInput(`expected "type" and "permalink"`)
     }

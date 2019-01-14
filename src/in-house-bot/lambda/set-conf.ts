@@ -17,11 +17,14 @@ lambda.use(async (ctx) => {
   }
 
   try {
-    ctx.body = await conf.update({ bot, update: ctx.event })
-  } catch (err) {
     ctx.body = {
-      message: err.message,
-      name: err.name || err.type,
+      result: await conf.update({ bot, update: ctx.event })
+    }
+  } catch (err) {
+    lambda.logger.info('setconf failed', err)
+    Errors.rethrow(err, 'developer')
+    ctx.body = {
+      error: Errors.export(err)
     }
 
     return

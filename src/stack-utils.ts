@@ -11,6 +11,9 @@ import {
   ILaunchStackUrlOpts,
   IUpdateStackUrlOpts,
   VersionInfo,
+  CFTemplate,
+  StackLaunchParameters,
+  StackUpdateParameters,
 } from './types'
 
 import Errors from './errors'
@@ -143,6 +146,18 @@ export default class StackUtils {
     }
   }
 
+  public static setTemplateParameterDefaults = (template: CFTemplate, values: any) => {
+    if (!template.Parameters) template.Parameters = {}
+
+    const { Parameters } = template
+    for (let key in values) {
+      Parameters[key] = utils.pickNonNull({
+        Type: 'String',
+        Default: values[key],
+      })
+    }
+  }
+
   public parseStackArn = StackUtils.parseStackArn
   public parseStackName = StackUtils.parseStackName
 
@@ -219,20 +234,6 @@ export default class StackUtils {
     }
 
     return resources
-  }
-
-  public getCurrentAdminEmail = async () => {
-    const resources = await this.getStackResources()
-    const { PhysicalResourceId } = resources.find(r => {
-      return r.ResourceType === 'AWS::SNS::Topic' && r.LogicalResourceId === 'AwsAlertsAlarm'
-    })
-
-    const { Subscriptions } = await this.aws.sns.listSubscriptionsByTopic({
-      TopicArn: PhysicalResourceId
-    }).promise()
-
-    const emails = Subscriptions.filter(s => s.Protocol === 'email')
-    return emails[0].Endpoint
   }
 
   public updateEnvironments = async(map:TransformFunctionConfig):Promise<UpdateEnvResult[]> => {
@@ -397,14 +398,65 @@ export default class StackUtils {
 
   public getStackTemplate = async () => {
     if (this.isTesting) {
-      return _.cloneDeep(require('./cli/cloudformation-template.json'))
+      return this._getLocalStackTemplate()
     }
 
-    const { TemplateBody } = await this.aws.cloudformation
-      .getTemplate({ StackName: this.thisStack.name })
-      .promise()
+    return StackUtils.getStackTemplate({
+      cloudformation: this.aws.cloudformation,
+      stackArn: this.thisStackArn,
+    })
+  }
 
+  public static getStackTemplate = async ({ cloudformation, stackArn }: {
+    cloudformation: AWS.CloudFormation,
+    stackArn: string
+  }) => {
+    const { TemplateBody } = await cloudformation.getTemplate({ StackName: stackArn }).promise()
     return JSON.parse(TemplateBody)
+  }
+
+  private _getLocalStackTemplate = async () => {
+    return _.cloneDeep(require('./cli/cloudformation-template.json'))
+  }
+
+  public getStackParameterValues = async (stackArn:string = this.thisStackArn) => {
+    if (this.isTesting) {
+      return this._getLocalStackParameterValues()
+    }
+
+    return StackUtils.getStackParameterValues({ cloudformation: this.aws.cloudformation, stackArn })
+  }
+
+  public static getStackParameterValues = async ({ cloudformation, stackArn }: {
+    cloudformation: AWS.CloudFormation
+    stackArn: string
+  }):Promise<any> => {
+    const { Parameters } = await StackUtils.describeStack({ cloudformation, stackArn })
+    return Parameters.reduce((map, param) => {
+      // map[param.ParameterKey] = param.ParameterValue || template.Parameters[param.ParameterKey].Default
+      map[param.ParameterKey] = param.ParameterValue
+      return map
+    }, {})
+  }
+
+  public static describeStack = async ({ cloudformation, stackArn }: {
+    cloudformation: AWS.CloudFormation
+    stackArn: string
+  }) => {
+    const {
+      Stacks,
+    } = await cloudformation.describeStacks({ StackName: stackArn }).promise()
+
+    return Stacks[0]
+  }
+
+  private _getLocalStackParameterValues = async () => {
+    const { Parameters } = require('./cli/cloudformation-template.json')
+    const { getVar } = require('./cli/get-template-var')
+    return _.transform(Parameters, (result, value: any, key: string) => {
+      const custom = getVar(`stackParameters.${key}`)
+      result[key] = typeof custom === 'undefined' ? value.Default : custom
+    }, {})
   }
 
   public getSwagger = async () => {
@@ -478,104 +530,25 @@ export default class StackUtils {
     await this.createDeployment()
   }
 
-  public static changeServiceName = ({ template, from, to }) => {
-    if (!(template && from && to)) {
-      throw new Error('expected "template", "from", and "to"')
-    }
-
-    const s3Keys = StackUtils.getLambdaS3Keys(template)
-    const fromRegex = new RegExp(from, 'g')
-    const fromNoDashRegex = new RegExp(stripDashes(from), 'g')
-    const toRegex = new RegExp(to, 'g')
-    const resultStr = JSON.stringify(template)
-      .replace(fromRegex, to)
-      .replace(fromNoDashRegex, stripDashes(to))
-
-    const result = JSON.parse(resultStr)
-    s3Keys.forEach(({ path, value }) => _.set(result, path, value))
-    return result
-  }
-
-  public static getLambdaS3Keys = (template: any) => {
-    const keys = []
+  public static getLambdaS3Keys = (template: CFTemplate) => {
     const { Resources } = template
-    for (let name in Resources) {
-      let value = Resources[name]
-      if (value.Type === 'AWS::Lambda::Function') {
-        keys.push({
-          path: `Resources['${name}'].Properties.Code.S3Key`,
-          value: value.Properties.Code.S3Key
-        })
-      }
-    }
-
-    return keys
+    return StackUtils.getResourceNamesByType(template, 'AWS::Lambda::Function').map(name => ({
+      path: `Resources['${name}'].Properties.Code.S3Key`,
+      value: Resources[name].Properties.Code.S3Key
+    }))
   }
 
-  public static changeRegion = ({ template, from, to }) => {
-    const { Mappings, ...toChange } = template
-    let changed = StackUtils.changeAutoScalingRegion({
-      template: toChange,
-      from, to
-    })
-
-    const hacked = JSON.stringify(changed)
-      .replace(new RegExp(from, 'ig'), to)
-      .replace(new RegExp(normalizePathPart(from), 'g'), normalizePathPart(to))
-
-    return {
-      ...JSON.parse(hacked),
-      Mappings
-    }
-  }
-
-  public static changeAutoScalingRegion = ({ template, from, to }) => {
-    const cleanFrom = toAutoScalingRegionFormat(from)
-    const cleanTo = toAutoScalingRegionFormat(to)
-    let str = JSON.stringify(template)
-    const toReplace = _.map(template.Resources, (resource: any, key: string) => {
-      const { Type } = resource
-      if (Type && Type.startsWith('AWS::ApplicationAutoScaling')) {
-        return key
+  public static lockParametersToDefaults = (template: CFTemplate) => {
+    const { Parameters={} } = template
+    Object.keys(Parameters).forEach(name => {
+      const param = Parameters[name]
+      if (typeof param.Default !== 'undefined') {
+        param.AllowedValues = [param.Default]
       }
     })
-    .filter(_.identity)
-    .sort((a, b) => b.length - a.length)
-
-    toReplace.forEach(key => {
-      const parts = splitCamelCaseToArray(key)
-      const cleanRegion = parts.pop()
-      if (cleanRegion === cleanTo) return
-
-      const newKey = parts.join('') + cleanTo
-      str = replaceAll(str, key, newKey)
-    })
-
-    return JSON.parse(str)
   }
 
-  // public static changeAdminEmail = ({ template, to }) => {
-  //   return {
-  //     ...template,
-  //     Resources: _.transform(<any>template.Resources, (updated:any, value:any, logicalId:string) => {
-  //       const { Type } = value
-  //       if (Type === 'AWS::SNS::Topic' && logicalId.toLowerCase().endsWith('alarm')) {
-  //         value = _.cloneDeep(value)
-  //         const { Subscription = [] } = value.Properties
-  //         Subscription.forEach(item => {
-  //           if (item.Protocol === 'email') item.Endpoint = to
-  //         })
-  //       }
-
-  //       updated[logicalId] = value
-  //     }, {})
-  //   }
-  // }
-
-  public changeServiceName = StackUtils.changeServiceName
-  public changeRegion = StackUtils.changeRegion
   public getLambdaS3Keys = StackUtils.getLambdaS3Keys
-
   public updateStack = async ({ templateUrl, notificationTopics = [] }: {
     templateUrl: string
     notificationTopics?: string[]
@@ -621,15 +594,24 @@ export default class StackUtils {
     })
   }
 
-  public static getStackLocationKeys = ({ service, stage, versionInfo }:  {
-    service: string
+  public static getResourcesByType = (template: CFTemplate, type: string) => {
+    return StackUtils.getResourceNamesByType(template, type)
+      .map(name => template.Resources[name])
+  }
+
+  public static getResourceNamesByType = (template: CFTemplate, type: string) => {
+    const { Resources } = template
+    return Object.keys(Resources).filter(name => Resources[name].Type === type)
+  }
+
+  public static getStackLocationKeys = ({ stage, versionInfo }:  {
     stage: string
     versionInfo: VersionInfo
   }) => {
-    const { tag, branch, commit, commitsSinceTag, time } = versionInfo
-    const dir = `serverless/${service}/${stage}/${tag}/${commit}`
+    const { tag, commit, time } = versionInfo
+    const dir = `mycloud/tradle/${stage}/${tag}/${commit}`
     const templateKey = `${dir}/compiled-cloudformation-template.json`
-    const zipKey = `${dir}/${service}.zip`
+    const zipKey = `${dir}/lambda.zip`
     return {
       dir,
       templateKey,
@@ -638,10 +620,9 @@ export default class StackUtils {
   }
 
   public static getStackLocation = (opts: {
-    service: string
     stage: string
     versionInfo: VersionInfo
-    deploymentBucket?: Bucket
+    deploymentBucket: Bucket
   }) => {
     const { deploymentBucket } = opts
     const loc = StackUtils.getStackLocationKeys(opts)
@@ -654,8 +635,8 @@ export default class StackUtils {
   }
 
   public getStackLocation = (versionInfo: VersionInfo) => StackUtils.getStackLocation({
-    service: this.env.SERVERLESS_SERVICE_NAME,
-    stage: this.env.SERVERLESS_STAGE,
+    // stackName: this.thisStackName,
+    stage: this.env.STACK_STAGE,
     versionInfo,
     deploymentBucket: this.deploymentBucket
   })
@@ -670,7 +651,7 @@ export default class StackUtils {
 }
 
 export { StackUtils }
-export const create = opts => new StackUtils(opts)
+export const create = (opts:StackUtilsOpts) => new StackUtils(opts)
 
 const getDateUpdatedEnvironmentVariables = () => ({
   DATE_UPDATED: String(Date.now())

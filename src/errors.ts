@@ -238,6 +238,10 @@ const errors = {
     }
     return exportError(err)
   },
+  exportMini: (err: any) => ({
+    name: err.name || err.type,
+    message: err.message,
+  }),
   isDeveloperError: (err:Error): boolean => {
     return matches(err, 'developer')
   },

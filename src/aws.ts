@@ -1,19 +1,12 @@
-import http from 'http'
 import { EventEmitter } from 'events'
 import rawAWS from 'aws-sdk'
 import AWSXRay from 'aws-xray-sdk-core'
 import { createConfig } from './aws-config'
-import { isXrayOn } from './utils'
 import { Env, Logger } from './types'
 import REGIONS from './aws-regions'
 import { wrap } from './wrap-aws-client'
-
-const willUseXRay = isXrayOn()
-if (willUseXRay) {
-  // tslint-disable-rule: no-console
-  console.warn('capturing all http requests with AWSXRay')
-  AWSXRay.captureHTTPsGlobal(http)
-}
+import { isXrayOn } from './utils'
+import Errors from './errors'
 
 const MOCKED_SEPARATELY = {
   KMS: true,
@@ -41,6 +34,7 @@ export interface AwsApis extends EventEmitter {
   ssm: AWS.SSM,
   cloudwatch: AWS.CloudWatch,
   cloudwatchlogs: AWS.CloudWatchLogs,
+  create: CreateRegionalService,
   AWS: any,
   trace: any
   regional: {
@@ -54,13 +48,21 @@ export const createAWSWrapper = ({ env, logger }: {
   logger: Logger
 }) => {
   const region = env.AWS_REGION
-  const AWS = willUseXRay
+  if (!REGIONS.includes(region)) {
+    throw new Errors.InvalidEnvironment(`region does not exist: ${region}`)
+  }
+
+  const AWS = isXrayOn()
     ? AWSXRay.captureAWS(rawAWS)
     : rawAWS
 
   AWS.config.correctClockSkew = true
 
-  const services = createConfig({ env })
+  const services = createConfig({
+    region,
+    local: env.IS_LOCAL,
+  })
+
   AWS.config.update(services)
 
   const instanceNameToServiceName = {
@@ -84,7 +86,7 @@ export const createAWSWrapper = ({ env, logger }: {
     cloudformation: 'CloudFormation'
   }
 
-  const useGlobalConfigClock = service => {
+  const useGlobalConfigClock = (service, name) => {
     if (service instanceof AWS.DynamoDB.DocumentClient) {
       service = service.service
     }
@@ -96,7 +98,7 @@ export const createAWSWrapper = ({ env, logger }: {
         return AWS.config.systemClockOffset
       },
       set(value) {
-        logger.warn(`setting systemClockOffset: ${value}`)
+        logger.warn(`setting systemClockOffset from service ${name}: ${value}`)
         AWS.config.systemClockOffset = value
       }
     })
@@ -116,7 +118,6 @@ export const createAWSWrapper = ({ env, logger }: {
       })
     }
 
-
     if (env.IS_TESTING && !conf && !MOCKED_SEPARATELY[serviceName]) {
       // don't pretend to support it as this will result
       // in calling the remote service!
@@ -130,7 +131,7 @@ export const createAWSWrapper = ({ env, logger }: {
     const conf = getConf(serviceName)
     const service = _create(serviceName, region, conf)
     if (service) {
-      useGlobalConfigClock(service)
+      useGlobalConfigClock(service, serviceName)
       const recordable = wrap(service)
       apis.emit('new', {
         name: serviceName.toLowerCase(),

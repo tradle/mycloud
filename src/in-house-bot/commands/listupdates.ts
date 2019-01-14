@@ -9,11 +9,11 @@ export const command:ICommand = {
   ],
   description: 'list available updates',
   exec: async ({ ctx, commander, req, args }) => {
-    const { downloaded, providerPermalink } = args
+    const { downloaded, provider } = args
     if (downloaded) {
-      return await commander.deployment.listDownloadedUpdates(providerPermalink)
+      return await commander.deployment.listDownloadedUpdates(provider)
     }
 
-    return await commander.deployment.listAvailableUpdates(providerPermalink)
+    return await commander.deployment.listAvailableUpdates(provider)
   }
 }

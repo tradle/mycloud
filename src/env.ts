@@ -10,7 +10,8 @@ import {
   Lambda,
   IRequestContext,
   CloudName,
-  IBlockchainIdentifier
+  IBlockchainIdentifier,
+  SealingMode,
 } from './types'
 import { WARMUP_SOURCE_NAME, ROOT_LOGGING_NAMESPACE } from './constants'
 import Logger, { Level } from './logger'
@@ -43,25 +44,16 @@ export default class Env {
   public DEBUG_FORMAT:string
   public DEBUG_LEVEL:string
 
-  public SERVERLESS_PREFIX:string
-  public SERVERLESS_STAGE:string
-  public SERVERLESS_SERVICE_NAME:string
+  public STACK_RESOURCE_PREFIX:string
+  public STACK_STAGE:string
+  public STACK_NAME:string
   public SERVERLESS_ALIAS?:string
-  public SERVERLESS_ARTIFACTS_PATH: string
   public get STAGE() {
-    return this.SERVERLESS_STAGE
-  }
-
-  public get SERVICE_NAME() {
-    return this.SERVERLESS_SERVICE_NAME
+    return this.STACK_STAGE
   }
 
   public get ALIAS() {
     return this.SERVERLESS_ALIAS
-  }
-
-  public get STACK_NAME() {
-    return `${this.SERVERLESS_SERVICE_NAME}-${this.STAGE}`
   }
 
   public BLOCKCHAIN: IBlockchainIdentifier
@@ -75,13 +67,17 @@ export default class Env {
   public debug:IDebug
   public _X_AMZN_TRACE_ID:string
   public AWS_ACCOUNT_ID: string
+  public SESSION_TTL?: number
+  public ABORT_REQUESTS_ON_FREEZE?: boolean
+  public SEALING_MODE: SealingMode
+  public SEAL_BATCHING_PERIOD: number
 
   constructor(props:any) {
     props = clone(props)
     const {
-      SERVERLESS_PREFIX,
-      SERVERLESS_STAGE,
-      SERVERLESS_SERVICE_NAME,
+      // STACK_RESOURCE_PREFIX,
+      STACK_NAME,
+      STACK_STAGE,
       NODE_ENV,
       IS_LOCAL,
       IS_OFFLINE,
@@ -100,14 +96,12 @@ export default class Env {
     props.IS_EMULATED = yn(IS_OFFLINE)
     props.IS_TESTING = NODE_ENV === 'test'
     props.FUNCTION_NAME = AWS_LAMBDA_FUNCTION_NAME
-      ? AWS_LAMBDA_FUNCTION_NAME.slice(SERVERLESS_PREFIX.length)
+      ? AWS_LAMBDA_FUNCTION_NAME.slice(STACK_NAME.length + 1)
       : 'unknown'
 
     // props.MEMORY_SIZE = isNaN(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)
     //   ? 512
     //   : Number(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)
-
-    props.SERVERLESS_ARTIFACTS_PATH = `serverless/${SERVERLESS_SERVICE_NAME}/${SERVERLESS_STAGE}`
 
     this.logger = new Logger({
       namespace: props.IS_TESTING ? '' : ROOT_LOGGING_NAMESPACE,
@@ -127,8 +121,6 @@ export default class Env {
     if (props.DEBUG) {
       debug.enable(props.DEBUG)
     }
-
-    // this.asyncTasks = []
   }
 
   public get xraySegment() { return this.lambda.xraySegment }
@@ -183,19 +175,19 @@ export default class Env {
   }
 
   public getStackResourceShortName = (name: string):string => {
-    return name.slice(this.SERVERLESS_PREFIX.length)
+    return name.slice(this.STACK_RESOURCE_PREFIX.length)
   }
 
   public getStackResourceName = (name: string):string => {
-    const { SERVERLESS_PREFIX='' } = this
-    return name.startsWith(SERVERLESS_PREFIX)
+    const { STACK_RESOURCE_PREFIX='' } = this
+    return name.startsWith(STACK_RESOURCE_PREFIX)
       ? name
-      : `${SERVERLESS_PREFIX}${name}`
+      : `${STACK_RESOURCE_PREFIX}${name}`
   }
 
   private _recalc = (props:any):void => {
-    if ('SERVERLESS_STAGE' in props) {
-      this.DEV = !this.SERVERLESS_STAGE.startsWith('prod')
+    if ('STACK_STAGE' in props) {
+      this.DEV = !this.STACK_STAGE.startsWith('prod')
     }
 
     if ('NO_TIME_TRAVEL' in props) {
@@ -206,6 +198,17 @@ export default class Env {
     if ('BLOCKCHAIN' in props) {
       const [blockchain, networkName] = props.BLOCKCHAIN.split(':')
       this.BLOCKCHAIN = { blockchain, networkName }
+    }
+
+    if (this.SESSION_TTL) {
+      this.SESSION_TTL = Number(this.SESSION_TTL)
+    }
+
+    this.STACK_RESOURCE_PREFIX = `${this.STACK_NAME}-`
+    this.IOT_CLIENT_ID_PREFIX = this.STACK_RESOURCE_PREFIX
+    this.IOT_PARENT_TOPIC = this.STACK_NAME
+    if ('SEAL_BATCHING_PERIOD' in props) {
+      this.SEAL_BATCHING_PERIOD = parseInt(props.SEAL_BATCHING_PERIOD, 10)
     }
   }
 }

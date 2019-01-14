@@ -2,8 +2,8 @@
 
 import path from 'path'
 import fs from 'fs'
-if (!fs.existsSync(path.resolve(process.cwd(), 'vars.yml'))) {
-  throw new Error('expected vars.yml file')
+if (!fs.existsSync(path.resolve(process.cwd(), 'vars.json'))) {
+  throw new Error('expected vars.json file')
 }
 
 import promisify from 'pify'
@@ -30,7 +30,7 @@ if (!/^[a-zA-Z-_]+$/.test(stage)) {
   throw new Error('invalid stage: ' + stage)
 }
 
-const command = `./node_modules/.bin/sls deploy --stage=${stage}`
+const command = `./node_modules/.bin/sls deploy --stage=${stage} --debug`
 let pathToNtfy
 try {
   pathToNtfy = proc.execSync('command -v ntfy', {

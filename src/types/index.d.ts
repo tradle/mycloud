@@ -2,7 +2,7 @@ import { EventEmitter } from 'events'
 import { Middleware as ComposeMiddleware } from 'koa-compose'
 import { Context as KoaContext } from 'koa'
 import { GraphQLSchema, ExecutionResult as GraphqlExecutionResult } from 'graphql'
-import { Table, DB, Models, Model, Diff } from '@tradle/dynamodb'
+import { Table, DB, Models, Model, Diff, FindOpts } from '@tradle/dynamodb'
 import { AppLinks } from '@tradle/qr-schema'
 import { Logger } from '../logger'
 import { BaseLambda, LambdaHttp, Lambda, EventSource } from '../lambda'
@@ -20,7 +20,8 @@ import { Auth } from '../auth'
 import { Init } from '../init'
 import { AwsApis } from '../aws'
 import { Bucket } from '../bucket'
-import { Seals, Seal, SealPendingResult } from '../seals'
+import { Seals, Seal, SealPendingResult, CreateSealOpts } from '../seals'
+import { SealBatcher } from '../batch-seals'
 import { Blockchain } from '../blockchain'
 import { ModelStore } from '../model-store'
 import { Task, TaskManager } from '../task-manager'
@@ -45,9 +46,12 @@ import { Mailer } from '../mailer'
 import { MiddlewareContainer } from '../middleware-container'
 import { ResourceStub } from '@tradle/validate-resource'
 
+type Folder = Bucket
+
 export {
   ResourceStub,
   ParsedResourceStub,
+  EnumStub,
   GetResourceIdentifierInput,
   GetResourceIdentifierOutput,
   ValidateResourceOpts,
@@ -65,6 +69,7 @@ export {
   Models,
   Model,
   Diff,
+  FindOpts as DBFindOpts,
   // export
   Bot,
   Users,
@@ -80,8 +85,11 @@ export {
   Init,
   AwsApis,
   Bucket,
+  Folder,
   Seal,
   Seals,
+  SealBatcher,
+  CreateSealOpts,
   SealPendingResult,
   Blockchain,
   ModelStore,
@@ -151,6 +159,8 @@ export interface IRoleCredentials {
   uploadPrefix: string
 }
 
+export interface IIotClientChallengeAndCreds extends IIotClientChallenge, IRoleCredentials {}
+
 export interface IAuthResponse extends IRoleCredentials {
   position: IPosition
   time: number
@@ -166,10 +176,10 @@ export interface ILambdaAWSExecutionContext {
   invokeid:                       string
   awsRequestId:                   string
   invokedFunctionArn:             string
-  getRemainingTimeInMillis:       Function
-  done:                           Function
-  succeed:                        Function
-  fail:                           Function
+  getRemainingTimeInMillis:       () => number
+  done:                           GenericCallback
+  // succeed:                        (result: any) => void
+  // fail:                           (error: Error) => void
 }
 
 export interface IRequestContext {
@@ -209,8 +219,10 @@ export interface ISNSExecutionContext extends ILambdaExecutionContext {
   event: SNSEvent
 }
 
-export type LambdaHandler = (event:any, context:ILambdaAWSExecutionContext, callback?:Function)
-  => any|void
+export type GenericCallback = (err?: Error, result?: any) => void
+
+export type LambdaHandler = (event:any, context:ILambdaAWSExecutionContext, callback?: GenericCallback)
+  => Promise<any>|void
 
 export interface ILambdaOpts<T> {
   env: Env
@@ -225,6 +237,7 @@ export interface ILambdaOpts<T> {
 }
 
 export type Middleware<T> = ComposeMiddleware<T>
+export type MiddlewareBase = Middleware<ILambdaExecutionContext>
 export type MiddlewareHttp = Middleware<ILambdaHttpExecutionContext>
 
 export interface ITradleObject {
@@ -284,6 +297,12 @@ export interface IIdentity extends ITradleObject {
 export interface IIdentityAndKeys {
   identity: IIdentity
   keys: IPrivKey[]
+}
+
+export interface ObjectLinks {
+  link: string
+  permalink: string
+  prevlink?: string
 }
 
 export type IDebug = (...any) => void
@@ -464,7 +483,7 @@ type AttrMap = {
 
 // TODO: generate this from serverless.yml
 export type IServiceMap = {
-  Table: AttrMap
+  Table: Tables
   Bucket: {
     [P in keyof IBucketsInfo]: string
   }
@@ -503,6 +522,12 @@ export interface ISaveObjectOpts {
   saveToDB?: boolean
 }
 
+export interface UpdateResourceOpts {
+  type: string
+  permalink: string
+  props: any
+}
+
 export type CloudName = 'aws'
 
 export interface IDeepLink {
@@ -534,6 +559,17 @@ export interface IMailerSendEmailOpts {
   body: string
   format?: 'text' | 'html'
   replyTo?: string|string[]
+}
+
+export interface ISendSMSOpts {
+  phoneNumber: string
+  message: string
+  senderId?: string
+  highPriority?: boolean
+}
+
+export interface ISMS {
+  sendSMS: (opts: ISendSMSOpts) => Promise<any|void>
 }
 
 type ErrorCreator = () => Error
@@ -607,6 +643,8 @@ export interface BlockchainNetwork extends BlockchainNetworkInfo {
   toString: () => string
   // select: (obj: any) => any
 }
+
+export type SealingMode = 'single'|'batch'
 
 export type StreamRecordType = 'create'|'update'|'delete'|string
 export type StreamService = 'dynamodb'
@@ -683,8 +721,8 @@ export interface IBotMessageEvent {
 }
 
 export interface ISaveEventPayload {
-  value: any
-  old?: any
+  value: any // should really be ITradleObject
+  old?: any  // should really be ITradleObject
 }
 
 export interface IModelsMixinTarget {
@@ -694,8 +732,10 @@ export interface IModelsMixinTarget {
 
 export interface IHasModels {
   buildResource: (model: string|Model) => any
-  buildStub: (resource: ITradleObject) => any
-  validate: (resource: ITradleObject) => void
+  buildStub: (resource: ITradleObject) => ResourceStub
+  validateResource: (resource: ITradleObject) => void
+  validatePartialResource: (resource: ITradleObject) => void
+  getModel: (id: string) => Model
 }
 
 export interface IBacklinkItem {
@@ -768,6 +808,7 @@ export type VersionInfo = {
   time: string
   templateUrl?: string
   alert?: boolean
+  templatesPath?: string
 }
 
 export interface Registry<T> {
@@ -840,4 +881,84 @@ export interface LowFundsInput extends BlockchainAddressIdentifier {
   address: string
   balance?: string|number
   minBalance?: string|number
+}
+
+export interface CFTemplateParameter {
+  Type: string
+  Description?: string
+  Default?: string
+  AllowedValues?: string[]
+}
+
+export interface CFTemplateResource {
+  Type: string
+  Description?: string
+  Properties?: any
+  DeletionPolicy?: 'Delete'|'Replace'|'Retain'
+}
+
+export interface CFTemplate {
+  Description?: string
+  Parameters?: {
+    [key: string]: CFTemplateParameter
+  }
+  Mappings?: any
+  Conditions?: any
+  Resources: {
+    [key: string]: CFTemplateResource
+  }
+}
+
+export interface MyCloudUpdateTemplate extends CFTemplate {
+  Parameters: {
+    [p in keyof StackLaunchParameters]: CFTemplateParameter
+  },
+}
+
+export interface MyCloudLaunchTemplate extends CFTemplate {
+  Parameters: {
+    [p in keyof StackUpdateParameters]: CFTemplateParameter
+  },
+  Mappings: {
+    deployment: {
+      init: {
+        stackName: string
+        referrerUrl: string
+        deploymentUUID: string
+      }
+    }
+  },
+  Resources: {
+    Initialize: {
+      Type: string
+      Properties: {
+        ServiceToken: string
+        commit: string
+        name: string
+        domain: string
+        logo: string
+        deploymentUUID: string
+        referrerUrl: string
+        ImmutableParameters: {
+          Stage: string
+          BlockchainNetwork: string
+          EncryptTables: string
+        }
+      }
+    },
+    [key: string]: CFTemplateResource
+  }
+}
+
+export interface StackUpdateParameters {
+  // Stage: 'dev'|'prod'
+  SourceDeploymentBucket: string
+}
+
+export interface StackLaunchParameters extends StackUpdateParameters {
+  BlockchainNetwork: string
+  OrgName: string
+  OrgDomain: string
+  OrgLogo: string
+  OrgAdminEmail: string
 }

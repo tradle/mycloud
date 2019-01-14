@@ -3,7 +3,7 @@ import cors from 'kcors'
 import Errors from '../errors'
 import { post } from '../middleware/noop-route'
 import { bodyParser } from '../middleware/body-parser'
-import { ILambdaExecutionContext } from '../types'
+import { MiddlewareHttp } from '../types'
 
 export const createMiddleware = () => compose([
   post(),
@@ -12,9 +12,9 @@ export const createMiddleware = () => compose([
   auth()
 ])
 
-export const auth = () => async (ctx: ILambdaExecutionContext, next) => {
+export const auth = ():MiddlewareHttp => async (ctx, next) => {
   const { bot } = ctx.components
-  const { auth, logger } = bot
+  const { env, logger, serviceMap, auth } = bot
   const time = Date.now()
   try {
     ctx.session = await auth.handleChallengeResponse(ctx.request.body)
@@ -43,12 +43,16 @@ export const auth = () => async (ctx: ILambdaExecutionContext, next) => {
     return
   }
 
-  const {
+  let {
     session,
-    role=bot.serviceMap.Role.IotClient
+    role=serviceMap.Role.IotClient,
   } = ctx
 
-  const credentials = await bot.auth.createCredentials(session, role)
+  if (!role.startsWith('arn:')) {
+    role = `arn:aws:iam::${env.AWS_ACCOUNT_ID}:role/${role}`
+  }
+
+  const credentials = await auth.createCredentials(session, role)
   ctx.body = {
     time,
     position: session.serverPosition,

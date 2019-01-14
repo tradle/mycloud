@@ -24,7 +24,8 @@ import {
   Storage,
   DB,
   ModelStore,
-  IHasLogger
+  IHasLogger,
+  DBFindOpts,
 } from './types'
 
 import baseModels from './models'
@@ -150,7 +151,13 @@ export default class Identities implements IHasLogger {
   }) => {
     // get the PubKey that was the most recent known
     // at the "time"
-    return await this.db.findOne(getPubKeyMappingQuery({ pub, time }))
+    const findOpts = getPubKeyMappingQuery({ pub, time })
+    if (Date.now() - time < constants.unitToMillis.minute) {
+      this.logger.debug('getPubKeyMapping, using consistent read')
+      findOpts.consistentRead = true
+    }
+
+    return await this.db.findOne(findOpts)
   }
 
   // public getPubKey = async (pub:string) => {
@@ -500,7 +507,7 @@ const getNormalizedPubKeys = (identity: IIdentity) => {
   }))
 }
 
-const getPubKeyMappingQuery = ({ pub, time }) => ({
+const getPubKeyMappingQuery = ({ pub, time }):DBFindOpts => ({
   filter: {
     EQ: {
       [TYPE]: PUB_KEY,

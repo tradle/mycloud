@@ -192,11 +192,11 @@ export default class User {
 
   public onDisconnected = async ({ clientId }):Promise<ISession|void> => {
     try {
-      const session = await this.auth.setConnected({ clientId, connected: false })
+      const session = await this.auth.setSubscribed({ clientId, subscribed: false })
       this.logger.silly(`client disconnected`, session)
       return session
     } catch (error) {
-      this.logger.error('ondisconnected: failed to update presence information', {
+      this.logger.error('unsubscribe: failed to update presence information', {
         error: error.message,
         clientId
       })
@@ -214,32 +214,6 @@ export default class User {
       this.logger.debug('iot session not found', { clientId })
       await this.requestIotClientReconnect({ clientId, error })
     }
-  }
-
-  public onConnected = async ({ clientId }):Promise<ISession|void> => {
-    // if (Math.random() < 0.5) {
-    //   console.log('ONCONNECTED, REQUESTING RECONNECT')
-    //   await this.requestIotClientReconnect({ clientId })
-    //   return
-    // }
-
-    let session
-    try {
-      session = await this.auth.setConnected({ clientId, connected: true })
-      this.logger.silly(`client connected`, session)
-    } catch (error) {
-      this.logger.error('onconnected: failed to update presence information', {
-        error: error.message,
-        clientId
-      })
-
-      await this.requestIotClientReconnect({ event: 'connect', clientId, error })
-      Errors.rethrow(error, 'system')
-      return
-    }
-
-    await this.maybeDeliverMessagesToClient(session)
-    return session
   }
 
   public onIncompatibleClient = async ({ clientId }) => {
@@ -299,6 +273,7 @@ export default class User {
 export { User }
 
 const getDeliveryReadiness = session => prettify({
+  authenticated: !!session.authenticated,
   connected: !!session.connected,
-  subscribed: !!session.subscribed
+  subscribed: !!session.subscribed,
 })

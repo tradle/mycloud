@@ -24,7 +24,6 @@ import * as CFNResponse from './cfn-response'
 import { Env, createEnv } from './env'
 import { createLogger } from './logger'
 import { createAWSWrapper } from './aws'
-import { createBot } from './bot'
 import {
   Logger,
   Middleware,
@@ -56,6 +55,7 @@ import {
 } from './types'
 
 import { warmup } from './middleware/warmup'
+import { requestInterceptor, RequestInfo } from './request-interceptor'
 
 const NOT_FOUND = new Error('nothing here')
 
@@ -65,9 +65,10 @@ const { commit } = require('./version')
 
 type Contextualized<T> = (ctx: T, next: Function) => any|void
 
-interface ServiceCallsSummary {
+interface PendingCallsSummary {
   start?: number
   duration?: number
+  httpRequests?: RequestInfo[]
   services: {
     [name: string]: any[]
   }
@@ -97,9 +98,9 @@ export type BaseLambdaOpts = ILambdaOpts<ILambdaExecutionContext>
 type PartialOpts = Partial<BaseLambdaOpts>
 
 const normalizeOpts = (partial: PartialOpts):BaseLambdaOpts => {
-  let env = partial.env || (partial.bot && partial.bot.env) || createEnv()
-  let logger = partial.logger || env.logger
-  let aws = partial.aws || (partial.bot && partial.bot.aws) || createAWSWrapper({ env, logger })
+  const env = partial.env || (partial.bot && partial.bot.env) || createEnv()
+  const logger = partial.logger || env.logger
+  const aws = partial.aws || (partial.bot && partial.bot.aws) || createAWSWrapper({ env, logger })
 
   return {
     ...partial,
@@ -143,7 +144,6 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
   public xraySegment?: AWS.XRay.Segment
   private breakingContext: string
   private middleware:Middleware<Ctx>[]
-  private initPromise: Promise<void>
   private _gotHandler: boolean
   private lastExitStack: string
   constructor(opts:ILambdaOpts<Ctx>) {
@@ -169,12 +169,6 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     this.isCold = true
     this.containerId = `${randomName.first()} ${randomName.middle()} ${randomName.last()} ${randomString(6)}`
 
-    let { bot } = opts
-    if (!bot && opts.createBot) {
-      this.logger.debug('creating bot from lambda components')
-      bot = this.createBot()
-    }
-
     if (opts.source === EventSource.HTTP) {
       this._initHttp()
     } else if (opts.source === EventSource.CLOUDFORMATION) {
@@ -184,16 +178,10 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     }
 
     this.requestCounter = 0
-    this.exit = this.exit.bind(this)
-    this.reset()
+    this.finishRun = this.finishRun.bind(this)
     this._gotHandler = false
 
     this.use(async (ctx, next) => {
-      ctx.components = { bot: null }
-      if (bot) {
-        ctx.components.bot = bot
-      }
-
       if (this.env.DISABLED) {
         this.logger.info('I have been disabled :(')
         ctx.body = {}
@@ -236,16 +224,6 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     return this
   }
 
-  public createBot = () => {
-    return createBot({
-      aws: this.aws,
-      env: this.env,
-      logger: this.logger,
-      tasks: this.tasks,
-      blockchain: this.env.BLOCKCHAIN,
-    })
-  }
-
   get name():string {
     return this.env.AWS_LAMBDA_FUNCTION_NAME
   }
@@ -255,15 +233,15 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
   }
 
   get stage():string {
-    return this.env.SERVERLESS_STAGE
+    return this.env.STACK_STAGE
   }
 
   get requestId():string {
-    return this.reqCtx.requestId
+    return this.reqCtx && this.reqCtx.requestId
   }
 
   get correlationId():string {
-    return this.reqCtx.correlationId
+    return this.reqCtx && this.reqCtx.correlationId
   }
 
   get dateOfBirth():number {
@@ -313,25 +291,13 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     return this.stage === 'prod'
   }
 
-  // get thenHandler() {
-  //   return result => this.exit(null, result)
-  // }
-
-  // get notFoundHandler() {
-  //   return () => this.exit(NOT_FOUND)
-  // }
-
-  // get errorHandler() {
-  //   return err => this.exit(err)
-  // }
-
   public getRemainingTimeWithBuffer = (buffer: number) => {
     return Math.max(this.timeLeft - buffer, 0)
   }
 
-  public exit = async (err?, result?) => {
+  public finishRun = async (err?, result?) => {
     if (this.done) {
-      throw new Error(`exit can only be called once per lambda invocation!
+      throw new Error(`finishRun can only be called once per lambda invocation!
 Previous exit stack: ${this.lastExitStack}`)
     }
 
@@ -344,18 +310,28 @@ Previous exit stack: ${this.lastExitStack}`)
     const ctx = this.execCtx
     ctx.done = true
 
-    // leave a tiny bit of breathing room for after the timeout
-    const { shortName } = this
+    const { shortName, requestId } = this
     const start = Date.now()
     try {
       await runWithTimeout(() => this.finishAsyncTasks(), {
-        millis: Math.max(this.timeLeft - 200, 0),
+        // leave a tiny bit of breathing room for after the timeout
+        millis: Math.max(this.timeLeft - 1000, 0),
         error: () => {
           const time = Date.now() - start
           return new Errors.ExecutionTimeout(`lambda ${shortName} timed out after ${time}ms waiting for async tasks to complete`)
         }
       })
     } catch (err) {
+      if (this.requestId !== requestId) {
+        this.logger.error(`seems we're already on a different request`, {
+          error: err,
+          originalRequestId: requestId,
+          requestId: this.requestId,
+        })
+
+        return
+      }
+
       const tasks = this.tasks.describe()
       if (Errors.matches(err, Errors.ExecutionTimeout)) {
         this.logger.error('async tasks timed out', { tasks, time: Date.now() - start })
@@ -371,6 +347,22 @@ Previous exit stack: ${this.lastExitStack}`)
       ctx.error = err
     } else {
       err = ctx.error
+    }
+
+    const pendingServiceCalls = this._dumpPendingServiceCalls()
+    if (!_.isEmpty(pendingServiceCalls.services)) {
+      this.logger.debug('pending service calls', pendingServiceCalls)
+    }
+
+    requestInterceptor.freeze(this.requestId)
+
+    const pendingHttpRequests = this._dumpPendingHTTPRequests()
+    if (pendingHttpRequests.length) {
+      this.logger.debug('pending http requests', pendingHttpRequests)
+      if (this.env.ABORT_REQUESTS_ON_FREEZE) {
+        this.logger.warn(`aborting ${pendingHttpRequests.length} pending http requests`)
+        requestInterceptor.abortPending()
+      }
     }
 
     if (err) {
@@ -398,17 +390,12 @@ Previous exit stack: ${this.lastExitStack}`)
     this.emit('done')
     this.isCold = false
     this.logger.silly('exiting')
-
-    // http exits via koa
-    if (this.source !== EventSource.HTTP) {
-      if (!ctx.callback) {
-        throw new Error('lambda already exited')
-      }
-
-      ctx.callback(ctx.error, ctx.error ? null : ctx.body)
+    if (ctx.error) {
+      throw ctx.error
     }
 
     this.reset()
+    return ctx.body
   }
 
   public run = async () => {
@@ -427,19 +414,17 @@ Previous exit stack: ${this.lastExitStack}`)
       }
     }
 
-    if (!this.done) this.exit()
+    return await this.finishRun()
   }
 
   private preProcess = async ({
     event,
     context,
     request,
-    callback
   }: {
     event,
     context,
     request?,
-    callback?
   }) => {
     this._recordServiceCalls()
     if (!this.accountId) {
@@ -475,7 +460,7 @@ Previous exit stack: ${this.lastExitStack}`)
       }
     }
 
-    this.setExecutionContext({ event, context, callback })
+    this.setExecutionContext({ event, context })
     this.reqCtx = getRequestContext(this)
     this.logger.info('request context', this.reqCtx)
     if (isXrayOn()) {
@@ -553,7 +538,7 @@ Previous exit stack: ${this.lastExitStack}`)
         ctx.body = {}
       }
 
-      await this.exit()
+      await this.finishRun()
     })
 
     if (!this.isLocal) {
@@ -589,7 +574,6 @@ Previous exit stack: ${this.lastExitStack}`)
 
       let err
       try {
-        // await bot.hooks.fire(type, ctx.event)
         await runWithTimeout(next, {
           millis: CF_EVENT_TIMEOUT,
           error: () => new Errors.ExecutionTimeout(`lambda ${this.shortName} timed out after ${CF_EVENT_TIMEOUT}ms`),
@@ -649,18 +633,11 @@ Previous exit stack: ${this.lastExitStack}`)
   }
 
   public invoke = async (event) => {
-    return new Promise((resolve, reject) => {
-      const callback = (err, result) => {
-        if (err) return reject(err)
-        resolve(resolve)
-      }
-
-      const context = createLambdaContext({
-        name: this.shortName,
-      }, callback)
-
-      this.handler(event, context, callback)
+    const context = createLambdaContext({
+      name: this.shortName,
     })
+
+    return await this.handler(event, context)
   }
 
   // important that this is lazy
@@ -677,18 +654,23 @@ Previous exit stack: ${this.lastExitStack}`)
       })
     }
 
-    return async (event, context, callback) => {
-      await this.preProcess({ event, context, callback })
-      await this.run()
+    return (event, context) => {
+      const promise = this.preProcess({ event, context })
+        .then(() => this.run())
+
+      if (context && context.done) {
+        // until issue is resolved, avoid returning a promise:
+        // https://github.com/aws/aws-xray-sdk-node/issues/27#issuecomment-380092859
+        promise.then(result => context.done(null, result), context.done)
+      } else {
+        return promise
+      }
     }
   }
 
-  private setExecutionContext = ({ event, context, callback, ...opts }) => {
+  private setExecutionContext = ({ event, context, ...opts }) => {
     const awsExecCtx:ILambdaAWSExecutionContext = {
       ...context,
-      done: this.exit,
-      succeed: result => this.exit(null, result),
-      fail: this.exit
     }
 
     // don't understand the error...
@@ -698,7 +680,6 @@ Previous exit stack: ${this.lastExitStack}`)
       done: false,
       event,
       context: awsExecCtx,
-      callback: wrapCallback(this, callback || context.done.bind(context))
     }
 
     return this.execCtx
@@ -725,7 +706,32 @@ Previous exit stack: ${this.lastExitStack}`)
     service.$startRecording()
   }
 
-  private _dumpServiceCalls = ():ServiceCallsSummary => {
+  private _dumpPendingServiceCalls = ():PendingCallsSummary => {
+    try {
+      // should never fail cause of this
+      return this.__dumpPendingServiceCalls()
+    } catch (err) {
+      this.logger.error('failed to dump pending service calls', {
+        error: err.stack
+      })
+
+      return { services: {} }
+    }
+  }
+
+  private _dumpPendingHTTPRequests = ():RequestInfo[] => {
+    try {
+      return requestInterceptor.getPending()
+    } catch (err) {
+      this.logger.error('failed to dump pending http requests', {
+        error: err.stack
+      })
+
+      return []
+    }
+  }
+
+  private _dumpServiceCalls = ():PendingCallsSummary => {
     try {
       // should never fail cause of this
       return this.__dumpServiceCalls()
@@ -738,8 +744,37 @@ Previous exit stack: ${this.lastExitStack}`)
     }
   }
 
-  private __dumpServiceCalls = ():ServiceCallsSummary => {
-    const summary:ServiceCallsSummary = {
+  private __dumpPendingServiceCalls = (): PendingCallsSummary => {
+    const summary: PendingCallsSummary = {
+      start: Infinity,
+      duration: 0,
+      services: {},
+      httpRequests: requestInterceptor.getPending(),
+    }
+
+    forEachInstantiatedRecordableService(this.aws, (service, name) => {
+      if (name.toLowerCase() === 'iotdata') {
+        // TODO: figure out why this fails
+        // iotdata requires "endpoint" for initialization, as is initialized lazily, but...
+        return
+      }
+
+      const dump = service.$getPending()
+      if (!dump.calls.length) return
+
+      summary.services[name] = safeStringify(plainify(dump.calls))
+        // limit length
+        .slice(0, 1000)
+
+      summary.start = Math.min(summary.start, dump.start)
+      summary.duration = Math.max(summary.duration, Date.now() - dump.start)
+    })
+
+    return summary
+  }
+
+  private __dumpServiceCalls = ():PendingCallsSummary => {
+    const summary:PendingCallsSummary = {
       start: Infinity,
       duration: 0,
       services: {},
@@ -765,6 +800,17 @@ Previous exit stack: ${this.lastExitStack}`)
 
     return summary
   }
+
+  private _suicide = (reason: string) => {
+    this.logger.error('I am broken! Suiciding', {
+      execCtx: this.execCtx,
+      reqCtx: this.reqCtx,
+      tasks: this.tasks.describe(),
+      reason,
+    })
+
+    process.exit(1)
+  }
 }
 
 const forEachInstantiatedRecordableService = (aws: AwsApis, fn) => {
@@ -778,14 +824,6 @@ const forEachInstantiatedRecordableService = (aws: AwsApis, fn) => {
 }
 
 export const createLambda = <T extends ILambdaExecutionContext>(opts: ILambdaOpts<T>) => new BaseLambda(opts)
-
-const wrapCallback = (lambda, callback) => (err, result) => {
-  if (lambda.done) {
-    callback(err, result)
-  } else {
-    lambda.exit(err, result)
-  }
-}
 
 const getRequestContext = <T extends ILambdaExecutionContext>(lambda:BaseLambda<T>):IRequestContext => {
   const { execCtx } = lambda

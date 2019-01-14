@@ -1,4 +1,7 @@
+// @ts-ignore
+import Promise from 'bluebird'
 import merge from 'lodash/merge'
+import clamp from 'lodash/clamp'
 import { TYPE } from '@tradle/constants'
 import { TaskManager } from './task-manager'
 import { typeforce, ensureNoVirtualProps, pickNonNull } from './utils'
@@ -21,7 +24,6 @@ import {
   Iot,
   DB,
   ModelStore,
-  Env
 } from './types'
 
 const { HANDSHAKE_TIMEOUT } = constants
@@ -59,7 +61,6 @@ interface IChallengeResponse extends ITradleObject {
 // })
 
 type AuthOpts = {
-  env: Env
   uploadFolder: string
   aws: any
   // tables: any
@@ -71,6 +72,7 @@ type AuthOpts = {
   logger: Logger
   tasks: TaskManager
   modelStore: ModelStore
+  sessionTTL?: number
 }
 
 export default class Auth {
@@ -84,8 +86,8 @@ export default class Auth {
   private logger: Logger
   private tasks: TaskManager
   private modelStore: ModelStore
-  private env: Env
   private uploadFolder: string
+  private sessionTTL: number
 
   constructor (opts: AuthOpts) {
     // lazy define
@@ -99,8 +101,9 @@ export default class Auth {
     this.logger = opts.logger.sub('auth')
     this.tasks = opts.tasks
     this.modelStore = opts.modelStore
-    this.env = opts.env
     this.uploadFolder = opts.uploadFolder
+    const { sessionTTL=constants.DEFAULT_SESSION_TTL_SECONDS } = opts
+    this.sessionTTL = clamp(sessionTTL, constants.MIN_SESSION_TTL_SECONDS, constants.MAX_SESSION_TTL_SECONDS)
   }
 
   public putSession = async (session:ISession): Promise<ISession> => {
@@ -115,31 +118,15 @@ export default class Auth {
     return session
   }
 
-  public setConnected = async ({ clientId, connected }): Promise<any> => {
-    if (!connected) {
-      return await this.updateSession(clientId, {
-        connected: false,
-        subscribed: false
-      })
-    }
-
-    return await this.updateSession(clientId, {
-      connected: true,
-      dateConnected: Date.now()
-    }, {
-      expected: { authenticated: true },
-      ReturnValues: 'ALL_NEW'
-    })
-  }
-
   public setSubscribed = async ({ clientId, subscribed }): Promise<any> => {
     // params.Key = this.getKeyFromClientId(clientId)
     if (!subscribed) {
-      return await this.updateSession(clientId, { subscribed: false })
+      return await this.updateSession(clientId, { subscribed: false, connected: false })
     }
 
     return await this.updateSession(clientId, {
       subscribed: true,
+      connected: true,
       dateSubscribed: Date.now()
     }, {
       expected: { authenticated: true } ,
@@ -176,7 +163,8 @@ export default class Auth {
           [TYPE]: SESSION,
           permalink,
           authenticated: true,
-          connected: true
+          connected: true,
+          subscribed: true,
         },
         STARTS_WITH: {
           clientId: (this.iot && this.iot.clientIdPrefix || '') + permalink
@@ -184,7 +172,7 @@ export default class Auth {
       }
     })
 
-    this.logger.debug('latest authenticated session', { user: permalink, dateConnected: latest.dateConnected })
+    this.logger.debug('latest authenticated session', { user: permalink })
     return latest
   }
 
@@ -264,18 +252,13 @@ export default class Auth {
     return session
   }
 
-  public createCredentials = async (session:ISession, role:string):Promise<IRoleCredentials> => {
-    const { clientId } = session
-    if (!role.startsWith('arn:')) {
-      role = `arn:aws:iam::${this.env.AWS_ACCOUNT_ID}:role/${role}`
-    }
-
+  public createCredentials = async (clientId: string, role: string):Promise<IRoleCredentials> => {
     this.logger.debug(`generating temp keys for client ${clientId}, role ${role}`)
     this.logger.info('assuming role', role)
     const params:AWS.STS.AssumeRoleRequest = {
       RoleArn: role,
       RoleSessionName: randomString(16),
-      DurationSeconds: 3600
+      DurationSeconds: this.sessionTTL
     }
 
     // assume role returns temporary keys
@@ -295,8 +278,8 @@ export default class Auth {
   }
 
   public createSession = async (opts: {
-    clientId: string,
-    identity: IIdentity,
+    clientId: string
+    identity: IIdentity
     ips?: string[]
   }): Promise<IIotClientChallenge> => {
     try {
@@ -336,7 +319,7 @@ export default class Auth {
     // })
 
     const dateCreated = Date.now()
-    const saveSession = this.putSession({
+    const sessionProps = {
       [TYPE]: SESSION,
       _time: dateCreated,
       dateCreated,
@@ -346,18 +329,17 @@ export default class Auth {
       authenticated: false,
       connected: false,
       subscribed: false,
-    })
-
-    await Promise.all([
-      saveSession,
-      maybeAddContact
-    ])
-
-    const resp:IIotClientChallenge = {
-      time: Date.now(),
-      challenge
     }
 
+    const session = await this.putSession(sessionProps)
+    const resp:IIotClientChallenge = {
+      time: Date.now(),
+      challenge,
+    }
+
+    // need to wait for this
+    // otherwise handleChallengeResponse may not find the pub key mapping
+    await maybeAddContact
     return resp
   }
 

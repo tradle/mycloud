@@ -4,7 +4,14 @@ import Lens from '@tradle/lens'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import { Conf } from '../configure'
-import { Bot, Logger, IPBApp, CreatePlugin, ValidatePluginConf } from '../types'
+import {
+  Bot,
+  Logger,
+  IPBApp,
+  CreatePlugin,
+  ValidatePluginConf,
+  PluginLifecycle,
+} from '../types'
 
 const ValidationErrors = validateResource.Errors
 
@@ -21,7 +28,7 @@ Performs two functions:
 2. validates inbound forms against lenses, and requests edits
 `
 
-export class LensPlugin {
+export class LensPlugin implements PluginLifecycle.Methods {
   private bot: Bot
   private conf: any
   private logger: Logger
@@ -31,7 +38,7 @@ export class LensPlugin {
     this.logger = logger
   }
 
-  public willSend = ({ req, to, object, application }) => {
+  public willSend:PluginLifecycle.willSend = ({ req, to, object, application }) => {
     if (!object || object[SIG]) return
 
     const form = this._getForm(object)
@@ -51,7 +58,7 @@ export class LensPlugin {
     object.lens = lens
   }
 
-  public validateForm = ({ application, form }) => {
+  public validateForm:PluginLifecycle.validateForm = async ({ application, form }) => {
     const type = form[TYPE]
     const lensId = this._getLens({ application, form: type })
     if (!lensId) return

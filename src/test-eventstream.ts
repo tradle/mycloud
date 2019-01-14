@@ -1,11 +1,11 @@
 import { TYPE } from '@tradle/constants'
-import { Bot } from './types'
+import { Bot, IStreamRecord } from './types'
 import {
   wait
 } from './utils'
 
 import { EventTopic, topics as EventTopics } from './events'
-// import { createMiddleware as createMessageMiddleware } from './middleware/onmessagestream'
+import { processRecords, batchSeals } from './lambda/onresourcestream'
 
 /**
  * Set up processing that's usually done asynchronously on DynamoDB Stream
@@ -73,9 +73,26 @@ export const simulateEventStream = (bot: Bot) => {
     // re-emit sync events as async
     await wait(0)
     // no `await` here as it causes circular dep in locks in bot
-    fireAsync(event, ctx.event).catch(err => {
-      console.error(err.stack)
-      throw err
+
+    // await processRecords({
+    //   bot,
+    //   records: [ctx.event]
+    // })
+
+    bot.tasks.add({
+      name: 'simulate:stream:batchseals',
+      promise: batchSeals({
+        bot,
+        records: [ctx.event] as IStreamRecord[],
+      })
+    })
+
+    bot.tasks.add({
+      name: `simulate:stream:${event}`,
+      promise: fireAsync(event, ctx.event).catch(err => {
+        console.error(err.stack)
+        throw err
+      })
     })
   })
 }

@@ -34,7 +34,9 @@ import {
   PRIVATE_CONF_BUCKET,
   LAUNCH_STACK_BASE_URL,
   DATE_ZERO,
-  UNSIGNED_TYPES
+  UNSIGNED_TYPES,
+  PROTOCOL_VERSION,
+  STRIP_PROTOCOL_VERSION_BEFORE_SIGN,
 } from './constants'
 
 import Errors from './errors'
@@ -94,7 +96,7 @@ const {
 } = validateResource.utils
 
 const { MESSAGE, SIMPLE_MESSAGE } = TYPES
-const noop = () => {}
+const noop = (...args:any[]) => {}
 
 export const pluck = <T>(arr:T[], key:keyof T) => arr.map(item => item[key])
 
@@ -641,28 +643,16 @@ export const batchProcess = async ({
   batchSize=1,
   processOne,
   processBatch,
-  series,
   settle
 }: {
   data:any[]
   batchSize:number
   processOne?:(item:any, index: number) => Promise<any>
   processBatch?:(batch:any[], index: number) => Promise<any>
-  series?: boolean
   settle?: boolean
 }):Promise<any[]> => {
   const batches = _.chunk(data, batchSize)
-  let batchResolver
-  if (series) {
-    if (!processOne) {
-      throw new Error('expected "processOne"')
-    }
-
-    batchResolver = settle ? settleSeries : Promise.mapSeries
-  } else {
-    batchResolver = settle ? settleMap : Promise.map
-  }
-
+  const batchResolver = settle ? settleMap : Promise.map
   const results = await Promise.mapSeries(batches, (batch, i) => {
     if (processBatch) {
       return processBatch(batch, i)
@@ -1173,7 +1163,7 @@ export const syncClock = async (bot:Bot) => {
   const { aws, buckets } = bot
   const { PrivateConf } = buckets
   // a cheap request that will trigger clock sync
-  bot.tasks.add({
+  return bot.tasks.add({
     name: 'sync-clock',
     promise: PrivateConf.head(PRIVATE_CONF_BUCKET.identity).catch(err => {
       Errors.rethrow(err, 'developer')
@@ -1235,7 +1225,7 @@ export const isLocalHost = (host:string) => {
   return isIP && IP.isPrivate(host)
 }
 
-export const pickNonNull = obj => _.pickBy(obj, val => val != null)
+export const pickNonNull = <T>(obj:T):T => _.pickBy(obj as any, val => val != null) as T
 export const toUnsigned = (obj:ITradleObject) => _.omit(omitVirtual(obj), [SIG])
 export const parseEnumValue = validateResource.utils.parseEnumValue
 export const getEnumValueId = opts => parseEnumValue(opts).id
@@ -1332,7 +1322,8 @@ export const normalizeIndexedProperty = schema => {
   return schema
 }
 
-export const isXrayOn = () => process.env.TRADLE_BUILD !== '1' && process.env._X_AMZN_TRACE_ID
+// see globals.ts
+export const isXrayOn = () => process.env.XRAY_IS_ON === '1'
 
 export const instrumentWithXray = (Component: any, withXrays: any) => {
   const { name } = Component
@@ -1619,6 +1610,36 @@ export const wrapSlowPoke = ({ fn, time, onSlow }) => async function (...args) {
       } catch (err) {
         Errors.ignoreAll(err)
       }
+    }
+  }
+}
+
+export const replaceDeep = (obj: any, match: any, replacement: any) => {
+  traverse(obj).forEach(function(value) {
+    if (_.isEqual(value, match)) {
+      this.update(replacement)
+    }
+  })
+}
+
+export const maybeStripProtocolVersion = obj => {
+  if (STRIP_PROTOCOL_VERSION_BEFORE_SIGN) {
+    // TODO: delete this when all have upgraded to mycloud >= 2.2.0
+    delete obj[PROTOCOL_VERSION]
+  }
+}
+
+type Promiser<Input, Output> = (input:Input) => Promise<Output>
+type ErrorHandler = (err: any) => void
+
+export const tryAsync = <A, B>(fn:Promiser<A, B|void>, onError:ErrorHandler=noop) => async (input) => {
+  try {
+    return await fn(input)
+  } catch (err) {
+    try {
+      onError(err)
+    } catch (err) {
+      // ignore
     }
   }
 }

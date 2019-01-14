@@ -1,11 +1,12 @@
 import compose from 'koa-compose'
 import cors from 'kcors'
 import { extend, pick } from 'lodash'
+import { version as protocolVersion } from '@tradle/protocol'
 import { get } from '../middleware/noop-route'
-import { Lambda, ILambdaExecutionContext } from '../types'
+import { Lambda, MiddlewareHttp } from '../types'
 import Errors from '../errors'
 
-const info = () => async (ctx: ILambdaExecutionContext, next) => {
+const info = ():MiddlewareHttp => async (ctx, next) => {
   const { bot } = ctx.components
   const { logger } = bot
   logger.debug('setting bot endpoint info')
@@ -17,7 +18,12 @@ const info = () => async (ctx: ILambdaExecutionContext, next) => {
   ])
 
   const { version, ...connectEndpoint } = endpointInfo
-  extend(ctx.body, { connectEndpoint, version })
+  version.protocol = protocolVersion
+  extend(ctx.body, {
+    connectEndpoint,
+    version,
+  })
+
   if (chainKey) {
     ctx.body.chainKey = pick(chainKey, ['type', 'pub', 'fingerprint', 'networkName'])
   }

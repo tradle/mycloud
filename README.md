@@ -14,8 +14,8 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [Tools](#tools)
     - [Git](#git)
     - [Node.js](#nodejs)
-    - [Docker & Docker Compose](#docker-&-docker-compose)
-    - [AWS cli & credentials](#aws-cli-&-credentials)
+    - [Docker & Docker Compose](#docker--docker-compose)
+    - [AWS cli & credentials](#aws-cli--credentials)
     - [JQ](#jq)
     - [Typescript](#typescript)
   - [Development Tools](#development-tools)
@@ -41,6 +41,7 @@ If you're developer, you'll also see how to set up your local environment, deplo
 - [Destroy](#destroy)
   - [[Deprecated] Destroy](#deprecated-destroy)
 - [Troubleshooting local deployment](#troubleshooting-local-deployment)
+- [Troubleshooting remote deployment](#troubleshooting-remote-deployment)
 - [Scripts](#scripts)
   - [npm run localstack:start](#npm-run-localstackstart)
   - [npm run localstack:stop](#npm-run-localstackstop)
@@ -142,12 +143,14 @@ npm install
 
 By default, aws cli operations will run under the profile named `default`
 
-If you ran `aws configure --profile <profileName>` and not `aws configure`, open `vars.yml` and add a line:
+If you ran `aws configure --profile <profileName>` and not `aws configure`, open `vars.json` and add a property:
 
-```yaml
+```json
+{
 ...
-profile: <profileName>
+  "profile": "<profileName>"
 ...
+}
 ```
 
 ## Local Playground
@@ -155,6 +158,10 @@ profile: <profileName>
 *Note: if you don't care about playing locally and want to skip ahead to deploying Tradle MyCloud to the cloud, skip this section*
 
 Goal: set up an environment where we can talk to the chatbot that comes in the box, and see how we can develop our own.
+
+### Set TMPDIR env var
+
+Check if the environment variable TMPDIR is set, and if not set it (better add it to ~/.bash_profile or ~/.bashrc)
 
 ### Start docker
 
@@ -218,7 +225,7 @@ aws s3 ls --endpoint http://localhost:4572
 
 #### Pre-deployment configuration
 
-- To change the region/name/domain/logo of your deployment, edit `./vars.yml`. Then run `npm run build:yml`. See `./default-vars.yml` for a list of variables you can override.
+- To change the region/name/domain/logo of your deployment, edit `./vars.json`. Then run `npm run build:yml`. See `./default-vars.json` for a list of variables you can override.
 - If you'd like to write your own bot, for now the easier way to do it is directly in your cloned tradle/serverless repo. Check out the built-in bot in: [./in-house-bot/index.js](./in-house-bot/index.js).
 
 #### Deploy to AWS
@@ -287,9 +294,9 @@ This project uses TypeScript, which compiles to JavaScript. If you're changing a
 
 If you modify `serverless-uncompiled.yml`, run `npm run build:yml` to preprocess it. Before running tests, re-run `npm run gen:localresources`
 
-To override variables in the yml without picking a fight with `git`, create a `vars.yml` file in the project root. See [default-vars.yml](./default-vars.yml) for which variables you can override.
+To override variables in the yml without picking a fight with `git`, create a `vars.json` file in the project root. See [default-vars.json](./default-vars.json) for which variables you can override.
 
-After modifying `vars.yml`, run `npm run build:yml`
+After modifying `vars.json`, run `npm run build:yml`
 
 ### Testing
 
@@ -306,13 +313,13 @@ npm run test:graphqlserver
 
 ### Hot re-loading
 
-Thanks to [serverless-offline](https://github.com/dherault/serverless-offline), changes made to the codebase will be hot-reloaded, which makes development that much sweeter...but also slower. To disable hot-reloading, add this in `vars.yml`:
+Thanks to [serverless-offline](https://github.com/dherault/serverless-offline), changes made to the codebase will be hot-reloaded, which makes development that much sweeter...but also slower. To disable hot-reloading, add this in `vars.json`:
 
 ```yaml
 serverless-offline:
   # disable hot-reloading
   skipCacheInvalidation: true
-  # copy these from default-vars.yml unless you want custom ones
+  # copy these from default-vars.json unless you want custom ones
   host: ...
   port: ...
 ```
@@ -341,7 +348,7 @@ npm run nuke
 
 Note: this is ONLY for troubleshooting your local development environment and NOT your remote deployment
 
-**Symptom**:
+**Symptom 1**:
 
 ```sh
 # Error: connect ECONNREFUSED 127.0.0.1:4569
@@ -351,7 +358,7 @@ Note: this is ONLY for troubleshooting your local development environment and NO
 **Cause**: `localstack` is not up.  
 **Fix**: `npm run localstack:start`  
 
-**Symptom 1**:
+**Symptom 2**:
 
 ```sh
 # ResourceNotFoundException: Cannot do operations on a non-existent table
@@ -361,20 +368,20 @@ Note: this is ONLY for troubleshooting your local development environment and NO
 **Cause**: you haven't generated local resources (tables, buckets, etc.)  
 **Fix**: run `npm run gen:localresources`  
 
-**Symptom 2**:
+**Symptom 3**:
 
 ```sh
 ...bucket does not exist
 ```
 
-**Cause**: you probably ran tests, which f'd up your local resources
+**Cause**: you probably ran tests, which f'd up your local resources  
 **Fix**: `npm run reset:local`
 
 **Symptom**: tests fail, you don't know why  
 **Cause**: to be determined  
 **Fix**: `npm run reset:local # delete + regen local resources (tables, buckets, etc.)`
 
-**Symptom 3**:  
+**Symptom 4**:  
 
 ```sh
 Serverless command "<some command>" not found
@@ -383,23 +390,23 @@ Serverless command "<some command>" not found
 **Cause**: your `serverless.yml` is corrupted. `build:yml` probably failed the last time you ran it.  
 **Fix**: fix `serverless-uncompiled.yml`, make sure `build:yml` completes successfully before retrying
 
-**Symptom 4**:
+**Symptom 5**:
 
 ```sh
 still havent connected to local Iot broker!
 ```
 
-**Cause**: something in `redis` upsets `mosca`, but what exactly is TBD
+**Cause**: something in `redis` upsets `mosca`, but what exactly is TBD  
 **Fix**: `npm run fix:redis`
 
-**Symptom 5**
+**Symptom 6**
 
 The log is going nuts but the mobile/web client can't seem to communicate with your local MyCloud
 
 **Cause**: if you have multiple clients connected at once (e.g. mobile, simulator, multiple browser tabs), your machine probably just can't handle it. If you've got Dev Tools open and are debugging your lambdas, that exacerbates things. This is due to the fact that locally, the serverless environment is simulated by invoking each lambda function as if it's waking up for the first time in a docker container. It needs to `require()` everything from scratch, then run itself, then die. This is memory/computation expensive.
 **Fix**: turn off the debugger, don't use more clients than your machine can handle. Yes, locally, this might only be a 2-5!
 
-**Symptom 6**
+**Symptom 7**
 
 ```
 Credentials Error --------------------------------------
@@ -407,10 +414,55 @@ Credentials Error --------------------------------------
 Missing credentials in config
 ```
 
-**Cause 1**: your AWS cli is not configured with your credentials
+**Cause 1**: your AWS cli is not configured with your credentials  
 **Fix**: see [AWS cli](#aws-cli)
 
 **Cause 2**: you may be using a global installation of `serverless` rather than the project-local one. If you're running Tradle locally via npm scripts, this should be taken care of for you. If you're running `sls` / `serverless` commands directly, make sure to use the project-local one in `node_modules`, e.g.: `./node_modules/.bin/sls offline start`
+
+**Symptom 8**
+
+`npm install` fails with `Authentication failed for 'https://github.com/tradle/models-corporate-onboarding.git/'` (or some other private repository it fails to pull).
+
+**Cause 1**: you don't have access to the repository  
+**Fix**: check to see if you can clone that repository directly, into some other folder. If you can't, request access from Tradle
+
+**Cause 2**: your git credentials have expired, or are not being properly cached  
+**Fix**: set up caching for your git credentials (varies depending on your operating system), and then check to see if you can clone that repository directly, into some other folder.
+
+**Cause 3**: npm is having trouble with dependencies with `git://` urls.  
+**Fix**: open `~/.gitconfig` on your machine, and add this block:
+
+```
+[url "https://"]
+  insteadOf = "git://"
+```
+
+**Symptom 9**
+
+```sh
+"namespace":"global:http","msg":"request failed","level":"ERROR","details":{"method":"POST","port":4569,"path":"/","host":"10.0.0.127"
+```
+
+**Cause**: docker isn't running, or if it is, localstack isn't
+**Fix**: see fix for Symptom 1
+
+## Troubleshooting remote deployment
+
+**Symptom 1**
+
+After deploying to AWS, CloudWatch logs shows:
+```
+module initialization error TypeError
+```
+
+**Cause**: a native module in your dependency tree was not compiled for the Amazon Linux Container
+**Fix**: `npm run rebuild:lambda` and re-deploy
+
+Keep in mind that deployment keys in S3 are based on the current git commit, so you'll need to re-commit before deploying, otherwise AWS CloudFormation will not re-deploy your lambdas with new code.
+
+If the issue persists, you may have unknowingly introduced a new native dependency. Run `./src/scripts/list-native-modules.sh` and see if there's anything missing in the `native_modules` var in `./src/scripts/rebuild-native.sh`. If there, is, update `native_modules` and repeat the above fix.
+
+Keep in mind that code bundle S3 keys are based on the current git commit hash, so you'll need to create a new git commit before pushing, e.g.: `git commit --allow-empty -m "chore: bust deployment cache"`
 
 ## Scripts
 
@@ -482,7 +534,7 @@ You can set up a local playground, with most of the functionality of the cloud o
                             #   -> serverless-interpolated.yml 
                             #   -> serverless-compiled.yml
                             #   -> serverless.yml
-  vars.yml                  # your provider's name/domain/logo, as well as dev env opts
+  vars.json                 # your provider's name/domain/logo, as well as dev env opts
   src/                      # typescript code, some shell scripts
     *.ts
     scripts/                # command line scripts, and utils

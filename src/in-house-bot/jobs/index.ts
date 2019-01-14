@@ -12,8 +12,8 @@ import getPropAtPath from 'lodash/get'
 import Errors from '../../errors'
 import { IBotComponents, Seal, Job, LowFundsInput } from '../types'
 import { sendConfirmedSeals } from '../utils'
-import { DEFAULT_WARMUP_EVENT } from '../../constants'
-import { Deployment } from '../deployment'
+import { DEFAULT_WARMUP_EVENT, TYPES } from '../../constants'
+// import { Deployment } from '../deployment'
 
 const SAFETY_MARGIN_MILLIS = 20000
 
@@ -57,6 +57,7 @@ export const pollchain:Executor = async ({ job, components }):Promise<Seal[]> =>
   let haveTime
   do {
     if (batch) {
+      logger.debug(`sending ${batch.length} confirmed seals`)
       await sendConfirmedSeals(bot, batch)
     }
 
@@ -71,6 +72,8 @@ export const pollchain:Executor = async ({ job, components }):Promise<Seal[]> =>
 
   return results
 }
+
+const isLowFundsError = (err: any) => Errors.matches(err, { name: 'LowFunds' })
 
 export const sealpending:Executor = async ({ job, components }):Promise<Seal[]> => {
   const { bot, alerts } = components
@@ -94,7 +97,7 @@ export const sealpending:Executor = async ({ job, components }):Promise<Seal[]> 
     logger.debug('almost out of time, exiting early')
   }
 
-  if (error && Errors.matches(error, Errors.LowFunds)) {
+  if (error && isLowFundsError(error)) {
     await alerts.lowFunds(error as LowFundsInput)
   }
 
@@ -107,19 +110,41 @@ export const checkFailedSeals:Executor = async ({ job, components }) => {
   return await components.bot.seals.handleFailures({ gracePeriod })
 }
 
-export const documentChecker:Executor = async ({ job, components }) => {
-  const { logger, documentChecker } = components
-  if (!documentChecker) {
-    logger.debug('document checker not set up')
-    return
-  }
-
-  // // document checker rate-limits to 1/min
-  return await documentChecker.checkPending({ limit: 1 })
-}
-
-export const cleanupTmpSNSTopics:Executor = async ({ job, components }) => {
+export const createSealBatch:Executor = async ({ job, components }) => {
   const { bot, logger } = components
-  const deployment = components.deployment || new Deployment({ bot, logger })
-  await deployment.deleteExpiredTmpTopics()
+  const { sealBatcher } = bot
+  const unsigned = await sealBatcher.genNextBatch()
+  // if (!unsigned) {
+  //   logger.debug('skipping create of seal batch, nothing to batch')
+  //   return
+  // }
+
+  logger.debug('creating seal batch')
+  const signed = await bot.draft({
+    type: TYPES.SEALABLE_BATCH,
+    resource: unsigned
+  })
+  .signAndSave()
+  .then(r => r.toJSON())
+
+  await bot.seal({
+    object: signed
+  })
 }
+
+// export const documentChecker:Executor = async ({ job, components }) => {
+//   const { logger, documentChecker } = components
+//   if (!documentChecker) {
+//     logger.debug('document checker not set up')
+//     return
+//   }
+
+//   // // document checker rate-limits to 1/min
+//   return await documentChecker.checkPending({ limit: 1 })
+// }
+
+// export const cleanupTmpSNSTopics:Executor = async ({ job, components }) => {
+//   const { bot, logger } = components
+//   const deployment = components.deployment || new Deployment({ bot, logger })
+//   await deployment.deleteExpiredTmpTopics()
+// }

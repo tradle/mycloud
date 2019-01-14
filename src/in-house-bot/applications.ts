@@ -8,23 +8,31 @@ import uniqBy from 'lodash/uniqBy'
 import flatMap from 'lodash/flatMap'
 import flatten from 'lodash/flatten'
 import isEmpty from 'lodash/isEmpty'
-import { TYPE, PERMALINK } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import { parseStub } from '../utils'
-import { isPassedCheck } from './utils'
+import { isPassedCheck, removeRoleFromUser } from './utils'
 import Errors from '../errors'
+import { mixin as modelsMixin } from '../models-mixin'
+import { TYPE, PERMALINK } from '../constants'
+import { TYPES } from './constants'
 import {
   Bot,
   ResourceStub,
+  ParsedResourceStub,
   IPBReq,
   IPBApp,
   ITradleObject,
+  ITradleCheck,
   IPBUser,
   ApplicationSubmission,
   Logger,
+  IMyProduct,
+  IHasModels,
+  IUser,
+  Model,
+  UpdateResourceOpts,
 } from './types'
-
 
 interface IPBJudgeAppOpts {
   req?: IPBReq
@@ -37,31 +45,54 @@ interface IPropertyInfo {
   message?: string
 }
 
-const APPLICATION_SUBMISSION = 'tradle.ApplicationSubmission'
-const APPLICATION = 'tradle.Application'
+interface RequestItemOpts {
+  item: string
+  message?: string
+  req?: IPBReq
+  user?: IPBUser
+  application?: IPBApp
+  other?: any
+}
+
+const {
+  APPLICATION,
+  APPLICATION_SUBMISSION,
+  MY_EMPLOYEE_ONBOARDING,
+  ASSIGN_RELATIONSHIP_MANAGER,
+  PRODUCT_REQUEST,
+} = TYPES
+
 const PRUNABLE_FORMS = [
-  'tradle.AssignRelationshipManager',
-  'tradle.ProductRequest'
+  ASSIGN_RELATIONSHIP_MANAGER,
+  PRODUCT_REQUEST,
 ]
 
 type AppInfo = {
   application: IPBApp
 }
 
-export class Applications {
+export class Applications implements IHasModels {
   private bot: Bot
   private productsAPI: any
   private employeeManager: any
   private logger: Logger
-  private get models() {
+  public get models() {
     return this.bot.models
   }
+
+  // IHasModels
+  public buildResource: (model: string|Model) => any
+  public buildStub: (resource: ITradleObject) => ResourceStub
+  public validateResource: (resource: ITradleObject) => any
+  public validatePartialResource: (resource: ITradleObject) => void
+  public getModel: (id: string) => Model
 
   constructor({ bot, productsAPI, employeeManager }: {
     bot: Bot
     productsAPI: any
     employeeManager: any
   }) {
+    modelsMixin(this)
     this.bot = bot
     this.productsAPI = productsAPI
     this.employeeManager = employeeManager
@@ -81,16 +112,15 @@ export class Applications {
       .signAndSave()
   }
 
-  public updateCheck = async (opts) => {
+  public updateCheck = async (opts: UpdateResourceOpts) => {
     const result = await this.bot.updateResource(opts)
     return result.resource
   }
-
   public judgeApplication = async ({ req, application, approve }: IPBJudgeAppOpts) => {
     const { bot, productsAPI } = this
     application = await productsAPI.getApplication(application) as IPBApp
 
-    const user = await this.getApplicantFromApplication(application)
+    const user = await this._getApplicantFromApplication(application)
     let judge
     if (req && this._isSenderEmployee(req)) {
       judge = req.user
@@ -197,7 +227,7 @@ export class Applications {
         send
       })
 
-      await this.bot.seal({
+      await this.bot.sealIfNotBatching({
         counterparty: user.id,
         object: verification
       })
@@ -212,7 +242,7 @@ export class Applications {
     // avoid re-sealing
     const subs = forms.filter(sub => !sub._seal)
     // verifications are sealed in issueVerifications
-    return await Promise.all(subs.map(object => this.bot.seal({ counterparty, object }))    )
+    await Promise.all(subs.map(object => this.bot.sealIfNotBatching({ counterparty, object }))    )
   }
 
   public createSealsForApprovedApplication = async ({ application }: AppInfo) => {
@@ -223,7 +253,7 @@ export class Applications {
 
     const { certificate } = application
     if (certificate && !certificate._seal) {
-      const sealCert = bot.getResource(certificate).then(object => bot.seal({
+      const sealCert = bot.getResource(certificate).then(object => bot.sealIfNotBatching({
         counterparty: getApplicantPermalink(application),
         object
       }))
@@ -242,10 +272,7 @@ export class Applications {
   public requestEdit = async (opts) => {
     const { req={}, item } = opts
     if (item && item[TYPE]) {
-      this.validateResource({
-        partial: true,
-        resource: item
-      })
+      this.validatePartialResource(item)
     }
 
     return await this.productsAPI.requestEdit({
@@ -255,11 +282,11 @@ export class Applications {
     })
   }
 
-  public requestItem = async (opts) => {
+  public requestItem = async (opts: RequestItemOpts) => {
     return await this.productsAPI.requestItem(opts)
   }
 
-  public getLatestChecks = async ({ application }: AppInfo) => {
+  public getLatestChecks = async ({ application }: AppInfo): Promise<ITradleCheck[]> => {
     const { checks=[] } = application
     if (!checks.length) return []
 
@@ -282,7 +309,7 @@ export class Applications {
     const allPassed = latest.every(check => isPassedCheck(check))
     this.logger.silly('have all checks passed?', {
       application: application._permalink,
-      checks: latest.map(check => this.stub(check))
+      checks: latest.map(check => this.buildStub(check))
     })
 
     return allPassed
@@ -384,20 +411,96 @@ export class Applications {
 
   public getCustomerFormStubs = getCustomerFormStubs
 
-  private stub = (resource: ITradleObject) => {
-    return buildResource.stub({
-      models: this.bot.models,
-      resource
+  public listEmployees = async () => {
+    return this.employeeManager.list()
+  }
+
+  public fireEmployee = async ({ req, myProductId }: {
+    req?: IPBReq
+    myProductId: string
+  }) => {
+    const revokedCertificate = await this.revokeProductCertificateWithMyProductId({
+      req,
+      certificateModelId: MY_EMPLOYEE_ONBOARDING,
+      myProductId,
+    })
+
+    const owner = parseStub(revokedCertificate.owner)
+    await this.bot.send({
+      to: owner.permalink,
+      object: revokedCertificate
     })
   }
 
-  private buildResource = () => buildResource({ models: this.models })
-  private validateResource = (opts) => validateResource.resource({
-    models: this.models,
-    ...opts
-  })
+  public getProductCertificateByMyProductId = async ({ certificateModelId, myProductId }: {
+    certificateModelId: string
+    myProductId: string
+  }):Promise<IMyProduct> => {
+    const model = this.getModel(certificateModelId)
+    if (!model.properties.myProductId) {
+      throw new Errors.InvalidInput(`model ${certificateModelId} has no property "myProductId"`)
+    }
 
-  private getApplicantFromApplication = async (application: IPBApp) => {
+    return await this.bot.db.findOne({
+      filter: {
+        EQ: {
+          [TYPE]: certificateModelId,
+          myProductId,
+          _author: await this.bot.getMyPermalink(),
+        }
+      }
+    })
+  }
+
+  public revokeProductCertificateWithMyProductId = async({ req, certificateModelId, myProductId }: {
+    req?: IPBReq
+    certificateModelId: string
+    myProductId: string
+  }):Promise<IMyProduct> => {
+    const certificate = await this.getProductCertificateByMyProductId({ certificateModelId, myProductId })
+    return await this.revokeProductCertificate({ req, certificate })
+  }
+
+  public revokeProductCertificate = async ({ req, certificate }: {
+    req?: IPBReq
+    certificate: IMyProduct
+  }):Promise<IMyProduct> => {
+    const type = certificate[TYPE]
+    const { properties } = this.models[type]
+    if (!properties.revoked) {
+      throw new Errors.InvalidInput(`model "${type}" has no property "revoked"`)
+    }
+
+    const promiseRevoke = this.bot.versionAndSave({
+      ...certificate,
+      revoked: true
+    })
+
+    let promiseFireEmployee
+    if (certificate[TYPE] === MY_EMPLOYEE_ONBOARDING) {
+      const userId = parseStub(certificate.owner).permalink
+      promiseFireEmployee = this._removeEmployeeRole({ req, userId })
+    }
+
+    const { cert } = await Promise.props({
+      cert: promiseRevoke,
+      fire: promiseFireEmployee,
+    })
+
+    return cert
+  }
+
+  private _removeEmployeeRole = async ({ req, userId }: {
+    req?: IPBReq
+    userId: string
+  }) => {
+    const user = await this.bot.users.get(userId)
+    if (removeRoleFromUser(user, 'employee')) {
+      await this.bot.users.save(user)
+    }
+  }
+
+  private _getApplicantFromApplication = async (application: IPBApp) => {
     return await this.bot.users.get(application.applicant._permalink)
   }
 
@@ -406,7 +509,7 @@ export class Applications {
     user?: IPBUser
   }) => {
     if (!user) {
-      user = await this.getApplicantFromApplication(application)
+      user = await this._getApplicantFromApplication(application)
     }
 
     await this.productsAPI.saveNewVersionOfApplication({ user, application })
