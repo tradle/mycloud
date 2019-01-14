@@ -1,17 +1,17 @@
 import { Context as KoaContext } from 'koa'
 import { Middleware as ComposeMiddleware } from 'koa-compose'
-import { Bot, ModelsPack, DatedValue, Lambda, BaseLambda, IUser } from '../types'
-import { Conf } from './configure'
-import { Commander } from './commander'
-import { Onfido } from './plugins/onfido'
-import { Remediation } from './remediation'
-import { Deployment } from './deployment'
-import { Alerts } from './alerts'
-import { Applications } from './applications'
-import { Friends } from './friends'
-import { EmailBasedVerifier } from './email-based-verifier'
-import { SMSBasedVerifier } from './sms-based-verifier'
-import { DocumentCheckerAPI } from './plugins/documentChecker'
+import { Bot, ModelsPack, DatedValue, Lambda, BaseLambda, IUser } from '../../types'
+import { Conf } from '../configure'
+import { Commander } from '../commander'
+import { Onfido } from '../plugins/onfido'
+import { Remediation } from '../remediation'
+import { Deployment } from '../deployment'
+import { Alerts } from '../alerts'
+import { Applications } from '../applications'
+import { Friends } from '../friends'
+import { EmailBasedVerifier } from '../email-based-verifier'
+import { SMSBasedVerifier } from '../sms-based-verifier'
+import { DocumentCheckerAPI } from '../plugins/documentChecker'
 import {
   ITradleObject,
   IIdentity,
@@ -25,10 +25,10 @@ import {
   EnumValueStub,
   VersionInfo,
   Registry,
-} from '../types'
+} from '../../types'
 
-export * from './plugin-types'
-export * from '../types'
+export * from '../plugin-types'
+export * from '../../types'
 
 export {
   Conf,
