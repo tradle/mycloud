@@ -14,27 +14,30 @@ import { isPromise } from '../utils'
 const { TYPE, SIG, SIGNATURE_FRESHNESS_LEEWAY } = constants
 const FORBIDDEN_MESSAGE = 'forbidden'
 
-interface CanUserRunQueryInput {
-  ctx: any
-  user: IUser
-  query: any
+interface ITradleGraphqlQuery extends ITradleObject {
+  body: any
 }
 
-type CanUserRunQuery = (opts: CanUserRunQueryInput) => boolean
+interface CanUserRunQueryInput {
+  ctx: ILambdaExecutionContext
+  user: IUser
+  query: ITradleGraphqlQuery
+}
+
+export type CanUserRunQuery = (opts: CanUserRunQueryInput) => boolean
 
 type GAOpts = {
-  isGuestAllowed?: (ctx: any) => boolean
+  isGuestAllowed?: CanUserRunQuery
   canUserRunQuery: CanUserRunQuery
 }
 
-export const createHandler = (lambda: Lambda, {
+export const createHandler = ({
   isGuestAllowed,
   canUserRunQuery
 }: GAOpts) => {
-  const { logger } = lambda
   return async (ctx: ILambdaExecutionContext, next) => {
     const { bot } = ctx.components
-    const { identities } = bot
+    const { identities, logger } = bot
     const method = ctx.method.toLowerCase()
     if (method === 'options') {
       await next()
@@ -49,7 +52,7 @@ export const createHandler = (lambda: Lambda, {
 
     logger.debug('authenticating')
     const auth = ctx.headers['x-tradle-auth']
-    const queryObj:ITradleObject = {
+    const queryObj:ITradleGraphqlQuery = {
       [TYPE]: 'tradle.GraphQLQuery',
       body: tradleUtils.stringify(ctx.event),
       ...(auth ? JSON.parse(auth) : {})
@@ -73,19 +76,19 @@ export const createHandler = (lambda: Lambda, {
       return
     }
 
-    const isAllowedInput = { ctx, user: null, query: queryObj }
+    const isAllowedInput:CanUserRunQueryInput = { ctx, user: null, query: queryObj }
     if (auth == null && !isGuestAllowed(isAllowedInput)) {
       forbid(ctx, `expected header "x-tradle-auth"`)
       logger.debug('expected auth params')
       return
     }
 
-    let { user } = ctx
+    let user = ctx.user as IUser
     if (auth && !user) {
       logger.debug('looking up query author')
       try {
         await identities.verifyAuthor(queryObj)
-        ctx.user = user = await bot.users.get(queryObj._author)
+        user = await bot.users.get(queryObj._author)
       } catch (err) {
         Errors.rethrow(err, 'system')
         if (Errors.isNotFound(err) || Errors.matches(err, Errors.UnknownAuthor)) {
@@ -98,7 +101,8 @@ export const createHandler = (lambda: Lambda, {
       }
     }
 
-    let allowed = canUserRunQuery({ ...isAllowedInput, user })
+    isAllowedInput.user = user
+    let allowed = canUserRunQuery(isAllowedInput)
     if (isPromise(allowed)) allowed = await allowed
     if (!allowed) {
       forbid(ctx)

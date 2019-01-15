@@ -3,7 +3,7 @@ import cors from 'kcors'
 import { pick, once } from 'lodash'
 import { bodyParser } from '../../middleware/body-parser'
 import { createHandler as createGraphqlHandler } from '../../middleware/graphql'
-import { createHandler as createGraphqlAuthHandler } from '../../middleware/graphql-auth'
+import { createHandler as createGraphqlAuthHandler, CanUserRunQuery } from '../../middleware/graphql-auth'
 import {
   IPBLambdaHttp as Lambda,
   MiddlewareHttp as Middleware,
@@ -19,7 +19,7 @@ import {
 
 import { MODELS_HASH_PROPERTY } from '../constants'
 
-export const keepModelsFresh = (lambda:Lambda) => {
+export const keepModelsFresh = () => {
   const createSender = (components: IBotComponents) => {
     const { bot, employeeManager, productsAPI } = components
     const getModelsPackForUser = createModelsPackGetter({
@@ -39,7 +39,7 @@ export const keepModelsFresh = (lambda:Lambda) => {
       })
 
       if (sent) {
-        lambda.tasks.add({
+        bot.tasks.add({
           name: 'saveuser',
           promise: bot.users.merge(pick(user, ['id', MODELS_HASH_PROPERTY]))
         })
@@ -62,18 +62,22 @@ export const keepModelsFresh = (lambda:Lambda) => {
   }
 }
 
-export const createAuth = (lambda: Lambda) => {
-  const isGuestAllowed = ({ ctx, user, query }) => {
-    return lambda.isLocal || ctx.components.conf.bot.graphqlAuth === false
+export const createAuth = () => {
+
+  const isGuestAllowed:CanUserRunQuery = ({ ctx, user, query }) => {
+    const { bot, conf } = ctx.components as IBotComponents
+    return bot.isLocal || conf && conf.bot.graphqlAuth === false
   }
 
-  return createGraphqlAuthHandler(lambda, {
+  const canUserRunQuery:CanUserRunQuery = opts => {
+    const { ctx, user, query } = opts
+    const { employeeManager } = ctx.components as IBotComponents
+    return isGuestAllowed(opts) || (user && employeeManager.isEmployee(user))
+  }
+
+  return createGraphqlAuthHandler({
     isGuestAllowed,
-    canUserRunQuery: opts => {
-      const { ctx, user, query } = opts
-      const { employeeManager } = ctx.components as IBotComponents
-      return isGuestAllowed(opts) || (user && employeeManager.isEmployee(user))
-    }
+    canUserRunQuery,
   })
 }
 
@@ -81,8 +85,8 @@ export const createMiddleware = (lambda:Lambda):Middleware => {
   return compose([
     cors(),
     bodyParser({ jsonLimit: '10mb' }),
-    createAuth(lambda),
-    keepModelsFresh(lambda),
+    createAuth(),
+    keepModelsFresh(),
     createGraphqlHandler(lambda)
   ])
 }

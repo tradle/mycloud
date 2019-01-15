@@ -24,6 +24,7 @@ import * as CFNResponse from './cfn-response'
 import { Env, createEnv } from './env'
 import { createLogger } from './logger'
 import { createAWSWrapper } from './aws'
+import { createBot } from './bot'
 import {
   Logger,
   Middleware,
@@ -101,16 +102,38 @@ const normalizeOpts = (partial: PartialOpts):BaseLambdaOpts => {
   const env = partial.env || (partial.bot && partial.bot.env) || createEnv()
   const logger = partial.logger || env.logger
   const aws = partial.aws || (partial.bot && partial.bot.aws) || createAWSWrapper({ env, logger })
+  let bot
+  if (partial.createBot) {
+    bot = createBot({
+      aws,
+      env,
+      logger,
+      blockchain: env.BLOCKCHAIN,
+    })
+  }
 
   return {
     ...partial,
     env,
     logger,
     aws,
+    bot,
   }
 }
 
-const createFromPartial = (opts:PartialOpts) => new BaseLambda(normalizeOpts(opts))
+const createFromPartial = (opts: PartialOpts) => {
+  const normalized = normalizeOpts(opts)
+  const lambda = new BaseLambda(normalized)
+  const { bot } = normalized
+  if (bot) {
+    lambda.use((ctx, next) => {
+      ctx.components = { bot }
+      return next()
+    })
+  }
+
+  return lambda
+}
 
 export const fromHTTP = (opts:PartialOpts):LambdaHttp => createFromPartial({ ...opts, source: EventSource.HTTP }) as LambdaHttp
 export const fromDynamoDB = (opts:PartialOpts) => createFromPartial({ ...opts, source: EventSource.DYNAMODB })
