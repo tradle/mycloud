@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0-rc.3](https://github.com/tradle/serverless/compare/v2.4.0-rc.2...v2.4.0-rc.3) (2019-01-14)
+# [2.4.0-rc.4](https://github.com/tradle/serverless/compare/v2.4.0-rc.3...v2.4.0-rc.4) (2019-01-15)
 
 
 
