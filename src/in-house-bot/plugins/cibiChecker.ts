@@ -413,8 +413,11 @@ export const createPlugin: CreatePlugin<CIBICheckerAPI> = ({ bot, applications }
       const form = await bot.getResource(formStub)
 
 debugger
-      let toCheckNegrec = await doesCheckNeedToBeCreated({bot, type: DOCUMENT_CHECKER_CHECK, application, provider: PROVIDER_NEGREC, form, propertiesToCheck: ['scan'], prop: 'form'})
-      if (!toCheckNegrec) {
+      let toCheckNameChange = await doesCheckNeedToBeCreated({bot, type: DOCUMENT_CHECKER_CHECK, application
+                                                             ,provider: PROVIDER_NEGREC, form
+                                                             ,propertiesToCheck: ['firstName', 'middleName', 'lastName']
+                                                             ,prop: 'form'})
+      if (!toCheckNameChange) {
           logger.debug(`${PROVIDER_NEGREC}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
       }
       else {
@@ -425,11 +428,15 @@ debugger
           }
       }  
       
-      let toCheckIdentity = await doesCheckNeedToBeCreated({bot, type: DOCUMENT_CHECKER_CHECK, application, provider: PROVIDER_CREDIT_BUREAU, form, propertiesToCheck: ['scan'], prop: 'form'})
+      let toCheckIdentity = await doesCheckNeedToBeCreated({bot, type: DOCUMENT_CHECKER_CHECK, application
+                                                           ,provider: PROVIDER_CREDIT_BUREAU, form 
+                                                           ,propertiesToCheck: ['firstName', 'middleName'
+                                                           ,'lastName', 'dateOfBirth', 'full']
+                                                           ,prop: 'form'})
       if (!toCheckIdentity) {
         logger.debug(`${PROVIDER_CREDIT_BUREAU}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
       }
-   
+    
       if (toCheckIdentity) {
         let { identityStatus, address } = await documentChecker.handleIdentityData(form, application)
         await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: IDENTITY_ASPECTS})
