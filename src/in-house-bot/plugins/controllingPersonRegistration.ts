@@ -173,9 +173,8 @@ class ControllingPersonRegistrationAPI {
     else
       phoneNumber = resource.phone.number
     // link should be shortend
-    let baseUrl = mobileUrl.split('?')[0]
-    let idx = baseUrl.indexOf('/', 8)
-    let shortUrl = baseUrl.substring(0, idx + 1) + 'l/' + Math.random().toString(36).substring(2)
+    let shortUrl = host + '/l/' + Math.random().toString(36).substring(2)
+    debugger
     const r = await this.bot.draft({ type: SHORT_TO_LONG_URL_MAPPING })
         .set({
           longUrl: mobileUrl,
@@ -210,7 +209,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (!products  ||  !products[productId]  ||  products[productId].indexOf(ptype) === -1)
         return
 
-      if (!payload.emailAddress  &&  !payload.phone) {
+      if (!payload.emailAddress) { //  &&  !payload.phone) {
         logger.error(`controlling person: no email address and no phone provided`)
         return
       }
