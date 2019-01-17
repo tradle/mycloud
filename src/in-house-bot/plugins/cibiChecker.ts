@@ -31,6 +31,7 @@ const PH_COUNTRY_ID = 'tradle.Country_PH'
 const PHOTO_ID = 'tradle.PhotoID'
 const ADDRESS = 'tradle.Address'
 const DOCUMENT_CHECKER_CHECK = 'tradle.documentChecker.Check'
+const ADDRESS_CHECK = 'tradle.AddressCheck'
 const IDENTITY_ASPECTS= 'Person identity validation'
 const ADDRESS_ASPECTS = 'Address verification'
 const NEGREC_ASPECTS= 'Person negative record search'
@@ -65,7 +66,8 @@ interface ICIBICheck {
     status: any
     form: ITradleObject
     provider: string
-    aspect: string 
+    aspect: string
+    doVerifyAddress: boolean 
 }
 
 interface ICIBICheckerConf {
@@ -171,7 +173,7 @@ export class CIBICheckerAPI {
     handleIdentityData = async (form, application) => {
         let dateOfBirth = toISODateString(form.dateOfBirth)
         let firstname = form.firstName // LANIE
-        let secondname = form.middleName // G
+        let secondname = (form.middleName)? form.middleName : '' // G
         let lastname = form.lastName // AVIDA
         let identityReportXML = `<?xml version="1.0" encoding="utf-8"?>
         \n<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -346,9 +348,8 @@ export class CIBICheckerAPI {
     }
      
 
-    createCheck = async ({ application, status, form, provider, aspect }: ICIBICheck) => {
+    createCheck = async ({ application, status, form, provider, aspect, doVerifyAddress }: ICIBICheck) => {
         let resource:any = {
-          [TYPE]: DOCUMENT_CHECKER_CHECK,
           status: status.status,
           provider: provider,
           application: buildResourceStub({resource: application, models: this.bot.models}),
@@ -363,13 +364,13 @@ export class CIBICheckerAPI {
           resource.rawData = status.rawData
     
         this.logger.debug(`Creating ${provider} check for ${aspect}`);
-        const check = await this.bot.draft({ type: DOCUMENT_CHECKER_CHECK })
+        const check = await this.bot.draft({ type: doVerifyAddress? ADDRESS_CHECK : DOCUMENT_CHECKER_CHECK })
             .set(resource)
             .signAndSave()
         this.logger.debug(`Created ${provider} check for ${aspect}`);
     }
 
-    createVerification = async ({ application, form, rawData, provider, aspect }) => {
+    createVerification = async ({ application, form, rawData, provider, aspect, doVerifyAddress }) => {
         const method:any = {
           [TYPE]: 'tradle.APIBasedVerificationMethod',
           api: {
@@ -391,7 +392,32 @@ export class CIBICheckerAPI {
         await this.applications.createVerification({ application, verification })
         this.logger.debug(`Created ${provider} verification for ${aspect}`);
         if (application.checks)
-          await this.applications.deactivateChecks({ application, type: DOCUMENT_CHECKER_CHECK, form })
+          await this.applications.deactivateChecks({ application, type: doVerifyAddress? ADDRESS_CHECK : DOCUMENT_CHECKER_CHECK, form })
+    }
+
+    createAddressVerification = async ({ application, form, rawData, provider, aspect }) => {
+        const method:any = {
+          [TYPE]: 'tradle.APIBasedVerificationMethod',
+          api: {
+            [TYPE]: 'tradle.API',
+            name: provider
+          },
+          aspect: 'document validity',
+          reference: [{ queryId: 'report:' + rawData._id }],
+          rawData: rawData
+        }
+    
+        const verification = this.bot.draft({ type: VERIFICATION })
+           .set({
+             document: form,
+             method
+           })
+           .toJSON()
+    
+        await this.applications.createVerification({ application, verification })
+        this.logger.debug(`Created ${provider} verification for ${aspect}`);
+        if (application.checks)
+            await this.applications.deactivateChecks({ application, type: ADDRESS_CHECK, form })
     }
 }        
 
@@ -425,124 +451,128 @@ debugger
       }
       else {
           let negrecStatus = await documentChecker.handleNegrecData(form, application)
-          await documentChecker.createCheck({application, status: negrecStatus, form, provider: PROVIDER_NEGREC, aspect: NEGREC_ASPECTS})
+          await documentChecker.createCheck({application, status: negrecStatus, form, provider: PROVIDER_NEGREC
+                                            ,aspect: NEGREC_ASPECTS, doVerifyAddress: false })
           if (negrecStatus.status === 'pass') {
-              await documentChecker.createVerification({ application, form, rawData: negrecStatus.rawData, provider: PROVIDER_NEGREC, aspect: NEGREC_ASPECTS })
+              await documentChecker.createVerification({ application, form, rawData: negrecStatus.rawData
+                                                       ,provider: PROVIDER_NEGREC, aspect: NEGREC_ASPECTS, doVerifyAddress : false })
           }
       }  
       
       let toCheckIdentity = await doesCheckNeedToBeCreated({bot, type: DOCUMENT_CHECKER_CHECK, application
                                                            ,provider: PROVIDER_CREDIT_BUREAU, form 
                                                            ,propertiesToCheck: ['firstName', 'middleName'
-                                                           ,'lastName', 'dateOfBirth', 'full']
+                                                           ,'lastName', 'dateOfBirth']
                                                            ,prop: 'form'})
 
       if (!toCheckIdentity) {
         logger.debug(`${PROVIDER_CREDIT_BUREAU}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
       }
-    
+      
+      let cibiAddressUnparsed;
+      let cibiIdentityStatus;
       if (toCheckIdentity) {
         let { identityStatus, address } = await documentChecker.handleIdentityData(form, application)
-        await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: IDENTITY_ASPECTS})
+        await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU
+                                          ,aspect: IDENTITY_ASPECTS, doVerifyAddress : false})
         if (identityStatus.status === 'pass') {
-            await documentChecker.createVerification({ application, form, rawData: identityStatus.rawData, provider: PROVIDER_CREDIT_BUREAU, aspect: IDENTITY_ASPECTS })
+            await documentChecker.createVerification({ application, form, rawData: identityStatus.rawData, provider: PROVIDER_CREDIT_BUREAU
+                                                     ,aspect: IDENTITY_ASPECTS, doVerifyAddress : false })
         }
-        else {
-            await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS})
-        }
-        
+              
         if (!address.unparsed)
             return // CIBI does not return address information
+        
+        cibiAddressUnparsed = address.unparsed 
+        cibiIdentityStatus = identityStatus   
+      }
 
-        let formAddress = form.full
-        if (formAddress && formAddress.trim().length() > 0) {
-            let addressTokens = formAddress.trim().replace(/\s+/g, ' ').toUpperCase().split(' ')
-            // checking tokens in unparsed address
-            for (let token of addressTokens) {
-                if (!address.unparsed.includes(token)) {
-                    identityStatus.status = 'fail'
-                    identityStatus.message = 'not exact match'
-                    await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS})
-                    return
-                }
-            }    
-            await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS})
-            await documentChecker.createVerification({ application, form, rawData: identityStatus.rawData, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS })
-            return
-        }
-
-        const addressStub = getParsedFormStubs(application).find(form => form.type === ADDRESS)
-        if (!addressStub) {
-          logger.error(`${PROVIDER_CREDIT_BUREAU}: address form cannot be found for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
-          return
-        }
-
-        let addressForm:ITradleObject = await bot.objects.get(addressStub.link)
-    
-        let street = addressForm.streetAddress
-        let city = addressForm.city
-        street = street? street.toUpperCase() : ''
-        city = city? city.toUpperCase() : ''
-        let combined = (street + ' ' + city).trim();
-        if (combined.length == 0)
-            return;
-        let addressTokens = combined.replace(/\s+/g, ' ').split(' ')
+      let formAddress = form.full
      
+      if (formAddress && formAddress.trim().length > 0) {
+        let createCheck = await doesCheckNeedToBeCreated({bot, type: ADDRESS_CHECK, application, provider: PROVIDER_CREDIT_BUREAU
+                                                         ,form, propertiesToCheck: ['full', 'city'], prop: 'form'})
+        if (!createCheck) {
+           logger.debug(`${PROVIDER_CREDIT_BUREAU}: address check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
+           return
+        }
+        if (!cibiAddressUnparsed) {
+            let { identityStatus, address } = await documentChecker.handleIdentityData(form, application)
+            if (identityStatus.status !== 'pass')
+               return;
+            if (!address.unparsed)
+               return // CIBI does not return address information
+            cibiAddressUnparsed = address.unparsed
+            cibiIdentityStatus = identityStatus  
+        }
+
+        let addressTokens = formAddress.trim().replace(/\s+/g, ' ').toUpperCase().split(' ')
         // checking tokens in unparsed address
         for (let token of addressTokens) {
-            if (!address.unparsed.includes(token)) {
-                identityStatus.status = 'fail'
-                identityStatus.message = 'not exact match'
-                await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS})
+            if (!cibiAddressUnparsed.includes(token)) {
+                cibiIdentityStatus.status = 'fail'
+                cibiIdentityStatus.message = 'not exact match'
+                await documentChecker.createCheck({application, status: cibiIdentityStatus, form
+                                                  ,provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS, doVerifyAddress: true})
                 return
             }
         }    
-        await documentChecker.createCheck({application, status: identityStatus, form: addressForm, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS})
-        await documentChecker.createVerification({ application, form: addressForm, rawData: identityStatus.rawData, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS })
+        await documentChecker.createCheck({application, status: cibiIdentityStatus, form, provider: PROVIDER_CREDIT_BUREAU
+                                          ,aspect: ADDRESS_ASPECTS, doVerifyAddress: true})
+        await documentChecker.createVerification({ application, form, rawData: cibiIdentityStatus.rawData, provider: PROVIDER_CREDIT_BUREAU
+                                                 ,aspect: ADDRESS_ASPECTS, doVerifyAddress: true })
+        return
       }
-      else {
-        const addressStub = getParsedFormStubs(application).find(form => form.type === ADDRESS)
-        if (!addressStub) {
-          logger.error(`${PROVIDER_CREDIT_BUREAU}: address form cannot be found for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
-          return
+
+      const addressStub = getParsedFormStubs(application).find(form => form.type === ADDRESS)
+      if (!addressStub) {
+         logger.error(`${PROVIDER_CREDIT_BUREAU}: address form cannot be found for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
+         return
+      }
+
+      let addressForm:ITradleObject = await bot.objects.get(addressStub.link)
+
+      let createCheck = await doesCheckNeedToBeCreated({bot, type: ADDRESS_CHECK, application, provider: PROVIDER_CREDIT_BUREAU, form: addressForm
+                                                       ,propertiesToCheck: ['streetAddress', 'city'], prop: 'form'})
+      if (!createCheck) {
+        logger.debug(`${PROVIDER_CREDIT_BUREAU}: address check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
+        return
+      }
+
+      let street = addressForm.streetAddress
+      let city = addressForm.city
+      street = street? street.toUpperCase() : ''
+      city = city? city.toUpperCase() : ''
+      let combined = (street + ' ' + city).trim();
+      if (combined.length == 0)
+         return;
+
+      if (!cibiAddressUnparsed) {
+         let { identityStatus, address } = await documentChecker.handleIdentityData(form, application)
+         if (identityStatus.status !== 'pass')
+            return;
+         if (!address.unparsed)
+            return // CIBI does not return address information
+         cibiAddressUnparsed = address.unparsed
+         cibiIdentityStatus = identityStatus  
+      }
+
+      let addressTokens = combined.replace(/\s+/g, ' ').split(' ')
+      // checking tokens in unparsed address
+      for (let token of addressTokens) {
+        if (!cibiAddressUnparsed.includes(token)) {
+            cibiIdentityStatus.status = 'fail'
+            cibiIdentityStatus.message = 'not exact match'
+            await documentChecker.createCheck({application, status: cibiIdentityStatus, form: addressForm
+                                              ,provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS, doVerifyAddress: true})
+            return
         }
-
-        let addressForm:ITradleObject = await bot.objects.get(addressStub.link)
-
-        let toCheckAddress = await doesCheckNeedToBeCreated({bot, type: DOCUMENT_CHECKER_CHECK, application
-                                                            ,provider: PROVIDER_CREDIT_BUREAU, form: addressForm 
-                                                            ,propertiesToCheck: ['streetAddress', 'street']
-                                                            ,prop: 'form'})
-        if (toCheckAddress)  {
-            let { identityStatus, address } = await documentChecker.handleIdentityData(form, application)
-            if (identityStatus.status !== 'pass' || !address.unparsed)
-                return // CIBI does not return address information
-            
-            let street = addressForm.streetAddress
-            let city = addressForm.city
-            street = street? street.toUpperCase() : ''
-            city = city? city.toUpperCase() : ''
-            let combined = (street + ' ' + city).trim();
-            if (combined.length == 0)
-                return;
-            let addressTokens = combined.replace(/\s+/g, ' ').split(' ')
-            
-                    // checking tokens in unparsed address
-            for (let token of addressTokens) {
-                if (!address.unparsed.includes(token)) {
-                    identityStatus.status = 'fail'
-                    identityStatus.message = 'not exact match'
-                    await documentChecker.createCheck({application, status: identityStatus, form: addressForm, provider: PROVIDER_CREDIT_BUREAU
-                                                      ,aspect: ADDRESS_ASPECTS})
-                    return
-                }
-            }    
-            await documentChecker.createCheck({application, status: identityStatus, form: addressForm, provider: PROVIDER_CREDIT_BUREAU
-                                              ,aspect: ADDRESS_ASPECTS})
-            await documentChecker.createVerification({ application, form: addressForm, rawData: identityStatus.rawData
-                                                     ,provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS })    
-        }   
-      }
+      }    
+      await documentChecker.createCheck({application, status: cibiIdentityStatus, form: addressForm, provider: PROVIDER_CREDIT_BUREAU
+                                        ,aspect: ADDRESS_ASPECTS, doVerifyAddress: true})
+      await documentChecker.createVerification({ application, form: addressForm, rawData: cibiIdentityStatus.rawData
+                                               ,provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS, doVerifyAddress: true})
+    
     }
   }
 
