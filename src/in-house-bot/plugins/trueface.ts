@@ -151,8 +151,7 @@ export class TruefaceAPI {
     checkR.message = getStatusMessageForCheck({models: this.bot.models, check: checkR})
     this.logger.debug('Trueface spoof detection:', checkR.message);
     // if (error)
-    if (data)
-      checkR.livenessScore = data.score
+    checkR.livenessScore = data  &&  data.score || 0
 
     const check = await this.bot.draft({ type: TRUEFACE_CHECK })
       .set(checkR)
