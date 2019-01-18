@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import dynogels from 'dynogels'
-import { createTable, DB, Table, utils, Search } from '@tradle/dynamodb'
+import { createTable, DB, Table, utils, Search, ITableOpts } from '@tradle/dynamodb'
 import AWS from 'aws-sdk'
 // import { createMessagesTable } from './messages-table'
 import { Logger, Objects, Messages, ITradleObject, Model, ModelStore, AwsApis } from './types'
@@ -15,7 +15,7 @@ import {
   isUnsignedType,
 } from './utils'
 
-import { TYPE, SIG, ORG, AUTHOR, TYPES } from './constants'
+import { TYPE, SIG, ORG, AUTHOR, TYPES, MAX_DB_ITEM_SIZE } from './constants'
 import Errors from './errors'
 
 const { MESSAGE, SEAL_STATE, DELIVERY_ERROR } = TYPES
@@ -217,7 +217,7 @@ export = function createDB ({
     }
   }
 
-  const commonOpts = {
+  const commonOpts:Partial<ITableOpts> = {
     docClient,
     get models() { return modelStore.models },
     // all models in one table in our case
@@ -226,6 +226,7 @@ export = function createDB ({
     allowScan: isScanAllowed,
     shouldMinify,
     deriveProps,
+    maxItemSize: MAX_DB_ITEM_SIZE,
   }
 
   const getIndexesForModel = ({ table, model }) => {
@@ -265,7 +266,7 @@ export = function createDB ({
         // all key props are derived
         derivedProps: pluck(cloudformation.AttributeDefinitions, 'AttributeName'),
         getIndexesForModel
-      })
+      } as ITableOpts)
 
       table.find = wrapSlowPoke({
         fn: table.find.bind(table),
