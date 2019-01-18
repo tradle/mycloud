@@ -2,7 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0-rc.5](https://github.com/tradle/serverless/compare/v2.4.0-rc.4...v2.4.0-rc.5) (2019-01-18)
+# [2.4.0-rc.6](https://github.com/tradle/serverless/compare/v2.4.0-rc.5...v2.4.0-rc.6) (2019-01-18)
+
+
+### Bug Fixes
+
+* required prop was missing ([fc4613d](https://github.com/tradle/serverless/commit/fc4613d))
 
 
 
