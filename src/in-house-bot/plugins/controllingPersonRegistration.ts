@@ -23,6 +23,8 @@ const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
 const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const AGENCY = 'tradle.Agency'
 const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
+const LEGAL_ENTITY_PRODUCT = 'tradle.legal.LegalEntityProduct'
+const CP_ONBOARDING = 'tradle.legal.ControllingPersonOnboarding'
 const SHORT_TO_LONG_URL_MAPPING = 'tradle.ShortToLongUrlMapping'
 
 const DEAR_CUSTOMER = 'Dear Customer'
@@ -124,9 +126,11 @@ class ControllingPersonRegistrationAPI {
 
     const host = this.bot.apiBaseUrl
     const provider = await this.bot.getMyPermalink()
-    const extraQueryParams: any = { legalEntity: legalEntity._permalink, }
+
+    const extraQueryParams: any = { application: application._permalink }
     if (application.requestFor === AGENCY) {
       extraQueryParams.isAgent = true
+      extraQueryParams.legalEntity = legalEntity._permalink
     }
 
     const body = genConfirmationEmail({
@@ -153,16 +157,17 @@ class ControllingPersonRegistrationAPI {
   async sendLinkViaSMS({resource, application, smsBasedVerifier, legalEntity}) {
     const host = this.bot.apiBaseUrl
     const provider = await this.bot.getMyPermalink()
-    const extraQueryParams: any = { legalEntity: legalEntity._permalink, }
+    const extraQueryParams: any = { application: application._permalink }
     if (application.requestFor === AGENCY) {
       extraQueryParams.isAgent = true
+      extraQueryParams.legalEntity = legalEntity._permalink
     }
-
+    let product = application.requestFor === LEGAL_ENTITY_PRODUCT ? CP_ONBOARDING : EMPLOYEE_ONBOARDING
     const [mobileUrl] = ['mobile'].map(platform => {
       return appLinks.getApplyForProductLink({
         provider,
         host,
-        product: EMPLOYEE_ONBOARDING,
+        product,
         platform,
         ...extraQueryParams,
       })
@@ -221,20 +226,20 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       logger.error('controlling person: processing started') // for ${payload.emailAddress}`)
 debugger
-      if (payload.emailAddress) {
-        await cp.sendConfirmationEmail({resource: payload, application, legalEntity})
-        return
-      }
-      if (!smsBasedVerifier) {
-         const sms: ISMS = getSMSClient({ bot, gateway: conf.gateway })
-         smsBasedVerifier = new SMSBasedVerifier({
-          db: bot.db,
-          sms,
-          commands,
-          logger: conf.logger,
-        })
-      }
-      await cp.sendLinkViaSMS({resource: payload, application, smsBasedVerifier, legalEntity})
+      // if (payload.emailAddress) {
+      await cp.sendConfirmationEmail({resource: payload, application, legalEntity})
+      return
+      // }
+      // if (!smsBasedVerifier) {
+      //    const sms: ISMS = getSMSClient({ bot, gateway: conf.gateway })
+      //    smsBasedVerifier = new SMSBasedVerifier({
+      //     db: bot.db,
+      //     sms,
+      //     commands,
+      //     logger: conf.logger,
+      //   })
+      // }
+      // await cp.sendLinkViaSMS({resource: payload, application, smsBasedVerifier, legalEntity})
     }
 
 //       let personalInfo, legalEntity
