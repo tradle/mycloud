@@ -29,6 +29,9 @@ Parameters:
   LogsDaysBeforeTransitionToGlacier:
     Type: Number
 
+  LogsTTL:
+    Type: Number
+
   EncryptionKey:
     Type: String
     Default: ""
@@ -139,12 +142,16 @@ Resources:
       LifecycleConfiguration:
         Rules:
           - Id: TransitionLogsToGlacier
-            Prefix: glacier
             Status: Enabled
             Transitions:
               - TransitionInDays:
-                  Ref: LogsDaysBeforeTransitionToGlacier
+                  Fn::Sub: '${LogsDaysBeforeTransitionToGlacier}'
                 StorageClass: Glacier
+          - Id: LogsExpiration
+            Status: Enabled
+            ExpirationInDays:
+              # needs to be as string
+              Fn::Sub: '${LogsTTL}'
 
   Deployment:
     Condition: DoCreateDeploymentBucket

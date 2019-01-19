@@ -276,7 +276,7 @@ custom:
   #     SecretsBucket:
   #       SSEAlgorithm: AES256
 
-  logRetentionInDays: 3
+  logRetentionInDays: 1
   # daysBeforeLogsGoToGlacier: 7
 
   # issue2233WorkaroundKey: issue2233WorkaroundKey
@@ -1309,6 +1309,12 @@ resources:
 
     LogsDaysBeforeTransitionToGlacier:
       Type: Number
+      Description: days before logs are transitioned to Amazon Glacier
+      Default: 1
+
+    LogsTTL:
+      Type: Number
+      Description: days before logs are deleted from Amazon Glacier
       Default: 7
 
     EncryptBuckets:
@@ -1360,6 +1366,7 @@ resources:
             - PointInTimeRecoveryEnabledBucket0Table
             - ProvisionDynamoDBScaling
             - LogsDaysBeforeTransitionToGlacier
+            - LogsTTL
             - EncryptBuckets
             - EncryptTables
             # - EnableTracing
@@ -1445,6 +1452,8 @@ resources:
           default: Use DynamoDB provisioned auto-scaling policy
         LogsDaysBeforeTransitionToGlacier:
           default: days before logs are transitioned from to Glacier
+        LogsTTL:
+          default: days before logs are deleted forever (from Glacier)
         EncryptBuckets:
           default: "Encrypt Buckets"
         EncryptTables:
@@ -1605,6 +1614,8 @@ resources:
               - Ref: ExistingDeploymentBucket # ServerlessDeploymentBucket
           LogsDaysBeforeTransitionToGlacier:
             Ref: LogsDaysBeforeTransitionToGlacier
+          LogsTTL:
+            Ref: LogsTTL
           EncryptionKey:
             Fn::If:
               - DoEncryptBuckets
