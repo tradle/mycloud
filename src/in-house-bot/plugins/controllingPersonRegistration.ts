@@ -72,13 +72,15 @@ export const genConfirmationEmail = ({
   host,
   name,
   orgName,
+  product,
   extraQueryParams={},
 }: GenConfirmationEmailOpts) => {
+
   const [mobileUrl, webUrl] = ['mobile', 'web'].map(platform => {
     return appLinks.getApplyForProductLink({
       provider,
       host,
-      product: EMPLOYEE_ONBOARDING,
+      product,
       platform,
       ...extraQueryParams,
     })
@@ -93,6 +95,7 @@ interface GenConfirmationEmailOpts {
   name: string
   orgName: string
   extraQueryParams?: any
+  product: string
 }
 
 interface ConfirmationEmailTemplateData {
@@ -132,6 +135,7 @@ class ControllingPersonRegistrationAPI {
       extraQueryParams.isAgent = true
       extraQueryParams.legalEntity = legalEntity._permalink
     }
+    let product = application.requestFor === LEGAL_ENTITY_PRODUCT ? CP_ONBOARDING : EMPLOYEE_ONBOARDING
 
     const body = genConfirmationEmail({
       provider,
@@ -139,6 +143,7 @@ class ControllingPersonRegistrationAPI {
       name: DEAR_CUSTOMER,
       orgName: this.org.name,
       extraQueryParams,
+      product
     })
 
     try {
