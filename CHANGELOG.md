@@ -2,7 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0-rc.7](https://github.com/tradle/serverless/compare/v2.4.0-rc.6...v2.4.0-rc.7) (2019-01-18)
+# [2.4.0-rc.9](https://github.com/tradle/mycloud/compare/v2.4.0-rc.8...v2.4.0-rc.9) (2019-01-22)
+
+
+### Features
+
+* reduce log retention in CloudWatch to 1 day, add LogsTTL stack param to delete logs from glacier ([072c883](https://github.com/tradle/mycloud/commit/072c883))
 
 
 
