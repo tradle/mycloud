@@ -2,17 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0-rc.8](https://github.com/tradle/mycloud/compare/v2.4.0-rc.7...v2.4.0-rc.8) (2019-01-19)
-
-
-### Bug Fixes
-
-* set max item size for dynamodb ([b61e4b4](https://github.com/tradle/mycloud/commit/b61e4b4))
+# [2.4.0-rc.9](https://github.com/tradle/mycloud/compare/v2.4.0-rc.8...v2.4.0-rc.9) (2019-01-22)
 
 
 ### Features
 
-* SME onboarding ([1e61498](https://github.com/tradle/mycloud/commit/1e61498))
+* reduce log retention in CloudWatch to 1 day, add LogsTTL stack param to delete logs from glacier ([072c883](https://github.com/tradle/mycloud/commit/072c883))
 
 
 
