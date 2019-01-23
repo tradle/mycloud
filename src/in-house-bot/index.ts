@@ -618,7 +618,6 @@ export const loadComponentsAndPlugins = ({
       logger
     }))
   }
-
   if (handleMessages) {
     ;[
       'prefill-form',
@@ -634,7 +633,8 @@ export const loadComponentsAndPlugins = ({
       'trueface',
       'jenIdChecker',
       'cibiChecker',
-      'gdcChecker'
+      'gdcChecker',
+      'sme-auto-approve',
     ].forEach(name => attachPlugin({ name }))
 
     ;[
@@ -657,6 +657,7 @@ export const loadComponentsAndPlugins = ({
   ) {
     attachPlugin({ name: 'deployment', requiresConf: false })
   }
+  // attachPlugin({ name: 'sme-auto-approve' })
   if (runAsyncHandlers) {
     attachPlugin({ name: 'conditional-auto-approve' })
   }
