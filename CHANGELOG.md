@@ -2,12 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0-rc.9](https://github.com/tradle/mycloud/compare/v2.4.0-rc.8...v2.4.0-rc.9) (2019-01-22)
+# [2.4.0-rc.10](https://github.com/tradle/mycloud/compare/v2.4.0-rc.9...v2.4.0-rc.10) (2019-01-23)
 
 
 ### Features
 
-* reduce log retention in CloudWatch to 1 day, add LogsTTL stack param to delete logs from glacier ([072c883](https://github.com/tradle/mycloud/commit/072c883))
+* new event added ([7ab44ac](https://github.com/tradle/mycloud/commit/7ab44ac))
+* SME onboarding ([fb5e9c3](https://github.com/tradle/mycloud/commit/fb5e9c3))
+* SME onboarding ([3edc31a](https://github.com/tradle/mycloud/commit/3edc31a))
+* SME onboarding project ([50b3963](https://github.com/tradle/mycloud/commit/50b3963))
 
 
 
