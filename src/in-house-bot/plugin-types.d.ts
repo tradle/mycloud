@@ -19,6 +19,7 @@ declare namespace PluginLifecycle {
   export type willSend = (opts:IWillSendArg) => void | Promise<void>
   export type willRequestForm = (opts:IWillRequestFormArg) => void | Promise<void>
   export type willApproveApplication = (opts:IWillJudgeAppArg) => void | Promise<void>
+  export type didApproveApplication = (opts:IWillJudgeAppArg, signedObject: ITradleObject) => void | Promise<void>
   export type willDenyApplication = (opts:IWillJudgeAppArg) => void | Promise<void>
   export type onFormsCollected = (opts:IOnFormsCollectedArg) => void | Promise<void>
   export type onPendingApplicationCollision = (opts:IOnPendingApplicationCollisionArg) => void | Promise<void>
@@ -38,6 +39,7 @@ declare namespace PluginLifecycle {
     willSend?: willSend
     willRequestForm?: willRequestForm
     willApproveApplication?: willApproveApplication
+    didApproveApplication?: didApproveApplication
     willDenyApplication?: willDenyApplication
     onFormsCollected?: onFormsCollected
     onPendingApplicationCollision?: onPendingApplicationCollision
