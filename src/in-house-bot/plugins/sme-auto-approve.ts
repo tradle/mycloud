@@ -48,8 +48,6 @@ export class SmeAutoApprove {
   }
 
   public checkCPs = async (application) => {
-    this.logger.debug('checking if all CPs checked in')
-
     let aApp, checkIfAllFormsSubmitted = true
     if (application.requestFor === this.conf.parent) {
       aApp = application
@@ -82,11 +80,15 @@ debugger
     if (checkIfAllFormsSubmitted) {
       let parentProductID = makeProductModelID(this.conf.parent)
       let appApproved = submissions.filter(f => f.submission[TYPE] === parentProductID)
-      if (appApproved.length)
+      if (appApproved.length) {
+        this.logger.debug('Parent application was approved. Nothing further to check')
         return
+      }
       let appSubmitted = submissions.filter(f => f.submission[TYPE] === APPLICATION_SUBMITTED)
-      if (!appSubmitted.length)
+      if (!appSubmitted.length) {
+        this.logger.debug('Parent application was not finished. Nothing yet to check')
         return
+      }
     }
 
     let cp = submissions.filter(f => f.submission[TYPE] === CP)
@@ -101,10 +103,14 @@ debugger
         }
       }
     })
-    if (!items  ||  !items.length)
+    if (!items  ||  !items.length) {
+      this.logger.debug('Child applications were not submitted yet. Nothing further to check')
       return
-    if (items.length < cp.length)
+    }
+    if (items.length < cp.length) {
+      this.logger.debug('The number of submitted child applications is not the same as emails that were sent out. Nothing further to check')
       return
+    }
 
     const prReq:any = items;
 
@@ -120,22 +126,28 @@ debugger
     }));
 
 
-    if (!items  ||  !items.length)
+    if (!items  ||  !items.length) {
+      this.logger.debug('Something wrong PR for child applications found and Applications for these PRs are not!!! Something is screwed')
       return
+    }
 
     const appsForCP:any = items;
 
     const requests = appsForCP.map(app => this.bot.getResource(app, { backlinks: ['products'] }))
     const results:any = await Promise.all(requests)
 debugger
-    if (!results)
+    if (!results) {
+      this.logger.debug('Child applications were not approved yet. Nothing further to check')
       return
+    }
     let childProductId = makeProductModelID(this.conf.child)
 
     const products = results.filter(r => r.products  &&  r.products.filter(rr => rr.submission[TYPE] === childProductId))
 
-    if (!products.length  ||  products.length < cp.length)
+    if (!products.length  ||  products.length < cp.length) {
+      this.logger.debug('Not all child applications were approved yet. Nothing further to check')
       return
+    }
     this.logger.debug('auto-approving application')
 
     await this.applications.approve({ application: aApp })
@@ -149,8 +161,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     didApproveApplication: async (opts: IWillJudgeAppArg, certificate: ITradleObject) => {
       let childProduct = makeProductModelID(conf.child)
 debugger
-      if (certificate[TYPE] === childProduct)
+      if (certificate[TYPE] === childProduct) {
+        logger.debug('New child application was approved. Check if parent application can be auto-approved')
         await autoApproveAPI.checkCPs(opts.application)
+      }
     },
     // check if auto-approve ifvapplication Legal entity product was submitted
     onFormsCollected: async ({req}) => {
@@ -158,6 +172,7 @@ debugger
       const { application } = req
       if (application.requestFor !== conf.parent)
         return
+      logger.debug('Parent application was submitted. Check if all child applications checked in')
       await autoApproveAPI.checkCPs(application)
     }
   }
