@@ -125,7 +125,7 @@ class ControllingPersonRegistrationAPI {
   async sendConfirmationEmail({resource, application, legalEntity}) {
     let emailAddress = resource.emailAddress
 
-    this.logger.error('controlling person: preparing to send invite') // to ${emailAddress} from ${this.conf.senderEmail}`)
+    this.logger.debug('controlling person: preparing to send invite') // to ${emailAddress} from ${this.conf.senderEmail}`)
 
     const host = this.bot.apiBaseUrl
     const provider = await this.bot.getMyPermalink()
@@ -229,7 +229,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (!await hasPropertiesChanged({ resource: payload, bot, propertiesToCheck: ['emailAddress', 'phone'] }))
         return
 
-      logger.error('controlling person: processing started') // for ${payload.emailAddress}`)
+      logger.debug('controlling person: processing started') // for ${payload.emailAddress}`)
 debugger
       // if (payload.emailAddress) {
       await cp.sendConfirmationEmail({resource: payload, application, legalEntity})
