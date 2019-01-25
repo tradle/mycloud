@@ -105,7 +105,7 @@ export class CIBICheckerAPI {
     handleNegrecData = async (form, application) => {
         
         let firstname = form.firstName
-        let secondname = form.middleName
+        let secondname = (form.middleName)? form.middleName : ''
         let lastname = form.lastName
         
         let subjectName = `${firstname} ${secondname} ${lastname}` // 'DELA CRUZ JUAN'   
@@ -130,8 +130,8 @@ export class CIBICheckerAPI {
             this.logger.debug(`Failed request data from ${PROVIDER_NEGREC}, error : ${negrecReport.error}`); 
         } else {
             this.logger.debug(`Received data from ${PROVIDER_NEGREC}: ${JSON.stringify(negrecReport.data, null, 2)}`);
-            let subjects = negrecReport.data.SUBJECTS
-            if (subjects.lenght == 0) {
+            let subjects : any[] = negrecReport.data.SUBJECTS
+            if (subjects.length == 0) {
                 negrecStatus = { status: 'pass', message: 'No negative record.', rawData: negrecReport.data}
             }
             else {
