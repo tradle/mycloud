@@ -53,8 +53,8 @@ export class SmeAutoApprove {
       aApp = application
       checkIfAllFormsSubmitted = false
     }
-    else{
-      const pr = await this.bot.getResource(application.request)
+    else {
+      const pr:ITradleObject = await this.bot.getResource(application.request)
       const associatedResource = pr.associatedResource
       // const asociatedApplication = await this.bot.getResource(associatedResource, {backlinks: ['forms']})
       const associatedApplication = await this.bot.db.find({
@@ -73,7 +73,7 @@ debugger
     // let forms = aApp.forms
     if (!appSubmissions)
       return
-    const submissions = appSubmissions.submissions
+    const submissions:any[] = appSubmissions.submissions
     if (!submissions.length)
       return
 
@@ -112,7 +112,7 @@ debugger
       return
     }
 
-    const prReq:any = items;
+    const prReq:ITradleObject[] = items;
 
     ({ items } = await this.bot.db.find({
       filter: {
@@ -131,10 +131,10 @@ debugger
       return
     }
 
-    const appsForCP:any = items;
+    const appsForCP:ITradleObject[] = items;
 
     const requests = appsForCP.map(app => this.bot.getResource(app, { backlinks: ['products'] }))
-    const results:any = await Promise.all(requests)
+    const results:ITradleObject[] = await Promise.all(requests)
 debugger
     if (!results) {
       this.logger.debug('Child applications were not approved yet. Nothing further to check')
