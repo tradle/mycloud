@@ -108,7 +108,7 @@ export class CIBICheckerAPI {
         let secondname = (form.middleName)? form.middleName : ''
         let lastname = form.lastName
         
-        let subjectName = `${firstname} ${secondname} ${lastname}` // 'DELA CRUZ JUAN'   
+        let subjectName = ` ${lastname} ${firstname} ${secondname}` // 'DELA CRUZ JUAN'   
         let subjectType = 'I'
 
         let negrecSearchXML = `<?xml version="1.0" encoding="utf-8"?>
