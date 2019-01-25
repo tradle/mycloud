@@ -2,12 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0-rc.11](https://github.com/tradle/mycloud/compare/v2.4.0-rc.10...v2.4.0-rc.11) (2019-01-24)
-
-
-### Bug Fixes
-
-* logger.error used for debug messages ([26f0c55](https://github.com/tradle/mycloud/commit/26f0c55))
+# [2.4.0-rc.12](https://github.com/tradle/mycloud/compare/v2.4.0-rc.11...v2.4.0-rc.12) (2019-01-25)
 
 
 
