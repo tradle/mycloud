@@ -1635,3 +1635,11 @@ export const tryAsync = <A, B>(fn:Promiser<A, B|void>, onError:ErrorHandler=noop
     }
   }
 }
+
+export const assertNoNullProps = (obj: any, msg: string) => {
+  for (let p in obj) {
+    if (obj[p] == null) {
+      throw new Errors.InvalidInput(msg)
+    }
+  }
+}
