@@ -130,6 +130,17 @@ class ComplyAdvantageAPI {
         await this.createCheck({application, rawData: {}, status, form: payload})
         return
       }
+      if (firstName.length === 1  &&  lastName.length === 1) {
+        this.logger.debug(`${PROVIDER}. Bad criteria: one letter first and last names`);
+        let status = {
+          status: 'fail',
+          message: 'Bad criteria: one letter first and last names'
+          // message: `Sanctions check for "${name}" failed.` + (!dateOfBirth  &&  ' No registration date was provided')
+        }
+        await this.createCheck({application, rawData: {}, status, form: payload})
+        return
+
+      }
       name = firstName + ' ' + lastName
     }
     else {
