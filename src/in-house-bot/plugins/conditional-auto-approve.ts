@@ -96,10 +96,42 @@ export class ConditionalAutoApprove {
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
   const autoApproveAPI = new ConditionalAutoApprove({ bot, conf, applications, logger })
   const plugin: IPluginLifecycleMethods = {
-    onCheckStatusChanged: async (check: ITradleCheck) => {
-      if (isPassedCheck(check)) {
-        await autoApproveAPI.checkTheChecks({ check })
+    // onCheckStatusChanged: async (check: ITradleCheck) => {
+    //   if (isPassedCheck(check)) {
+    //     await autoApproveAPI.checkTheChecks({ check })
+    //   }
+    // },
+    onFormsCollected: async function ({ req }) {
+      if (req.skipChecks) {
+        logger.debug('skipped, skipChecks=true')
+        return
       }
+      const { application } = req
+      if (!application) {
+        logger.debug('skipped, no application')
+        return
+      }
+      let checkTypes = conf.products[application.requestFor]
+      if (!checkTypes)
+        return
+      debugger
+
+      if (checkTypes.length) {
+        let checks = await applications.getLatestChecks({ application })
+        let foundChecks = 0
+        for (let i=0; i<checks.length; i++) {
+          let c = checks[i]
+          if (!checkTypes.includes(c[TYPE]))
+            continue
+          foundChecks++
+          if (c.status.title.toLowerCase() !== 'pass')
+            return
+        }
+        if (foundChecks === checkTypes.length)
+          await applications.approve({ application })
+      }
+      else if (await applications.haveAllChecksPassed({ application }))
+        await applications.approve({ application })
     }
   }
 
