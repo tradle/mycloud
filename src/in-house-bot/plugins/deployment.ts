@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { selectModelProps } from '../../utils'
+import { selectModelProps, parseArn } from '../../utils'
 import {
   IPluginOpts,
   CreatePlugin,
@@ -11,6 +11,7 @@ import {
   PluginLifecycle,
   IChildDeployment,
   VersionInfo,
+  ResourceStub,
 } from '../types'
 
 import Errors from '../../errors'
@@ -22,6 +23,7 @@ import { getParsedFormStubs, didPropChange } from '../utils'
 const { TYPE, WEB_APP_URL } = constants
 const templateFileName = 'compiled-cloudformation-template.json'
 const { DEPLOYMENT_PRODUCT, DEPLOYMENT_CONFIG_FORM, SIMPLE_MESSAGE } = TYPES
+const getCommit = (childDeployment: IChildDeployment) => _.get(childDeployment, 'version.commit')
 
 export interface IDeploymentPluginOpts extends IPluginOpts {
   conf: IDeploymentPluginConf
@@ -133,7 +135,7 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
     }
   }
 
-  const onChildDeploymentChanged:PluginLifecycle.onResourceChanged = async ({ old, value }) => {
+  const maybeNotifyCreators = async ({ old, value }) => {
     if (didPropChange({ old, value, prop: 'stackId' })) {
       // using bot.tasks is hacky, but because this fn currently purposely stalls for minutes on end,
       // stream-processor will time out processing this item and the lambda will exit before anyone gets notified
@@ -142,10 +144,39 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
         promise: deployment.notifyCreatorsOfChildDeployment(value)
       })
     }
+  }
+
+  const ensurePushNotificationsRegistration = async (childDeployment: IChildDeployment) => {
+    const { identity, stackId } = childDeployment
+    if (!(identity && stackId)) return
+
+    const friend = await bot.friends.getByIdentityPermalink(identity._permalink)
+    // TODO: check if friend paid their dues
+
+    const { region, accountId } = parseArn(stackId)
+    await deployment.registerPushNotifier({
+      permalink: identity._permalink,
+      region,
+      accountId,
+    })
+  }
+
+  const onChildDeploymentCreated:PluginLifecycle.onResourceCreated = async childDeployment => {
+    maybeNotifyCreators({ old: {}, value: childDeployment })
+
+    try {
+      await alerts.childLaunched(childDeployment as any)
+    } catch (err) {
+      logger.error('failed to alert about new child', err)
+    }
+  }
+
+  const onChildDeploymentChanged:PluginLifecycle.onResourceChanged = async ({ old, value }) => {
+    maybeNotifyCreators({ old, value })
 
     const from = old as IChildDeployment
     const to = value as IChildDeployment
-    if (_.get(from, 'version.commit') === _.get(to, 'version.commit')) {
+    if (getCommit(from) === getCommit(to)) {
       try {
         await alerts.childRolledBack({ to })
       } catch (err) {
@@ -155,19 +186,10 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
       return
     }
 
-    const freshlyDeployed = !from.stackId && to.stackId
-    if (freshlyDeployed) {
-      try {
-        await alerts.childLaunched(to as any)
-      } catch (err) {
-        logger.error('failed to alert about new child', err)
-      }
-    } else {
-      try {
-        await alerts.childUpdated({ from, to })
-      } catch (err) {
-        logger.error('failed to alert about child update', err)
-      }
+    try {
+      await alerts.childUpdated({ from, to })
+    } catch (err) {
+      logger.error('failed to alert about child update', err)
     }
   }
 
@@ -198,8 +220,8 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
       'onmessage:tradle.cloud.UpdateResponse': async (req: IPBReq) => {
         await deployment.handleUpdateResponse(req.payload)
       },
+      'onResourceCreated:tradle.cloud.ChildDeployment': onChildDeploymentCreated,
       'onResourceChanged:tradle.cloud.ChildDeployment': onChildDeploymentChanged,
-      'onResourceCreated:tradle.cloud.ChildDeployment': value => onChildDeploymentChanged({ old: {}, value }),
       'onResourceCreated:tradle.VersionInfo': onVersionInfoCreated,
     } as PluginLifecycle.Methods
   }

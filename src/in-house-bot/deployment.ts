@@ -212,6 +212,12 @@ interface GenUpdatePackageForStackOpts {
   region?: string
 }
 
+interface RegisterPushNotifierOpts {
+  permalink: string
+  accountId: string
+  region: string
+}
+
 const BlockchainNetworkModel = baseModels['tradle.BlockchainNetwork']
 
 export class Deployment {
@@ -454,9 +460,9 @@ export class Deployment {
     ])
 
     const template = await this.customizeTemplateForUpdate({
-     template: parentTemplate,
-     bucket,
-   })
+      template: parentTemplate,
+      bucket,
+    })
 
     const { templateUrl, code } = await this._saveTemplateAndCode({
       parentTemplate,
@@ -1560,6 +1566,23 @@ ${this.genUsageInstructions(links)}`
     return params.OrgAdminEmail
   }
 
+  public registerPushNotifier = async ({ permalink, accountId, region }: RegisterPushNotifierOpts) => {
+    if (!this.isTradle) {
+      throw new Errors.InvalidEnvironment(`this operation only makes sense on Tradle's MyCloud`)
+    }
+
+    await this.snsUtils.publish({
+      topic: TRADLE.REGISTER_PUSH_NOTIFIER_TOPIC,
+      message: {
+        default: {
+          permalink,
+          accountId,
+          region,
+        }
+      },
+    })
+  }
+
   private _getLatestStableVersionInfo = async ():Promise<VersionInfo> => {
     return await this.bot.db.findOne({
       orderBy: {
@@ -1609,26 +1632,8 @@ ${this.genUsageInstructions(links)}`
 
     const limitReceiveRateParams = genSetDeliveryPolicyParams(arn, deliveryPolicy)
     await this.snsUtils.setTopicAttributes(limitReceiveRateParams)
-    await this._allowCrossAccountPublish(arn, allowRoles)
+    await this.snsUtils.allowCrossAccountPublish(arn, allowRoles)
     return arn
-  }
-
-  private _allowCrossAccountPublish = async (topic: string, accounts: string[]) => {
-    const { Attributes } = await this.snsUtils.getTopicAttributes(topic)
-    const policy = JSON.parse(Attributes.Policy)
-    // remove old statements
-    const statements = policy.Statement.filter(({ Sid }) => !Sid.startsWith('allowCrossAccountPublish'))
-    statements.push(genCrossAccountPublishPermission(topic, accounts))
-    const params:AWS.SNS.SetTopicAttributesInput = {
-      TopicArn: topic,
-      AttributeName: 'Policy',
-      AttributeValue: JSON.stringify({
-        ...policy,
-        Statement: statements
-      })
-    }
-
-    await this.snsUtils.setTopicAttributes(params)
   }
 
   private _createStackUpdateTopic = async ({ stackOwner, stackId }: ChildStackIdentifier) => {

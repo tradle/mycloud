@@ -42,4 +42,5 @@ export const TRADLE = {
   PERMALINK: '9658992cbb1499c1fd9f7d92e1dee43eb65f403b3a32f2d888d2f241c4bdf7b6',
   ORG_NAME: 'Tradle',
   ACCOUNT_ID: '210041114155',
+  REGISTER_PUSH_NOTIFIER_TOPIC: 'arn:aws:sns:us-east-1:210041114155:tradle-services-pns-reg',
 }

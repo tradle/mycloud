@@ -28,7 +28,7 @@ declare namespace PluginLifecycle {
   export type getRequiredForms = (opts: IGetRequiredFormsArg) => Promise<void|string[]>
   export type validateForm = (opts: IValidateFormArg) => Promise<void|IValidateFormOutput>
 
-  // asynchronous, attach conditioned on handleMessages
+  // asynchronous, attach conditioned on runAsyncHandlers
   export type onCheckStatusChanged = (check: ITradleCheck) => Promise<void>
   export type onResourceChanged = (opts: OnResourceChangedArg) => Promise<void>
   export type onResourceCreated = (obj: ITradleObject) => Promise<void>
