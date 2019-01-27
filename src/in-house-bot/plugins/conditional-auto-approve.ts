@@ -49,7 +49,8 @@ export class ConditionalAutoApprove {
 
   public checkTheChecks = async ({ check }) => {
     this.logger.debug('checking if all checks passed')
-    const application = await this.bot.getResource(check.application, {backlinks: ['checks']})
+    const application = await this.bot.getResource(check.application, {backlinks: ['forms']})
+
     const product = application.requestFor
 
     const checksToCheck = this.conf.products[product]
@@ -59,11 +60,20 @@ export class ConditionalAutoApprove {
     }
 
     const thisCheckType = check[TYPE]
-    if (!checksToCheck.includes(thisCheckType)) {
+    if (checksToCheck.length   &&  !checksToCheck.includes(thisCheckType)) {
       this.logger.debug(`ignoring check ${thisCheckType}, not relevant for auto-approve`)
       return
     }
 
+    // Check if all forms submitted
+    const productForms = this.bot.models[product].forms
+    let formsSubmitted = []
+    let forms = application.submissions.filter(f => {
+      if (productForms.include(f[TYPE])  &&  !formsSubmitted.includes(f[TYPE]))
+        formsSubmitted.push(f[TYPE])
+    })
+    if (forms.length !== productForms.length)
+      return
     const checkResources = await this.applications.getLatestChecks({ application })
     // check that just passed may not have had correponding ApplicationSubmission created yet
     // and so may not be in the result
@@ -96,11 +106,14 @@ export class ConditionalAutoApprove {
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
   const autoApproveAPI = new ConditionalAutoApprove({ bot, conf, applications, logger })
   const plugin: IPluginLifecycleMethods = {
-    // onCheckStatusChanged: async (check: ITradleCheck) => {
-    //   if (isPassedCheck(check)) {
-    //     await autoApproveAPI.checkTheChecks({ check })
-    //   }
-    // },
+    onCheckStatusChanged: async (check: ITradleCheck) => {
+      // check only if check changed not for new check
+      if (!check._prevlink  ||  !isPassedCheck(check))
+        return
+
+      debugger
+      await autoApproveAPI.checkTheChecks({ check })
+    },
     onFormsCollected: async function ({ req }) {
       if (req.skipChecks) {
         logger.debug('skipped, skipChecks=true')

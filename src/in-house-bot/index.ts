@@ -86,6 +86,7 @@ const PRODUCT_LIST_MESSAGE = 'See our list of products'
 const PRODUCT_LIST_CHANGED_MESSAGE = 'Our products have changed'
 const PRODUCT_LIST_MENU_MESSAGE = 'Choose Apply for Product from the menu'
 const ALL_HIDDEN_PRODUCTS = [
+  // CONTROLLING_PERSON_ONBOARDING,
   // DEPLOYMENT,
   EMPLOYEE_ONBOARDING
 ]
@@ -657,10 +658,9 @@ export const loadComponentsAndPlugins = ({
   ) {
     attachPlugin({ name: 'deployment', requiresConf: false })
   }
-  // attachPlugin({ name: 'sme-auto-approve' })
-  if (runAsyncHandlers) {
-    attachPlugin({ name: 'conditional-auto-approve' })
-  }
+  // if (runAsyncHandlers) {
+  //   attachPlugin({ name: 'conditional-auto-approve' })
+  // }
   if (handleMessages ||
     event.startsWith('documentChecker:') ||
     event === LambdaEvents.SCHEDULER
@@ -687,6 +687,7 @@ export const loadComponentsAndPlugins = ({
     attachPlugin({ name: 'verify-phone-number', componentName: 'smsBasedVerifier' })
     attachPlugin({ name: 'controllingPersonRegistration', componentName: 'smsBasedVerifier' })
   }
+  attachPlugin({ name: 'conditional-auto-approve' })
 
   logger.debug('using plugins', usedPlugins)
   logger.debug('ignoring plugins', ignoredPlugins)
