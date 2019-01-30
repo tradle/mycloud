@@ -599,6 +599,7 @@ export const getStatusMessageForCheck = ({ models, check }: {
 }) => {
   const model = models['tradle.Status']
   const { aspects } = check
+  const hasManyAspects = Array.isArray(aspects)
   const aspectsStr = typeof aspects === 'string' ? aspects : aspects.join(', ')
   let status: string
   if (check.status) {
@@ -610,17 +611,23 @@ export const getStatusMessageForCheck = ({ models, check }: {
     status = 'pending'
   }
 
+  let prefix
+  if (hasManyAspects)
+    prefix = 'One or more checks'
+  else
+    prefix = 'Check'
+
   switch (status) {
   case 'pending':
-    return `One or more check(s) pending: ${aspects}`
+    return `${prefix} pending: ${aspects}`
   case 'fail':
-    return `One or more check(s) failed: ${aspects}`
+    return `${prefix} failed: ${aspects}`
   case 'error':
-    return `One or more check(s) hit an error: ${aspects}`
+    return `${prefix} hit an error: ${aspects}`
   case 'pass':
-    return `Check(s) passed: ${aspects}`
+    return `${prefix} passed: ${aspects}`
   case 'warning':
-    return `Check(s) has a warning: ${aspects}`
+    return `${prefix} has a warning: ${aspects}`
   default:
     throw new Errors.InvalidInput(`unsupported check status: ${safeStringify(check.status)}`)
   }
