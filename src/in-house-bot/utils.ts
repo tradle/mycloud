@@ -599,7 +599,7 @@ export const getStatusMessageForCheck = ({ models, check }: {
 }) => {
   const model = models['tradle.Status']
   const { aspects } = check
-  const hasManyAspects = Array.isArray(aspects)
+  const hasManyAspects = Array.isArray(aspects)  &&  aspects.length > 1
   const aspectsStr = typeof aspects === 'string' ? aspects : aspects.join(', ')
   let status: string
   if (check.status) {
