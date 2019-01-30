@@ -2,14 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0-rc.14](https://github.com/tradle/mycloud/compare/v2.4.0-rc.13...v2.4.0-rc.14) (2019-01-27)
+# [2.4.0-rc.15](https://github.com/tradle/mycloud/compare/v2.4.0-rc.14...v2.4.0-rc.15) (2019-01-28)
 
 
 ### Bug Fixes
 
-* allow conditional-auto-approve when all forms submitted ([4f7ae55](https://github.com/tradle/mycloud/commit/4f7ae55))
-* one letter both first and last names are not allowed ([d22d49f](https://github.com/tradle/mycloud/commit/d22d49f))
-* run conditional auto-approval onFormCollected; allow the list of check types be empty which means all checks should pass for auto-approval ([c1f11aa](https://github.com/tradle/mycloud/commit/c1f11aa))
+* new Check added ([e36200b](https://github.com/tradle/mycloud/commit/e36200b))
 
 
 
