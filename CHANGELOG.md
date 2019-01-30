@@ -2,12 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0-rc.15](https://github.com/tradle/mycloud/compare/v2.4.0-rc.14...v2.4.0-rc.15) (2019-01-28)
+# [2.4.0-rc.16](https://github.com/tradle/mycloud/compare/v2.4.0-rc.15...v2.4.0-rc.16) (2019-01-30)
 
 
 ### Bug Fixes
 
-* new Check added ([e36200b](https://github.com/tradle/mycloud/commit/e36200b))
+* better message for pass/fail checks ([8c4fedb](https://github.com/tradle/mycloud/commit/8c4fedb))
+* better message for pass/fail checks ([95841d5](https://github.com/tradle/mycloud/commit/95841d5))
 
 
 
