@@ -1307,15 +1307,17 @@ resources:
         - "true"
         - "false"
 
+    # default to deleting logs
+    # by setting transition days > TTL days
     LogsDaysBeforeTransitionToGlacier:
       Type: Number
       Description: days before logs are transitioned to Amazon Glacier
-      Default: 1
+      Default: 3
 
     LogsTTL:
       Type: Number
       Description: days before logs are deleted from Amazon Glacier
-      Default: 7
+      Default: 1
 
     EncryptBuckets:
       Type: String
