@@ -57,11 +57,11 @@ class DocumentValidityAPI {
   }
 
   public async checkDocument({user, payload, application}) {
-    let { documentType, country, dateOfExpiry, dateOfBirth, scanJson, scan, issuer, nationality } = payload
+    let { documentType, country, dateOfExpiry, dateOfIssue, dateOfBirth, scanJson, scan, nationality } = payload
     // if (await doesCheckExist({bot: this.bot, type: DOCUMENT_VALIDITY, eq: {form: payload._link}, application, provider: PROVIDER}))
     //   return
 
-    let propertiesToCheck = ['dateOfExpiry', 'dateOfBirth', 'issuer', 'nationality', 'scanJson', 'documentType', 'country']
+    let propertiesToCheck = ['dateOfExpiry', 'dateOfBirth', 'dateOfIssue', 'nationality', 'scanJson', 'documentType', 'country']
     let createCheck = await doesCheckNeedToBeCreated({bot: this.bot, type: DOCUMENT_VALIDITY, application, provider: PROVIDER, form: payload, propertiesToCheck, prop: 'form'})
 // debugger
     if (!createCheck) {
@@ -88,6 +88,12 @@ class DocumentValidityAPI {
       }
       else if (dateOfBirth < Date.now() - MAX_AGE_MILLIS) {
         rawData['Date Of Birth'] = `The age of the person is more then ${MAX_VALID_AGE} years old`
+        rawData.Status = 'fail'
+      }
+    }
+    if (dateOfIssue) {
+      if (dateOfIssue > Date.now()) {
+        rawData['Date Of Issue'] = 'The document has date of issue in the future'
         rawData.Status = 'fail'
       }
     }
