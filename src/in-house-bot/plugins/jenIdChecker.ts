@@ -123,8 +123,7 @@ export class JenIdCheckerAPI {
                 'clientID' : CLIENT_ID,
                 'description' : '',
                 'inputImages' : jsonInputImages,
-                'captureDeviceType' : 5,
-                'faceImage' : {},
+                'captureDeviceType' : 5
            }
         }
       
