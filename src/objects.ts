@@ -276,4 +276,6 @@ export default class Objects {
   }
 }
 
+export const createObjects = (opts: ObjectsOpts) => new Objects(opts)
+
 export { Objects }
