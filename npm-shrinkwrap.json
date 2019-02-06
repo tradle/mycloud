@@ -316,7 +316,7 @@
     "@tradle/plugin-customize-message": {
       "version": "1.0.0",
       "from": "tradle/plugin-customize-message",
-      "resolved": "git://github.com/tradle/plugin-customize-message.git#6a851fc16444b1457aeba8d17c9e717410b4f5cc"
+      "resolved": "git://github.com/tradle/plugin-customize-message.git#83fc7155ba16f750da986649986cd7008e21e3bd"
     },
     "@tradle/plugin-onfido": {
       "version": "1.0.0",
