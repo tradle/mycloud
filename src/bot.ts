@@ -297,7 +297,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   private _resourceModuleStore: IResourcePersister
   private _graphql:IGraphqlAPI
 
-  constructor(opts: IBotOpts) {
+  constructor(private opts: IBotOpts) {
     super()
 
     const bot = this
@@ -305,7 +305,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     let {
       env=new Env(process.env),
       users,
-      ready = true
+      ready = true,
     } = opts
 
     if (!(env instanceof Env)) {
@@ -800,15 +800,17 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     })
   }
 
-  public getMyIdentity = utils.cachifyPromiser(() => {
+  public getMyIdentity = utils.cachifyPromiser(async () => {
+    if (this.opts.identity) return this.opts.identity
+
     return this.buckets.PrivateConf.getJSON(constants.PRIVATE_CONF_BUCKET.identity)
   })
 
   public getMyIdentityAndKeys = utils.cachifyPromiser(async () => {
-    const [identity, keys] = await Promise.all([
-      this.getMyIdentity(),
-      this.secrets.getIdentityKeys()
-    ])
+    const { identity, keys } = await Promise.props({
+      identity: this.getMyIdentity(),
+      keys: this.opts.keys || this.secrets.getIdentityKeys()
+    })
 
     return {
       identity,

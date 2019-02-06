@@ -10,7 +10,7 @@ import {
   typeforce,
   omitVirtual,
   bindAll,
-  cachifyFunction,
+  cachifyFunction
 } from './utils'
 
 import { addLinks, getLink, getLinks, getPermalink, extractSigPubKey } from './crypto'
@@ -30,7 +30,7 @@ import {
 
 import baseModels from './models'
 
-const { PREVLINK, AUTHOR, ORG, TYPE, TYPES, IDENTITY_KEYS_KEY } = constants
+const { PREVLINK, AUTHOR, SIG, ORG, ORG_SIG, TYPE, TYPES, IDENTITY_KEYS_KEY } = constants
 const { MESSAGE, IDENTITY } = TYPES
 const { NotFound } = Errors
 const CACHE_MAX_AGE = 5000
@@ -437,6 +437,24 @@ export default class Identities implements IHasLogger {
     if (info._author !== author) {
       throw new Errors.InvalidInput(`_sigPubKey doesn't match specified ${AUTHOR}`)
     }
+
+    await this.verifyOrgAuthor(object)
+  }
+
+  public verifyOrgAuthor = async (object: ITradleObject) => {
+    const org = object[ORG]
+    const orgsig = object[ORG_SIG]
+    const author = object[AUTHOR]
+    if (!org || org === author) return
+    if (!orgsig) throw new Errors.InvalidInput(`expected ${ORG_SIG}`)
+
+    this.logger.debug('verifying org sig')
+    const stripped = omitVirtual(object)
+    await this.verifyAuthor({
+      ...stripped,
+      [SIG]: orgsig,
+      [AUTHOR]: org
+    })
   }
 
   public addContact = async (identity:IIdentity):Promise<void> => {

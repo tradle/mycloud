@@ -574,7 +574,7 @@ export interface ILoadFriendOpts {
   domain?: string
 }
 
-export interface IBotOpts {
+export interface IBotOpts extends Partial<IIdentityAndKeys> {
   env?: any
   users?: any
   ready?:boolean
