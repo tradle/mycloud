@@ -402,7 +402,7 @@ export default class Messaging {
   private _maybeVerifyOrgAuthor = async (object) => {
     if (!object[ORG]) return
 
-    await this.friends.verifyOrgAuthor(object)
+    await this.identities.verifyOrgAuthor(object)
   }
 
   private _attemptLiveDelivery = async (opts: ILiveDeliveryOpts) => {
