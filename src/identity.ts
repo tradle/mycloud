@@ -5,7 +5,6 @@ import {
   cachifyPromiser,
   omitVirtualDeep,
   summarizeObject,
-  maybeStripProtocolVersion,
 } from './utils'
 
 import { AUTHOR, ORG, ORG_SIG, SIG, PROTOCOL_VERSION } from './constants'
@@ -127,8 +126,6 @@ export default class Identity {
     }
 
     object = protocol.object({ object })
-
-    maybeStripProtocolVersion(object)
 
     await resolveEmbeds
     const key = getSigningKey(author.keys)

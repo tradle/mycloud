@@ -22,7 +22,6 @@ import {
   omitBacklinks,
   isPlainObject,
   getPrimaryKeySchema,
-  maybeStripProtocolVersion,
 } from './utils'
 
 const {
@@ -276,7 +275,6 @@ export class Resource extends EventEmitter {
       .toJSON(SET_OPTS)
 
     _.extend(this.resource, updated)
-    maybeStripProtocolVersion(this.resource)
 
     if (!updated[SIG]) {
       // any modifications invalidate the current sig
