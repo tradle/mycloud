@@ -2,12 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0-rc.18](https://github.com/tradle/mycloud/compare/v2.4.0-rc.17...v2.4.0-rc.18) (2019-02-03)
+# [2.4.0-rc.21](https://github.com/tradle/mycloud/compare/v2.4.0-rc.20...v2.4.0-rc.21) (2019-02-08)
 
 
 ### Bug Fixes
 
-* if dateOfIssue is present check if it's valid ([9fff008](https://github.com/tradle/mycloud/commit/9fff008))
+* don't override _org in identity.sign(), refactor witness() test ([0627ded](https://github.com/tradle/mycloud/commit/0627ded))
+* messages test ([fdf68aa](https://github.com/tradle/mycloud/commit/fdf68aa))
+* rm pre-sign strip of protocol version ([2bab96b](https://github.com/tradle/mycloud/commit/2bab96b))
+
+
+### Features
+
+* add EnableTracing parameter to allow toggling AWS X-Ray ([4d44988](https://github.com/tradle/mycloud/commit/4d44988))
 
 
 

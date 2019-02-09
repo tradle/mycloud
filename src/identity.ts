@@ -5,7 +5,6 @@ import {
   cachifyPromiser,
   omitVirtualDeep,
   summarizeObject,
-  maybeStripProtocolVersion,
 } from './utils'
 
 import { AUTHOR, ORG, ORG_SIG, SIG, PROTOCOL_VERSION } from './constants'
@@ -122,10 +121,11 @@ export default class Identity {
     if (!author) author = await this.getPrivate()
 
     object[AUTHOR] = getPermalink(author.identity)
-    object[ORG] = object[AUTHOR]
-    object = protocol.object({ object })
+    if (!object[ORG]) {
+      object[ORG] = object[AUTHOR]
+    }
 
-    maybeStripProtocolVersion(object)
+    object = protocol.object({ object })
 
     await resolveEmbeds
     const key = getSigningKey(author.keys)
@@ -159,17 +159,9 @@ export default class Identity {
 
     object[ORG_SIG] = signed[SIG]
     return object
-
-    // const witnesses = object[WITNESSES] || []
-    // const w = protocol.wrapWitnessSig({
-    //   author: permalink,
-    //   sig: signed[SIG]
-    // })
-
-    // return extend({}, object, {
-    //   [WITNESSES]: witnesses.concat(w)
-    // })
   }
 }
+
+export const createIdentity = (opts: IdentityOpts) => new Identity(opts)
 
 export { Identity }

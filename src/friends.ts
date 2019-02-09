@@ -206,34 +206,6 @@ export default class Friends {
     }
   }
 
-  public verifyOrgAuthor = async (object: ITradleObject) => {
-    if (!object[ORG] || object[ORG] === object[AUTHOR]) return
-    if (!object[ORG_SIG]) throw new Errors.InvalidInput(`expected ${ORG_SIG}`)
-
-    this.logger.debug('verifying org sig')
-    const stripped = omitVirtual(object)
-    await this.identities.verifyAuthor({
-      ...stripped,
-      [SIG]: object[ORG_SIG],
-      [AUTHOR]: object[ORG]
-    })
-  }
-
-  // public verifyOrgAuthor = async (object: ITradleObject) => {
-  //   const witness = object[WITNESSES].map(w => protocol.unwrapWitnessSig(w))
-  //     .find(({ author }) => author === object[ORG])
-
-  //   if (!witness) {
-  //     throw new Errors.InvalidInput(`expected witness signature from org ${object[ORG]}`)
-  //   }
-
-  //   await this.identities.verifyAuthor({
-  //     ...object,
-  //     [SIG]: witness.sig,
-  //     [AUTHOR]: witness.author
-  //   })
-  // }
-
   private del = async (friend) => {
     this._clearCacheForPermalink(parseStub(friend.identity).permalink)
     // this.cache.del(parseStub(friend.identity).permalink)

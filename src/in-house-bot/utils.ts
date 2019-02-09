@@ -644,6 +644,7 @@ export const witness = async (bot: Bot, object: ITradleObject) => {
   await bot.objects.resolveEmbeds(copy)
   copy = await bot.witness(copy)
 
+  // set embeds back
   if (embeds.length) {
     embeds.forEach(({ path, value }) => {
       _.set(copy, path, value)
@@ -651,7 +652,7 @@ export const witness = async (bot: Bot, object: ITradleObject) => {
   }
 
   // check if witness verifies
-  // await bot.friends.verifyOrgAuthor(object)
+  // await bot.identities.verifyOrgAuthor(object)
 
   await bot.save(copy)
   return copy

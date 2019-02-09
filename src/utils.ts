@@ -36,7 +36,6 @@ import {
   DATE_ZERO,
   UNSIGNED_TYPES,
   PROTOCOL_VERSION,
-  STRIP_PROTOCOL_VERSION_BEFORE_SIGN,
 } from './constants'
 
 import Errors from './errors'
@@ -1620,13 +1619,6 @@ export const replaceDeep = (obj: any, match: any, replacement: any) => {
       this.update(replacement)
     }
   })
-}
-
-export const maybeStripProtocolVersion = obj => {
-  if (STRIP_PROTOCOL_VERSION_BEFORE_SIGN) {
-    // TODO: delete this when all have upgraded to mycloud >= 2.2.0
-    delete obj[PROTOCOL_VERSION]
-  }
 }
 
 type Promiser<Input, Output> = (input:Input) => Promise<Output>

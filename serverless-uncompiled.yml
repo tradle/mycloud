@@ -335,6 +335,8 @@ provider:
     STACK_STAGE:
       Ref: Stage
     NO_TIME_TRAVEL: false # allow time-travel messages for now
+    ENABLE_XRAY:
+      Ref: EnableTracing
     R_STACK:
       Ref: AWS::StackId
     R_BUCKET_Objects:
@@ -1307,15 +1309,17 @@ resources:
         - "true"
         - "false"
 
+    # default to deleting logs
+    # by setting transition days > TTL days
     LogsDaysBeforeTransitionToGlacier:
       Type: Number
       Description: days before logs are transitioned to Amazon Glacier
-      Default: 1
+      Default: 3
 
     LogsTTL:
       Type: Number
       Description: days before logs are deleted from Amazon Glacier
-      Default: 7
+      Default: 1
 
     EncryptBuckets:
       Type: String
@@ -1331,12 +1335,12 @@ resources:
         - "true"
         - "false"
 
-    # EnableTracing:
-    #   Type: String
-    #   Default: "false"
-    #   AllowedValues:
-    #     - "true"
-    #     - "false"
+    EnableTracing:
+      Type: String
+      Default: "true"
+      AllowedValues:
+        - "true"
+        - "false"
 
     # Stack Info group
 
@@ -1369,7 +1373,7 @@ resources:
             - LogsTTL
             - EncryptBuckets
             - EncryptTables
-            # - EnableTracing
+            - EnableTracing
 
         - Label:
             default: "Stack Info"
@@ -1455,11 +1459,11 @@ resources:
         LogsTTL:
           default: days before logs are deleted forever (from Glacier)
         EncryptBuckets:
-          default: "Encrypt Buckets"
+          default: encrypt buckets
         EncryptTables:
-          default: "Encrypt Tables"
-        # EnableTracing:
-        #   default: "Enable AWS X-Ray Tracing for Lambda Functions"
+          default: encrypt tables
+        EnableTracing:
+          default: enable AWS X-Ray tracing for lambda functions
 
         # Stack Info
         Stage:

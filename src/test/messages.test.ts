@@ -25,6 +25,7 @@ import {
   AUTHOR,
   ORG,
   TIMESTAMP,
+  PROTOCOL_VERSION,
 } from '../constants'
 
 import { createTestBot } from '../'
@@ -113,7 +114,7 @@ test('_doQueueMessage', loudAsync(async (t) => {
   const stubPutObject = sandbox.stub(objects, 'put').callsFake(function (object) {
     t.ok(object[SIG])
     payload[SIG] = object[SIG]
-    t.same(_.omit(omitVirtual(object), [AUTHOR, TIMESTAMP]), payload)
+    t.same(_.omit(omitVirtual(object), [AUTHOR, TIMESTAMP, PROTOCOL_VERSION]), payload)
     return Promise.resolve()
   })
 
