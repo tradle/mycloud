@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "watch": true,
     "preserveConstEnums": true,
     "sourceMap": true,
     "target": "es2017",
@@ -16,7 +17,7 @@
     "baseUrl": ".",
     "paths": {
       "*": [
-        "node_modules/*",
+        // "node_modules/*",
         "src/types/*"
       ],
       "@tradle/in-house-bot": ["src/in-house-bot/index.ts"],
@@ -30,10 +31,17 @@
       "graphql",
       "koa",
       "superagent",
-      "@tradle/dynamodb"
+      "@tradle/dynamodb",
+      "@tradle/aws-client-factory",
+      "@tradle/aws-common-utils",
+      "@tradle/aws-iam-client",
+      "@tradle/aws-s3-client",
+      "@tradle/aws-cloudwatch-client",
+      "@tradle/aws-cloudformation-client",
+      "@tradle/aws-sns-client"
     ]
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "**/*.js", "src/test/mock/"],
+  "exclude": ["node_modules/**/*.d.ts", "**/*.js", "src/test/mock/"],
   "compileOnSave": false
 }

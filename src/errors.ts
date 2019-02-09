@@ -1,12 +1,12 @@
 // const debug = require('debug')('tradle:sls:errors')
-import _ from 'lodash'
+import _ from "lodash"
 
-import ex from 'error-ex'
-import { AssertionError } from 'assert'
-import { TfTypeError, TfPropertyTypeError } from 'typeforce'
-import { LowFundsInput } from './types'
+import ex from "error-ex"
+import { AssertionError } from "assert"
+import { TfTypeError, TfPropertyTypeError } from "typeforce"
+import { LowFundsInput } from "./types"
 
-function createError (name: string): ErrorConstructor {
+function createError(name: string): ErrorConstructor {
   return ex(name)
 }
 
@@ -28,21 +28,22 @@ const types = {
     TfPropertyTypeError
   ],
   developer: [
-    'system',
+    "system",
     {
       // dynamodb
-      code: 'ValidationException'
+      code: "ValidationException"
     }
   ]
 }
 
-const isSystemError = err => types.system.some(ErrorCtor => {
-  return err instanceof ErrorCtor
-})
+const isSystemError = err =>
+  types.system.some(ErrorCtor => {
+    return err instanceof ErrorCtor
+  })
 
 const matches = (err, type) => {
   if (!(err && type)) {
-    throw new Error('expected error and match parameters')
+    throw new Error("expected error and match parameters")
   }
 
   if (type in types) {
@@ -54,7 +55,7 @@ const matches = (err, type) => {
     return type.some(subType => matches(err, subType))
   }
 
-  if (typeof type === 'function') {
+  if (typeof type === "function") {
     return err instanceof type
   }
 
@@ -86,7 +87,13 @@ const rethrow = (err, type) => {
 }
 
 const copyStackFrom = (source, target) => {
-  target.stack = target.stack.split('\n').slice(0,2).join('\n') + '\n' + source.stack
+  target.stack =
+    target.stack
+      .split("\n")
+      .slice(0, 2)
+      .join("\n") +
+    "\n" +
+    source.stack
 }
 
 const rethrowAs = (original, errToThrow) => {
@@ -94,14 +101,14 @@ const rethrowAs = (original, errToThrow) => {
   throw errToThrow
 }
 
-const _HttpError = createError('HttpError')
+const _HttpError = createError("HttpError")
 
 class ExportableError extends Error {
   public toJSON = () => exportError(this)
 }
 
 class HttpError extends ExportableError {
-  public name = 'HttpError'
+  public name = "HttpError"
   public status: number
   constructor(code, message) {
     super(message)
@@ -124,33 +131,28 @@ class ErrorWithLink extends ExportableError {
 class CloudServiceError extends Error {
   public service: string
   public retryable: boolean
-  constructor (opts: {
-    message:string,
-    service:string,
-    retryable: boolean,
-    [x:string]: any
-  }) {
+  constructor(opts: { message: string; service: string; retryable: boolean; [x: string]: any }) {
     super(opts.message)
     _.extend(this, opts)
   }
 }
 
 class Duplicate extends ErrorWithLink {
-  public name = 'DuplicateError'
+  public name = "DuplicateError"
 }
 
 class TimeTravel extends ErrorWithLink {
-  public name = 'TimeTravelError'
+  public name = "TimeTravelError"
 }
 
-type StringOrNum = string|number
+type StringOrNum = string | number
 
 const getLowFundsMessage = ({
   blockchain,
   networkName,
   address,
   balance,
-  minBalance,
+  minBalance
 }: LowFundsInput) => {
   const prefix = `blockchain ${blockchain} network ${networkName} address ${address} balance is`
   if (_.isUndefined(balance) || _.isUndefined(minBalance)) {
@@ -168,13 +170,7 @@ class LowFunds extends Error implements LowFundsInput {
   public minBalance?: StringOrNum
   constructor(opts: LowFundsInput) {
     super(getLowFundsMessage(opts))
-    const {
-      blockchain,
-      networkName,
-      address,
-      balance,
-      minBalance,
-    } = opts
+    const { blockchain, networkName, address, balance, minBalance } = opts
 
     this.address = address
     this.blockchain = blockchain
@@ -184,8 +180,8 @@ class LowFunds extends Error implements LowFundsInput {
   }
 }
 
-const exportError = (err:Error) => {
-  const obj:any = _.pick(err, ['message', 'stack', 'name', 'type'])
+const exportError = (err: Error) => {
+  const obj: any = _.pick(err, ["message", "stack", "name", "type"])
   if (obj.type && obj.message && !obj.message.startsWith(obj.type)) {
     obj.message = `${obj.type}: ${obj.message}`
   }
@@ -194,58 +190,57 @@ const exportError = (err:Error) => {
 }
 
 const NOT_FOUND_MATCH = [
-  { name: 'NotFound' },
-  { code: 'ResourceNotFoundException' },
-  { code: 'NoSuchKey' },
-  { code: 'NoSuchBucketPolicy' },
+  { name: "NotFound" },
+  { code: "ResourceNotFoundException" },
+  { code: "NoSuchKey" },
+  { code: "NoSuchBucketPolicy" }
 ]
 
 const errors = {
-  ClientUnreachable: createError('ClientUnreachable'),
-  NotFound: createError('NotFound'),
-  Forbidden: createError('Forbidden'),
-  Expired: createError('Expired'),
-  InvalidSignature: createError('InvalidSignature'),
-  InvalidAuthor: createError('InvalidAuthor'),
-  UnknownAuthor: createError('UnknownAuthor'),
-  InvalidVersion: createError('InvalidVersion'),
-  InvalidMessageFormat: createError('InvalidMessageFormat'),
-  InvalidObjectFormat: createError('InvalidObjectFormat'),
-  PutFailed: createError('PutFailed'),
-  MessageNotForMe: createError('MessageNotForMe'),
-  HandshakeFailed: createError('HandshakeFailed'),
-  LambdaInvalidInvocation: createError('LambdaInvalidInvocation'),
-  InvalidInput: createError('InvalidInput'),
-  InvalidEnvironment: createError('InvalidEnvironment'),
-  ClockDrift: createError('ClockDrift'),
-  BatchPutFailed: createError('BatchPutFailed'),
+  ClientUnreachable: createError("ClientUnreachable"),
+  NotFound: createError("NotFound"),
+  Forbidden: createError("Forbidden"),
+  Expired: createError("Expired"),
+  InvalidSignature: createError("InvalidSignature"),
+  InvalidAuthor: createError("InvalidAuthor"),
+  UnknownAuthor: createError("UnknownAuthor"),
+  InvalidVersion: createError("InvalidVersion"),
+  InvalidMessageFormat: createError("InvalidMessageFormat"),
+  InvalidObjectFormat: createError("InvalidObjectFormat"),
+  PutFailed: createError("PutFailed"),
+  MessageNotForMe: createError("MessageNotForMe"),
+  HandshakeFailed: createError("HandshakeFailed"),
+  LambdaInvalidInvocation: createError("LambdaInvalidInvocation"),
+  InvalidInput: createError("InvalidInput"),
+  InvalidEnvironment: createError("InvalidEnvironment"),
+  ClockDrift: createError("ClockDrift"),
+  BatchPutFailed: createError("BatchPutFailed"),
   ErrorWithLink,
   Duplicate,
   TimeTravel,
   CloudServiceError,
-  ExecutionTimeout: createError('ExecutionTimeout'),
-  Exists: createError('Exists'),
+  ExecutionTimeout: createError("ExecutionTimeout"),
+  Exists: createError("Exists"),
   HttpError,
-  Timeout: createError('Timeout'),
+  Timeout: createError("Timeout"),
   LowFunds,
-  DevStageOnly: createError('DevStageOnly'),
-  Unsupported: createError('Unsupported'),
-  GaveUp: createError('GaveUp'),
-  export: (err:Error):any => {
+  DevStageOnly: createError("DevStageOnly"),
+  Unsupported: createError("Unsupported"),
+  GaveUp: createError("GaveUp"),
+  export: (err: Error): any => {
     if (err instanceof ExportableError) {
       return (err as ExportableError).toJSON()
-
     }
     return exportError(err)
   },
   exportMini: (err: any) => ({
     name: err.name || err.type,
-    message: err.message,
+    message: err.message
   }),
-  isDeveloperError: (err:Error): boolean => {
-    return matches(err, 'developer')
+  isDeveloperError: (err: Error): boolean => {
+    return matches(err, "developer")
   },
-  isCustomError: (err:Error): boolean => {
+  isCustomError: (err: Error): boolean => {
     return err.name in errors
   },
   isNotFound: err => {
@@ -255,9 +250,10 @@ const errors = {
     ignore(err, NOT_FOUND_MATCH)
   },
   ignoreUnmetCondition: err => {
-    ignore(err, { code: 'ConditionalCheckFailedException' })
+    ignore(err, { code: "ConditionalCheckFailedException" })
   },
   // @ts-ignore
+  // tslint:disable-next-line:no-empty
   ignoreAll: err => {},
   /**
    * check if error is of a certain type
@@ -265,11 +261,11 @@ const errors = {
    * @param  {String}  type
    * @return {Boolean}
    */
-  is: (err:Error, errType:any): boolean => {
+  is: (err: Error, errType: any): boolean => {
     const { type } = errType
     if (!type) return false
 
-    const { name='' } = err
+    const { name = "" } = err
     return name.toLowerCase() === type.toLowerCase()
   },
   ignore,
@@ -277,7 +273,7 @@ const errors = {
   matches,
   createClass: createError,
   copyStackFrom,
-  rethrowAs,
+  rethrowAs
 }
 
 export = errors
