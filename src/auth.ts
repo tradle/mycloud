@@ -3,7 +3,6 @@ import Promise from "bluebird"
 import merge from "lodash/merge"
 import clamp from "lodash/clamp"
 import { TYPE } from "@tradle/constants"
-import { ClientFactory } from "@tradle/aws-client-factory"
 import { TaskManager } from "./task-manager"
 import { typeforce, ensureNoVirtualProps, pickNonNull } from "./utils"
 import { isHex } from "./string-utils"
@@ -23,7 +22,8 @@ import {
   ITradleObject,
   Iot,
   DB,
-  ModelStore
+  ModelStore,
+  ClientCache
 } from "./types"
 
 const { HANDSHAKE_TIMEOUT } = constants
@@ -62,7 +62,7 @@ interface IChallengeResponse extends ITradleObject {
 
 type AuthOpts = {
   uploadFolder: string
-  aws: ClientFactory
+  aws: ClientCache
   // tables: any
   identities: Identities
   objects: Objects
@@ -76,7 +76,7 @@ type AuthOpts = {
 }
 
 export default class Auth {
-  private aws: ClientFactory
+  private aws: ClientCache
   // private tables: any
   private identities: Identities
   private objects: Objects

@@ -18,7 +18,7 @@ import { wait, waitImmediate, traverse, defineGetter, noop } from "./utils"
 import { prettify, alphabetical, format } from "./string-utils"
 import { sha256 } from "./crypto"
 import Errors from "./errors"
-import { Env, StreamRecordType, IStreamRecord, Logger, IServiceMap, ClientFactory } from "./types"
+import { Env, StreamRecordType, IStreamRecord, Logger, IServiceMap, ClientCache } from "./types"
 
 export type PropPath = string | string[]
 export type PathAndValuePair = [PropPath, any]
@@ -96,7 +96,7 @@ function createDBUtils({
   env,
   serviceMap
 }: {
-  aws: ClientFactory
+  aws: ClientCache
   logger: Logger
   env: Env
   serviceMap: IServiceMap

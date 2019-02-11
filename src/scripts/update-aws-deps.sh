@@ -2,13 +2,27 @@
 
 set -x
 
-VERSION=${1:-latest}
-npm i -S @tradle/aws-client-factory@$VERSION \
-  @tradle/aws-common-utils@$VERSION \
-  @tradle/aws-s3-client@$VERSION \
-  @tradle/aws-sns-client@$VERSION \
-  @tradle/aws-lambda-client@$VERSION \
-  @tradle/aws-cloudwatch-client@$VERSION \
-  @tradle/aws-cloudformation-client@$VERSION \
-  @tradle/aws-combo@$VERSION
+MODULES=(
+  "aws-client-factory"
+  "aws-common-utils"
+  "aws-s3-client"
+  "aws-sns-client"
+  "aws-lambda-client"
+  "aws-cloudwatch-client"
+  "aws-cloudformation-client"
+  "aws-combo"
+)
 
+VERSION=${1:-latest}
+for item in ${MODULES[*]}
+do
+  if [[ $VERSION = "local" ]]
+  then
+    npm i -S "../../tradle-aws/packages/$item"
+  elif [[ $VERSION = "link" ]]
+  then
+    npm link "@tradle/$item"
+  else
+    npm i -S "@tradle/$item"
+  fi
+done

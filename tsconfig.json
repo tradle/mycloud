@@ -30,6 +30,7 @@
       "lodash",
       "graphql",
       "koa",
+      "lru-cache",
       "superagent",
       "@tradle/dynamodb",
       "@tradle/aws-client-factory",
@@ -38,7 +39,7 @@
       "@tradle/aws-s3-client",
       "@tradle/aws-cloudwatch-client",
       "@tradle/aws-cloudformation-client",
-      "@tradle/aws-sns-client"
+      "@tradle/aws-sns-client",
     ]
   },
   "include": ["src/**/*.ts"],

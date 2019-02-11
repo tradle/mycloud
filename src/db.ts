@@ -1,10 +1,9 @@
 import _ from "lodash"
 import dynogels from "dynogels"
 import { createTable, DB, Table, utils, Search, ITableOpts } from "@tradle/dynamodb"
-import { ClientFactory } from "@tradle/aws-client-factory"
 import AWS from "aws-sdk"
 // import { createMessagesTable } from './messages-table'
-import { Logger, Objects, Messages, ITradleObject, Model, ModelStore } from "./types"
+import { Logger, Objects, Messages, ITradleObject, Model, ModelStore, ClientCache } from "./types"
 import {
   extendTradleObject,
   pluck,
@@ -159,7 +158,7 @@ type DBOpts = {
   modelStore: ModelStore
   objects: Objects
   messages: Messages
-  clients: ClientFactory
+  clients: ClientCache
   dbUtils: any
   logger: Logger
 }

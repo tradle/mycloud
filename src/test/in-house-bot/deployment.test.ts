@@ -107,10 +107,7 @@ test('deployment by referral', loudAsync(async (t) => {
   //   throw new Errors.NotFound(key)
   // })
 
-  const regionalBucket = parent.s3Utils.getRegionalBucketName({
-    bucket: parentDeployment.getDeploymentBucketLogicalName(),
-    region
-  })
+  const regionalBucket = parentDeployment.getDeploymentBucketForRegion(region)
 
   let deploymentConf: IMyDeploymentConf
   let expectedLaunchReport

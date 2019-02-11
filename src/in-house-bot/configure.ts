@@ -1,17 +1,17 @@
 // @ts-ignore
-import Promise from 'bluebird'
-import _ from 'lodash'
-import validateResource from '@tradle/validate-resource'
-import buildResource from '@tradle/build-resource'
-import ModelsPack from '@tradle/models-pack'
-import { Plugins } from './plugins'
-import { Deployment } from './deployment'
-import { getLogo } from './image-utils'
-import baseModels from '../models'
-import { CacheableBucketItem } from '../cacheable-bucket-item'
-import Errors from '../errors'
-import { allSettled, RESOLVED_PROMISE, omitVirtual, toPromise } from '../utils'
-import { toggleDomainVsNamespace } from '../model-store'
+import Promise from "bluebird"
+import _ from "lodash"
+import validateResource from "@tradle/validate-resource"
+import buildResource from "@tradle/build-resource"
+import ModelsPack from "@tradle/models-pack"
+import { Plugins } from "./plugins"
+import { Deployment } from "./deployment"
+import { getLogo } from "./image-utils"
+import baseModels from "../models"
+import { CacheableBucketItem } from "../cacheable-bucket-item"
+import Errors from "../errors"
+import { allSettled, RESOLVED_PROMISE, omitVirtual, toPromise } from "../utils"
+import { toggleDomainVsNamespace } from "../model-store"
 import {
   Bot,
   ModelStore,
@@ -25,25 +25,19 @@ import {
   IMyDeploymentConf,
   IOrganization,
   ValidatePluginConfOpts,
-  UpdatePluginConfOpts,
-} from './types'
+  UpdatePluginConfOpts
+} from "./types"
 
-import {
-  DEFAULT_WARMUP_EVENT,
-  TYPE,
-} from '../constants'
+import { DEFAULT_WARMUP_EVENT, TYPE } from "../constants"
 
-import {
-  PRIVATE_CONF_BUCKET,
-  TYPES,
-} from './constants'
+import { PRIVATE_CONF_BUCKET, TYPES } from "./constants"
 
-import { defaultConf } from './default-conf'
+import { defaultConf } from "./default-conf"
 
 const { DEPLOYMENT_PRODUCT, ORGANIZATION, STYLES_PACK } = TYPES
 const parseJSON = JSON.parse.bind(JSON)
 const getHandleFromName = (name: string) => {
-  return name.replace(/[^A-Za-z]/g, '').toLowerCase()
+  return name.replace(/[^A-Za-z]/g, "").toLowerCase()
 }
 
 const baseOrgObj = {
@@ -79,9 +73,9 @@ export type PublicInfo = {
   bot: {
     profile: {
       name: any
-    },
+    }
     pub: IIdentity
-  },
+  }
   id: string
   org: IOrganization
   style: any
@@ -95,41 +89,41 @@ const DEFAULT_TTL = HALF_HOUR
 
 const parts = {
   org: {
-    bucket: 'PrivateConf',
+    bucket: "PrivateConf",
     key: PRIVATE_CONF_BUCKET.org,
     ttl: DEFAULT_TTL
   },
   style: {
-    bucket: 'PrivateConf',
+    bucket: "PrivateConf",
     key: PRIVATE_CONF_BUCKET.style,
     ttl: DEFAULT_TTL
   },
   info: {
-    bucket: 'PrivateConf',
+    bucket: "PrivateConf",
     key: PRIVATE_CONF_BUCKET.info,
     ttl: DEFAULT_TTL
   },
   botConf: {
-    bucket: 'PrivateConf',
+    bucket: "PrivateConf",
     key: PRIVATE_CONF_BUCKET.bot,
     ttl: DEFAULT_TTL
   },
   modelsPack: {
-    bucket: 'PrivateConf',
+    bucket: "PrivateConf",
     key: PRIVATE_CONF_BUCKET.myModelsPack,
     ttl: DEFAULT_TTL
   },
   termsAndConditions: {
-    bucket: 'PrivateConf',
+    bucket: "PrivateConf",
     key: PRIVATE_CONF_BUCKET.termsAndConditions,
     ttl: DEFAULT_TTL,
     parse: value => value.toString()
   },
   kycServiceDiscovery: {
-    bucket: 'PrivateConf',
+    bucket: "PrivateConf",
     key: PRIVATE_CONF_BUCKET.kycServiceDiscovery,
-    ttl: DEFAULT_TTL,
-  },
+    ttl: DEFAULT_TTL
+  }
 }
 
 export class Conf {
@@ -145,10 +139,7 @@ export class Conf {
   public info: CacheableBucketItem
   public termsAndConditions: CacheableBucketItem
   public kycServiceDiscovery: CacheableBucketItem
-  constructor({ bot, logger }: {
-    bot: Bot
-    logger?: Logger
-  }) {
+  constructor({ bot, logger }: { bot: Bot; logger?: Logger }) {
     this.bot = bot
     this.modelStore = bot.modelStore
     this.logger = logger || bot.logger
@@ -176,13 +167,14 @@ export class Conf {
     // return await Promise.props(promises)
   }
 
-  public load = async (components: Partial<IConfComponents>={}) => {
+  public load = async (components: Partial<IConfComponents> = {}) => {
     const conf = this
     let termsAndConditions
     if (components && components.termsAndConditions) {
       termsAndConditions = { value: conf.termsAndConditions }
     } else {
-      termsAndConditions = conf.termsAndConditions.getDatedValue()
+      termsAndConditions = conf.termsAndConditions
+        .getDatedValue()
         // ignore empty values
         .then(datedValue => datedValue.value && datedValue)
         .catch(Errors.ignoreNotFound)
@@ -193,10 +185,13 @@ export class Conf {
       org: (components && components.org) || conf.org.get(),
       // optional
       botConf: (components && components.bot) || conf.botConf.get().catch(Errors.ignoreNotFound),
-      modelsPack: (components && components.modelsPack) || conf.modelsPack.get().catch(Errors.ignoreNotFound),
+      modelsPack:
+        (components && components.modelsPack) || conf.modelsPack.get().catch(Errors.ignoreNotFound),
       style: (components && components.style) || conf.style.get().catch(Errors.ignoreNotFound),
       termsAndConditions,
-      kycServiceDiscovery: (components && components.kycServiceDiscovery) || conf.kycServiceDiscovery.get().catch(Errors.ignoreNotFound),
+      kycServiceDiscovery:
+        (components && components.kycServiceDiscovery) ||
+        conf.kycServiceDiscovery.get().catch(Errors.ignoreNotFound)
     })
   }
 
@@ -220,55 +215,60 @@ export class Conf {
     // }
 
     if (enabled.includes(DEPLOYMENT_PRODUCT) && !plugins.deployment) {
-      throw new Errors.InvalidInput(`product ${DEPLOYMENT_PRODUCT} is enabled. Expected a configuration for the "deployment" plugin`)
+      throw new Errors.InvalidInput(
+        `product ${DEPLOYMENT_PRODUCT} is enabled. Expected a configuration for the "deployment" plugin`
+      )
     }
 
     const results = await allSettled(enabled.map(product => this.modelStore.get(product)))
-    const missing = results
-      .map((result, i) => result.isRejected && enabled[i])
-      .filter(_.identity)
+    const missing = results.map((result, i) => result.isRejected && enabled[i]).filter(_.identity)
 
     if (missing.length) {
-      throw new Errors.InvalidInput(`missing models: ${missing.join(', ')}`)
+      throw new Errors.InvalidInput(`missing models: ${missing.join(", ")}`)
     }
 
-    this.logger.debug('setting bot configuration')
+    this.logger.debug("setting bot configuration")
     // TODO: validate
     return await this.botConf.putIfDifferent(value)
   }
 
-  public validatePluginConf = async ({ components, plugins }: {
-    plugins: any,
-    components:Partial<IConfComponents>
+  public validatePluginConf = async ({
+    components,
+    plugins
+  }: {
+    plugins: any
+    components: Partial<IConfComponents>
   }) => {
     const conf = await this.load(components)
-    await Promise.all(Object.keys(plugins).map(async (name) => {
-      const plugin = Plugins.get(name)
-      if (!plugin) throw new Errors.InvalidInput(`plugin not found: ${name}`)
-      if (!(plugin.validateConf || plugin.updateConf)) return
+    await Promise.all(
+      Object.keys(plugins).map(async name => {
+        const plugin = Plugins.get(name)
+        if (!plugin) throw new Errors.InvalidInput(`plugin not found: ${name}`)
+        if (!(plugin.validateConf || plugin.updateConf)) return
 
-      const pluginConf = plugins[name]
-      const validateOpts:ValidatePluginConfOpts = {
-        bot: this.bot,
-        conf,
-        pluginConf
-      }
-
-      try {
-        await plugin.validateConf(validateOpts)
-        if (plugin.updateConf) {
-          await plugin.updateConf(validateOpts)
+        const pluginConf = plugins[name]
+        const validateOpts: ValidatePluginConfOpts = {
+          bot: this.bot,
+          conf,
+          pluginConf
         }
-      } catch (err) {
-        Errors.rethrow(err, 'developer')
-        this.logger.debug(`plugin "${name}" is misconfigured`, err)
-        throw new Errors.InvalidInput(`plugin "${name}" is misconfigured: ${err.message}`)
-      }
-    }))
+
+        try {
+          await plugin.validateConf(validateOpts)
+          if (plugin.updateConf) {
+            await plugin.updateConf(validateOpts)
+          }
+        } catch (err) {
+          Errors.rethrow(err, "developer")
+          this.logger.debug(`plugin "${name}" is misconfigured`, err)
+          throw new Errors.InvalidInput(`plugin "${name}" is misconfigured: ${err.message}`)
+        }
+      })
+    )
   }
 
   public setStyle = async (value: any): Promise<boolean> => {
-    this.logger.debug('setting style')
+    this.logger.debug("setting style")
     validateResource.resource({
       models: this.bot.models,
       model: STYLES_PACK,
@@ -279,11 +279,13 @@ export class Conf {
   }
 
   public setCustomModels = async (modelsPack): Promise<boolean> => {
-    this.logger.debug('setting custom models pack')
+    this.logger.debug("setting custom models pack")
     const { domain } = await this.org.get()
     const namespace = toggleDomainVsNamespace(domain)
     if (namespace !== modelsPack.namespace) {
-      throw new Error(`Models pack namespace is "${modelsPack.namespace}". Expected: "${namespace}"`)
+      throw new Error(
+        `Models pack namespace is "${modelsPack.namespace}". Expected: "${namespace}"`
+      )
     }
 
     await this.modelStore.saveCustomModels({
@@ -295,7 +297,7 @@ export class Conf {
   }
 
   public setTermsAndConditions = async (value: string | Buffer): Promise<boolean> => {
-    this.logger.debug('setting terms and conditions')
+    this.logger.debug("setting terms and conditions")
     return await this.termsAndConditions.putIfDifferent(value)
   }
 
@@ -314,13 +316,15 @@ export class Conf {
     }
   }
 
-  public calcPublicInfo = async (infoInput:Partial<IInfoInput>={}): Promise<any> => {
-    const [org, style, identity, bot] = await Promise.all([
-      infoInput.org || this.org.get(),
-      infoInput.style || this.style.get().catch(Errors.ignoreNotFound),
-      infoInput.identity || this.bot.getMyIdentity(),
-      infoInput.bot || this.botConf.get()
-    ].map(toPromise))
+  public calcPublicInfo = async (infoInput: Partial<IInfoInput> = {}): Promise<any> => {
+    const [org, style, identity, bot] = await Promise.all(
+      [
+        infoInput.org || this.org.get(),
+        infoInput.style || this.style.get().catch(Errors.ignoreNotFound),
+        infoInput.identity || this.bot.getMyIdentity(),
+        infoInput.bot || this.botConf.get()
+      ].map(toPromise)
+    )
 
     return this.assemblePublicInfo({
       identity: omitVirtual(identity),
@@ -330,16 +334,16 @@ export class Conf {
     })
   }
 
-  public recalcPublicInfo = async (infoInput:Partial<IInfoInput>={}): Promise<boolean> => {
-    this.logger.debug('recalculating public info')
+  public recalcPublicInfo = async (infoInput: Partial<IInfoInput> = {}): Promise<boolean> => {
+    this.logger.debug("recalculating public info")
     const info = await this.calcPublicInfo(infoInput)
     const updated = await this.info.putIfDifferent(info)
-    this.logger.debug('recalculated public info', { updated })
+    this.logger.debug("recalculated public info", { updated })
     return info
   }
 
-  public assemblePublicInfo = ({ identity, org, style, bot }: IInfoInput):PublicInfo => {
-    const tour = _.get(bot, 'tours.intro')
+  public assemblePublicInfo = ({ identity, org, style, bot }: IInfoInput): PublicInfo => {
+    const tour = _.get(bot, "tours.intro")
     return {
       sandbox: bot.sandbox,
       bot: {
@@ -361,11 +365,11 @@ export class Conf {
     const { bot, logger } = this
 
     let { forceRecreateIdentity, identity, keys } = opts
-    logger.info('initializing provider', deploymentConf)
+    logger.info("initializing provider", deploymentConf)
 
-    const orgTemplate = _.pick(deploymentConf, ['name', 'domain'])
+    const orgTemplate = _.pick(deploymentConf, ["name", "domain"])
     if (bot.isLocal) {
-      orgTemplate.name += '-local'
+      orgTemplate.name += "-local"
     }
 
     const conf = {
@@ -398,7 +402,7 @@ export class Conf {
     const { style } = conf
     if (!style.logo) {
       const logo = await getLogo(deploymentConf).catch(err => {
-        this.logger.warn('failed to get logo', { domain: deploymentConf.domain })
+        this.logger.warn("failed to get logo", { domain: deploymentConf.domain })
       })
 
       if (logo) {
@@ -411,25 +415,30 @@ export class Conf {
     const org = await bot.signAndSave(buildOrg(orgTemplate))
     const deployment = new Deployment({
       bot,
-      logger: logger.sub('deployment'),
+      logger: logger.sub("deployment"),
       org,
-      disableCallHome: bot.isLocal,
+      disableCallHome: bot.isLocal
     })
 
     const { referrerUrl, deploymentUUID } = deploymentConf
-    const promiseHandleInit = deployment.handleStackInit({ identity, org, referrerUrl, deploymentUUID })
+    const promiseHandleInit = deployment.handleStackInit({
+      identity,
+      org,
+      referrerUrl,
+      deploymentUUID
+    })
     await this.save({ identity, org, bot: conf.bot, style })
     const info = await this.recalcPublicInfo({ identity })
 
     const promiseWarmup = bot.isLocal
       ? Promise.resolve()
-      : bot.lambdaUtils.warmUp(DEFAULT_WARMUP_EVENT)
+      : bot.lambdaWarmup.warmUp(DEFAULT_WARMUP_EVENT)
 
     await promiseHandleInit
     try {
       await promiseWarmup
     } catch (err) {
-      logger.error('failed to warm up functions', err)
+      logger.error("failed to warm up functions", err)
     }
 
     return info
@@ -438,23 +447,20 @@ export class Conf {
   public updateInfra = async (conf, opts: InitOpts = {}) => {
     const { bot, logger } = this
     await bot.updateInfra()
-    const [org, identity] = await Promise.all([
-      this.org.get(),
-      bot.getMyIdentity()
-    ])
+    const [org, identity] = await Promise.all([this.org.get(), bot.getMyIdentity()])
 
     try {
       const deployment = new Deployment({
         bot,
-        logger: logger.sub('deployment'),
+        logger: logger.sub("deployment"),
         org,
-        disableCallHome: bot.isLocal,
+        disableCallHome: bot.isLocal
       })
 
       // allowed to fail
       await deployment.handleStackUpdate()
     } catch (err) {
-      Errors.rethrow(err, 'developer')
+      Errors.rethrow(err, "developer")
     }
 
     // // may not be necessary as updateInfra updates lambdas' Environment
@@ -509,16 +515,11 @@ export class Conf {
     return updated
   }
 
-  public save = async ({ identity, org, style, bot }: {
-    identity?,
-    org?,
-    style?,
-    bot?
-  }) => {
+  public save = async ({ identity, org, style, bot }: { identity?; org?; style?; bot? }) => {
     await Promise.all([
       style ? this.style.put(style) : RESOLVED_PROMISE,
       org ? this.org.put(org) : RESOLVED_PROMISE,
-      bot ? this.botConf.put(bot) : RESOLVED_PROMISE,
+      bot ? this.botConf.put(bot) : RESOLVED_PROMISE
     ])
   }
 
@@ -528,7 +529,9 @@ export class Conf {
       let prev = String(currentParams[key])
       let latest = String(parameters[key])
       if (latest !== prev) {
-        throw new Errors.InvalidInput(`parameter "${key}" is immutable, you can't change it from "${prev}" to "${latest}"`)
+        throw new Errors.InvalidInput(
+          `parameter "${key}" is immutable, you can't change it from "${prev}" to "${latest}"`
+        )
       }
     }
   }

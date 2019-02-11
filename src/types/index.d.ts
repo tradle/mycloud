@@ -8,6 +8,8 @@ import { Bucket, MemoizedBucket, S3Client } from "@tradle/aws-s3-client"
 import { LambdaClient } from "@tradle/aws-lambda-client"
 import { SNSClient } from "@tradle/aws-sns-client"
 import { IAMClient } from "@tradle/aws-iam-client"
+import { CloudFormationClient } from "@tradle/aws-cloudformation-client"
+import { CloudWatchClient } from "@tradle/aws-cloudwatch-client"
 import { ResourceStub } from "@tradle/validate-resource"
 import { Logger } from "../logger"
 import { BaseLambda, LambdaHttp, Lambda, EventSource } from "../lambda"
@@ -32,7 +34,7 @@ import { Task, TaskManager } from "../task-manager"
 // import { ModelStore } from '../model-store'
 import { Delivery } from "../delivery"
 import { ContentAddressedStore } from "../content-addressed-store"
-import { KeyValueTable } from "../key-value-table"
+// import { KeyValueTable } from "../key-value-table"
 import { KV } from "../kv"
 import { CacheableBucketItem } from "../cacheable-bucket-item"
 import { Friends } from "../friends"
@@ -46,8 +48,8 @@ import { Events, EventTopic } from "../events"
 import { Mailer } from "../mailer"
 import { MiddlewareContainer } from "../middleware-container"
 
-import { ClientFactory } from "@tradle/aws-client-factory"
-export { ClientFactory, ClientFactory as AwsApis }
+import { ClientCache } from "@tradle/aws-client-factory"
+export { ClientCache, ClientCache as AwsApis }
 
 export {
   ResourceStub,
@@ -97,7 +99,7 @@ export {
   TaskManager,
   Delivery,
   ContentAddressedStore,
-  KeyValueTable,
+  // KeyValueTable,
   KV,
   Logger,
   CacheableBucketItem,
@@ -122,6 +124,8 @@ export {
   // backwards compat
   SNSClient as SNSUtils,
   IAMClient,
+  CloudFormationClient,
+  CloudWatchClient,
   Iot,
   Events,
   Mailer,
@@ -377,7 +381,7 @@ export type DatedValue = {
   value: any
 }
 
-export interface IAWSServiceConfig {
+export interface AWSServiceConfig {
   maxRetries?: number
   region: string
   s3: any
@@ -683,7 +687,7 @@ export interface IBackoffOptions {
 export interface IKeyValueStore {
   exists: (key: string) => Promise<boolean>
   get: (key: string, opts?: any) => Promise<any>
-  put: (key: string, value: any) => Promise<void | any>
+  put: (key: string, value: any, opts?: any) => Promise<void | any>
   del: (key: string, opts?: any) => Promise<void>
   update?: (key: string, opts?: any) => Promise<void | any>
   sub?: (prefix: string) => IKeyValueStore

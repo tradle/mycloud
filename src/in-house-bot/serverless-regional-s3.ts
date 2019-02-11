@@ -1,12 +1,12 @@
-import { regions as REGIONS, S3Client } from "@tradle/aws-s3-client"
+import { regions as REGIONS } from "@tradle/aws-s3-client"
 import Errors from "../errors"
-import { S3Utils, Logger, ClientFactory, IAMClient } from "../types"
+import { S3Client, Logger, ClientCache, IAMClient } from "../types"
 import { sha256 } from "../crypto"
 
 const MAX_BUCKET_NAME_LENGTH = 63
 
 export interface RegionalS3ClientOpts {
-  clients: ClientFactory
+  clients: ClientCache
   s3Client: S3Client
   iamClient: IAMClient
   logger: Logger

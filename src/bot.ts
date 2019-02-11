@@ -3,14 +3,15 @@ import _ from "lodash"
 // @ts-ignore
 import Promise from "bluebird"
 import createCredstash from "nodecredstash"
-import { createClientFactory, ClientFactory } from "@tradle/aws-client-factory"
+import { createClientCache, ClientCache } from "@tradle/aws-client-factory"
 import { services as awsServices } from "@tradle/aws-combo"
 import { S3Client } from "@tradle/aws-s3-client"
 import { SNSClient } from "@tradle/aws-sns-client"
 import { LambdaClient } from "@tradle/aws-lambda-client"
 import { DB, Filter } from "@tradle/dynamodb"
 import buildResource from "@tradle/build-resource"
-import { createLambdaInvoker } from "./lambda-invoker"
+import { createLambdaInvoker } from "./aws/lambda-invoker"
+import { createWarmup, LambdaWarmUp } from "./aws/warmup"
 import { mixin as readyMixin, IReady } from "./ready-mixin"
 import { mixin as modelsMixin } from "./models-mixin"
 import { topics as EventTopics, toAsyncEvent, toBatchEvent } from "./events"
@@ -77,7 +78,8 @@ import {
   UpdateResourceOpts,
   ResourceStub,
   LambdaInvoker,
-  IAMClient
+  IAMClient,
+  CloudFormationClient
 } from "./types"
 
 import { createLinker, appLinks as defaultAppLinks } from "./app-links"
@@ -184,7 +186,7 @@ const lambdaCreators: LambdaImplMap = {
  */
 export class Bot extends EventEmitter implements IReady, IHasModels {
   public env: Env
-  public aws: ClientFactory
+  public aws: ClientCache
   // public router: any
   public serviceMap: IServiceMap
   public buckets: Buckets
@@ -218,7 +220,9 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public iot: Iot
   public lambdaUtils: LambdaClient
   public lambdaInvoker: LambdaInvoker
+  public lambdaWarmup: LambdaWarmUp
   public stackUtils: StackUtils
+  public cloudformation: CloudFormationClient
   public tasks: TaskManager
   public modelStore: ModelStore
   public mailer: IMailer
@@ -428,33 +432,38 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     // }))
 
     const serviceMap = (bot.serviceMap = createServiceMap({ env }))
-    const aws = (bot.aws = createClientFactory({
+    const awsClientCache = (bot.aws = createClientCache({
       defaults: {
         region: env.region
       },
       useGlobalConfigClock: true
     }))
 
-    const getAWSClientOpts = () => ({ clients: aws })
     const dbUtils = (bot.dbUtils = createDBUtils({
-      aws,
+      aws: awsClientCache,
       logger: logger.sub("db-utils"),
       env,
       serviceMap
     }))
 
     const tables = (bot.tables = getTables({ dbUtils, serviceMap }))
-    const s3Utils = (bot.s3Utils = awsServices.s3(getAWSClientOpts()))
-    const snsUtils = (bot.snsUtils = awsServices.sns(getAWSClientOpts()))
+    const s3Utils = (bot.s3Utils = awsServices.s3({ client: awsClientCache.s3 }))
+    bot.snsUtils = awsServices.sns({ clients: awsClientCache.factory })
+
     const buckets = (bot.buckets = getBuckets({
       s3Client: s3Utils,
       logger,
       serviceMap
     }))
 
-    const lambdaUtils = (bot.lambdaUtils = awsServices.lambda(getAWSClientOpts()))
+    const lambdaUtils = (bot.lambdaUtils = awsServices.lambda({ client: awsClientCache.lambda }))
     bot.lambdaInvoker = createLambdaInvoker({
       client: lambdaUtils
+    })
+
+    bot.lambdaWarmup = createWarmup({
+      lambda: lambdaUtils,
+      logger: logger.sub("lambda-warmup")
     })
 
     // const stackUtils = (bot.stackUtils = awsServices.cloudformation(getAWSClientOpts())
@@ -463,14 +472,16 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       apiId: serviceMap.RestApi.ApiGateway.id,
       stackArn: serviceMap.Stack,
       deploymentBucket: buckets.ServerlessDeployment,
-      aws,
+      aws: awsClientCache,
       env,
       lambdaUtils,
       logger: logger.sub("stack-utils")
     })
 
+    bot.cloudformation = awsServices.cloudformation({ client: awsClientCache.cloudformation })
+
     const iot = (bot.iot = new Iot({
-      services: aws,
+      services: awsClientCache,
       env
     }))
 
@@ -503,7 +514,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
         algorithm: CREDSTASH_ALGORITHM,
         kmsKey: bot.defaultEncryptionKey,
         store: createCredstash.store.s3({
-          client: aws.s3,
+          client: awsClientCache.s3,
           bucket: buckets.Secrets.id
           // folder: constants.SECRETS_BUCKET.identityFolder
         })
@@ -547,7 +558,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     }))
 
     const db = (bot.db = createDB({
-      clients: aws,
+      clients: awsClientCache,
       modelStore,
       objects,
       dbUtils,
@@ -622,7 +633,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const auth = (bot.auth = new Auth({
       uploadFolder: bot.serviceMap.Bucket.FileUpload,
       logger: bot.logger.sub("auth"),
-      aws,
+      aws: awsClientCache,
       db,
       identities,
       iot,
