@@ -1,3 +1,4 @@
+import { reinitializeContainers } from "@tradle/aws-combo"
 import { Lambda } from "../types"
 import { fromLambda } from "../lambda"
 
@@ -12,7 +13,7 @@ export const createMiddleware = (lambda: Lambda, opts?: any) => {
   return async (ctx, next) => {
     const { event } = ctx
     logger.debug("reinitializing lambda containers", event)
-    await stackUtils.forceReinitializeContainers(event.functions)
+    await stackUtils.reinitializeContainers(event.functions)
     await lambdaInvoker.scheduleWarmUp()
     await next()
   }

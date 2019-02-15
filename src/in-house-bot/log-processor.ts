@@ -1,26 +1,26 @@
 // @ts-ignore
-import Promise from 'bluebird'
-import json2yaml from 'json2yaml'
-import pick from 'lodash/pick'
-import truncate from 'lodash/truncate'
-import isEmpty from 'lodash/isEmpty'
-import Errors from '../errors'
-import { StackUtils } from '../stack-utils'
-import { TRADLE } from './constants'
-import { sha256 } from '../crypto'
+import Promise from "bluebird"
+import json2yaml from "json2yaml"
+import pick from "lodash/pick"
+import truncate from "lodash/truncate"
+import isEmpty from "lodash/isEmpty"
+import Errors from "../errors"
+import { StackUtils } from "../stack-utils"
+import { TRADLE } from "./constants"
+import { sha256 } from "../crypto"
 import {
   Bot,
   IPBLambda,
   SNSEvent,
   CloudWatchLogsEvent,
   CloudWatchLogsEntry,
-  IKeyValueStore,
+  KeyValueStore,
   IBotComponents,
-  ILoggingConf,
-} from './types'
+  ILoggingConf
+} from "./types"
 
-import { Logger, Level, noopLogger } from '../logger'
-import { parseArn, get } from '../utils'
+import { Logger, Level, noopLogger } from "../logger"
+import { parseArn, get } from "../utils"
 
 type SendAlertInput = {
   key: string
@@ -30,7 +30,7 @@ type SendAlertInput = {
 type SendAlert = (opts: SendAlertInput) => Promise<void>
 
 type LogProcessorOpts = {
-  store: IKeyValueStore
+  store: KeyValueStore
   sendAlert: SendAlert
   ignoreGroups?: string[]
   logger?: Logger
@@ -42,7 +42,7 @@ type LogProcessorOpts = {
 enum Resolution {
   DAY,
   HOUR,
-  MINUTE,
+  MINUTE
 }
 
 type EntryDetails = {
@@ -82,33 +82,33 @@ export type ParsedAlertEvent = {
   body?: ParsedLogEvent
 }
 
-const LOG_GROUP_PREFIX = '/aws/lambda/'
+const LOG_GROUP_PREFIX = "/aws/lambda/"
 const ALERT_CONCURRENCY = 10
 const createDummyAlerter = (logger: Logger) => async (event: ParsedLogEvent) => {
   // TODO
-  logger.debug('TODO: send alert for event', getLogEventKey(event))
+  logger.debug("TODO: send alert for event", getLogEventKey(event))
 }
 
-const REQUEST_LIFECYCLE_PROP = '__'
+const REQUEST_LIFECYCLE_PROP = "__"
 const LIFECYCLE = {
-  START: 'START',
-  END: 'END',
-  REPORT: 'REPORT',
+  START: "START",
+  END: "END",
+  REPORT: "REPORT"
 }
 
 const REGEX = {
   START: /^START RequestId:\s*([^\s]+)\s*Version:\s*(.*)\s*$/i,
   END: /^END RequestId:\s*([^\s]+)\s*$/i,
-  REPORT: /^REPORT RequestId:\s*([^\s]+)\s*Duration:\s*([^\s]*)\s*ms\s*Billed Duration:\s*([^\s]*)\s*ms\s*Memory Size:\s*(\d+)\s*([a-zA-Z]+)\s*Max Memory Used:\s*(\d+)\s*([a-zA-Z]+)\s*$/i,
+  REPORT: /^REPORT RequestId:\s*([^\s]+)\s*Duration:\s*([^\s]*)\s*ms\s*Billed Duration:\s*([^\s]*)\s*ms\s*Memory Size:\s*(\d+)\s*([a-zA-Z]+)\s*Max Memory Used:\s*(\d+)\s*([a-zA-Z]+)\s*$/i
 }
 
 const XRAY_SPAM = [
-  'AWS_XRAY_CONTEXT_MISSING is set. Configured context missing strategy',
-  'AWS_XRAY_DAEMON_ADDRESS is set',
-  '_X_AMZN_TRACE_ID is missing required data',
-  'Subsegment streaming threshold set to',
-  'capturing all http requests with AWSXRay',
-  'AWSXray is off'
+  "AWS_XRAY_CONTEXT_MISSING is set. Configured context missing strategy",
+  "AWS_XRAY_DAEMON_ADDRESS is set",
+  "_X_AMZN_TRACE_ID is missing required data",
+  "Subsegment streaming threshold set to",
+  "capturing all http requests with AWSXRay",
+  "AWSXray is off"
 ]
 
 // const MONTHS = [
@@ -126,10 +126,10 @@ const XRAY_SPAM = [
 //   'dec'
 // ]
 
-const leftPad = (value: string|number, length: number) => {
+const leftPad = (value: string | number, length: number) => {
   value = String(value)
   if (value.length < length) {
-    return '0'.repeat(length - value.length) + value
+    return "0".repeat(length - value.length) + value
   }
 
   return value
@@ -145,23 +145,24 @@ const toDate = (timestamp: number) => {
     month: leftPad(month, 2),
     year: String(year),
     hour: leftPad(date.getUTCHours(), 2),
-    minute: leftPad(date.getUTCMinutes(), 2),
+    minute: leftPad(date.getUTCMinutes(), 2)
   }
 }
 
 const getShortGroupName = (logGroup: string) => logGroup.slice(LOG_GROUP_PREFIX.length)
 
 const parseFunctionVersion = ({ logStream }: CloudWatchLogsEvent) => {
-  const start = logStream.indexOf('[')
-  const end = logStream.indexOf(']')
+  const start = logStream.indexOf("[")
+  const end = logStream.indexOf("]")
   return logStream.slice(start + 1, end)
 }
 
 const parseFunctionName = ({ logGroup }: CloudWatchLogsEvent) => {
-  return logGroup.split('/').pop()
+  return logGroup.split("/").pop()
 }
 
-const getTopicArn = ({ accountId, region, topicName }) => `arn:aws:sns:${region}:${accountId}:${topicName}`
+const getTopicArn = ({ accountId, region, topicName }) =>
+  `arn:aws:sns:${region}:${accountId}:${topicName}`
 
 export const parseAlertEvent = (event: SNSEvent) => {
   const { Sns } = event.Records[0]
@@ -184,14 +185,14 @@ export const parseAlertEvent = (event: SNSEvent) => {
     accountId,
     region,
     stackName,
-    timestamp: new Date(Timestamp).getTime(),
+    timestamp: new Date(Timestamp).getTime()
   }
 }
 
 export class LogProcessor {
   private ignoreGroups: string[]
   private sendAlert: SendAlert
-  private store: IKeyValueStore
+  private store: KeyValueStore
   private logger: Logger
   private saveLevel: Level
   private alertLevel: Level
@@ -199,11 +200,11 @@ export class LogProcessor {
   constructor({
     sendAlert,
     store,
-    ignoreGroups=[],
-    logger=noopLogger,
-    saveLevel=Level.DEBUG,
-    alertLevel=Level.ERROR,
-    ext='json',
+    ignoreGroups = [],
+    logger = noopLogger,
+    saveLevel = Level.DEBUG,
+    alertLevel = Level.ERROR,
+    ext = "json"
   }: LogProcessorOpts) {
     this.ignoreGroups = ignoreGroups
     this.sendAlert = sendAlert
@@ -238,7 +239,9 @@ export class LogProcessor {
     entries = entries.filter(shouldSave)
     if (this.saveLevel != null) {
       entries = entries.filter(entry => {
-        return entry.level == null || Logger.compareSeverity(Level[entry.level], this.saveLevel) >= 0
+        return (
+          entry.level == null || Logger.compareSeverity(Level[entry.level], this.saveLevel) >= 0
+        )
       })
     }
 
@@ -258,14 +261,14 @@ export class LogProcessor {
   public loadAlertEvent = async (event: ParsedAlertEvent) => {
     const { eventUrl } = event
     if (eventUrl) {
-      this.logger.debug('fetching remote log event')
+      this.logger.debug("fetching remote log event")
       try {
         event.body = await get(eventUrl)
       } catch (err) {
-        Errors.rethrowAs(err, new Errors.InvalidInput('unable to fetch alert body'))
+        Errors.rethrowAs(err, new Errors.InvalidInput("unable to fetch alert body"))
       }
 
-      if (typeof event.body === 'string') {
+      if (typeof event.body === "string") {
         event.body = JSON.parse(event.body)
       }
     }
@@ -286,14 +289,18 @@ export class LogProcessor {
   }
 }
 
-export const fromLambda = ({ lambda, components, compress=true }: {
+export const fromLambda = ({
+  lambda,
+  components,
+  compress = true
+}: {
   lambda: IPBLambda
   components: IBotComponents
   compress?: boolean
 }) => {
-  const { bot, logger, deployment } = components
+  const { bot, logger } = components
   const folder = bot.buckets.Logs.folder(bot.env.STAGE)
-  const store = folder.kv({ compress })
+  const store = folder.kvWithGzip()
   const topic = getLogAlertsTopicArn({
     sourceStackId: bot.stackUtils.thisStackArn,
     targetAccountId: TRADLE.ACCOUNT_ID
@@ -304,9 +311,9 @@ export const fromLambda = ({ lambda, components, compress=true }: {
   })
 
   // const sendAlert:SendAlert = createDummyAlerter(logger)
-  const sendAlert:SendAlert = async ({ key, event }) => {
+  const sendAlert: SendAlert = async ({ key, event }) => {
     const snsEvent = createAlertEvent({ key, event })
-    logger.debug('sending alert', snsEvent)
+    logger.debug("sending alert", snsEvent)
     await bot.snsUtils.publish({
       topic,
       message: {
@@ -323,11 +330,11 @@ export const fromLambda = ({ lambda, components, compress=true }: {
     store,
     sendAlert,
     logger,
-    ext: compress ? 'json.gz' : 'json',
+    ext: compress ? "json.gz" : "json"
   })
 }
 
-export const parseLogEntry = (entry: CloudWatchLogsEntry):ParsedEntry => {
+export const parseLogEntry = (entry: CloudWatchLogsEntry): ParsedEntry => {
   const parsed = parseLogEntryMessage(entry.message)
   const { body, ...rest } = parsed
   return {
@@ -364,7 +371,7 @@ export const parseLogEntryMessage = (message: string) => {
       memorySize,
       memoryUnit1,
       memoryUsed,
-      memoryUnit2,
+      memoryUnit2
     ] = REGEX.REPORT.exec(message).slice(1)
 
     return {
@@ -373,11 +380,11 @@ export const parseLogEntryMessage = (message: string) => {
       duration: Number(duration),
       billedDuration: Number(billedDuration),
       memorySize: Number(memorySize),
-      memoryUsed: Number(memoryUsed),
+      memoryUsed: Number(memoryUsed)
     }
   }
 
-  const [date, requestId, bodyStr] = message.split('\t', 3)
+  const [date, requestId, bodyStr] = message.split("\t", 3)
   const body = parseMessageBody(bodyStr)
   if (body) {
     return {
@@ -401,11 +408,11 @@ export const parseMessageBody = (message: string) => {
 
   // messages that get logged when AWSJS_DEBUG flag is on
   // e.g. [AWS dynamodb 200 0.136s 0 retries] ...
-  if (message.startsWith('[AWS')) {
+  if (message.startsWith("[AWS")) {
     return {
       __aws_verbose__: true,
-      level: 'SILLY',
-      msg: message,
+      level: "SILLY",
+      msg: message
     }
   }
 
@@ -413,13 +420,13 @@ export const parseMessageBody = (message: string) => {
     return JSON.parse(message)
   } catch (err) {}
 
-  const unparsed:any = {
+  const unparsed: any = {
     msg: message
   }
 
   const lower = message.toLowerCase()
-  if (lower.includes('unhandledpromiserejectionwarning') || lower.includes('error')) {
-    unparsed.level = 'ERROR'
+  if (lower.includes("unhandledpromiserejectionwarning") || lower.includes("error")) {
+    unparsed.level = "ERROR"
     unparsed.unparseableLogEntry = true
   }
 
@@ -429,19 +436,24 @@ export const parseMessageBody = (message: string) => {
 export default LogProcessor
 
 export const shouldIgnore = (entry: ParsedEntry) => {
-  return entry[REQUEST_LIFECYCLE_PROP] === LIFECYCLE.START ||
+  return (
+    entry[REQUEST_LIFECYCLE_PROP] === LIFECYCLE.START ||
     entry[REQUEST_LIFECYCLE_PROP] === LIFECYCLE.END ||
     entry.__xray__
+  )
 }
 
 export const shouldSave = (entry: ParsedEntry) => !shouldIgnore(entry)
 
-export const parseLogEvent = (event: CloudWatchLogsEvent, logger:Logger=noopLogger):ParsedLogEvent => {
+export const parseLogEvent = (
+  event: CloudWatchLogsEvent,
+  logger: Logger = noopLogger
+): ParsedLogEvent => {
   const entries = event.logEvents.map(entry => {
     try {
       return parseLogEntry(entry)
     } catch (err) {
-      logger.debug('failed to parse log entry', {
+      logger.debug("failed to parse log entry", {
         error: err.message,
         entry
       })
@@ -452,19 +464,19 @@ export const parseLogEvent = (event: CloudWatchLogsEvent, logger:Logger=noopLogg
     entries,
     function: {
       version: parseFunctionVersion(event),
-      name: parseFunctionName(event),
+      name: parseFunctionName(event)
     }
   }
 }
 
 // const getLogEntryKey = (group:string, event: ParsedEntry) => `${group}/${event.id}`
-export const getLogEventKey = (event: ParsedLogEvent, resolution: Resolution=Resolution.HOUR) => {
+export const getLogEventKey = (event: ParsedLogEvent, resolution: Resolution = Resolution.HOUR) => {
   const { id, timestamp } = event.entries[0]
   const timePrefix = getTimePrefix(timestamp, resolution)
   return `logs/${timePrefix}/${event.function.name}/${id}`
 }
 
-export const getTimePrefix = (timestamp: number, resolution: Resolution=Resolution.HOUR) => {
+export const getTimePrefix = (timestamp: number, resolution: Resolution = Resolution.HOUR) => {
   const { year, month, day, hour, minute } = toDate(timestamp)
   const dayPrefix = `${year}-${month}-${day}`
   if (resolution === Resolution.DAY) {
@@ -479,7 +491,10 @@ export const getTimePrefix = (timestamp: number, resolution: Resolution=Resoluti
 }
 
 export const getLogAlertsTopicName = (stackName: string) => `${stackName}-alerts`
-export const getLogAlertsTopicArn = ({ sourceStackId, targetAccountId }: {
+export const getLogAlertsTopicArn = ({
+  sourceStackId,
+  targetAccountId
+}: {
   sourceStackId: string
   targetAccountId: string
 }) => {
@@ -497,23 +512,23 @@ export const parseLogAlertsTopicArn = (topic: string) => {
   return {
     accountId,
     region,
-    stackName,
+    stackName
   }
 }
 
 export const parseLogAlertsTopicName = (name: string) => {
-  if (!name.endsWith('-alerts')) {
+  if (!name.endsWith("-alerts")) {
     throw new Errors.InvalidInput(`invalid log alerts topic name: ${name}`)
   }
 
   return {
-    stackName: name.slice(0, name.indexOf('-alerts'))
+    stackName: name.slice(0, name.indexOf("-alerts"))
   }
 }
 
 export const getAlertEventKey = (event: ParsedAlertEvent) => {
   const { accountId, stackName, region, timestamp } = event
-  const hash = sha256(event, 'hex').slice(0, 10)
+  const hash = sha256(event, "hex").slice(0, 10)
   const { year, month, day, hour, minute } = toDate(timestamp)
   return `alerts/${accountId}/${stackName}-${region}/${year}-${month}-${day}/${hour}:00/${minute}-${hash}`
 }
@@ -521,7 +536,11 @@ export const getAlertEventKey = (event: ParsedAlertEvent) => {
 // export const getLogsFolder = (env: Env) => `$logs/{env.STAGE}`
 // export const getAlertsFolder = (env: Env) => `alerts/${env.STAGE}`
 
-export const sendLogAlert = async ({ bot, conf, alert }: {
+export const sendLogAlert = async ({
+  bot,
+  conf,
+  alert
+}: {
   bot: Bot
   conf: ILoggingConf
   alert: ParsedAlertEvent
@@ -533,7 +552,7 @@ export const sendLogAlert = async ({ bot, conf, alert }: {
     body,
     from: senderEmail,
     to: destinationEmails,
-    format: 'text',
+    format: "text"
   })
 }
 
@@ -545,12 +564,13 @@ export const generateAlertEmail = (alert: ParsedAlertEvent) => {
     .map(e => e.msg)
 
   const { stackName, accountId } = alert
-  const subject = truncate(`${alert.body.function.name} (${accountId}): ${errorMsgs[0]}`, { length: 100 })
-    .replace(/[\r\n]/g, ' ')
+  const subject = truncate(`${alert.body.function.name} (${accountId}): ${errorMsgs[0]}`, {
+    length: 100
+  }).replace(/[\r\n]/g, " ")
 
   let body = json2yaml.stringify(gist)
   if (errorMsgs.length) {
-    body = `ERRORS: ${errorMsgs.join('\n')}
+    body = `ERRORS: ${errorMsgs.join("\n")}
 
 ${body}`
   }
@@ -561,10 +581,7 @@ ${body}`
   }
 }
 
-export const validateConf = async ({ bot, conf }: {
-  bot: Bot
-  conf: ILoggingConf
-}) => {
+export const validateConf = async ({ bot, conf }: { bot: Bot; conf: ILoggingConf }) => {
   const { senderEmail, destinationEmails } = conf
   const resp = await bot.mailer.canSendFrom(senderEmail)
   if (!resp.result) {
@@ -572,9 +589,9 @@ export const validateConf = async ({ bot, conf }: {
   }
 }
 
-const isAsSevere = (level: Level, otherLevel: Level) => Logger.compareSeverity(level, otherLevel) >=0
-const isErrorEntry = ({ level }: {
-  level: string
-}) => isAsSevere(Level[level], Level.ERROR)
+const isAsSevere = (level: Level, otherLevel: Level) =>
+  Logger.compareSeverity(level, otherLevel) >= 0
+const isErrorEntry = ({ level }: { level: string }) => isAsSevere(Level[level], Level.ERROR)
 
-const getEntryGist = (entry: ParsedEntry):ParsedEntryGist => pick(entry, ['level', 'msg', 'namespace', 'details'])
+const getEntryGist = (entry: ParsedEntry): ParsedEntryGist =>
+  pick(entry, ["level", "msg", "namespace", "details"])

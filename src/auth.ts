@@ -275,10 +275,7 @@ export default class Auth {
     }
 
     // assume role returns temporary keys
-    const promiseRole = this.aws
-      .sts()
-      .assumeRole(params)
-      .promise()
+    const promiseRole = this.aws.sts.assumeRole(params).promise()
 
     const { AssumedRoleUser, Credentials } = await promiseRole
 

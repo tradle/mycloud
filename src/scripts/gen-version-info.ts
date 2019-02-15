@@ -1,19 +1,18 @@
 #!/usr/bin/env node
 
-import proc from 'child_process'
-import { StackUtils } from '../stack-utils'
-import { getVar } from '../cli/get-template-var'
-import { toSortableTag } from '../utils'
-import { S3Utils } from '../s3-utils'
+import proc from "child_process"
+import { StackUtils } from "../stack-utils"
+import { getVar } from "../cli/get-template-var"
+import { toSortableTag } from "../utils"
 
-const exec = (cmd: string) => proc.execSync(cmd, { encoding: 'utf8' }).trim()
+const exec = (cmd: string) => proc.execSync(cmd, { encoding: "utf8" }).trim()
 const commit = exec(`git rev-parse HEAD`).slice(0, 8)
-const { version } = require('../../package.json')
+const { version } = require("../../package.json")
 let [tag, commitsSinceTag] = exec(`git describe --long`)
   .match(/^(.*?)-(\d+)-g([^-]+)$/)
   .slice(1)
 
-tag = tag.replace(/^v/, '')
+tag = tag.replace(/^v/, "")
 
 const branch = exec(`git symbolic-ref --short HEAD`)
 const info = {
@@ -23,13 +22,13 @@ const info = {
   sortableTag: toSortableTag(tag),
   branch,
   time: new Date().toISOString(),
-  templatesPath: null,
+  templatesPath: null
 }
 
 info.templatesPath = StackUtils.getStackLocationKeys({
   ...process.env,
-  stage: getVar('stage'),
-  versionInfo: info,
+  stage: getVar("stage"),
+  versionInfo: info
 }).dir
 
 process.stdout.write(JSON.stringify(info, null, 2))

@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 
-import { loadCredentials } from '../cli/utils'
-import { stackUtils } from '../'
+// tslint:disable:no-console
 
-const {
-  enable
-} = require('minimist')(process.argv.slice(2), {
+import { loadCredentials } from "../cli/utils"
+import { stackUtils } from "../"
+
+const { enable } = require("minimist")(process.argv.slice(2), {
   alias: {
-    e: 'enable'
+    e: "enable"
   },
-  boolean: ['enable']
+  boolean: ["enable"]
 })
 
-const yml = require('../cli/serverless-yml')
+const yml = require("../cli/serverless-yml")
 const {
   service,
   custom: { stage, prefix }
@@ -20,21 +20,19 @@ const {
 
 loadCredentials()
 
-console.log('service', service)
-console.log('stage', stage)
-const action = enable ? 'enable' : 'disable'
+console.log("service", service)
+console.log("stage", stage)
+const action = enable ? "enable" : "disable"
 console.log(`will ${action} all functions starting with prefix ${prefix}`)
-
 ;(async () => {
-  await stackUtils.updateEnvironments(function ({ FunctionName }) {
+  await stackUtils.updateEnvironments(({ FunctionName }) => {
     if (FunctionName.startsWith(prefix)) {
       return {
-        DISABLED: enable ? null : 'y'
+        DISABLED: enable ? null : "y"
       }
     }
   })
-})()
-.catch(err => {
+})().catch(err => {
   console.error(err)
   process.exit(1)
 })

@@ -1,26 +1,26 @@
 // adapted from: https://github.com/Movement-2016/bellman
 const dateOfBirth = Date.now()
 
-require('source-map-support').install()
+require("source-map-support").install()
 
 // require('time-require')
-import './globals'
+import "./globals"
 
-import { EventEmitter } from 'events'
-import zlib from 'zlib'
-import _ from 'lodash'
+import { EventEmitter } from "events"
+import zlib from "zlib"
+import _ from "lodash"
 
 // @ts-ignore
-import Promise from 'bluebird'
-import compose from 'koa-compose'
-import * as Koa from 'koa'
-import caseless from 'caseless'
-import randomName from 'random-name'
-import AWSXray from 'aws-xray-sdk-core'
-import { safeStringify } from './string-utils'
-import { TaskManager } from './task-manager'
-import { randomString } from './crypto'
-import * as CFNResponse from './cfn-response'
+import Promise from "bluebird"
+import compose from "koa-compose"
+import * as Koa from "koa"
+import caseless from "caseless"
+import randomName from "random-name"
+import AWSXray from "aws-xray-sdk-core"
+import { safeStringify } from "./string-utils"
+import { TaskManager } from "./task-manager"
+import { randomString } from "./crypto"
+import * as CFNResponse from "./cfn-response"
 import {
   Env,
   Logger,
@@ -34,9 +34,10 @@ import {
   LambdaHandler,
   ILambdaOpts,
   AwsApis,
-} from './types'
+  ClientCache
+} from "./types"
 
-import Errors from './errors'
+import Errors from "./errors"
 import {
   defineGetter,
   parseArn,
@@ -46,23 +47,21 @@ import {
   isXrayOn,
   getCurrentCallStack,
   runWithTimeout,
-  plainify,
-} from './utils'
+  plainify
+} from "./utils"
 
-import {
-  ILambdaAWSExecutionContext
-} from './types'
+import { ILambdaAWSExecutionContext } from "./types"
 
-import { warmup } from './middleware/warmup'
-import { requestInterceptor, RequestInfo } from './request-interceptor'
+import { warmup } from "./middleware/warmup"
+import { requestInterceptor, RequestInfo } from "./request-interceptor"
 
-const NOT_FOUND = new Error('nothing here')
+const NOT_FOUND = new Error("nothing here")
 
 // 10 mins
 const CF_EVENT_TIMEOUT = 10 * 60000
-const { commit } = require('./version')
+const { commit } = require("./version")
 
-type Contextualized<T> = (ctx: T, next: Function) => any|void
+type Contextualized<T> = (ctx: T, next: Function) => any | void
 
 interface PendingCallsSummary {
   start?: number
@@ -74,31 +73,38 @@ interface PendingCallsSummary {
 }
 
 export enum EventSource {
-  HTTP='http',
-  LAMBDA='lambda',
-  DYNAMODB='dynamodb',
-  IOT='iot',
-  CLOUDFORMATION='cloudformation',
-  SCHEDULE='schedule',
-  S3='s3',
-  SNS='sns',
-  CLI='cli',
-  CLOUDWATCH_LOGS='cloudwatchlogs',
+  HTTP = "http",
+  LAMBDA = "lambda",
+  DYNAMODB = "dynamodb",
+  IOT = "iot",
+  CLOUDFORMATION = "cloudformation",
+  SCHEDULE = "schedule",
+  S3 = "s3",
+  SNS = "sns",
+  CLI = "cli",
+  CLOUDWATCH_LOGS = "cloudwatchlogs"
 }
 
 export type Lambda = BaseLambda<ILambdaExecutionContext>
 export type LambdaHttp = BaseLambda<ILambdaHttpExecutionContext>
 
-export const fromHTTP = (opts={}):BaseLambda<ILambdaHttpExecutionContext> => new BaseLambda({ ...opts, source: EventSource.HTTP })
-export const fromDynamoDB = (opts={}) => new BaseLambda({ ...opts, source: EventSource.DYNAMODB })
-export const fromIot = (opts={}) => new BaseLambda({ ...opts, source: EventSource.IOT })
-export const fromSchedule = (opts={}) => new BaseLambda({ ...opts, source: EventSource.SCHEDULE })
-export const fromCloudFormation = (opts={}) => new BaseLambda({ ...opts, source: EventSource.CLOUDFORMATION })
-export const fromLambda = (opts={}) => new BaseLambda({ ...opts, source: EventSource.LAMBDA })
-export const fromS3 = (opts={}) => new BaseLambda({ ...opts, source: EventSource.S3 })
-export const fromSNS = (opts={}) => new BaseLambda<ISNSExecutionContext>({ ...opts, source: EventSource.SNS })
-export const fromCli = (opts={}) => new BaseLambda({ ...opts, source: EventSource.CLI })
-export const fromCloudwatchLogs = (opts={}) => new BaseLambda<ILambdaCloudWatchLogsExecutionContext>({ ...opts, source: EventSource.CLOUDWATCH_LOGS })
+export const fromHTTP = (opts = {}): BaseLambda<ILambdaHttpExecutionContext> =>
+  new BaseLambda({ ...opts, source: EventSource.HTTP })
+export const fromDynamoDB = (opts = {}) => new BaseLambda({ ...opts, source: EventSource.DYNAMODB })
+export const fromIot = (opts = {}) => new BaseLambda({ ...opts, source: EventSource.IOT })
+export const fromSchedule = (opts = {}) => new BaseLambda({ ...opts, source: EventSource.SCHEDULE })
+export const fromCloudFormation = (opts = {}) =>
+  new BaseLambda({ ...opts, source: EventSource.CLOUDFORMATION })
+export const fromLambda = (opts = {}) => new BaseLambda({ ...opts, source: EventSource.LAMBDA })
+export const fromS3 = (opts = {}) => new BaseLambda({ ...opts, source: EventSource.S3 })
+export const fromSNS = (opts = {}) =>
+  new BaseLambda<ISNSExecutionContext>({ ...opts, source: EventSource.SNS })
+export const fromCli = (opts = {}) => new BaseLambda({ ...opts, source: EventSource.CLI })
+export const fromCloudwatchLogs = (opts = {}) =>
+  new BaseLambda<ILambdaCloudWatchLogsExecutionContext>({
+    ...opts,
+    source: EventSource.CLOUDWATCH_LOGS
+  })
 
 export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitter {
   // initialization
@@ -120,19 +126,16 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
   public requestCounter: number
   public xraySegment?: AWS.XRay.Segment
   private breakingContext: string
-  private middleware:Middleware<Ctx>[]
+  private middleware: Middleware<Ctx>[]
   private initPromise: Promise<void>
   private _gotHandler: boolean
   private lastExitStack: string
   private aws: AwsApis
-  constructor(opts:ILambdaOpts<Ctx>={}) {
+  constructor(opts: ILambdaOpts<Ctx> = {}) {
     super()
-    const {
-      middleware,
-      source
-    } = opts
+    const { middleware, source } = opts
 
-    const bot = opts.bot || require('./').createBot()
+    const bot = opts.bot || require("./").createBot()
 
     this.opts = opts
     this.bot = bot
@@ -143,30 +146,32 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
       namespace: `lambda:${this.shortName}`
     })
 
-    bot.aws.on('new', ({ name, recordable }) => this._recordService(recordable, name))
+    bot.aws.on("new", ({ name, recordable }) => this._recordService(recordable, name))
 
     this.tasks = bot.tasks
     this.tasks.add({
-      name: 'bot:ready',
+      name: "bot:ready",
       promise: bot.promiseReady()
     })
 
-    this.on('run', () => {
+    this.on("run", () => {
       if (!this.isCold && !bot.isReady()) {
-        this.logger.error('1. LAMBDA FAILED TO INITIALIZE ON FIRST RUN')
+        this.logger.error("1. LAMBDA FAILED TO INITIALIZE ON FIRST RUN")
       }
     })
 
-    this.on('done', () => {
+    this.on("done", () => {
       if (!bot.isReady()) {
-        this.logger.error('2. LAMBDA FAILED TO INITIALIZE ON FIRST RUN')
+        this.logger.error("2. LAMBDA FAILED TO INITIALIZE ON FIRST RUN")
       }
     })
 
     this.source = opts.source
     this.middleware = []
     this.isCold = true
-    this.containerId = `${randomName.first()} ${randomName.middle()} ${randomName.last()} ${randomString(6)}`
+    this.containerId = `${randomName.first()} ${randomName.middle()} ${randomName.last()} ${randomString(
+      6
+    )}`
 
     if (opts.source === EventSource.HTTP) {
       this._initHttp()
@@ -182,7 +187,7 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
 
     this.use(async (ctx, next) => {
       if (this.env.DISABLED) {
-        this.logger.info('I have been disabled :(')
+        this.logger.info("I have been disabled :(")
         ctx.body = {}
       } else {
         await next()
@@ -195,7 +200,7 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     // are once in a lifetime
     if (source !== EventSource.CLOUDFORMATION) {
       this.tasks.add({
-        name: 'warmup:cache',
+        name: "warmup:cache",
         promiser: () => bot.warmUpCaches()
       })
     }
@@ -215,18 +220,20 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     })
   }
 
-  public use = (middleware:Middleware<Ctx>) => {
+  public use = (middleware: Middleware<Ctx>) => {
     if (this._gotHandler) {
-      console.warn('adding middleware after exporting the lambda handler ' +
-        'can result in unexpected behavior')
+      console.warn(
+        "adding middleware after exporting the lambda handler " +
+          "can result in unexpected behavior"
+      )
     }
 
     if (isPromise(middleware)) {
       middleware = promiseMiddleware(middleware)
     }
 
-    if (typeof middleware !== 'function') {
-      throw new Error('middleware must be a function!')
+    if (typeof middleware !== "function") {
+      throw new Error("middleware must be a function!")
     }
 
     if (this.source === EventSource.HTTP) {
@@ -239,35 +246,35 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     return this
   }
 
-  get name():string {
+  get name(): string {
     return this.env.AWS_LAMBDA_FUNCTION_NAME
   }
 
-  get shortName():string {
+  get shortName(): string {
     return this.env.FUNCTION_NAME
   }
 
-  get stage():string {
+  get stage(): string {
     return this.env.STACK_STAGE
   }
 
-  get requestId():string {
+  get requestId(): string {
     return this.reqCtx && this.reqCtx.requestId
   }
 
-  get correlationId():string {
+  get correlationId(): string {
     return this.reqCtx && this.reqCtx.correlationId
   }
 
-  get dateOfBirth():number {
+  get dateOfBirth(): number {
     return dateOfBirth
   }
 
-  get containerAge():number {
+  get containerAge(): number {
     return Date.now() - dateOfBirth
   }
 
-  get executionTime():number {
+  get executionTime(): number {
     return this.reqCtx ? Date.now() - this.reqCtx.start : 0
   }
 
@@ -290,20 +297,20 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     return 0
   }
 
-  get isTesting():boolean {
+  get isTesting(): boolean {
     return this.env.IS_TESTING
   }
 
-  get isEmulated():boolean {
+  get isEmulated(): boolean {
     return this.env.IS_EMULATED
   }
 
-  get isLocal():boolean {
+  get isLocal(): boolean {
     return this.env.IS_LOCAL
   }
 
-  get isProd():boolean {
-    return this.stage === 'prod'
+  get isProd(): boolean {
+    return this.stage === "prod"
   }
 
   public getRemainingTimeWithBuffer = (buffer: number) => {
@@ -317,7 +324,7 @@ Previous exit stack: ${this.lastExitStack}`)
     }
 
     this.lastExitStack = getCurrentCallStack()
-    this.logger.debug('preparing for exit', {
+    this.logger.debug("preparing for exit", {
       requestTime: this.executionTime,
       timeLeft: this.timeLeft
     })
@@ -333,7 +340,9 @@ Previous exit stack: ${this.lastExitStack}`)
         millis: Math.max(this.timeLeft - 1000, 0),
         error: () => {
           const time = Date.now() - start
-          return new Errors.ExecutionTimeout(`lambda ${shortName} timed out after ${time}ms waiting for async tasks to complete`)
+          return new Errors.ExecutionTimeout(
+            `lambda ${shortName} timed out after ${time}ms waiting for async tasks to complete`
+          )
         }
       })
     } catch (err) {
@@ -341,7 +350,7 @@ Previous exit stack: ${this.lastExitStack}`)
         this.logger.error(`seems we're already on a different request`, {
           error: err,
           originalRequestId: requestId,
-          requestId: this.requestId,
+          requestId: this.requestId
         })
 
         return
@@ -349,9 +358,9 @@ Previous exit stack: ${this.lastExitStack}`)
 
       const tasks = this.tasks.describe()
       if (Errors.matches(err, Errors.ExecutionTimeout)) {
-        this.logger.error('async tasks timed out', { tasks, time: Date.now() - start })
+        this.logger.error("async tasks timed out", { tasks, time: Date.now() - start })
       } else {
-        this.logger.error('async tasks failed', {
+        this.logger.error("async tasks failed", {
           tasks,
           ...Errors.export(err)
         })
@@ -359,7 +368,7 @@ Previous exit stack: ${this.lastExitStack}`)
     }
 
     if (!this.bot.isReady()) {
-      this._suicide('bot is not ready!')
+      this._suicide("bot is not ready!")
       return
     }
 
@@ -371,14 +380,14 @@ Previous exit stack: ${this.lastExitStack}`)
 
     const pendingServiceCalls = this._dumpPendingServiceCalls()
     if (!_.isEmpty(pendingServiceCalls.services)) {
-      this.logger.debug('pending service calls', pendingServiceCalls)
+      this.logger.debug("pending service calls", pendingServiceCalls)
     }
 
     requestInterceptor.freeze(this.requestId)
 
     const pendingHttpRequests = this._dumpPendingHTTPRequests()
     if (pendingHttpRequests.length) {
-      this.logger.debug('pending http requests', pendingHttpRequests)
+      this.logger.debug("pending http requests", pendingHttpRequests)
       if (this.env.ABORT_REQUESTS_ON_FREEZE) {
         this.logger.warn(`aborting ${pendingHttpRequests.length} pending http requests`)
         requestInterceptor.abortPending()
@@ -386,9 +395,9 @@ Previous exit stack: ${this.lastExitStack}`)
     }
 
     if (err) {
-      this.logger.error('lambda execution hit an error', {
+      this.logger.error("lambda execution hit an error", {
         error: err,
-        serviceCalls: this._dumpServiceCalls(),
+        serviceCalls: this._dumpServiceCalls()
       })
 
       if (this.source !== EventSource.HTTP) {
@@ -402,14 +411,14 @@ Previous exit stack: ${this.lastExitStack}`)
       if (this.logger.isRidiculous()) {
         const serviceCalls = this._dumpServiceCalls()
         if (!_.isEmpty(serviceCalls.services)) {
-          this.logger.ridiculous('service calls made', serviceCalls)
+          this.logger.ridiculous("service calls made", serviceCalls)
         }
       }
     }
 
-    this.emit('done')
+    this.emit("done")
     this.isCold = false
-    this.logger.silly('exiting')
+    this.logger.silly("exiting")
     if (ctx.error) {
       throw ctx.error
     }
@@ -419,16 +428,16 @@ Previous exit stack: ${this.lastExitStack}`)
   }
 
   public run = async () => {
-    this.emit('run')
+    this.emit("run")
     const exec = compose(this.middleware)
     const ctx = this.execCtx
-    if (!ctx) throw new Error('missing execution context')
+    if (!ctx) throw new Error("missing execution context")
 
     try {
       await exec(ctx)
     } catch (err) {
       debugger
-      this.logger.error('error in execution', err.stack)
+      this.logger.error("error in execution", err.stack)
       if (!ctx.error) {
         ctx.error = err
       }
@@ -437,15 +446,7 @@ Previous exit stack: ${this.lastExitStack}`)
     return await this.finishRun()
   }
 
-  private preProcess = async ({
-    event,
-    context,
-    request,
-  }: {
-    event,
-    context,
-    request?,
-  }) => {
+  private preProcess = async ({ event, context, request }: { event; context; request? }) => {
     await this.initPromise
 
     this.reset()
@@ -460,9 +461,7 @@ Previous exit stack: ${this.lastExitStack}`)
 
     context.callbackWaitsForEmptyEventLoop = false
 
-    if (this.source === EventSource.LAMBDA &&
-      event.requestContext &&
-      event.payload) {
+    if (this.source === EventSource.LAMBDA && event.requestContext && event.payload) {
       // some lambda invocations come wrapped
       // to propagate request context
       this.reqCtx = event.requestContext
@@ -470,22 +469,22 @@ Previous exit stack: ${this.lastExitStack}`)
     }
 
     if (this.source === EventSource.HTTP) {
-      if (typeof event.body === 'string') {
-        const enc = event.isBase64Encoded ? 'base64' : 'utf8'
+      if (typeof event.body === "string") {
+        const enc = event.isBase64Encoded ? "base64" : "utf8"
         event.body = new Buffer(event.body, enc)
       }
 
       const headers = caseless(request.headers)
-      if (!this.isEmulated && headers.get('content-encoding') === 'gzip') {
-        this.logger.silly('stripping content-encoding header as APIGateway already gunzipped')
-        headers.set('content-encoding', 'identity')
+      if (!this.isEmulated && headers.get("content-encoding") === "gzip") {
+        this.logger.silly("stripping content-encoding header as APIGateway already gunzipped")
+        headers.set("content-encoding", "identity")
         event.headers = request.headers
       }
     }
 
     this.setExecutionContext({ event, context })
     this.reqCtx = getRequestContext(this)
-    this.logger.info('request context', this.reqCtx)
+    this.logger.info("request context", this.reqCtx)
     if (isXrayOn()) {
       this.xraySegment = AWSXray.getSegment()
       // AWSXray.captureFunc('annotations', subsegment => {
@@ -506,14 +505,14 @@ Previous exit stack: ${this.lastExitStack}`)
     }
   }
 
-  private reset () {
+  private reset() {
     this.reqCtx = null
     this.execCtx = null
     this.lastExitStack = null
   }
 
   private _initHttp = () => {
-    const Koa = require('koa')
+    const Koa = require("koa")
     this.koa = new Koa()
     this.use(async (ctx, next) => {
       // pretty hacky!
@@ -521,31 +520,35 @@ Previous exit stack: ${this.lastExitStack}`)
       this.execCtx = ctx
       const overwritten = _.pick(execCtx, Object.keys(ctx))
       if (Object.keys(overwritten).length) {
-        this.logger.warn('overwriting these properties on execution context', Object.keys(overwritten))
+        this.logger.warn(
+          "overwriting these properties on execution context",
+          Object.keys(overwritten)
+        )
       }
 
       Object.assign(this.execCtx, execCtx)
 
-      this.emit('run')
+      this.emit("run")
       if (!this.done) {
         try {
           await next()
         } catch (err) {
-          this.logger.error('request hit an error', {
+          this.logger.error("request hit an error", {
             error: Errors.export(err)
           })
 
           // lambda should not fail!
           // it should return a failure status code but succeed
-          if (typeof err.status === 'number') {
+          if (typeof err.status === "number") {
             ctx.status = err.status
             ctx.body = { message: err.message }
-          } else if (!ctx.body && ctx.status === 404) { // koa defaults to 404
-            this.logger.debug('defaulting to status code 500')
+          } else if (!ctx.body && ctx.status === 404) {
+            // koa defaults to 404
+            this.logger.debug("defaulting to status code 500")
             ctx.status = 500
             ctx.body = this._exportError(err)
           } else {
-            this.logger.debug('status and body already set on failed req', {
+            this.logger.debug("status and body already set on failed req", {
               status: ctx.status,
               body: ctx.body,
               error: err.stack
@@ -565,19 +568,19 @@ Previous exit stack: ${this.lastExitStack}`)
     })
 
     if (!this.isLocal) {
-      this.use(require('koa-compress')())
+      this.use(require("koa-compress")())
     }
 
-    defineGetter(this, 'body', () => {
-      const { body={} } = this.execCtx.event
-      return typeof body === 'string' ? JSON.parse(body) : body
+    defineGetter(this, "body", () => {
+      const { body = {} } = this.execCtx.event
+      return typeof body === "string" ? JSON.parse(body) : body
     })
 
-    defineGetter(this, 'queryParams', () => {
+    defineGetter(this, "queryParams", () => {
       return this.execCtx.event.queryStringParameters || {}
     })
 
-    defineGetter(this, 'params', () => {
+    defineGetter(this, "params", () => {
       return this.execCtx.event.pathParameters || {}
     })
   }
@@ -589,7 +592,7 @@ Previous exit stack: ${this.lastExitStack}`)
       this.logger.debug(`received stack event`, event)
 
       let type = RequestType.toLowerCase()
-      type = type === 'create' ? 'init' : type
+      type = type === "create" ? "init" : type
       ctx.event = {
         type,
         payload: ResourceProperties
@@ -600,7 +603,10 @@ Previous exit stack: ${this.lastExitStack}`)
         // await bot.hooks.fire(type, ctx.event)
         await runWithTimeout(next, {
           millis: CF_EVENT_TIMEOUT,
-          error: () => new Errors.ExecutionTimeout(`lambda ${this.shortName} timed out after ${CF_EVENT_TIMEOUT}ms`),
+          error: () =>
+            new Errors.ExecutionTimeout(
+              `lambda ${this.shortName} timed out after ${CF_EVENT_TIMEOUT}ms`
+            )
         })
       } catch (e) {
         err = e
@@ -608,7 +614,7 @@ Previous exit stack: ${this.lastExitStack}`)
 
       if (ResponseURL) {
         const respond = err ? CFNResponse.sendError : CFNResponse.sendSuccess
-        const data = err ? _.pick(err, ['message', 'stack']) : {}
+        const data = err ? _.pick(err, ["message", "stack"]) : {}
         await respond(event, context, data)
         return
       }
@@ -620,8 +626,8 @@ Previous exit stack: ${this.lastExitStack}`)
 
   private _initCloudWatchLogs = () => {
     this.use(async (ctx, next) => {
-      ctx.gzippedEvent = new Buffer(ctx.event.awslogs.data, 'base64')
-      const str = zlib.gunzipSync(ctx.gzippedEvent).toString('utf8')
+      ctx.gzippedEvent = new Buffer(ctx.event.awslogs.data, "base64")
+      const str = zlib.gunzipSync(ctx.gzippedEvent).toString("utf8")
       ctx.event = JSON.parse(str)
 
       // once decoded, the CloudWatch invocation event looks like this:
@@ -656,9 +662,9 @@ Previous exit stack: ${this.lastExitStack}`)
     })
   }
 
-  public invoke = async (event) => {
+  public invoke = async event => {
     const context = createLambdaContext({
-      name: this.shortName,
+      name: this.shortName
     })
 
     return await this.handler(event, context)
@@ -667,10 +673,10 @@ Previous exit stack: ${this.lastExitStack}`)
   // important that this is lazy
   // because otherwise handlers attached after initialization
   // will not get composed properly
-  public get handler():LambdaHandler {
+  public get handler(): LambdaHandler {
     this._gotHandler = true
     if (this.source === EventSource.HTTP) {
-      const { createHandler } = require('./http-request-handler')
+      const { createHandler } = require("./http-request-handler")
       return createHandler({
         lambda: this,
         preProcess: (request, event, context) => this.preProcess({ request, event, context }),
@@ -679,8 +685,7 @@ Previous exit stack: ${this.lastExitStack}`)
     }
 
     return (event, context) => {
-      const promise = this.preProcess({ event, context })
-        .then(() => this.run())
+      const promise = this.preProcess({ event, context }).then(() => this.run())
 
       if (context && context.done) {
         // until issue is resolved, avoid returning a promise:
@@ -693,8 +698,8 @@ Previous exit stack: ${this.lastExitStack}`)
   }
 
   private setExecutionContext = ({ event, context, ...opts }) => {
-    const awsExecCtx:ILambdaAWSExecutionContext = {
-      ...context,
+    const awsExecCtx: ILambdaAWSExecutionContext = {
+      ...context
     }
 
     // don't understand the error...
@@ -703,7 +708,7 @@ Previous exit stack: ${this.lastExitStack}`)
       ...opts,
       done: false,
       event,
-      context: awsExecCtx,
+      context: awsExecCtx
     }
 
     return this.execCtx
@@ -717,13 +722,13 @@ Previous exit stack: ${this.lastExitStack}`)
     this.initPromise = Promise.resolve() // this.syncClock()
   }
 
-  private _exportError = (err) => {
+  private _exportError = err => {
     if (this.isLocal) {
       return Errors.export(err)
     }
 
     return {
-      message: 'execution failed'
+      message: "execution failed"
     }
   }
 
@@ -738,12 +743,12 @@ Previous exit stack: ${this.lastExitStack}`)
     service.$startRecording()
   }
 
-  private _dumpPendingServiceCalls = ():PendingCallsSummary => {
+  private _dumpPendingServiceCalls = (): PendingCallsSummary => {
     try {
       // should never fail cause of this
       return this.__dumpPendingServiceCalls()
     } catch (err) {
-      this.logger.error('failed to dump pending service calls', {
+      this.logger.error("failed to dump pending service calls", {
         error: err.stack
       })
 
@@ -751,11 +756,11 @@ Previous exit stack: ${this.lastExitStack}`)
     }
   }
 
-  private _dumpPendingHTTPRequests = ():RequestInfo[] => {
+  private _dumpPendingHTTPRequests = (): RequestInfo[] => {
     try {
       return requestInterceptor.getPending()
     } catch (err) {
-      this.logger.error('failed to dump pending http requests', {
+      this.logger.error("failed to dump pending http requests", {
         error: err.stack
       })
 
@@ -763,12 +768,12 @@ Previous exit stack: ${this.lastExitStack}`)
     }
   }
 
-  private _dumpServiceCalls = ():PendingCallsSummary => {
+  private _dumpServiceCalls = (): PendingCallsSummary => {
     try {
       // should never fail cause of this
       return this.__dumpServiceCalls()
     } catch (err) {
-      this.logger.error('failed to dump service calls', {
+      this.logger.error("failed to dump service calls", {
         error: err.stack
       })
 
@@ -781,11 +786,11 @@ Previous exit stack: ${this.lastExitStack}`)
       start: Infinity,
       duration: 0,
       services: {},
-      httpRequests: requestInterceptor.getPending(),
+      httpRequests: requestInterceptor.getPending()
     }
 
     forEachInstantiatedRecordableService(this.aws, (service, name) => {
-      if (name.toLowerCase() === 'iotdata') {
+      if (name.toLowerCase() === "iotdata") {
         // TODO: figure out why this fails
         // iotdata requires "endpoint" for initialization, as is initialized lazily, but...
         return
@@ -805,15 +810,15 @@ Previous exit stack: ${this.lastExitStack}`)
     return summary
   }
 
-  private __dumpServiceCalls = ():PendingCallsSummary => {
-    const summary:PendingCallsSummary = {
+  private __dumpServiceCalls = (): PendingCallsSummary => {
+    const summary: PendingCallsSummary = {
       start: Infinity,
       duration: 0,
-      services: {},
+      services: {}
     }
 
     forEachInstantiatedRecordableService(this.aws, (service, name) => {
-      if (name.toLowerCase() === 'iotdata') {
+      if (name.toLowerCase() === "iotdata") {
         // TODO: figure out why this fails
         // iotdata requires "endpoint" for initialization, as is initialized lazily, but...
         return
@@ -834,20 +839,20 @@ Previous exit stack: ${this.lastExitStack}`)
   }
 
   private _suicide = (reason: string) => {
-    this.logger.error('I am broken! Suiciding', {
+    this.logger.error("I am broken! Suiciding", {
       execCtx: this.execCtx,
       reqCtx: this.reqCtx,
       tasks: this.tasks.describe(),
-      reason,
+      reason
     })
 
     process.exit(1)
   }
 }
 
-const forEachInstantiatedRecordableService = (aws: AwsApis, fn) => {
-  const instantiated = aws.getInstantiated()
-  for (const name of instantiated) {
+const forEachInstantiatedRecordableService = (aws: ClientCache, fn) => {
+  const { instantiated } = aws
+  for (const name in instantiated) {
     const service = aws[name]
     if (service && service.$stopRecording) {
       fn(service, name)
@@ -855,16 +860,18 @@ const forEachInstantiatedRecordableService = (aws: AwsApis, fn) => {
   }
 }
 
-export const createLambda = <T extends ILambdaExecutionContext>(opts: ILambdaOpts<T>) => new BaseLambda(opts)
+export const createLambda = <T extends ILambdaExecutionContext>(opts: ILambdaOpts<T>) =>
+  new BaseLambda(opts)
 
-const getRequestContext = <T extends ILambdaExecutionContext>(lambda:BaseLambda<T>):IRequestContext => {
+const getRequestContext = <T extends ILambdaExecutionContext>(
+  lambda: BaseLambda<T>
+): IRequestContext => {
   const { execCtx } = lambda
   const { event, context } = execCtx
-  const correlationId = lambda.source === EventSource.HTTP
-    ? event.requestContext.requestId
-    : context.awsRequestId
+  const correlationId =
+    lambda.source === EventSource.HTTP ? event.requestContext.requestId : context.awsRequestId
 
-  const ctx:IRequestContext = {
+  const ctx: IRequestContext = {
     ...(lambda.reqCtx || {}),
     seq: lambda.requestCounter++,
     requestId: context.awsRequestId,
@@ -874,13 +881,13 @@ const getRequestContext = <T extends ILambdaExecutionContext>(lambda:BaseLambda<
     start: Date.now()
   }
 
-  defineGetter(ctx, 'botReady', () => lambda.bot.isReady())
+  defineGetter(ctx, "botReady", () => lambda.bot.isReady())
   if (lambda.env._X_AMZN_TRACE_ID) {
-    ctx['trace-id'] = lambda.env._X_AMZN_TRACE_ID
+    ctx["trace-id"] = lambda.env._X_AMZN_TRACE_ID
   }
 
   if (lambda.isEmulated) {
-    ctx['function'] = lambda.env.FUNCTION_NAME
+    ctx["function"] = lambda.env.FUNCTION_NAME
   }
 
   if (lambda.isCold) {

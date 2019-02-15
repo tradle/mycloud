@@ -1,13 +1,13 @@
-import typeforce from 'typeforce'
-import pick from 'lodash/pick'
-import { IKeyValueStore } from './types'
-import Errors from './errors'
-import { runWithTimeout } from './utils'
+import typeforce from "typeforce"
+import pick from "lodash/pick"
+import { KeyValueStore } from "./types"
+import Errors from "./errors"
+import { runWithTimeout } from "./utils"
 
-const STATE_TYPE = 'tradle.cloud.StreamProcessingError'
+const STATE_TYPE = "tradle.cloud.StreamProcessingError"
 
 type StreamProcessorOpts = {
-  store: IKeyValueStore
+  store: KeyValueStore
 }
 
 interface IErrorCheckpoint {
@@ -28,23 +28,26 @@ type ProcessBatchOpts = {
 }
 
 export default class StreamProcessor {
-  private store: IKeyValueStore
+  private store: KeyValueStore
   constructor({ store }: StreamProcessorOpts) {
     this.store = store
   }
 
   public processBatch = async (opts: ProcessBatchOpts) => {
-    typeforce({
-      batch: 'Array',
-      worker: 'Function',
-      perItemTimeout: 'Number',
-      timeout: 'Number'
-    }, opts)
+    typeforce(
+      {
+        batch: "Array",
+        worker: "Function",
+        perItemTimeout: "Number",
+        timeout: "Number"
+      },
+      opts
+    )
 
     let { batch, worker, perItemTimeout, timeout } = opts
     const start = Date.now()
     const batchId = batch[0].id
-    let checkpoint:IErrorCheckpoint
+    let checkpoint: IErrorCheckpoint
     try {
       checkpoint = await this.store.get(batchId)
     } catch (err) {
@@ -70,7 +73,7 @@ export default class StreamProcessor {
         }
 
         await runWithTimeout(() => worker(event), {
-          millis: perItemTimeout,
+          millis: perItemTimeout
         })
 
         // we've passed the checkpoint!
@@ -78,7 +81,7 @@ export default class StreamProcessor {
         checkpoint.errors = []
       } catch (error) {
         checkpoint.eventId = event.id
-        checkpoint.errors.push(pick(error, ['message', 'stack']))
+        checkpoint.errors.push(pick(error, ["message", "stack"]))
         break
       }
     }

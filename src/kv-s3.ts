@@ -1,11 +1,11 @@
 // NOT USED ANYMORE
 //
 // import {
-//   IKeyValueStore,
+//   KeyValueStore,
 //   Bucket,
 // } from './types'
 
-// export class KV implements IKeyValueStore {
+// export class KV implements KeyValueStore {
 //   private bucket: Bucket
 //   private compress: boolean
 //   constructor({ bucket, compress }: {

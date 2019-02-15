@@ -1,11 +1,11 @@
-import { LambdaClient } from "./types"
+import { LambdaClient } from "../types"
 import {
   DEFAULT_WARMUP_EVENT,
   WARMUP_FUNCTION,
   REINITIALIZE_CONTAINERS_FUNCTION,
   SEALPENDING_FUNCTION,
   POLLCHAIN_FUNCTION
-} from "./constants"
+} from "../constants"
 
 export interface LambdaInvokerOpts {
   client: LambdaClient

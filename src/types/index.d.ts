@@ -4,6 +4,8 @@ import { Context as KoaContext } from "koa"
 import { GraphQLSchema, ExecutionResult as GraphqlExecutionResult } from "graphql"
 import { Table, DB, Models, Model, Diff, FindOpts } from "@tradle/dynamodb"
 import { AppLinks } from "@tradle/qr-schema"
+import { KeyValueStore, KeyValueStoreExtended } from "@tradle/aws-common-utils"
+import { ClientCache } from "@tradle/aws-client-factory"
 import { Bucket, MemoizedBucket, S3Client } from "@tradle/aws-s3-client"
 import { LambdaClient } from "@tradle/aws-lambda-client"
 import { SNSClient } from "@tradle/aws-sns-client"
@@ -13,7 +15,7 @@ import { CloudWatchClient } from "@tradle/aws-cloudwatch-client"
 import { ResourceStub } from "@tradle/validate-resource"
 import { Logger } from "../logger"
 import { BaseLambda, LambdaHttp, Lambda, EventSource } from "../lambda"
-import { LambdaInvoker } from "../lambda-invoker"
+import { LambdaInvoker } from "../aws/lambda-invoker"
 import { Bot } from "../bot"
 import { Users } from "../users"
 import { Env } from "../env"
@@ -40,7 +42,7 @@ import { CacheableBucketItem } from "../cacheable-bucket-item"
 import { Friends } from "../friends"
 import { Push } from "../push"
 import { User } from "../user"
-import { Discovery } from "../discovery"
+// import { Discovery } from "../discovery"
 import { Backlinks } from "../backlinks"
 import { StackUtils } from "../stack-utils"
 import { Iot, IIotEndpointInfo } from "../iot-utils"
@@ -48,8 +50,7 @@ import { Events, EventTopic } from "../events"
 import { Mailer } from "../mailer"
 import { MiddlewareContainer } from "../middleware-container"
 
-import { ClientCache } from "@tradle/aws-client-factory"
-export { ClientCache, ClientCache as AwsApis }
+export { KeyValueStore, KeyValueStoreExtended, ClientCache, ClientCache as AwsApis }
 
 export {
   ResourceStub,
@@ -106,7 +107,7 @@ export {
   Friends,
   Push,
   User,
-  Discovery,
+  // Discovery,
   Lambda,
   LambdaHttp,
   BaseLambda,
@@ -684,14 +685,19 @@ export interface IBackoffOptions {
   shouldTryAgain?: (err?: Error) => boolean
 }
 
-export interface IKeyValueStore {
-  exists: (key: string) => Promise<boolean>
-  get: (key: string, opts?: any) => Promise<any>
-  put: (key: string, value: any, opts?: any) => Promise<void | any>
-  del: (key: string, opts?: any) => Promise<void>
-  update?: (key: string, opts?: any) => Promise<void | any>
-  sub?: (prefix: string) => IKeyValueStore
+export interface UpdateableKeyValueStore extends KeyValueStoreExtended {
+  update: (key: string, opts?: any) => Promise<void | any>
+  sub: (prefix: string) => UpdateableKeyValueStore
 }
+
+// export interface KeyValueStore {
+//   exists: (key: string) => Promise<boolean>
+//   get: (key: string, opts?: any) => Promise<any>
+//   put: (key: string, value: any, opts?: any) => Promise<void | any>
+//   del: (key: string, opts?: any) => Promise<void>
+//   update?: (key: string, opts?: any) => Promise<void | any>
+//   sub?: (prefix: string) => KeyValueStore
+// }
 
 export interface IUser {
   id: string

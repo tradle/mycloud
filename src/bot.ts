@@ -79,7 +79,8 @@ import {
   ResourceStub,
   LambdaInvoker,
   IAMClient,
-  CloudFormationClient
+  CloudFormationClient,
+  CloudWatchClient
 } from "./types"
 
 import { createLinker, appLinks as defaultAppLinks } from "./app-links"
@@ -100,7 +101,7 @@ import { createSealBatcher } from "./batch-seals"
 import Blockchain from "./blockchain"
 import Backlinks from "./backlinks"
 import Delivery from "./delivery"
-import Discovery from "./discovery"
+// import Discovery from "./discovery"
 import Friends from "./friends"
 import Init from "./init"
 import User from "./user"
@@ -205,7 +206,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public kv: KV
   public auth: Auth
   public delivery: Delivery
-  public discovery: Discovery
+  // public discovery: Discovery
   public seals: Seals
   public sealBatcher?: SealBatcher
   public blockchain: Blockchain
@@ -223,6 +224,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public lambdaWarmup: LambdaWarmUp
   public stackUtils: StackUtils
   public cloudformation: CloudFormationClient
+  public cloudwatch: CloudWatchClient
   public tasks: TaskManager
   public modelStore: ModelStore
   public mailer: IMailer
@@ -469,6 +471,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     // const stackUtils = (bot.stackUtils = awsServices.cloudformation(getAWSClientOpts())
 
     bot.stackUtils = new StackUtils({
+      cfClient: bot.cloudformation,
       apiId: serviceMap.RestApi.ApiGateway.id,
       stackArn: serviceMap.Stack,
       deploymentBucket: buckets.ServerlessDeployment,
@@ -479,6 +482,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     })
 
     bot.cloudformation = awsServices.cloudformation({ client: awsClientCache.cloudformation })
+    bot.cloudwatch = awsServices.cloudwatch({ client: awsClientCache.cloudwatch })
 
     const iot = (bot.iot = new Iot({
       services: awsClientCache,
@@ -651,7 +655,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     }))
 
     bot.define("init", "./init", bot.construct)
-    bot.define("discovery", "./discovery", bot.construct)
+    // bot.define("discovery", "./discovery", bot.construct)
     bot.define("userSim", "./user", bot.construct)
 
     const delivery = (bot.delivery = new Delivery({

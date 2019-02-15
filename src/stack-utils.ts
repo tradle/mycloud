@@ -1,12 +1,13 @@
 import _ from "lodash"
-// @ts-ignore
-import Promise from "bluebird"
-import { Lambda } from "aws-sdk"
+import {
+  updateLambdaEnvironmentsForStack,
+  TransformFunctionConfig,
+  reinitializeContainers
+} from "@tradle/aws-combo"
 import { CloudFormationClient } from "@tradle/aws-cloudformation-client"
 import {
   Env,
   Logger,
-  AwsApis,
   LambdaUtils,
   Bucket,
   ILaunchStackUrlOpts,
@@ -22,7 +23,7 @@ import { splitCamelCaseToArray, replaceAll } from "./string-utils"
 
 // const version = require('./version') as VersionInfo
 
-type StackInfo = {
+interface StackInfo {
   arn: string
   name: string
   region: string
@@ -30,9 +31,9 @@ type StackInfo = {
 
 const stripDashes = str => str.replace(/[-]/g, "")
 
-type StackUtilsOpts = {
+interface StackUtilsOpts {
   aws: ClientCache
-  client: CloudFormationClient
+  cfClient: CloudFormationClient
   env: Env
   stackArn: string
   apiId: string
@@ -41,23 +42,9 @@ type StackUtilsOpts = {
   deploymentBucket: Bucket
 }
 
-type UpdateEnvOpts = {
-  functionName?: string
-  current?: any
-  update: any
-}
-
-type UpdateEnvResult = {
-  functionName: string
-  result?: any
-  error?: Error
-}
-
-type TransformFunctionConfig = (conf: Lambda.Types.FunctionConfiguration) => any
-
 export default class StackUtils {
   private aws?: ClientCache
-  private client: CloudFormationClient
+  private cfClient: CloudFormationClient
   private env: Env
   private logger: Logger
   private lambdaUtils: LambdaUtils
@@ -70,7 +57,7 @@ export default class StackUtils {
 
   constructor({
     aws,
-    client,
+    cfClient,
     env,
     logger,
     lambdaUtils,
@@ -79,7 +66,7 @@ export default class StackUtils {
     deploymentBucket
   }: StackUtilsOpts) {
     this.aws = aws
-    this.client = client
+    this.cfClient = cfClient
     this.env = env
     this.logger = logger
     this.lambdaUtils = lambdaUtils
@@ -176,7 +163,7 @@ export default class StackUtils {
     templateUrl
   }: IUpdateStackUrlOpts) => {
     if (!stackId) {
-      const stacks = await this.client.listStacks()
+      const stacks = await this.cfClient.listStacks()
       const stack = stacks.find(({ StackName }) => StackName === stackName)
       if (!stack) {
         throw new Errors.NotFound(`stack with name: ${stackName}`)
@@ -212,7 +199,7 @@ export default class StackUtils {
       return this._getLocalStackTemplate()
     }
 
-    return this.client.getStackTemplate(this.thisStackArn)
+    return this.cfClient.getStackTemplate(this.thisStackArn)
   }
 
   private _getLocalStackTemplate = async () => {
@@ -231,77 +218,6 @@ export default class StackUtils {
       {}
     )
   }
-
-  public static lockParametersToDefaults = (template: CFTemplate) => {
-    const { Parameters = {} } = template
-    Object.keys(Parameters).forEach(name => {
-      const param = Parameters[name]
-      if (typeof param.Default !== "undefined") {
-        param.AllowedValues = [param.Default]
-      }
-    })
-  }
-
-  public getLambdaS3Keys = opts => this.client.getLambdaS3Keys(opts)
-  public updateStack = async ({
-    templateUrl,
-    notificationTopics = []
-  }: {
-    templateUrl: string
-    notificationTopics?: string[]
-  }) => {
-    const params: AWS.CloudFormation.UpdateStackInput = {
-      StackName: this.thisStackArn,
-      TemplateURL: templateUrl,
-      Capabilities: ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM"],
-      Parameters: []
-    }
-
-    if (notificationTopics.length) {
-      params.NotificationARNs = notificationTopics
-    }
-
-    this.logger.info("updating this stack")
-    return this.aws.cloudformation.updateStack(params).promise()
-  }
-
-  public enableTerminationProtection = async (stackName = this.thisStack.name) => {
-    await this._changeTerminationProtection({ stackName, enable: true })
-  }
-
-  public disableTerminationProtection = async (stackName = this.thisStack.name) => {
-    await this._changeTerminationProtection({ stackName, enable: false })
-  }
-
-  private _changeTerminationProtection = async ({
-    stackName,
-    enable
-  }: {
-    stackName: string
-    enable: boolean
-  }) => {
-    await this.aws.cloudformation
-      .updateTerminationProtection({
-        StackName: stackName,
-        EnableTerminationProtection: enable
-      })
-      .promise()
-
-    this.logger.debug("changed stack termination protection", {
-      protected: enable,
-      stack: stackName
-    })
-  }
-
-  public static getResourcesByType = (template: CFTemplate, type: string) => {
-    return StackUtils.getResourceNamesByType(template, type).map(name => template.Resources[name])
-  }
-
-  public static getResourceNamesByType = (template: CFTemplate, type: string) => {
-    const { Resources } = template
-    return Object.keys(Resources).filter(name => Resources[name].Type === type)
-  }
-
   public static getStackLocationKeys = ({
     stage,
     versionInfo
@@ -343,24 +259,52 @@ export default class StackUtils {
       deploymentBucket: this.deploymentBucket
     })
 
+  public updateEnvironments = async (map: TransformFunctionConfig) =>
+    this.updateEnvironmentsForStack({
+      stackName: this.thisStackArn,
+      map
+    })
+
+  public updateEnvironmentsForStack = async ({
+    map,
+    stackName
+  }: {
+    map: TransformFunctionConfig
+    stackName: string
+  }) => {
+    await updateLambdaEnvironmentsForStack({
+      lambda: this.lambdaUtils,
+      cloudformation: this.cfClient,
+      stackName,
+      map
+    })
+  }
+
+  public getStackResources = () => this.cfClient.getStackResources(this.thisStackArn)
+  public getStackParameterValues = () => this.cfClient.getStackParameterValues(this.thisStackArn)
+  public updateStack = opts => this.cfClient.updateStack({ stackName: this.thisStackArn, ...opts })
+  public reinitializeContainers = async (functions?: string[]) =>
+    reinitializeContainers({
+      cloudformation: this.cfClient,
+      lambda: this.lambdaUtils,
+      functions,
+      stackName: functions ? null : this.thisStackArn
+    })
+
   // public changeAdminEmail = StackUtils.changeAdminEmail
 }
 
 export { StackUtils }
 export const create = opts => new StackUtils(opts)
 
-const getDateUpdatedEnvironmentVariables = () => ({
-  DATE_UPDATED: String(Date.now())
-})
-
 // copied from serverless/lib/plugins/aws/lib/naming.js
-const normalizePathPart = path =>
-  _.upperFirst(
-    _.capitalize(path)
-      .replace(/-/g, "Dash")
-      .replace(/\{(.*)\}/g, "$1Var")
-      .replace(/[^0-9A-Za-z]/g, "")
-  )
+// const normalizePathPart = path =>
+//   _.upperFirst(
+//     _.capitalize(path)
+//       .replace(/-/g, "Dash")
+//       .replace(/\{(.*)\}/g, "$1Var")
+//       .replace(/[^0-9A-Za-z]/g, "")
+//   )
 
-const toAutoScalingRegionFormat = (region: string) =>
-  _.upperFirst(region.replace(/[^a-zA-Z0-9]/gi, ""))
+// const toAutoScalingRegionFormat = (region: string) =>
+//   _.upperFirst(region.replace(/[^a-zA-Z0-9]/gi, ""))

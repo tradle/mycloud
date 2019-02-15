@@ -164,8 +164,8 @@ type DBOpts = {
 }
 
 export = function createDB({ modelStore, objects, clients, dbUtils, messages, logger }: DBOpts) {
-  const docClient = clients.documentclient()
-  const dynamodb = clients.dynamodb()
+  const docClient = clients.documentclient
+  const dynamodb = clients.dynamodb
   dynogels.dynamoDriverAndDocClient(dynamodb, docClient)
 
   const tableBuckets = dbUtils.getTableBuckets()

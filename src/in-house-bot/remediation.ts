@@ -1,29 +1,29 @@
-import _ from 'lodash'
-import createError from 'error-ex'
+import _ from "lodash"
+import createError from "error-ex"
 // @ts-ignore
-import Promise from 'bluebird'
-import crypto from 'crypto'
-import QR from '@tradle/qr-schema'
+import Promise from "bluebird"
+import crypto from "crypto"
+import QR from "@tradle/qr-schema"
 // import { createPlugin as createRemediationPlugin, Remediation } from './plugins/remediation'
-import { TYPE, SIG, AUTHOR, OWNER } from '@tradle/constants'
-import buildResource from '@tradle/build-resource'
-import baseModels from '../models'
-import Errors from '../errors'
-import { TYPES } from './constants'
-import { ContentAddressedStore } from '../content-addressed-store'
-import { stubToId, idToStub } from './data-claim'
+import { TYPE, SIG, AUTHOR, OWNER } from "@tradle/constants"
+import buildResource from "@tradle/build-resource"
+import baseModels from "../models"
+import Errors from "../errors"
+import { TYPES } from "./constants"
+import { ContentAddressedStore } from "../content-addressed-store"
+import { stubToId, idToStub } from "./data-claim"
 import {
   Logger,
   Bot,
-  IKeyValueStore,
   ClaimType,
   ClaimStub,
   IPBUser,
   ITradleObject,
   IPBApp,
   IPBReq,
-  IDataBundle
-} from './types'
+  IDataBundle,
+  KeyValueStoreExtended
+} from "./types"
 
 const {
   DATA_CLAIM,
@@ -38,15 +38,15 @@ const {
 const notNull = val => !!val
 const getDraftPermalinkFromStub = (stub: ClaimStub) => stub.key
 
-const DEFAULT_CLAIM_NOT_FOUND_MESSAGE = 'Claim not found'
-const DEFAULT_BUNDLE_MESSAGE = 'Please see your data and verifications'
+const DEFAULT_CLAIM_NOT_FOUND_MESSAGE = "Claim not found"
+const DEFAULT_BUNDLE_MESSAGE = "Please see your data and verifications"
 const CustomErrors = {
-  ClaimNotFound: createError('ClaimNotFound'),
-  InvalidBundleItem: createError('InvalidBundleItem'),
-  InvalidBundlePointer: createError('InvalidBundlePointer')
+  ClaimNotFound: createError("ClaimNotFound"),
+  InvalidBundleItem: createError("InvalidBundleItem"),
+  InvalidBundlePointer: createError("InvalidBundlePointer")
 }
 
-const DEFAULT_CLAIM_TYPE:ClaimType = 'bulk'
+const DEFAULT_CLAIM_TYPE: ClaimType = "bulk"
 
 export { CustomErrors as Errors }
 
@@ -77,10 +77,7 @@ interface IHandlePrefillClaimOpts {
   claimId?: string
 }
 
-export {
-  idToStub,
-  stubToId
-}
+export { idToStub, stubToId }
 
 export type RemediationOpts = {
   bot: Bot
@@ -94,34 +91,32 @@ export class Remediation {
   public bot: Bot
   public productsAPI: any
   public logger: Logger
-  public keyToClaimIds: IKeyValueStore
+  public keyToClaimIds: KeyValueStoreExtended
   public store: ContentAddressedStore
   public conf: any
-  constructor ({
-    bot,
-    productsAPI,
-    logger,
-    conf=DEFAULT_CONF
-  }: RemediationOpts) {
+  constructor({ bot, productsAPI, logger, conf = DEFAULT_CONF }: RemediationOpts) {
     this.bot = bot
     this.productsAPI = productsAPI
     this.logger = logger
     this.conf = conf
-    this.keyToClaimIds = bot.conf.sub('remediation:')
+    this.keyToClaimIds = bot.conf.sub("remediation:")
     this.store = new ContentAddressedStore({
-      bucket: bot.buckets.PrivateConf.folder('remediation'),
+      bucket: bot.buckets.PrivateConf.folder("remediation")
     })
   }
 
-  public saveUnsignedDataBundle = async (bundle) => {
+  public saveUnsignedDataBundle = async bundle => {
     this.validateBundle(bundle)
     return await this.store.put(bundle)
   }
 
-  public createClaim = async ({ key, claimType }: {
+  public createClaim = async ({
+    key,
+    claimType
+  }: {
     key: string
     claimType: ClaimType
-  }):Promise<ClaimStub> => {
+  }): Promise<ClaimStub> => {
     const claimStub = await this.genClaimStub({ key, claimType })
     const claimIds = await this.getClaimIdsForKey({ key })
     claimIds.push(claimStub.claimId)
@@ -129,41 +124,35 @@ export class Remediation {
     return claimStub
   }
 
-  public deleteClaimsForBundle = async ({ key, claimId }: {
-    key?: string
-    claimId?: string
-  }) => {
+  public deleteClaimsForBundle = async ({ key, claimId }: { key?: string; claimId?: string }) => {
     if (!key) key = idToStub(claimId).key
 
-    await Promise.all([
-      this.keyToClaimIds.del(key),
-      this.store.del(key)
-    ])
+    await Promise.all([this.keyToClaimIds.del(key), this.store.del(key)])
   }
 
-  public onClaimRedeemed = async ({ user, claimId }: {
-    user: any,
-    claimId: string
-  }) => {
+  public onClaimRedeemed = async ({ user, claimId }: { user: any; claimId: string }) => {
     if (this.conf.deleteRedeemedClaims) {
       this.logger.debug(`claim processed, deleting claim stubs`, { claimId, user: user.id })
       await this.deleteClaimsForBundle({ claimId })
     }
   }
 
-  public getBundle = async ({ key, claimId }: {
-    key?:string,
-    claimId?:string
-  }):Promise<IDataBundle> => {
+  public getBundle = async ({
+    key,
+    claimId
+  }: {
+    key?: string
+    claimId?: string
+  }): Promise<IDataBundle> => {
     if (!key) key = idToStub(claimId).key
     return this.getBundleByKey({ key })
   }
 
-  public getBundleByKey = async ({ key }: KeyContainer):Promise<IDataBundle> => {
+  public getBundleByKey = async ({ key }: KeyContainer): Promise<IDataBundle> => {
     return await this.store.getJSON(key)
   }
 
-  public getBundleByClaimId = async (claimId: string):Promise<IDataBundle> => {
+  public getBundleByClaimId = async (claimId: string): Promise<IDataBundle> => {
     const { key } = idToStub(claimId)
     const claimIds = await this.getClaimIdsForKey({ key })
     if (claimIds.includes(claimId)) {
@@ -173,29 +162,38 @@ export class Remediation {
     throw new Errors.NotFound(`claim not found with claimId: ${claimId}`)
   }
 
-  public listClaimsForBundle = async ({ key }: KeyContainer):Promise<ClaimStub[]> => {
+  public listClaimsForBundle = async ({ key }: KeyContainer): Promise<ClaimStub[]> => {
     const ids = await this.getClaimIdsForKey({ key })
     return await Promise.all(ids.map(id => this.toClaimStub(idToStub(id))))
   }
 
-  public genClaimStub = async ({ key, bundle, claimType }: {
-    bundle?:any
-    key?:string
+  public genClaimStub = async ({
+    key,
+    bundle,
+    claimType
+  }: {
+    bundle?: any
+    key?: string
     claimType?: ClaimType
-  }):Promise<ClaimStub> => {
+  }): Promise<ClaimStub> => {
     if (!key) key = this.store.getKey(bundle)
 
     const nonce = crypto.randomBytes(NONCE_LENGTH)
     return await this.toClaimStub({ key, nonce, bundle, claimType })
   }
 
-  public toClaimStub = async ({ key, nonce, bundle, claimType }: {
+  public toClaimStub = async ({
+    key,
+    nonce,
+    bundle,
+    claimType
+  }: {
     key: string
-    nonce: string|Buffer
+    nonce: string | Buffer
     claimType: ClaimType
     bundle?: any
-  }):Promise<ClaimStub> => {
-    if (claimType === 'bulk' && !bundle) {
+  }): Promise<ClaimStub> => {
+    if (claimType === "bulk" && !bundle) {
       try {
         await this.getBundle({ key })
       } catch (err) {
@@ -210,27 +208,29 @@ export class Remediation {
     const importDataPayload = {
       host: this.bot.apiBaseUrl,
       provider,
-      dataHash,
+      dataHash
     }
 
     const qrData = QR.toHex({
-      schema: 'ImportData',
-      data: importDataPayload,
+      schema: "ImportData",
+      data: importDataPayload
     })
 
-    const [mobile, web] = ['mobile', 'web'].map(platform => this.bot.appLinks.getImportDataLink({
-      platform,
-      schema: 'ImportData',
-      ...importDataPayload,
-    }))
+    const [mobile, web] = ["mobile", "web"].map(platform =>
+      this.bot.appLinks.getImportDataLink({
+        platform,
+        schema: "ImportData",
+        ...importDataPayload
+      })
+    )
 
     return {
       key,
-      nonce: typeof nonce === 'string' ? nonce : nonce.toString('hex'),
+      nonce: typeof nonce === "string" ? nonce : nonce.toString("hex"),
       claimId,
       claimType,
       qrData,
-      links: { mobile, web },
+      links: { mobile, web }
     }
   }
 
@@ -276,7 +276,7 @@ export class Remediation {
     req,
     user,
     claimId,
-    message=DEFAULT_BUNDLE_MESSAGE
+    message = DEFAULT_BUNDLE_MESSAGE
   }) => {
     let unsigned
     try {
@@ -292,15 +292,19 @@ export class Remediation {
       req,
       to: user,
       object: buildResource({
-          models: this.bot.models,
-          model: DATA_BUNDLE,
-        })
+        models: this.bot.models,
+        model: DATA_BUNDLE
+      })
         .set({ items, message })
         .toJSON()
     })
   }
 
-  public prepareBundleItems = async ({ user, items, claimId }: {
+  public prepareBundleItems = async ({
+    user,
+    items,
+    claimId
+  }: {
     user: IPBUser
     items: ITradleObject[]
     claimId: string
@@ -315,72 +319,87 @@ export class Remediation {
         throw new CustomErrors.InvalidBundleItem(`missing model for item at index: ${i}`)
       }
 
-      if (model.id !== VERIFICATION &&
+      if (
+        model.id !== VERIFICATION &&
         model.subClassOf !== FORM &&
-        model.subClassOf !== MY_PRODUCT) {
-        throw new CustomErrors.InvalidBundleItem(`invalid item at index ${i}, expected form, verification or MyProduct`)
+        model.subClassOf !== MY_PRODUCT
+      ) {
+        throw new CustomErrors.InvalidBundleItem(
+          `invalid item at index ${i}, expected form, verification or MyProduct`
+        )
       }
     })
 
     items = items.map(item => _.clone(item))
-    items = await Promise.all(items.map(async (item) => {
-      if (models[item[TYPE]].subClassOf === FORM) {
-        item[OWNER] = owner
-        return await bot.sign(item)
-      }
+    items = await Promise.all(
+      items.map(async item => {
+        if (models[item[TYPE]].subClassOf === FORM) {
+          item[OWNER] = owner
+          return await bot.sign(item)
+        }
 
-      return item
-    }))
+        return item
+      })
+    )
 
-    items = await Promise.all(items.map(async (item) => {
-      if (item[TYPE] === VERIFICATION) {
-        item = this.resolvePointers({ items, item })
-        return await bot.sign(item)
-      }
+    items = await Promise.all(
+      items.map(async item => {
+        if (item[TYPE] === VERIFICATION) {
+          item = this.resolvePointers({ items, item })
+          return await bot.sign(item)
+        }
 
-      return item
-    }))
+        return item
+      })
+    )
 
-    items = await Promise.all(items.map(async (item) => {
-      if (models[item[TYPE]].subClassOf === MY_PRODUCT) {
-        item = this.resolvePointers({ items, item })
-        return await bot.sign(item)
-      }
+    items = await Promise.all(
+      items.map(async item => {
+        if (models[item[TYPE]].subClassOf === MY_PRODUCT) {
+          item = this.resolvePointers({ items, item })
+          return await bot.sign(item)
+        }
 
-      return item
-    }))
+        return item
+      })
+    )
 
     return items
   }
 
-  public validateBundle = (bundle) => {
-    let items = bundle.items.map(item => _.extend({
-      [SIG]: 'sigplaceholder',
-      [AUTHOR]: 'authorplaceholder',
-      _time: Date.now()
-    }, item))
+  public validateBundle = bundle => {
+    let items = bundle.items.map(item =>
+      _.extend(
+        {
+          [SIG]: "sigplaceholder",
+          [AUTHOR]: "authorplaceholder",
+          _time: Date.now()
+        },
+        item
+      )
+    )
 
     items = items.map(item => this.resolvePointers({ items, item }))
     items.forEach(resource => this.bot.validateResource(resource))
   }
 
-  public getInviteForDraftApp = async ({ application }: {
-    application: ITradleObject
-  }) => {
+  public getInviteForDraftApp = async ({ application }: { application: ITradleObject }) => {
     const { claimId } = await this.createClaimForApplication({
       draft: application,
-      claimType: 'prefill'
+      claimType: "prefill"
     })
 
     const provider = await this.bot.getPermalink()
     const context = claimId
-    const [mobile, web] = ['mobile', 'web'].map(platform => this.bot.appLinks.getApplyForProductLink({
-      provider,
-      host: this.bot.apiBaseUrl,
-      product: application.requestFor,
-      contextId: context,
-      platform
-    }))
+    const [mobile, web] = ["mobile", "web"].map(platform =>
+      this.bot.appLinks.getApplyForProductLink({
+        provider,
+        host: this.bot.apiBaseUrl,
+        product: application.requestFor,
+        contextId: context,
+        platform
+      })
+    )
 
     return {
       links: { mobile, web },
@@ -394,14 +413,14 @@ export class Remediation {
     item = _.clone(item)
     if (model.id === VERIFICATION) {
       if (item.document == null) {
-        throw new CustomErrors.InvalidBundlePointer('expected verification.document to point to a form or index in bundle')
+        throw new CustomErrors.InvalidBundlePointer(
+          "expected verification.document to point to a form or index in bundle"
+        )
       }
 
       item.document = this.getFormStub({ items, ref: item.document })
       if (item.sources) {
-        item.sources = item.sources.map(
-          source => this.resolvePointers({ items, item: source })
-        )
+        item.sources = item.sources.map(source => this.resolvePointers({ items, item: source }))
       }
     } else if (model.subClassOf === MY_PRODUCT) {
       if (item.forms) {
@@ -426,10 +445,13 @@ export class Remediation {
   //   .toJSON()
   // }
 
-  public createClaimForApplication = async ({ draft, claimType }: {
-    draft: ITradleObject,
+  public createClaimForApplication = async ({
+    draft,
+    claimType
+  }: {
+    draft: ITradleObject
     claimType?: ClaimType
-  }):Promise<ClaimStub> => {
+  }): Promise<ClaimStub> => {
     return await this.createClaim({
       key: draft._permalink,
       claimType
@@ -448,7 +470,7 @@ export class Remediation {
     return buildResource.stub({ models, resource })
   }
 
-  private getClaim = async ({ key, claimId }: ClaimIdentifier):Promise<ClaimStub> => {
+  private getClaim = async ({ key, claimId }: ClaimIdentifier): Promise<ClaimStub> => {
     const stub = idToStub(claimId)
     if (!key) key = stub.key
 
@@ -461,7 +483,7 @@ export class Remediation {
     return stub
   }
 
-  private getClaimIdsForKey = async ({ key }: KeyContainer):Promise<ClaimStub[]> => {
+  private getClaimIdsForKey = async ({ key }: KeyContainer): Promise<ClaimStub[]> => {
     try {
       const { claimIds } = await this.keyToClaimIds.get(key)
       return claimIds
@@ -474,21 +496,21 @@ export class Remediation {
 
 export const createRemediation = (opts: RemediationOpts) => new Remediation(opts)
 
-export const isPrefillClaim = (payload:ITradleObject) => {
+export const isPrefillClaim = (payload: ITradleObject) => {
   if (payload[TYPE] === PRODUCT_REQUEST) {
     const claimId = getClaimIdFromPayload(payload)
     return !!claimId
   }
 }
 
-const getClaimIdFromPayload = (payload:ITradleObject) => {
+const getClaimIdFromPayload = (payload: ITradleObject) => {
   const { contextId } = payload
   if (payload[TYPE] === PRODUCT_REQUEST && isPrefillClaimId(contextId)) {
     return contextId
   }
 }
 
-const isPrefillClaimId = (claimId:string):boolean => {
+const isPrefillClaimId = (claimId: string): boolean => {
   if (claimId.length <= 64) return false
 
   try {
@@ -498,4 +520,3 @@ const isPrefillClaimId = (claimId:string):boolean => {
     return false
   }
 }
-

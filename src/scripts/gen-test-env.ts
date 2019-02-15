@@ -30,7 +30,7 @@ process.env.AWS_REGION = serverlessYml.provider.region
 const env = new Env(process.env)
 const logger = new Logger("gen:testenv")
 const aws = createClientCache()
-const lambdaUtils = new LambdaClient({ lambda: aws.lambda })
+const lambdaUtils = new LambdaClient({ client: aws.lambda })
 const getEnv = async () => {
   const setEnvFnName = `${prefix}onmessage`
   const { Environment } = await lambdaUtils.getConfiguration(setEnvFnName)

@@ -1,10 +1,10 @@
 // DEPRECATED, not currently used
 
 // import {
-//   IKeyValueStore
+//   KeyValueStore
 // } from './types'
 
-// export default class KeyValueTable implements IKeyValueStore {
+// export default class KeyValueTable implements KeyValueStore {
 //   private table:any
 //   private prefix:string
 //   constructor ({ table, prefix='' }) {

@@ -1,6 +1,7 @@
-import IotMessage from '@tradle/iot-message'
-import { cachifyPromiser } from './utils'
-import { AwsApis, Env, Logger } from './types'
+import AWS from "aws-sdk"
+import IotMessage from "@tradle/iot-message"
+import { cachifyPromiser } from "./utils"
+import { AwsApis, Env, Logger } from "./types"
 const DEFAULT_QOS = 1
 
 type IotOpts = {
@@ -20,65 +21,66 @@ export interface IIotEndpointInfo {
   clientIdPrefix: string
 }
 
-const isATSEndpoint = endpoint => endpoint.includes('-ats.iot')
+const isATSEndpoint = endpoint => endpoint.includes("-ats.iot")
 
 export default class Iot implements IIotEndpointInfo {
   public endpointInfo: IIotEndpointInfo
   public clientIdPrefix: string
   public parentTopic: string
   private services: AwsApis
-  private iotData: AWS.IotData
-  private env: Env
   private logger: Logger
   private prefix: string
-  constructor({ services, env, prefix = '' }: IotOpts) {
+  private endpointReady: boolean
+  constructor({ services, env, prefix = "" }: IotOpts) {
     this.services = services
-    this.env = env
     this.prefix = prefix
-    this.iotData = null
-    this.logger = env.logger.sub('iot-utils')
+    this.logger = env.logger.sub("iot-utils")
     this.clientIdPrefix = env.IOT_CLIENT_ID_PREFIX
     this.parentTopic = env.IOT_PARENT_TOPIC
     this.endpointInfo = {
       parentTopic: this.parentTopic,
-      clientIdPrefix: this.clientIdPrefix,
+      clientIdPrefix: this.clientIdPrefix
     }
   }
 
   public publish = async (params: IIotPublishOpts) => {
     params = { ...params }
-    if (!('qos' in params)) params.qos = DEFAULT_QOS
+    if (!("qos" in params)) params.qos = DEFAULT_QOS
 
     params.payload = await IotMessage.encode({
-      type: 'messages',
+      type: "messages",
       payload: params.payload,
-      encoding: 'gzip'
+      encoding: "gzip"
     })
 
     this.logger.debug(`publishing to ${params.topic}`)
-    if (!this.iotData) {
+    if (!this.endpointReady) {
       await this.getEndpoint()
-      this.iotData = this.services.iotData
+      this.endpointReady = true
     }
 
-    await this.iotData.publish(params).promise()
+    await this.services.iotdata.publish(params).promise()
   }
 
   public fetchEndpoint = async () => {
-    const { endpointAddress } = await this.services.iot.describeEndpoint({
-      endpointType: 'iot:Data-ATS',
-    }).promise()
+    const { endpointAddress } = await this.services.iot
+      .describeEndpoint({
+        endpointType: "iot:Data-ATS"
+      })
+      .promise()
 
     return endpointAddress
   }
 
   public getEndpoint = cachifyPromiser(async () => {
     // hack ./aws needs sync access to this var
-    if (!(this.env.IOT_ENDPOINT && isATSEndpoint(this.env.IOT_ENDPOINT))) {
-      this.env.IOT_ENDPOINT = await this.fetchEndpoint()
+    if (!AWS.config.iotdata.endpoint) {
+      AWS.config.update({
+        iotdata: { endpoint: await this.fetchEndpoint() }
+      })
     }
 
-    return this.env.IOT_ENDPOINT
+    return AWS.config.iotdata.endpoint
   })
 }
 

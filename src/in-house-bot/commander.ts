@@ -1,8 +1,6 @@
-import parse from 'yargs-parser'
-import { TYPE } from '@tradle/constants'
-import {
-  randomString
-} from '../crypto'
+import parse from "yargs-parser"
+import { TYPE } from "@tradle/constants"
+import { randomString } from "../crypto"
 
 import {
   IConfComponents,
@@ -17,19 +15,19 @@ import {
   IBotComponents,
   Deployment,
   IPBReq,
-  IKeyValueStore,
+  KeyValueStore,
   Applications,
   Friends
-} from './types'
+} from "./types"
 
-import Errors from '../errors'
-import { Commands } from './commands'
-import Logger from '../logger'
+import Errors from "../errors"
+import { Commands } from "./commands"
+import Logger from "../logger"
 
 const prettify = obj => JSON.stringify(obj, null, 2)
 const COMMAND_REGEX = /^\/?([^\s]+)\s*(.*)?\s*$/
-const FORBIDDEN_MESSAGE = 'Who do you think you are, the admin? This attempt will be logged.'
-const NOT_FOUND_MESSAGE = 'command not found'
+const FORBIDDEN_MESSAGE = "Who do you think you are, the admin? This attempt will be logged."
+const NOT_FOUND_MESSAGE = "command not found"
 const SUDO = {
   employee: true,
   allowed: true
@@ -56,15 +54,9 @@ interface IExecOpts extends ICommandParams {
 
 export const DEFAULT_ERROR_MESSAGE = `sorry, I don't understand. To see the list of supported commands, type: /help`
 export const COMMANDS_NAMES = Commands.keys()
-export const EMPLOYEE_COMMANDS_NAMES = Commands.keys()
-  .filter(key => !Commands.get(key).adminOnly)
+export const EMPLOYEE_COMMANDS_NAMES = Commands.keys().filter(key => !Commands.get(key).adminOnly)
 
-export const CUSTOMER_COMMANDS_NAMES = [
-  'help',
-  'listproducts',
-  'forgetme',
-  'tours',
-]
+export const CUSTOMER_COMMANDS_NAMES = ["help", "listproducts", "forgetme", "tours"]
 
 CUSTOMER_COMMANDS_NAMES.forEach(name => {
   const command = Commands.get(name)
@@ -74,22 +66,22 @@ CUSTOMER_COMMANDS_NAMES.forEach(name => {
 // export const SUDO_COMMANDS_NAMES = EMPLOYEE_COMMANDS_NAMES.concat(SUDO_ONLY_COMMANDS_NAMES)
 
 export interface CommanderOpts extends IBotComponents {
-  store: IKeyValueStore
+  store: KeyValueStore
 }
 
 export class Commander {
   public bot: Bot
   public friends: Friends
-  public productsAPI:any
-  public employeeManager:any
-  public applications:Applications
+  public productsAPI: any
+  public employeeManager: any
+  public applications: Applications
   public deployment?: Deployment
   public conf: IConfComponents
   public logger: Logger
   private components: IBotComponents
-  private store: IKeyValueStore
+  private store: KeyValueStore
 
-  constructor (components: CommanderOpts) {
+  constructor(components: CommanderOpts) {
     this.components = components
 
     const {
@@ -122,7 +114,7 @@ export class Commander {
     return CUSTOMER_COMMANDS_NAMES
   }
 
-  public getCommandByName = (name:string):ICommand => {
+  public getCommandByName = (name: string): ICommand => {
     let command
     try {
       command = Commands.get(name)
@@ -135,9 +127,9 @@ export class Commander {
     return command
   }
 
-  public execFromString = async (opts: ICommandInput):Promise<ICommandOutput> => {
+  public execFromString = async (opts: ICommandInput): Promise<ICommandOutput> => {
     const ctx = this._createCommandContext(opts)
-    const ret:ICommandOutput = { ctx }
+    const ret: ICommandOutput = { ctx }
     try {
       ret.result = await this._exec(ctx)
     } catch (err) {
@@ -152,7 +144,7 @@ export class Commander {
     const { commandName, argsStr } = ctx
     this.logger.debug(`processing command: ${commandName}`)
     this.ensureAuthorized(ctx)
-    const command = ctx.command = this.getCommandByName(commandName)
+    const command = (ctx.command = this.getCommandByName(commandName))
     ctx.args = command.parse
       ? command.parse(argsStr, command.parseOpts)
       : parse(argsStr, command.parseOpts)
@@ -172,16 +164,20 @@ export class Commander {
     // const message = typeof result === 'string' ? result : json2yaml(result)
     if (!result) return
 
-    const message = typeof result === 'string' ? result : prettify(result)
+    const message = typeof result === "string" ? result : prettify(result)
     await this.sendSimpleMessage({ req, to, message })
   }
 
-  public send = async (opts) => {
+  public send = async opts => {
     return await this.productsAPI.send(opts)
   }
 
-  public sendSimpleMessage = async ({ req, to, message }: {
-    req?: any,
+  public sendSimpleMessage = async ({
+    req,
+    to,
+    message
+  }: {
+    req?: any
     to: any
     message: string
   }) => {
@@ -189,19 +185,19 @@ export class Commander {
       req,
       to: to || req.user,
       object: {
-        [TYPE]: 'tradle.SimpleMessage',
+        [TYPE]: "tradle.SimpleMessage",
         message
       }
     })
   }
 
-  public hasCommand = (ctx:ICommandContext):boolean => {
+  public hasCommand = (ctx: ICommandContext): boolean => {
     // a bit roundabout, to support aliases
     const command = this.getCommandByName(ctx.commandName)
     return this.getAvailableCommands(ctx).includes(command.name)
   }
 
-  public ensureHasCommand = (ctx:ICommandContext) => {
+  public ensureHasCommand = (ctx: ICommandContext) => {
     if (this.hasCommand(ctx)) return
 
     if (ctx.employee && this.hasCommand({ ...ctx, sudo: true })) {
@@ -212,8 +208,8 @@ export class Commander {
     throw new Errors.NotFound(NOT_FOUND_MESSAGE)
   }
 
-  public defer = async (opts: IDeferredCommandParams):Promise<string> => {
-    const { command, extra, ttl, dateExpires, confirmationCode=genConfirmationCode() } = opts
+  public defer = async (opts: IDeferredCommandParams): Promise<string> => {
+    const { command, extra, ttl, dateExpires, confirmationCode = genConfirmationCode() } = opts
 
     this._ensureCommandExists(command)
     if (!(ttl || dateExpires)) {
@@ -225,7 +221,7 @@ export class Commander {
       command,
       extra,
       dateCreated,
-      dateExpires: dateExpires || (dateCreated + ttl * 1000)
+      dateExpires: dateExpires || dateCreated + ttl * 1000
     })
 
     return confirmationCode
@@ -251,23 +247,18 @@ export class Commander {
   //   return code
   // }
 
-  public execDeferred = async (code: string):Promise<ICommandOutput1> => {
+  public execDeferred = async (code: string): Promise<ICommandOutput1> => {
     let state
     try {
-      state = await this.store.get(code) as IConfirmationState
+      state = (await this.store.get(code)) as IConfirmationState
     } catch (error) {
       Errors.ignoreNotFound(error)
       return { error }
     }
 
-    const {
-      confirmed,
-      dateExpires,
-      command,
-      extra
-    } = state
+    const { confirmed, dateExpires, command, extra } = state
 
-    const ret:ICommandOutput1 = { command, extra }
+    const ret: ICommandOutput1 = { command, extra }
     if (confirmed) {
       // Exists might not be the right error
       ret.error = new Errors.Exists(`confirmation code has already been used: ${code}`)
@@ -293,7 +284,7 @@ export class Commander {
     }
   }
 
-  private _createCommandContext = (opts:ICommandInput):ICommandContext => {
+  private _createCommandContext = (opts: ICommandInput): ICommandContext => {
     let { req } = opts
     if (!req) req = this.productsAPI.state.newRequestState({})
 
@@ -310,7 +301,7 @@ export class Commander {
     }
   }
 
-  private ensureAuthorized = (ctx:ICommandContext) => {
+  private ensureAuthorized = (ctx: ICommandContext) => {
     const { req, commandName } = ctx
     const { user } = req
     if (user) {
@@ -333,7 +324,7 @@ const preParseCommand = (command: string) => {
     throw new Error(`received malformed command: ${command}`)
   }
 
-  const [commandName, argsStr=''] = match.slice(1)
+  const [commandName, argsStr = ""] = match.slice(1)
   return { commandName, argsStr }
 }
 

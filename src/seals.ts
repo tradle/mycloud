@@ -310,7 +310,7 @@ export default class Seals {
       unsealed: null
     }
 
-    const confirmed = this.network.confirmations == 0
+    const confirmed = this.network.confirmations === 0
     if (confirmed) {
       // clear field
       update.unconfirmed = null

@@ -195,8 +195,8 @@ function createDBUtils({
       }
     })
 
-    tableAPI.client = aws.documentclient()
-    tableAPI.rawClient = aws.dynamodb()
+    tableAPI.client = aws.documentclient
+    tableAPI.rawClient = aws.dynamodb
     tableAPI.name = TableName
     defineGetter(tableAPI, "definition", () => getCachedDefinition(TableName))
     tableAPI.batchProcess = ({ params = {}, ...opts }) => {
@@ -264,10 +264,7 @@ function createDBUtils({
   const exec = async (method, params) => {
     // params.ReturnConsumedCapacity = 'TOTAL'
     try {
-      const result = await aws
-        .documentclient()
-        [method](params)
-        .promise()
+      const result = await aws.documentclient[method](params).promise()
       // logCapacityConsumption(method, result)
       return result
     } catch (err) {
@@ -342,10 +339,7 @@ function createDBUtils({
     const definitions = getDefinitions()
     if (definitions[TableName]) return definitions[TableName]
 
-    const { Table } = await aws
-      .dynamodb()
-      .describeTable({ TableName })
-      .promise()
+    const { Table } = await aws.dynamodb.describeTable({ TableName }).promise()
     return Table
   }
 
@@ -378,10 +372,7 @@ function createDBUtils({
     let tables: string[] = []
     let opts: AWS.DynamoDB.ListTablesInput = {}
     while (true) {
-      let { TableNames, LastEvaluatedTableName } = await aws
-        .dynamodb()
-        .listTables(opts)
-        .promise()
+      let { TableNames, LastEvaluatedTableName } = await aws.dynamodb.listTables(opts).promise()
 
       tables = tables.concat(TableNames)
       if (!TableNames.length || !LastEvaluatedTableName) {

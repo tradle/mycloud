@@ -39,7 +39,7 @@ import { createTestBot } from "../"
 import { createSilentLogger } from "./utils"
 import { models as PingPongModels } from "../ping-pong-models"
 import { TaskManager } from "../task-manager"
-import { IKeyValueStore, Bot } from "../types"
+import { KeyValueStore, Bot, KeyValueStoreExtended, UpdateableKeyValueStore } from "../types"
 
 // const { KVTable } = require("../definitions")
 const aliceKeys = require("./fixtures/alice/keys")
@@ -385,20 +385,18 @@ test(
     t.end()
   })
 )
-
-type KVConstructor<T = {}> = new (...args: any[]) => T
 ;[
   // KeyValueTable,
   {
     name: "dynamodb based",
-    create: (bot: Bot): IKeyValueStore => {
+    create: (bot: Bot): UpdateableKeyValueStore => {
       const { aws, db, tables } = bot
       return new KV({ db, prefix: String(Date.now()) })
     }
   }
   // {
   //   name: "s3 based",
-  //   create: (bot: Bot): IKeyValueStore => {
+  //   create: (bot: Bot): KeyValueStore => {
   //     const { aws, db, tables } = bot
   //     return new KVS3({
   //       bucket: bot.buckets.PrivateConf.folder("test-" + Date.now())
@@ -410,14 +408,14 @@ type KVConstructor<T = {}> = new (...args: any[]) => T
     `key-value table (${name})`,
     loudAsync(async t => {
       const conf = create(bot)
-      t.equal(await conf.exists("a"), false)
+      t.equal(await conf.has("a"), false)
       await conf.put("a", {
         b: "c",
         age: 75,
         _time: 123
       })
 
-      t.equal(await conf.exists("a"), true)
+      t.equal(await conf.has("a"), true)
       t.same(await conf.get("a"), {
         b: "c",
         age: 75,
@@ -457,7 +455,7 @@ type KVConstructor<T = {}> = new (...args: any[]) => T
       t.same((await conf.get("a")).age, 76)
 
       const sub = conf.sub("mynamespace:")
-      t.equal(await sub.exists("a"), false)
+      t.equal(await sub.has("a"), false)
       try {
         await sub.get("mynamespace:a")
         t.fail("sub should not have value")
@@ -470,20 +468,20 @@ type KVConstructor<T = {}> = new (...args: any[]) => T
         _time: 123
       })
 
-      t.equal(await sub.exists("a"), true)
+      t.equal(await sub.has("a"), true)
       t.same(await sub.get("a"), {
         d: "e",
         _time: 123
       })
 
-      t.equal(await conf.exists("mynamespace:a"), true)
+      t.equal(await conf.has("mynamespace:a"), true)
       t.same(await conf.get("mynamespace:a"), {
         d: "e",
         _time: 123
       })
 
       await sub.del("a")
-      t.equal(await sub.exists("a"), false)
+      t.equal(await sub.has("a"), false)
       try {
         await sub.get("a")
         t.fail("sub should not have value")

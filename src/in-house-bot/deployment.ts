@@ -4,6 +4,17 @@ import Promise from "bluebird"
 import AWS from "aws-sdk"
 import { FindOpts, Filter } from "@tradle/dynamodb"
 import buildResource from "@tradle/build-resource"
+import { createBucket, Bucket } from "@tradle/aws-s3-client"
+import {
+  genSetDeliveryPolicyParams,
+  genCrossAccountPublishPermission
+} from "@tradle/aws-sns-client"
+import {
+  getResourcesByType,
+  getLambdaS3Keys,
+  setTemplateParameterDefaults,
+  lockParametersToDefaults
+} from "@tradle/aws-cloudformation-client"
 import { TYPE, SIG, ORG, unitToMillis } from "../constants"
 import { TRADLE } from "./constants"
 import { randomStringWithLength } from "../crypto"
@@ -37,9 +48,7 @@ import {
   MyCloudUpdateTemplate
 } from "./types"
 
-import { genSetDeliveryPolicyParams, genCrossAccountPublishPermission } from "../sns-utils"
 import { StackUtils } from "../stack-utils"
-import { createBucket, Bucket } from "@tradle/aws-s3-client"
 import { media } from "./media"
 import Errors from "../errors"
 import { getLogo } from "./image-utils"
@@ -281,15 +290,15 @@ export class Deployment {
     template: CFTemplate,
     values: StackUpdateParameters
   ) => {
-    StackUtils.setTemplateParameterDefaults(template, values)
+    setTemplateParameterDefaults(template, values)
   }
 
   public static setLaunchTemplateParameters = (
     template: CFTemplate,
     values: StackLaunchParameters
   ) => {
-    StackUtils.setTemplateParameterDefaults(template, values)
-    StackUtils.lockParametersToDefaults(template)
+    setTemplateParameterDefaults(template, values)
+    lockParametersToDefaults(template)
   }
 
   public static ensureInitLogIsRetained = (template: CFTemplate) => {
@@ -1185,12 +1194,12 @@ ${this.genUsageInstructions(links)}`
   }
 
   private static getS3KeysForLambdaCode = (template: CFTemplate): string[] => {
-    return _.uniq(StackUtils.getLambdaS3Keys(template).map(k => k.value)) as string[]
+    return _.uniq(getLambdaS3Keys(template).map(k => k.value)) as string[]
   }
 
   private static getS3KeysForSubstacks = (template: CFTemplate) => {
     const { Resources } = template
-    return StackUtils.getResourcesByType(template, "AWS::CloudFormation::Stack")
+    return getResourcesByType(template, "AWS::CloudFormation::Stack")
       .map(stack => {
         const { TemplateURL } = stack.Properties
         if (TemplateURL["Fn::Sub"]) return TemplateURL["Fn::Sub"]
@@ -1272,23 +1281,22 @@ ${this.genUsageInstructions(links)}`
   public deleteRegionalDeploymentBuckets = async ({ regions }: { regions: string[] }) => {
     return await this.regionalS3.deleteRegionalBuckets({
       bucket: this.getDeploymentBucketLogicalName(),
-      regions,
-      iam: this.bot.aws.iam()
+      regions
     })
   }
 
-  public updateOwnStack = async ({
-    templateUrl,
-    notificationTopics = []
-  }: {
-    templateUrl: string
-    notificationTopics?: string[]
-  }) => {
-    await this.bot.lambdaUtils.invoke({
-      name: "updateStack",
-      arg: { templateUrl, notificationTopics }
-    })
-  }
+  // public updateOwnStack = async ({
+  //   templateUrl,
+  //   notificationTopics = []
+  // }: {
+  //   templateUrl: string
+  //   notificationTopics?: string[]
+  // }) => {
+  //   await this.bot.lambdaUtils.invoke({
+  //     name: "updateStack",
+  //     arg: { templateUrl, notificationTopics }
+  //   })
+  // }
 
   // public requestUpdate = async () => {
   //   const parent = await this.getParentDeployment()
@@ -1655,8 +1663,7 @@ ${this.genUsageInstructions(links)}`
       return r.ResourceType === "AWS::SNS::Topic" && r.LogicalResourceId === "AwsAlertsAlarm"
     })
 
-    const { Subscriptions } = await aws
-      .sns()
+    const { Subscriptions } = await aws.sns
       .listSubscriptionsByTopic({
         TopicArn: PhysicalResourceId
       })

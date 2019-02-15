@@ -408,12 +408,6 @@
       "resolved": "https://registry.npmjs.org/@types/accepts/-/accepts-1.3.5.tgz",
       "dev": true
     },
-    "@types/aws-sdk": {
-      "version": "2.7.0",
-      "from": "@types/aws-sdk@>=2.7.0 <3.0.0",
-      "resolved": "https://registry.npmjs.org/@types/aws-sdk/-/aws-sdk-2.7.0.tgz",
-      "dev": true
-    },
     "@types/body-parser": {
       "version": "1.17.0",
       "from": "@types/body-parser@*",

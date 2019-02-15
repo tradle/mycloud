@@ -1,20 +1,22 @@
 #!/usr/bin/env node
 
-process.env.IS_LAMBDA_ENVIRONMENT = 'false'
+// tslint:disable:no-console
 
-import path from 'path'
-import { loadCredentials } from '../cli/utils'
-import { createRemoteBot } from '../'
+process.env.IS_LAMBDA_ENVIRONMENT = "false"
+
+import path from "path"
+import { loadCredentials } from "../cli/utils"
+import { createRemoteBot } from "../"
 
 const { stackUtils } = createRemoteBot()
-const argv = require('minimist')(process.argv.slice(2), {
+const argv = require("minimist")(process.argv.slice(2), {
   alias: {
-    f: 'functions',
-    p: 'path'
+    f: "functions",
+    p: "path"
   }
 })
 
-const yml = require('../cli/serverless-yml')
+const yml = require("../cli/serverless-yml")
 const { custom, provider } = yml
 const env = argv.path
   ? require(path.resolve(process.cwd(), argv.path))
@@ -23,33 +25,31 @@ const env = argv.path
 loadCredentials()
 
 if (!(env && Object.keys(env).length)) {
-  throw new Error('provided env json is empty')
+  throw new Error("provided env json is empty")
 }
 
-console.log('setting env', JSON.stringify(env, null, 2))
-
+console.log("setting env", JSON.stringify(env, null, 2))
 ;(async () => {
-  const functions = argv.functions && argv.functions.split(',').map(f => f.trim())
-  await stackUtils.updateEnvironments(function ({ FunctionName }) {
+  const functions = argv.functions && argv.functions.split(",").map(f => f.trim())
+  await stackUtils.updateEnvironments(({ FunctionName }) => {
     if (functions && !functions.includes(FunctionName.slice(custom.prefix.length))) {
-      console.log('not updating', FunctionName)
+      console.log("not updating", FunctionName)
       return null
     }
 
-    console.log('updating', FunctionName)
+    console.log("updating", FunctionName)
     return env
   })
-})()
-.catch(err => {
+})().catch(err => {
   console.error(err)
   process.exit(1)
 })
 
-function minusObjectValues (obj) {
+function minusObjectValues(obj) {
   const minus = {}
   for (let key in obj) {
     let val = obj[key]
-    if (typeof val !== 'object') {
+    if (typeof val !== "object") {
       minus[key] = val
     }
   }

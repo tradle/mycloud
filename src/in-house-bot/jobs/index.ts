@@ -34,7 +34,7 @@ export const warmup: Executor = async ({ job, components }) => {
 export const reinitializeContainers: Executor = async ({ job, components }) => {
   const { stackUtils, lambdaInvoker } = components.bot
   const functions = getPropAtPath(job, ["input", "functions"])
-  await stackUtils.forceReinitializeContainers(functions)
+  await stackUtils.reinitializeContainers(functions)
   await lambdaInvoker.scheduleWarmUp()
 }
 

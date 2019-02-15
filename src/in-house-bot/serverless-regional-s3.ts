@@ -15,6 +15,9 @@ export interface RegionalS3ClientOpts {
 }
 
 export class RegionalS3Client {
+  private get s3() {
+    return this.opts.clients.s3
+  }
   constructor(private opts: RegionalS3ClientOpts) {}
 
   public getRegionalBucketName = getRegionalBucketName
@@ -81,14 +84,10 @@ export class RegionalS3Client {
           region
         })
 
-        await this.opts.clients
-          .s3()
-          .createBucket(params)
-          .promise()
+        await this.s3.createBucket(params).promise()
 
         if (this.opts.versioningSupported) {
-          await this.opts.clients
-            .s3()
+          await this.s3
             .putBucketVersioning({
               Bucket: params.Bucket,
               VersioningConfiguration: {
@@ -115,8 +114,7 @@ export class RegionalS3Client {
 
     await Promise.all(
       targets.map(async target => {
-        await this.opts.clients
-          .s3()
+        await this.s3
           .putBucketReplication({
             Bucket: bucket,
             ReplicationConfiguration: {
@@ -142,17 +140,12 @@ export class RegionalS3Client {
 
   public deleteRegionalBuckets = async ({
     bucket,
-    regions,
-    iam
+    regions
   }: {
     bucket: string
     regions: string[]
-    iam: AWS.IAM
   }) => {
-    const existing = (await this.opts.clients
-      .s3()
-      .listBuckets()
-      .promise()).Buckets.map(b => b.Name)
+    const existing = (await this.s3.listBuckets().promise()).Buckets.map(b => b.Name)
     const toDel = regions
       .map(region => getRegionalBucketName({ bucket, region }))
       .filter(regionalName => existing.includes(regionalName))
@@ -170,10 +163,7 @@ export class RegionalS3Client {
   }
 
   public listBuckets = async () => {
-    return (await this.opts.clients
-      .s3()
-      .listBuckets()
-      .promise()).Buckets.map(b => b.Name)
+    return this.opts.s3Client.listBuckets()
   }
 }
 

@@ -106,9 +106,9 @@ const exp = {
   get Delivery() {
     return requireDefault("./delivery")
   },
-  get Discovery() {
-    return requireDefault("./discovery")
-  },
+  // get Discovery() {
+  //   return requireDefault("./discovery")
+  // },
   get Seals() {
     return requireDefault("./seals")
   },

@@ -44,16 +44,8 @@ const getStackName = () => {
 
 const getRegion = () => require("./serverless-yml").provider.region
 
-const getStackResources = ({ bot, stackName }: { bot: Bot; stackName: string }) => {
-  return bot.stackUtils.getStackResources(stackName || getStackName())
-}
-
 const getPhysicalId = async ({ bot, logicalId }) => {
-  const resources = await getStackResources({
-    bot,
-    stackName: getStackName()
-  })
-
+  const resources = await bot.stackUtils.getStackResources()
   const match = resources.find(({ LogicalResourceId }) => LogicalResourceId === logicalId)
   if (!match) {
     const list = resources.map(({ LogicalResourceId }) => LogicalResourceId)
@@ -536,7 +528,6 @@ export {
   getRegion,
   getLocalResourceName,
   getStackName,
-  getStackResources,
   getPhysicalId,
   getNativeModules,
   getProductionModules,
