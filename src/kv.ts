@@ -52,7 +52,7 @@ export default class KV implements UpdateableKeyValueStore {
       return this.exportValue(result)
     } catch (err) {
       if (Errors.isNotFound(err)) {
-        Errors.rethrowAs(err, new Errors.NotFound(`${key}: ${err.message}`))
+        throw new Errors.NotFound(`${key}: ${err.message}`)
       }
 
       throw err

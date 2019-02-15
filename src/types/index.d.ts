@@ -382,21 +382,6 @@ export type DatedValue = {
   value: any
 }
 
-export interface AWSServiceConfig {
-  maxRetries?: number
-  region: string
-  s3: any
-  dynamodb: any
-  iot: any
-  iotdata: any
-  sts: any
-  sns: any
-  kms: any
-  lambda: any
-  cloudformation: any
-  xray: any
-}
-
 export interface IEndpointInfo extends IIotEndpointInfo {
   aws: boolean
   endpoint: string

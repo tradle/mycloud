@@ -110,7 +110,7 @@ import TaskManager from "./task-manager"
 import Messaging from "./messaging"
 import StackUtils from "./stack-utils"
 import Iot from "./iot-utils"
-import ContentAddressedStore from "./content-addressed-store"
+import { ContentAddressedStore, createContentAddressedStore } from "./content-addressed-store"
 import KV from "./kv"
 import Errors from "./errors"
 import { MiddlewareContainer } from "./middleware-container"
@@ -118,6 +118,7 @@ import { hookUp as setupDefaultHooks } from "./hooks"
 import { Resource, ResourceInput, IResourcePersister } from "./resource"
 import networks from "./networks"
 import constants from "./constants"
+import { createConfig } from "./aws/config"
 
 const { addLinks } = crypto
 
@@ -369,8 +370,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
     const bot = this
 
-    let { env = new Env(process.env), users, ready = true } = opts
-
+    let { users, ready = true } = opts
+    let env: Env = opts.env || new Env(process.env)
     if (!(env instanceof Env)) {
       env = new Env(env)
     }
@@ -435,9 +436,9 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
     const serviceMap = (bot.serviceMap = createServiceMap({ env }))
     const awsClientCache = (bot.aws = createClientCache({
-      defaults: {
-        region: env.region
-      },
+      defaults: createConfig({
+        region: env.AWS_REGION
+      }),
       useGlobalConfigClock: true
     }))
 
@@ -613,9 +614,9 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       isDev: bot.isDev
     }))
 
-    const contentAddressedStore = (bot.contentAddressedStore = new ContentAddressedStore({
-      bucket: buckets.PrivateConf.folder("content-addressed")
-    }))
+    bot.contentAddressedStore = createContentAddressedStore({
+      store: buckets.PrivateConf.folder("content-addressed").jsonKV()
+    })
 
     // bot.define('conf', './key-value-table', ctor => {
     //   return new ctor({

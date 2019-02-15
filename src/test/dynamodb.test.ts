@@ -1,8 +1,11 @@
 require("./env").install()
 
+// tslint:disable:no-console
+
 import sinon from "sinon"
-import AWS from "aws-sdk"
-AWS.config.update({
+import { mergeIntoAWSConfig } from "@tradle/aws-common-utils"
+
+mergeIntoAWSConfig({
   maxRetries: 0,
   retryDelayOptions: {
     customBackoff(retryCount) {

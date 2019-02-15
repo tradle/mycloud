@@ -101,7 +101,7 @@ export class Remediation {
     this.conf = conf
     this.keyToClaimIds = bot.conf.sub("remediation:")
     this.store = new ContentAddressedStore({
-      bucket: bot.buckets.PrivateConf.folder("remediation")
+      store: bot.buckets.PrivateConf.folder("remediation").jsonKV()
     })
   }
 
@@ -149,7 +149,7 @@ export class Remediation {
   }
 
   public getBundleByKey = async ({ key }: KeyContainer): Promise<IDataBundle> => {
-    return await this.store.getJSON(key)
+    return await this.store.get(key)
   }
 
   public getBundleByClaimId = async (claimId: string): Promise<IDataBundle> => {

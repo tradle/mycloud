@@ -1,14 +1,11 @@
-import { AWSServiceConfig } from "../types"
-import { targetLocalstack } from "@tradle/aws-common-utils"
+import AWS from "aws-sdk"
+import { FirstArgument } from "@tradle/aws-common-utils"
 
-export const createConfig = ({
-  region,
-  local
-}: {
-  region: string
-  local?: boolean
-}): AWSServiceConfig => {
-  const services = {
+export interface AWSConfig extends FirstArgument<AWS.Config["update"]> {
+  region: string // non-optional
+}
+export const createConfig = ({ region }: { region: string }): AWSConfig => {
+  return {
     maxRetries: 6,
     region,
     s3: {
@@ -20,11 +17,5 @@ export const createConfig = ({
         timeout: 10000
       }
     }
-  } as AWSServiceConfig
-
-  if (local) {
-    targetLocalstack()
   }
-
-  return services
 }

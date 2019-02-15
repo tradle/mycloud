@@ -1,5 +1,6 @@
 import AWS from "aws-sdk"
 import IotMessage from "@tradle/iot-message"
+import { mergeIntoAWSConfig } from "@tradle/aws-common-utils"
 import { cachifyPromiser } from "./utils"
 import { AwsApis, Env, Logger } from "./types"
 const DEFAULT_QOS = 1
@@ -75,7 +76,7 @@ export default class Iot implements IIotEndpointInfo {
   public getEndpoint = cachifyPromiser(async () => {
     // hack ./aws needs sync access to this var
     if (!AWS.config.iotdata.endpoint) {
-      AWS.config.update({
+      mergeIntoAWSConfig({
         iotdata: { endpoint: await this.fetchEndpoint() }
       })
     }

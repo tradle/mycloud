@@ -1,5 +1,7 @@
 require("./env").install()
 
+// tslint:disable:no-console
+
 import test from "tape"
 import _ from "lodash"
 // @ts-ignore
@@ -39,13 +41,14 @@ import { createTestBot } from "../"
 import { createSilentLogger } from "./utils"
 import { models as PingPongModels } from "../ping-pong-models"
 import { TaskManager } from "../task-manager"
-import { KeyValueStore, Bot, KeyValueStoreExtended, UpdateableKeyValueStore } from "../types"
+import { Bot, UpdateableKeyValueStore } from "../types"
+import { createContentAddressedStore } from "../content-addressed-store"
+import KeyValueMem from "../key-value-mem"
 
 // const { KVTable } = require("../definitions")
 const aliceKeys = require("./fixtures/alice/keys")
 
 const bot = createTestBot()
-const { dbUtils } = bot
 
 interface IErrorMatch {
   type: any
@@ -281,69 +284,69 @@ test(
   })
 )
 
-test(
-  "wrap",
-  loudAsync(async t => {
-    const lambdaUtils = require("../lambda-utils")
-    const { performServiceDiscovery } = lambdaUtils
-    lambdaUtils.performServiceDiscovery = () => Promise.resolve()
+// test(
+//   "wrap",
+//   loudAsync(async t => {
+//     const lambdaUtils = require("../lambda-utils")
+//     const { performServiceDiscovery } = lambdaUtils
+//     lambdaUtils.performServiceDiscovery = () => Promise.resolve()
 
-    const expectedRet = {
-      something: "good"
-    }
+//     const expectedRet = {
+//       something: "good"
+//     }
 
-    const expectedError = new Error("blah happened")
+//     const expectedError = new Error("blah happened")
 
-    const originals = {
-      good: {
-        *generatorSuccess() {
-          return expectedRet
-        },
-        promiserSuccess() {
-          return Promise.resolve(expectedRet)
-        },
-        syncSuccess() {
-          return expectedRet
-        }
-      },
-      bad: {
-        *generatorError() {
-          throw expectedError
-        },
-        promiserError() {
-          return Promise.reject(expectedError)
-        },
-        syncError() {
-          throw expectedError
-        }
-      }
-    }
+//     const originals = {
+//       good: {
+//         *generatorSuccess() {
+//           return expectedRet
+//         },
+//         promiserSuccess() {
+//           return Promise.resolve(expectedRet)
+//         },
+//         syncSuccess() {
+//           return expectedRet
+//         }
+//       },
+//       bad: {
+//         *generatorError() {
+//           throw expectedError
+//         },
+//         promiserError() {
+//           return Promise.reject(expectedError)
+//         },
+//         syncError() {
+//           throw expectedError
+//         }
+//       }
+//     }
 
-    const good = values(originals.good).map(wrap)
-    const bad = values(originals.bad).map(wrap)
-    await good.map(lambda => {
-      return new Promise(resolve => {
-        lambda({}, {}, (err, result) => {
-          t.error(err)
-          t.same(result, expectedRet)
-          resolve()
-        })
-      })
-    })
+//     const good = values(originals.good).map(wrap)
+//     const bad = values(originals.bad).map(wrap)
+//     await good.map(lambda => {
+//       return new Promise(resolve => {
+//         lambda({}, {}, (err, result) => {
+//           t.error(err)
+//           t.same(result, expectedRet)
+//           resolve()
+//         })
+//       })
+//     })
 
-    await bad.map(lambda => {
-      return new Promise(resolve => {
-        lambda({}, {}, (err, result) => {
-          t.equal(err, expectedError)
-          resolve()
-        })
-      })
-    })
+//     await bad.map(lambda => {
+//       return new Promise(resolve => {
+//         lambda({}, {}, (err, result) => {
+//           t.equal(err, expectedError)
+//           resolve()
+//         })
+//       })
+//     })
 
-    lambdaUtils.performServiceDiscovery = performServiceDiscovery
-    t.end()
-  })
-)
+//     lambdaUtils.performServiceDiscovery = performServiceDiscovery
+//     t.end()
+//   })
+// )
 
 test("batch by size", t => {
   const sampleJSON = {
@@ -379,9 +382,11 @@ test("batch by size", t => {
 test(
   "content-addressed-storage",
   loudAsync(async t => {
-    const { contentAddressedStore } = bot
+    const store = new KeyValueMem()
+    const contentAddressedStore = createContentAddressedStore({ store })
     const key = await contentAddressedStore.put("a")
     t.equal(key, sha256("a", "hex"))
+    t.same(await store.get(key), "a")
     t.end()
   })
 )
@@ -390,7 +395,7 @@ test(
   {
     name: "dynamodb based",
     create: (bot: Bot): UpdateableKeyValueStore => {
-      const { aws, db, tables } = bot
+      const { db } = bot
       return new KV({ db, prefix: String(Date.now()) })
     }
   }

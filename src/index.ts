@@ -85,9 +85,9 @@ const exp = {
   get aws(): ClientCache {
     return requireDefault("./aws")
   },
-  get awsConfig() {
-    return requireDefault("./aws-config")
-  },
+  // get awsConfig() {
+  //   return requireDefault("./aws-config")
+  // },
   get ContentAddressedStore() {
     return requireDefault("./content-addressed-store")
   },

@@ -251,9 +251,9 @@ export = function createDB({ modelStore, objects, clients, dbUtils, messages, lo
   }
 
   const tableNames = tableBuckets.map(({ TableName }) => TableName)
-  // @ts-ignore
   const db = new DB({
-    // logger,
+    // modelStore needs to become an interface
+    // @ts-ignore
     modelStore,
     tableNames,
     defineTable: name => {

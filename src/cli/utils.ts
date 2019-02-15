@@ -76,7 +76,7 @@ const removeLocalBucket = async ({ bucket, endpoint }) => {
 }
 
 const nukeLocalResources = async ({ region, stackName }: { region: string; stackName: string }) => {
-  const config = createConfig({ region, local: true })
+  const config = createConfig({ region })
   const dynamodb = new AWS.DynamoDB(config.dynamodb)
   const s3 = new AWS.S3(config.s3)
   const delTables = async () => {
@@ -106,7 +106,7 @@ const getLocalResourceName = ({ stackName, name }: { stackName: string; name: st
 }
 
 const genLocalResources = async ({ region, stackName }: { region: string; stackName: string }) => {
-  const config = createConfig({ region, local: true })
+  const config = createConfig({ region })
   const dynamodb = new AWS.DynamoDB(config.dynamodb)
   const s3 = new AWS.S3(config.s3)
   const promiseTables = Promise.all(

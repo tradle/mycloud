@@ -25,21 +25,12 @@
     },
     "types": [
       "node",
-      "aws-sdk",
       "sinon",
       "lodash",
       "graphql",
       "koa",
       "lru-cache",
-      "superagent",
-      "@tradle/dynamodb",
-      "@tradle/aws-client-factory",
-      "@tradle/aws-common-utils",
-      "@tradle/aws-iam-client",
-      "@tradle/aws-s3-client",
-      "@tradle/aws-cloudwatch-client",
-      "@tradle/aws-cloudformation-client",
-      "@tradle/aws-sns-client",
+      "superagent"
     ]
   },
   "include": ["src/**/*.ts"],
