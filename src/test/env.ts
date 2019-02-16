@@ -118,6 +118,17 @@ export const install = (target = process.env): void => {
       ;(callback || params)(null, {})
     })
   }
+
+  const _AWS = require("aws-sdk")
+  debugger
+  const iot = new _AWS.Iot()
+  debugger
+  iot
+    .describeEndpoint()
+    .promise()
+    .then(() => {
+      debugger
+    })
 }
 
 export const get = () => ({ ...props })

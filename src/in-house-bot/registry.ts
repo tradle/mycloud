@@ -1,19 +1,24 @@
-import path from 'path'
-import fs from 'fs'
-import caseless from 'caseless'
-import { Registry } from '../types'
+import path from "path"
+import fs from "fs"
+import caseless from "caseless"
+import { Registry } from "../types"
 
-const DEFULT_FILTER = file => file !== 'index.js' && file.endsWith('.js')
-const DEFAULT_GET_ALIASES = item => ([]) // no aliases
+const DEFULT_FILTER = file => file !== "index.js" && file.endsWith(".js")
+const DEFAULT_GET_ALIASES = item => [] // no aliases
 
 type GetAliases = (item: any) => string[]
 
-export const loadFromDir = <T>({ dir, filter=DEFULT_FILTER, prop, getAliases=DEFAULT_GET_ALIASES }: {
+export const loadFromDir = <T>({
+  dir,
+  filter = DEFULT_FILTER,
+  prop,
+  getAliases = DEFAULT_GET_ALIASES
+}: {
   dir: string
-  filter?: (item: any) => boolean|void
+  filter?: (item: any) => boolean | void
   prop?: string
   getAliases?: GetAliases
-}):Registry<T> => {
+}): Registry<T> => {
   const registry = caseless({})
   registry.keys = () => Object.keys(registry.dict)
   fs.readdirSync(dir).forEach(file => {
@@ -21,6 +26,7 @@ export const loadFromDir = <T>({ dir, filter=DEFULT_FILTER, prop, getAliases=DEF
 
     const subModule = require(path.resolve(dir, file))
     const item = prop ? subModule[prop] : subModule
+    if (!item) debugger
     if (item.disabled) return
 
     const name = item.name || path.parse(file).name

@@ -437,7 +437,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const serviceMap = (bot.serviceMap = createServiceMap({ env }))
     const awsClientCache = (bot.aws = createClientCache({
       defaults: createConfig({
-        region: env.AWS_REGION
+        region: env.AWS_REGION,
+        local: env.IS_LOCAL
       }),
       useGlobalConfigClock: true
     }))

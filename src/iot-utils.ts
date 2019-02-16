@@ -64,6 +64,7 @@ export default class Iot implements IIotEndpointInfo {
   }
 
   public fetchEndpoint = async () => {
+    debugger
     const { endpointAddress } = await this.services.iot
       .describeEndpoint({
         endpointType: "iot:Data-ATS"
@@ -75,10 +76,14 @@ export default class Iot implements IIotEndpointInfo {
 
   public getEndpoint = cachifyPromiser(async () => {
     // hack ./aws needs sync access to this var
-    if (!AWS.config.iotdata.endpoint) {
-      mergeIntoAWSConfig({
-        iotdata: { endpoint: await this.fetchEndpoint() }
-      })
+    const cached = AWS.config.iotdata && AWS.config.iotdata.endpoint
+    if (!(cached && isATSEndpoint(cached))) {
+      const endpoint = await this.fetchEndpoint()
+      if (endpoint) {
+        mergeIntoAWSConfig({
+          iotdata: { endpoint }
+        })
+      }
     }
 
     return AWS.config.iotdata.endpoint

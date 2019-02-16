@@ -1,4 +1,6 @@
 // adapted from: https://github.com/Movement-2016/bellman
+
+// tslint:disable:no-console
 const dateOfBirth = Date.now()
 
 require("source-map-support").install()
@@ -680,7 +682,7 @@ Previous exit stack: ${this.lastExitStack}`)
       return createHandler({
         lambda: this,
         preProcess: (request, event, context) => this.preProcess({ request, event, context }),
-        postProcess: (response, event, context) => {}
+        postProcess: (response, event, context) => {} // tslint:disable-line:no-empty
       })
     }
 
@@ -737,6 +739,7 @@ Previous exit stack: ${this.lastExitStack}`)
   }
 
   private _recordService = (service, name) => {
+    debugger
     if (!service.$startRecording) return
 
     service.$stopRecording()
@@ -883,11 +886,11 @@ const getRequestContext = <T extends ILambdaExecutionContext>(
 
   defineGetter(ctx, "botReady", () => lambda.bot.isReady())
   if (lambda.env._X_AMZN_TRACE_ID) {
-    ctx["trace-id"] = lambda.env._X_AMZN_TRACE_ID
+    ctx["trace-id"] = lambda.env._X_AMZN_TRACE_ID // tslint:disable-line:no-string-literal
   }
 
   if (lambda.isEmulated) {
-    ctx["function"] = lambda.env.FUNCTION_NAME
+    ctx["function"] = lambda.env.FUNCTION_NAME // tslint:disable-line:no-string-literal
   }
 
   if (lambda.isCold) {
