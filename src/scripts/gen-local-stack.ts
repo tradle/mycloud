@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
-import { getStackName, getRegion, genLocalResources } from '../cli/utils'
+// tslint:disable:no-console
+
+import { getStackName, getRegion, genLocalResources } from "../cli/utils"
 
 const stackName = getStackName()
 const region = getRegion()

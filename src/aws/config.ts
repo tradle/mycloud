@@ -1,11 +1,8 @@
-import AWS from "aws-sdk"
-import { FirstArgument } from "@tradle/aws-common-utils"
+import { AWSConfig, getLocalstackConfig } from "@tradle/aws-common-utils"
+import merge from "lodash/merge"
 
-export interface AWSConfig extends FirstArgument<AWS.Config["update"]> {
-  region: string // non-optional
-}
-export const createConfig = ({ region }: { region: string }): AWSConfig => {
-  return {
+export const createConfig = ({ region, local }: { region: string; local: boolean }): AWSConfig => {
+  const config: AWSConfig = {
     maxRetries: 6,
     region,
     s3: {
@@ -18,4 +15,8 @@ export const createConfig = ({ region }: { region: string }): AWSConfig => {
       }
     }
   }
+
+  if (local) merge(config, getLocalstackConfig())
+
+  return config
 }
