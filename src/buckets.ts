@@ -1,5 +1,5 @@
 import Cache from "lru-cache"
-import { createMemoizedBucket } from "@tradle/aws-s3-client"
+import { wrapBucketMemoized } from "@tradle/aws-s3-client"
 import { IBucketsInfo, Buckets } from "./types"
 import { isPromise } from "./utils"
 // const BUCKET_NAMES = ['Secrets', 'Objects', 'PublicConf']
@@ -63,7 +63,7 @@ export const getBuckets = ({ logger, serviceMap, s3Client }): Buckets => {
     const physicalId = serviceMap.Bucket[name]
     if (!physicalId) throw new Error("bucket not found")
 
-    buckets[name] = createMemoizedBucket({
+    buckets[name] = wrapBucketMemoized({
       client: s3Client,
       bucket: physicalId,
       cache: cacheConfig[name] && new Cache(cacheConfig[name]),

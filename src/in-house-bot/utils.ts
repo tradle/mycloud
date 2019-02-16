@@ -1,12 +1,12 @@
-import { parse as parseUrl } from 'url'
-import _ from 'lodash'
-import { isEmployee } from '@tradle/bot-employee-manager'
-import validateResource from '@tradle/validate-resource'
-import buildResource from '@tradle/build-resource'
-import { get, isPromise, pickNonNull, getEnumValueId, parseStub, getSealBasePubKey } from '../utils'
-import { createConf } from './configure'
-import Errors from '../errors'
-import models from '../models'
+import { parse as parseUrl } from "url"
+import _ from "lodash"
+import { isEmployee } from "@tradle/bot-employee-manager"
+import validateResource from "@tradle/validate-resource"
+import buildResource from "@tradle/build-resource"
+import { get, isPromise, pickNonNull, getEnumValueId, parseStub, getSealBasePubKey } from "../utils"
+import { createConf } from "./configure"
+import Errors from "../errors"
+import models from "../models"
 import {
   Name,
   ResourceStub,
@@ -22,33 +22,31 @@ import {
   IConfComponents,
   IUser,
   IPBApp
-} from './types'
+} from "./types"
 
-import { TYPE } from '../constants'
-import { TRADLE } from './constants'
-import { safeStringify, trimLeadingSlashes, trimTrailingSlashes } from '../string-utils'
+import { TYPE } from "../constants"
+import { TRADLE } from "./constants"
+import { safeStringify, trimLeadingSlashes, trimTrailingSlashes } from "../string-utils"
 
-const SealModel = models['tradle.Seal']
+const SealModel = models["tradle.Seal"]
 const SEAL_MODEL_PROPS = Object.keys(SealModel.properties)
-const MONTHS = [ 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec' ]
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
-const NAME = 'tradle.Name'
-const PHOTO_ID = 'tradle.PhotoID'
-const ONFIDO_APPLICANT = 'tradle.onfido.Applicant'
-const BASIC_CONTACT_INFO = 'tradle.BasicContactInfo'
-const PERSONAL_INFO = 'tradle.PersonalInfo'
-const ADDRESS = 'tradle.Address'
-const BUSINESS_INFORMATION = 'tradle.BusinessInformation'
-const IDENTIFICATION_OF_BENEFICIAL_OWNER = 'tradle.W8BENE1'
-const DEPLOYMENT_CONFIGURATION = 'tradle.cloud.Configuration'
-const CHECK_STATUS = 'tradle.Status'
-const HAND_SIGNATURE = 'tradle.HandSignature'
+const NAME = "tradle.Name"
+const PHOTO_ID = "tradle.PhotoID"
+const ONFIDO_APPLICANT = "tradle.onfido.Applicant"
+const BASIC_CONTACT_INFO = "tradle.BasicContactInfo"
+const PERSONAL_INFO = "tradle.PersonalInfo"
+const ADDRESS = "tradle.Address"
+const BUSINESS_INFORMATION = "tradle.BusinessInformation"
+const IDENTIFICATION_OF_BENEFICIAL_OWNER = "tradle.W8BENE1"
+const DEPLOYMENT_CONFIGURATION = "tradle.cloud.Configuration"
+const CHECK_STATUS = "tradle.Status"
+const HAND_SIGNATURE = "tradle.HandSignature"
 
-export {
-  isEmployee
-}
+export { isEmployee }
 
-export const createEditConfOp = edit => async (opts) => {
+export const createEditConfOp = edit => async opts => {
   const { bot } = opts.commander
   const botConf = opts.commander.conf.bot
   const current = _.cloneDeep(botConf)
@@ -56,7 +54,7 @@ export const createEditConfOp = edit => async (opts) => {
   if (isPromise(makeEdit)) makeEdit = await makeEdit
 
   if (_.isEqual(botConf, current)) {
-    throw new Error('you changed...nothing')
+    throw new Error("you changed...nothing")
   }
 
   const confManager = createConf({ bot })
@@ -78,21 +76,28 @@ export const setProperty = createEditConfOp(({ commander, req, path, value }) =>
 //   _.set(conf, path, value)
 // })
 
-export const toggleProduct = createEditConfOp(async ({ commander, req, product, enable }: {
+export const toggleProduct = createEditConfOp(
+  async ({
   commander,
-  req: any,
-  product:string,
+    req,
+    product,
+    enable
+  }: {
+    commander
+    req: any
+    product: string
   enable:boolean
 }) => {
   const { bot, productsAPI, conf } = commander
   const { products, models } = productsAPI
 
   // allow to use title
-  const byTitle = Object.keys(models.all)
-    .filter(id => models.all[id].title.toLowerCase() === product.toLowerCase())
+    const byTitle = Object.keys(models.all).filter(
+      id => models.all[id].title.toLowerCase() === product.toLowerCase()
+    )
 
   if (byTitle.length > 2) {
-    const choices = byTitle.join('\n')
+      const choices = byTitle.join("\n")
     const message = `multiple products with title "${product}" found. Re-run using the model id:\n${choices}`
     await commander.sendSimpleMessage({ req, message })
   }
@@ -112,7 +117,7 @@ export const toggleProduct = createEditConfOp(async ({ commander, req, product, 
     throw new Error(`model not found: ${product}`)
   }
 
-  if (model.subClassOf !== 'tradle.FinancialProduct') {
+    if (model.subClassOf !== "tradle.FinancialProduct") {
     throw new Error(`model ${product} is not a tradle.FinancialProduct`)
   }
 
@@ -121,7 +126,8 @@ export const toggleProduct = createEditConfOp(async ({ commander, req, product, 
     : products.filter(id => id !== product)
 
   conf.bot.products.enabled = newProductsList
-})
+  }
+)
 
 // TODO: this really belongs in some middleware, e.g.
 // bot.hook('readseals', sendConfirmedSeals)
@@ -159,19 +165,19 @@ export const getDateOfBirthFromForm = (form:any):number|void => {
     const { scanJson={} } = form
     const { personal={} } = scanJson
     let { dateOfBirth } = personal
-    if (typeof dateOfBirth === 'number') {
+    if (typeof dateOfBirth === "number") {
       return dateOfBirth
     }
 
-    if (form.documentType.id.endsWith('license')) {
+    if (form.documentType.id.endsWith("license")) {
       // "birthData": "03/11/1976 UNITED KINGOOM"
       const { birthData } = personal
       if (!birthData) return
 
-      dateOfBirth = birthData.split(' ')[0]
+      dateOfBirth = birthData.split(" ")[0]
     }
 
-    if (typeof dateOfBirth === 'string') {
+    if (typeof dateOfBirth === "string") {
       return parseScannedDate(dateOfBirth)
     }
   }
@@ -180,7 +186,7 @@ export const getDateOfBirthFromForm = (form:any):number|void => {
 export const getFormattedNameFromForm = (form: any):string|void => {
   const personal = getNameFromForm(form)
   if (personal) {
-    return [personal.firstName, personal.lastName].filter(str => str).join(' ')
+    return [personal.firstName, personal.lastName].filter(str => str).join(" ")
   }
 
   switch (form[TYPE]) {
@@ -198,20 +204,20 @@ export const getNameFromForm = (form:any):Name|void => {
   let firstName, lastName
   const type = form[TYPE]
   if (type === BASIC_CONTACT_INFO || type === PERSONAL_INFO) {
-    ({ firstName, lastName } = form)
+    ;({ firstName, lastName } = form)
   } else if (type === NAME || type === ONFIDO_APPLICANT) {
     firstName = form.givenName
     lastName = form.surname
   } else if (type === PHOTO_ID) {
     let { scanJson } = form
     if (scanJson) {
-      if (typeof scanJson === 'string') {
+      if (typeof scanJson === "string") {
         scanJson = JSON.parse(scanJson)
       }
 
       const { personal={} } = scanJson
       if (personal) {
-        ({ firstName, lastName } = personal)
+        ;({ firstName, lastName } = personal)
       }
     }
   } else {
@@ -240,7 +246,10 @@ export const getCountryFromForm = (form:any):ResourceStub => {
 
 const maybeCapitalizeWords = str => {
   if (str.toUpperCase() === str || str.toLowerCase() === str) {
-    return str.split(/\s+/).map(str => _.capitalize(str)).join(' ')
+    return str
+      .split(/\s+/)
+      .map(str => _.capitalize(str))
+      .join(" ")
   }
 
   return str
@@ -255,7 +264,7 @@ export const parseScannedDate = str => {
 }
 
 export const toISODateString = (date:number|string) => {
-  if (typeof date !== 'number') {
+  if (typeof date !== "number") {
     if (ISO_DATE.test(date)) return date
 
     date = parseScannedDate(date)
@@ -266,7 +275,7 @@ export const toISODateString = (date:number|string) => {
 
 const getDateParts = str => {
   if (ISO_DATE.test(str)) {
-    const [year, month, day] = str.split('-').map(str => Number(str))
+    const [year, month, day] = str.split("-").map(str => Number(str))
     return {
       year,
       month: month - 1,
@@ -280,11 +289,11 @@ const getDateParts = str => {
     let [day, month, year] = euType1.slice(1).map(n => Number(n))
     if (month > 12) {
       // oof, guesswork
-      [day, month] = [month, day]
+      ;[day, month] = [month, day]
     }
 
     if (year < 100) {
-      year = Number('19' + year)
+      year = Number("19" + year)
     }
 
     return {
@@ -306,24 +315,30 @@ const getDateParts = str => {
   }
 }
 
-export const getAppLinks = ({ bot, host, permalink }: {
+export const getAppLinks = ({
+  bot,
+  host,
+  permalink
+}: {
   bot: Bot
   host?: string
   permalink: string
 }) => {
   if (!host) host = bot.apiBaseUrl
 
-  const [mobile, web] = ['mobile', 'web'].map(platform => bot.appLinks.getChatLink({
+  const [mobile, web] = ["mobile", "web"].map(platform =>
+    bot.appLinks.getChatLink({
     provider: permalink,
     host,
     platform
-  }))
+    })
+  )
 
   const employeeOnboarding = bot.appLinks.getApplyForProductLink({
     provider: permalink,
     host,
-    product: 'tradle.EmployeeOnboarding',
-    platform: 'web'
+    product: "tradle.EmployeeOnboarding",
+    platform: "web"
   })
 
   return {
@@ -333,7 +348,11 @@ export const getAppLinks = ({ bot, host, permalink }: {
   }
 }
 
-export const getAppLinksInstructions = ({ mobile, web, employeeOnboarding }: {
+export const getAppLinksInstructions = ({
+  mobile,
+  web,
+  employeeOnboarding
+}: {
   mobile?: string
   web?: string
   employeeOnboarding?: string
@@ -351,43 +370,47 @@ export const getAppLinksInstructions = ({ mobile, web, employeeOnboarding }: {
     lines.push(`Invite employees using [this link](${employeeOnboarding})`)
   }
 
-  return lines.join('\n\n')
+  return lines.join("\n\n")
 }
 
 const hasApplication = (stubs, application) => {
   return stubs.find(stub => stub.statePermalink === application._permalink)
 }
 
-const judgedStatuses = [
-  'approved',
-  'denied'
-]
+const judgedStatuses = ["approved", "denied"]
 
 export const isPendingApplication = ({ user, application }) => {
-  return !judgedStatuses.includes(application.status) &&
+  return (
+    !judgedStatuses.includes(application.status) &&
     hasApplication(user.applications || [], application)
+  )
 }
 
 export const getApplicationStatus = ({ user, application }) => {
-  if (hasApplication(user.applicationsApproved || [], application)) return 'approved'
-  if (hasApplication(user.applicationsDenied || [], application)) return 'denied'
+  if (hasApplication(user.applicationsApproved || [], application)) return "approved"
+  if (hasApplication(user.applicationsDenied || [], application)) return "denied"
 
-  return 'pending'
+  return "pending"
 }
 
 export const getNonPendingApplications = (user: IPBUser) => {
   return getApplications({ user, pending: false })
 }
 
-export const getApplications = ({ user, pending=true, approved=true, denied=true }: {
-  user: IPBUser,
+export const getApplications = ({
+  user,
+  pending = true,
+  approved = true,
+  denied = true
+}: {
+  user: IPBUser
   pending?: boolean
   approved?: boolean
   denied?: boolean
 }):IPBAppStub[] => {
-  return (pending && user.applications || [])
-    .concat((approved && user.applicationsApproved || []))
-    .concat((denied && user.applicationsDenied || []))
+  return ((pending && user.applications) || [])
+    .concat((approved && user.applicationsApproved) || [])
+    .concat((denied && user.applicationsDenied) || [])
 }
 
 export const isPassedCheck = ({ status }) => {
@@ -398,42 +421,44 @@ export const isPassedCheck = ({ status }) => {
     value: status
   })
 
-  return id === 'pass'
+  return id === "pass"
 }
 
 export const getPropertyTitle = validateResource.utils.getPropertyTitle
 export { getEnumValueId }
 
-export const getFormStubs = ({ forms }: {
-  forms?: ApplicationSubmission[]
-}) => (forms || []).map(appSub => appSub.submission)
+export const getFormStubs = ({ forms }: { forms?: ApplicationSubmission[] }) =>
+  (forms || []).map(appSub => appSub.submission)
 
-export const getParsedFormStubs = ({ forms }: {
-  forms?: ApplicationSubmission[]
-}) => getFormStubs({ forms }).map(parseStub)
+export const getParsedFormStubs = ({ forms }: { forms?: ApplicationSubmission[] }) =>
+  getFormStubs({ forms }).map(parseStub)
 
-export const getLatestForms = ({ forms }: {
-  forms?: ApplicationSubmission[]
-}) => {
+export const getLatestForms = ({ forms }: { forms?: ApplicationSubmission[] }) => {
   const parsed = getParsedFormStubs({ forms }).reverse()
-  return _.uniqBy(parsed, 'type')
+  return _.uniqBy(parsed, "type")
 }
 
 // Checks will be executed in case of a new resource. If the resource was modified,
 // the checks will be executed only if the properties used for verification changed.
 // returns either mapped resource or undefined if no verification needed.
-export const  getCheckParameters = async({plugin, resource, bot, map, defaultPropMap}:  {
-  plugin: string,
-  resource: any,
-  bot: Bot,
-  map?: any,
+export const getCheckParameters = async ({
+  plugin,
+  resource,
+  bot,
+  map,
+  defaultPropMap
+}: {
+  plugin: string
+  resource: any
+  bot: Bot
+  map?: any
   defaultPropMap: any
 }) =>  {
   let dbRes
   try {
-    dbRes = resource._prevlink  &&  await bot.objects.get(resource._prevlink)
+    dbRes = resource._prevlink && (await bot.objects.get(resource._prevlink))
   } catch (error) {
-    console.log('getCheckParameters ', error)
+    console.log("getCheckParameters ", error)
   }
   let runCheck = !dbRes
   let r:any = {}
@@ -441,131 +466,140 @@ export const  getCheckParameters = async({plugin, resource, bot, map, defaultPro
   // if not all properties listed in map - that is allowed if the prop names are the same as default
   for (let prop in defaultPropMap) {
     let p = map  &&  map[prop]
-    if (!p)
-      p = prop
+    if (!p) p = prop
     let pValue = resource[p]
-    if (dbRes  &&  dbRes[p] !== pValue)
-      runCheck = true
-    if (pValue)
-      r[prop] = pValue
+    if (dbRes && dbRes[p] !== pValue) runCheck = true
+    if (pValue) r[prop] = pValue
   }
-  if (!runCheck)
-    return {}
-  if (!Object.keys(r).length)
-    return {error: `no criteria to run ${plugin} checks`}
+  if (!runCheck) return {}
+  if (!Object.keys(r).length) return { error: `no criteria to run ${plugin} checks` }
   return runCheck  &&  {resource: r}
 }
 
-export const doesCheckNeedToBeCreated = async({bot, type, application, provider, form, propertiesToCheck, prop}:{
-  bot: Bot,
-  type: string,
-  application: IPBApp,
-  provider: string,
-  form:ITradleObject,
-  propertiesToCheck: Array<string>,
+export const doesCheckNeedToBeCreated = async ({
+  bot,
+  type,
+  application,
+  provider,
+  form,
+  propertiesToCheck,
+  prop
+}: {
+  bot: Bot
+  type: string
+  application: IPBApp
+  provider: string
+  form: ITradleObject
+  propertiesToCheck: Array<string>
   prop: string
 }) => {
   // debugger
   let items = await getChecks({bot, type, application, provider})
-  if (!items.length)
-    return true
+  if (!items.length) return true
   else {
     let checks = items.filter(r => r[prop]._link === form._link)
-    if (checks.length)
-      return false
+    if (checks.length) return false
     return await hasPropertiesChanged({ resource: form, bot: bot, propertiesToCheck })
   }
 }
-export const getChecks = async({bot, type, application, provider}:{
-  bot: Bot,
-  type: string,
-  application: IPBApp,
+export const getChecks = async ({
+  bot,
+  type,
+  application,
+  provider
+}: {
+  bot: Bot
+  type: string
+  application: IPBApp
   provider: string
 }) => {
 // debugger
   let eqClause = {
     [TYPE]: type,
-    'application._permalink': application._permalink,
-    'provider': provider,
+    "application._permalink": application._permalink,
+    provider: provider
   }
   const { items } = await bot.db.find({
     allowScan: true,
     orderBy: {
-      property: 'dateChecked',
+      property: "dateChecked",
       desc: true
     },
     filter: {
       EQ: eqClause,
       NEQ: {
-       'status.id': 'tradle.Status_error'
+        "status.id": "tradle.Status_error"
       }
     }
   })
   return items
 }
 
-export const doesCheckExist = async({bot, type, eq, application, provider}:{
-  bot: Bot,
-  type: string,
-  eq: any,
-  application: IPBApp,
+export const doesCheckExist = async ({
+  bot,
+  type,
+  eq,
+  application,
+  provider
+}: {
+  bot: Bot
+  type: string
+  eq: any
+  application: IPBApp
   provider: string
 }) => {
 // debugger
   let eqClause = {
     [TYPE]: type,
-    'application._permalink': application._permalink,
-    'provider': provider,
+    "application._permalink": application._permalink,
+    provider: provider
   }
   if (eq) {
-    for (let p in eq)
-      eqClause[`${p}._link`] = eq[p]
+    for (let p in eq) eqClause[`${p}._link`] = eq[p]
   }
   const { items } = await bot.db.find({
     allowScan: true,
     limit: 1,
     orderBy: {
-      property: 'dateChecked',
+      property: "dateChecked",
       desc: true
     },
     filter: {
       EQ: eqClause,
       NEQ: {
-       'status.id': 'tradle.Status_error'
+        "status.id": "tradle.Status_error"
       }
     }
   })
   return items.length
 }
 
-export const  hasPropertiesChanged = async({resource, bot, propertiesToCheck}:  {
-  resource: ITradleObject,
-  bot: Bot,
+export const hasPropertiesChanged = async ({
+  resource,
+  bot,
+  propertiesToCheck
+}: {
+  resource: ITradleObject
+  bot: Bot
   propertiesToCheck: Array<string>
 }) =>  {
   // debugger
-  let dbRes = resource._prevlink  &&  await bot.objects.get(resource._prevlink)
-  if (!dbRes)
-    return true
+  let dbRes = resource._prevlink && (await bot.objects.get(resource._prevlink))
+  if (!dbRes) return true
   let r:any = {}
   // Use defaultPropMap for creating mapped resource if the map was not supplied or
   // if not all properties listed in map - that is allowed if the prop names are the same as default
   let check = propertiesToCheck.filter(p => {
     let rValue = resource[p]
     let dbValue = dbRes[p]
-    if (!rValue  &&  !dbValue)
-      return false
-    if (rValue  ===  dbValue)
-      return false
-    if (_.isEqual(dbValue, rValue))
-      return false
+    if (!rValue && !dbValue) return false
+    if (rValue === dbValue) return false
+    if (_.isEqual(dbValue, rValue)) return false
     return true
   })
 
-  if (check.length)
-    return true
-  else
-    return false
+  if (check.length) return true
+  else return false
 }
 
 export const getUserIdentifierFromRequest = (req: IPBReq) => {
@@ -573,34 +607,40 @@ export const getUserIdentifierFromRequest = (req: IPBReq) => {
   const { originalSender } = message
   let identifier = user.id
   if (originalSender) {
-    identifier += ':' + originalSender
+    identifier += ":" + originalSender
   }
 
   return identifier
 }
 
-export const ensureHandSigLast = (forms: string[]) => _.sortBy(forms, [a => {
+export const ensureHandSigLast = (forms: string[]) =>
+  _.sortBy(forms, [
+    a => {
   return a === HAND_SIGNATURE ? 1 : 0
-}])
+    }
+  ])
 
 export const getProductModelForCertificateModel = ({ models, certificateModel }) => {
-  const parts = certificateModel.id.split('.')
+  const parts = certificateModel.id.split(".")
   const last = parts[parts.length - 1]
-  if (last.startsWith('My')) {
+  if (last.startsWith("My")) {
     parts[parts.length - 1] = last.slice(2)
-    const productModelId = parts.join('.')
+    const productModelId = parts.join(".")
     return models[productModelId]
   }
 }
 
-export const getStatusMessageForCheck = ({ models, check }: {
+export const getStatusMessageForCheck = ({
+  models,
+  check
+}: {
   models: Models
   check: ITradleCheck
 }) => {
-  const model = models['tradle.Status']
+  const model = models["tradle.Status"]
   const { aspects } = check
   const hasManyAspects = Array.isArray(aspects)  &&  aspects.length > 1
-  const aspectsStr = typeof aspects === 'string' ? aspects : aspects.join(', ')
+  const aspectsStr = typeof aspects === "string" ? aspects : aspects.join(", ")
   let status: string
   if (check.status) {
     status = getEnumValueId({
@@ -608,25 +648,23 @@ export const getStatusMessageForCheck = ({ models, check }: {
       value: check.status
     })
   } else {
-    status = 'pending'
+    status = "pending"
   }
 
   let prefix
-  if (hasManyAspects)
-    prefix = 'One or more checks'
-  else
-    prefix = 'Check'
+  if (hasManyAspects) prefix = "One or more checks"
+  else prefix = "Check"
 
   switch (status) {
-  case 'pending':
+    case "pending":
     return `${prefix} pending: ${aspects}`
-  case 'fail':
+    case "fail":
     return `${prefix} failed: ${aspects}`
-  case 'error':
+    case "error":
     return `${prefix} hit an error: ${aspects}`
-  case 'pass':
+    case "pass":
     return `${prefix} passed: ${aspects}`
-  case 'warning':
+    case "warning":
     return `${prefix} has a warning: ${aspects}`
   default:
     throw new Errors.InvalidInput(`unsupported check status: ${safeStringify(check.status)}`)
@@ -638,10 +676,10 @@ export const witness = async (bot: Bot, object: ITradleObject) => {
   // witness() needs to be called on the original object (with embeds resolved)
   // this is very inefficient, we just saved this object!
   // need to allow this to be plugged in earlier in the process
-  const embeds = bot.objects.getEmbeds(object)
+  const embeds = bot.embeds.getEmbeds(object)
 
   let copy = _.cloneDeep(object)
-  await bot.objects.resolveEmbeds(copy)
+  await bot.embeds.resolveAll(copy)
   copy = await bot.witness(copy)
 
   // set embeds back
@@ -679,7 +717,7 @@ export const getTradleBotIdentity = async () => {
 
 const trailingSlashesRegex = /\/+$/
 const pathsEqual = (a: string, b: string) => {
-  return a.replace(trailingSlashesRegex, '') === b.replace(trailingSlashesRegex, '')
+  return a.replace(trailingSlashesRegex, "") === b.replace(trailingSlashesRegex, "")
 }
 
 export const urlsFuzzyEqual = (a: string, b: string) => {
@@ -693,7 +731,10 @@ interface ThirdPartyServiceInfo {
   apiKey?: string
 }
 
-export const getThirdPartyServiceInfo = (conf: IConfComponents, name: string):ThirdPartyServiceInfo => {
+export const getThirdPartyServiceInfo = (
+  conf: IConfComponents,
+  name: string
+): ThirdPartyServiceInfo => {
   const ret:ThirdPartyServiceInfo = {}
   const { kycServiceDiscovery } = conf
   if (!kycServiceDiscovery) return ret
@@ -740,13 +781,15 @@ export const removeRoleFromUser = (user: IUser, role: string) => {
   return false
 }
 
-export const didPropChange = ({ old={}, value, prop }: {
-  old?: any
-  value: any
-  prop: string
-}) => value && (!old || old[prop] !== value[prop])
+export const didPropChange = ({ old = {}, value, prop }: { old?: any; value: any; prop: string }) =>
+  value && (!old || old[prop] !== value[prop])
 
-export const didPropChangeTo = ({ old = {}, value = {}, prop, propValue }: {
+export const didPropChangeTo = ({
+  old = {},
+  value = {},
+  prop,
+  propValue
+}: {
   old?: any
   value: any
   prop: string

@@ -14,7 +14,7 @@ import isNative from "is-native-module"
 import AWS from "aws-sdk"
 import execa from "execa"
 
-import { createBucket, createClient as createS3Client } from "@tradle/aws-s3-client"
+import { wrapBucket, createClient as createS3Client } from "@tradle/aws-s3-client"
 import Errors from "../errors"
 import { Env } from "../env"
 import { createRemoteBot } from "../"
@@ -151,7 +151,7 @@ const genLocalResources = async ({ region, stackName }: { region: string; stackN
       }
 
       try {
-        await s3.createBucket(params).promise()
+        await s3.wrapBucket(params).promise()
       } catch (err) {
         Errors.ignore(err, { code: "BucketAlreadyExists" })
       }
@@ -375,7 +375,7 @@ const cloneRemoteBucket = async ({ source, destination, filter = alwaysTrue }) =
     client: new AWS.S3()
   })
 
-  const sourceBucket = createBucket({
+  const sourceBucket = wrapBucket({
     bucket: source,
     client: s3Client
   })

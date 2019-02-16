@@ -751,8 +751,8 @@ export type BucketPutOpts = {
   acl?: AWS.S3.ObjectCannedACL
 }
 
-export type PresignEmbeddedMediaOpts = {
-  object: ITradleObject
+export type PresignEmbeddedMediaOpts<T> = {
+  object: T
   stripEmbedPrefix?: boolean
 }
 
@@ -937,4 +937,36 @@ export interface StackLaunchParameters extends StackUpdateParameters {
   OrgDomain: string
   OrgLogo: string
   OrgAdminEmail: string
+}
+
+export interface ParsedMediaEmbed {
+  dataUrl: string
+  hash: string
+  body: string
+  host: string
+  mimetype: string
+  path: string
+  [x: string]: any
+}
+
+export interface ParsedRelocatedEmbedUrl {
+  // property path
+  path: string
+  value: string
+  url: string
+  host: string
+  query: any
+  presigned?: boolean
+}
+
+export interface EmbedResolver {
+  // dataUrls => embedUrls
+  replaceDataUrls: <T>(object: T) => ParsedMediaEmbed[]
+  // extract dataUrls to embed storage
+  replaceEmbeddedMedia: <T>(object: T) => Promise<void>
+  presignEmbeddedMedia: <T>(opts: PresignEmbeddedMediaOpts<T>) => T
+  // resolve embeds to media
+  resolveOne: <T>(object: ParsedRelocatedEmbedUrl) => Promise<Buffer>
+  resolveAll: <T>(object: T) => Promise<T>
+  getEmbeds: <T>(object: T) => ParsedRelocatedEmbedUrl[]
 }

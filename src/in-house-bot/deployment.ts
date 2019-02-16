@@ -4,7 +4,7 @@ import Promise from "bluebird"
 import AWS from "aws-sdk"
 import { FindOpts, Filter } from "@tradle/dynamodb"
 import buildResource from "@tradle/build-resource"
-import { createBucket, Bucket } from "@tradle/aws-s3-client"
+import { wrapBucket, Bucket } from "@tradle/aws-s3-client"
 import {
   genSetDeliveryPolicyParams,
   genCrossAccountPublishPermission
@@ -1999,7 +1999,7 @@ ${this.genUsageInstructions(links)}`
 
   private _bucket = (name: string) => {
     const { bot } = this
-    return createBucket({
+    return wrapBucket({
       bucket: name,
       client: bot.s3Utils
     })

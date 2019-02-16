@@ -75,7 +75,7 @@ export class FacialRecognitionAPI {
     this.logger.debug("Face recognition both selfie and photoId ready")
     const tasks = [photoIDStub, selfieStub].map(async stub => {
       const object = await this.bot.getResource(stub)
-      return this.bot.objects.presignEmbeddedMediaLinks({
+      return this.bot.embeds.presignEmbeddedMediaLinks({
         object,
         stripEmbedPrefix: true
       })

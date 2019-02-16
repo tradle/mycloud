@@ -1,8 +1,8 @@
-import _ from 'lodash'
-import validateResource from '@tradle/validate-resource'
-import { EventEmitter } from 'events'
-import { Delivery as DeliveryIot } from './delivery-mqtt'
-import { Delivery as DeliveryHTTP } from './delivery-http'
+import _ from "lodash"
+import validateResource from "@tradle/validate-resource"
+import { EventEmitter } from "events"
+import { Delivery as DeliveryIot } from "./delivery-mqtt"
+import { Delivery as DeliveryHTTP } from "./delivery-http"
 import {
   Messages,
   Env,
@@ -18,9 +18,9 @@ import {
   IDeliveryResult,
   ILiveDeliveryOpts,
   ISession
-} from './types'
+} from "./types"
 
-import { ClientUnreachable } from './errors'
+import { ClientUnreachable } from "./errors"
 
 const MIN_BATCH_DELIVERY_TIME = 2000
 const MAX_BATCH_SIZE = 5
@@ -54,17 +54,25 @@ type DeliveryOpts = {
 }
 
 export default class Delivery extends EventEmitter implements IDelivery {
-  public ack = withTransport('ack')
-  public reject = withTransport('reject')
+  public ack = withTransport("ack")
+  public reject = withTransport("reject")
   public mqtt: any
   public http: DeliveryHTTP
-  private get friends () { return this.components.friends }
-  private get messages () { return this.components.messages }
-  private get objects () { return this.components.objects }
-  private get env () { return this.components.env }
+  private get friends() {
+    return this.components.friends
+  }
+  private get messages() {
+    return this.components.messages
+  }
+  private get objects() {
+    return this.components.objects
+  }
+  private get env() {
+    return this.components.env
+  }
   private components: DeliveryOpts
   private logger: Logger
-  private _deliverBatch = withTransport('deliverBatch')
+  private _deliverBatch = withTransport("deliverBatch")
 
   constructor (components: DeliveryOpts) {
     super()
@@ -113,7 +121,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
         // lt: before,
         // afterMessage,
         limit: batchSize,
-        body: true,
+        body: true
       })
 
       this.logger.debug(`found ${messages.length} messages for ${recipient}`)
@@ -123,7 +131,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
       }
 
       if (this.env.getRemainingTime() < MIN_BATCH_DELIVERY_TIME) {
-        this.logger.info('delivery ran out of time')
+        this.logger.info("delivery ran out of time")
         // TODO: recurse
         break
       }
@@ -139,10 +147,10 @@ export default class Delivery extends EventEmitter implements IDelivery {
   }
 
   public getTransport = async (opts: {
-    method: string,
-    recipient: string,
-    clientId?: string,
-    session?: ISession,
+    method: string
+    recipient: string
+    clientId?: string
+    session?: ISession
     friend?: any
   }):Promise<IDelivery> => {
     const { method, recipient, clientId, session, friend } = opts

@@ -7,6 +7,7 @@ MODULES=(
   "aws-common-utils"
   "aws-s3-client"
   "aws-sns-client"
+  "aws-iam-client"
   "aws-lambda-client"
   "aws-cloudwatch-client"
   "aws-cloudformation-client"

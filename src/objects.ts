@@ -1,15 +1,12 @@
-import pick from "lodash/pick"
 import clone from "lodash/clone"
 import cloneDeep from "lodash/cloneDeep"
-import Embed from "@tradle/embed"
-import { S3Client } from "@tradle/aws-s3-client"
 import {
   ITradleObject,
   IRetryableTaskOpts,
-  Bucket,
-  Buckets,
+  KeyValueStore,
   Logger,
   Env,
+  EmbedResolver,
   PresignEmbeddedMediaOpts
 } from "./types"
 
@@ -31,41 +28,15 @@ type ObjectMetadata = {
 }
 
 type ObjectsOpts = {
-  env: Env
-  buckets: Buckets
-  s3Utils: S3Client
+  objectStore: KeyValueStore
+  embeds: EmbedResolver
   logger: Logger
 }
 
 export default class Objects {
-  private components: ObjectsOpts
-
-  // lazy-load to avoid circular refs
-  private get env() {
-    return this.components.env
-  }
-
-  private get logger() {
-    return this.components.logger
-  }
-
-  private get s3Utils() {
-    return this.components.s3Utils
-  }
-
-  private region: string
-  private bucket: Bucket
-  // private mediaBucket: Bucket
-  private fileUploadBucketName: string
   private middleware: MiddlewareContainer
-  constructor(components: ObjectsOpts) {
-    // lazy-load the rest to avoid circular refs
-    const { env, buckets, logger } = components
-    this.components = components
-    this.region = env.REGION
-    // this.mediaBucket = buckets.FileUpload
-    this.bucket = buckets.Objects
-    this.fileUploadBucketName = buckets.FileUpload.name
+  constructor(private opts: ObjectsOpts) {
+    const { logger } = opts
     this.middleware = new MiddlewareContainer({
       logger: logger.sub("mid"),
       getContextForEvent: (event, object) => ({
@@ -115,7 +86,7 @@ export default class Objects {
       try {
         _sigPubKey = extractSigPubKey(object).pub
       } catch (err) {
-        this.logger.error("invalid object", {
+        this.opts.logger.error("invalid object", {
           object,
           error: err.stack
         })
@@ -144,70 +115,37 @@ export default class Objects {
     return setVirtual(object, this.getMetadata(object))
   }
 
-  public replaceEmbeds = async (object: ITradleObject) => {
-    const replacements = this._replaceDataUrls(object)
-    if (!replacements.length) return
-
-    this.logger.debug(`replaced ${replacements.length} embedded media`)
-    await Promise.all(
-      replacements.map(replacement => {
-        const { bucket, key, body, mimetype } = replacement
-        return this.s3Utils.put({
-          bucket,
-          key,
-          value: body,
-          headers: {
-            ContentType: mimetype
-          }
-        })
-      })
-    )
-  }
-
-  public resolveEmbed = async (embed): Promise<any> => {
-    this.logger.debug(`resolving embedded media`, pick(embed, ["url", "key", "bucket"]))
-
-    const { presigned, key, bucket } = embed
-    if (embed.presigned) {
-      return await download(embed)
-    }
-
-    const { Body, ContentType } = await this.s3Utils.get({ key, bucket })
-    if (ContentType === "binary/octet-stream") {
-      throw new Error(`received embed with incorrect mime type: ${ContentType}`)
-    }
-
-    // @ts-ignore
-    Body.mimetype = ContentType
-    return Body
+  public replaceEmbeddedMedia = async (object: ITradleObject) => {
+    return this.opts.embeds.replaceEmbeddedMedia(object)
   }
 
   public resolveEmbeds = async (object: ITradleObject): Promise<ITradleObject> => {
-    return await Embed.resolveEmbeds({ object, resolve: this.resolveEmbed })
+    return await this.opts.embeds.resolveAll(object)
   }
+
+  public presignEmbeddedMediaLinks = (opts: PresignEmbeddedMediaOpts<ITradleObject>) =>
+    this.opts.embeds.presignEmbeddedMedia(opts)
 
   public getWithRetry = async (link: string, opts: IRetryableTaskOpts) => {
     const task = new RetryableTask(opts)
-    this.logger.silly("getting with retry", link)
+    this.opts.logger.silly("getting with retry", link)
     return await task.run(() => this.get(link))
   }
 
   public get = async (link: string): Promise<ITradleObject> => {
     typeforce(typeforce.String, link)
-    return await this.bucket.getJSON(link)
+    return await this.opts.objectStore.get(link)
   }
 
-  public getEmbeds = (object: ITradleObject) => Embed.getEmbeds(object)
-
   public throwIfHasInlinedEmbeds = object => {
-    const replacements = this._replaceDataUrls(cloneDeep(object))
+    const replacements = this.opts.embeds.replaceDataUrls(cloneDeep(object))
     if (replacements.length) {
       throw new Error(`expected no data urls: ${prettify(object)}`)
     }
   }
 
   public throwIfHasUnresolvedEmbeds = object => {
-    const embeds = Embed.getEmbeds(object)
+    const embeds = this.opts.embeds.getEmbeds(object)
     if (embeds.length) {
       throw new Error(`expected raw embeds, instead have linked: ${prettify(object)}`)
     }
@@ -225,7 +163,7 @@ export default class Objects {
     this.addMetadata(object)
 
     // this.logger.debug('putting', summarizeObject(object))
-    await this.bucket.putJSON(object._link, object)
+    await this.opts.objectStore.put(object._link, object)
   }
 
   public hook = (event, handler) => this.middleware.hook(event, handler)
@@ -236,39 +174,7 @@ export default class Objects {
   }
 
   public del = async (link: string): Promise<void> => {
-    await this.bucket.del(link)
-  }
-
-  public presignEmbeddedMediaLinks = (opts: PresignEmbeddedMediaOpts): ITradleObject => {
-    const { object, stripEmbedPrefix } = opts
-    if (!object) throw new Errors.InvalidInput('expected "object"')
-
-    Embed.presignUrls({
-      object,
-      sign: ({ bucket, key, path }) => {
-        this.logger.debug("pre-signing url for", {
-          type: object[TYPE],
-          property: path
-        })
-
-        return this.s3Utils.createPresignedUrl({ bucket, key })
-      }
-    })
-
-    if (stripEmbedPrefix) {
-      Embed.stripEmbedPrefix(object)
-    }
-
-    return object
-  }
-
-  private _replaceDataUrls = (object: ITradleObject): any[] => {
-    return Embed.replaceDataUrls({
-      region: this.region,
-      bucket: this.fileUploadBucketName,
-      keyPrefix: "",
-      object
-    })
+    await this.opts.objectStore.del(link)
   }
 }
 

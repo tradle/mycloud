@@ -80,7 +80,8 @@ import {
   LambdaInvoker,
   IAMClient,
   CloudFormationClient,
-  CloudWatchClient
+  CloudWatchClient,
+  EmbedResolver
 } from "./types"
 
 import { createLinker, appLinks as defaultAppLinks } from "./app-links"
@@ -119,6 +120,7 @@ import { Resource, ResourceInput, IResourcePersister } from "./resource"
 import networks from "./networks"
 import constants from "./constants"
 import { createConfig } from "./aws/config"
+import { createResolver as createS3EmbedResolver } from "./aws/s3-embed-resolver"
 
 const { addLinks } = crypto
 
@@ -195,6 +197,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public tables: Tables
   public dbUtils: any
   public objects: Objects
+  public embeds: EmbedResolver
   public events: Events
   public identities: Identities
   public identity: Identity
@@ -507,11 +510,18 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       logger: logger.sub("async-tasks")
     }))
 
+    const embeds = (bot.embeds = createS3EmbedResolver({
+      bucket: buckets.FileUpload.id,
+      keyPrefix: "",
+      client: s3Utils,
+      logger: logger.sub("embeds"),
+      region: env.AWS_REGION
+    }))
+
     const objects = (bot.objects = new Objects({
-      env: bot.env,
-      buckets: bot.buckets,
-      logger: bot.logger.sub("objects"),
-      s3Utils: bot.s3Utils
+      objectStore: buckets.Objects,
+      embeds,
+      logger: bot.logger.sub("objects")
     }))
 
     bot.secrets = new Secrets({
@@ -920,7 +930,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     return this.objects.resolveEmbeds
   }
   public get presignEmbeddedMediaLinks() {
-    return this.objects.presignEmbeddedMediaLinks
+    return this.embeds.presignEmbeddedMedia
   }
   public get getStackResourceName() {
     return this.env.getStackResourceName
