@@ -12,6 +12,7 @@ import {
   Applications,
   Logger,
 } from '../types'
+
 const MY_CP_PRODUCT = 'tradle.legal.MyControllingPersonOnboarding'
 const CP = 'tradle.legal.LegalEntityControllingPerson'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
@@ -68,7 +69,7 @@ export class SmeAutoApprove {
       aApp = associatedApplication  &&  associatedApplication.items  &&  associatedApplication.items[0]
     }
     const appSubmissions = await this.bot.getResource(aApp, {backlinks: ['submissions']})
-debugger
+// debugger
 
     // let forms = aApp.forms
     if (!appSubmissions)
@@ -78,7 +79,7 @@ debugger
       return
 
     if (checkIfAllFormsSubmitted) {
-      let parentProductID = makeProductModelID(this.conf.parent)
+      let parentProductID = makeMyProductModelID(this.conf.parent)
       let appApproved = submissions.filter(f => f.submission[TYPE] === parentProductID)
       if (appApproved.length) {
         this.logger.debug('Parent application was approved. Nothing further to check')
@@ -135,12 +136,12 @@ debugger
 
     const requests = appsForCP.map(app => this.bot.getResource(app, { backlinks: ['products'] }))
     const results:ITradleObject[] = await Promise.all(requests)
-debugger
+// debugger
     if (!results) {
       this.logger.debug('Child applications were not approved yet. Nothing further to check')
       return
     }
-    let childProductId = makeProductModelID(this.conf.child)
+    let childProductId = makeMyProductModelID(this.conf.child)
 
     const products = results.filter(r => r.products  &&  r.products.filter(rr => rr.submission[TYPE] === childProductId))
 
@@ -159,8 +160,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 // debugger
   const plugin: IPluginLifecycleMethods = {
     didApproveApplication: async (opts: IWillJudgeAppArg, certificate: ITradleObject) => {
-      let childProduct = makeProductModelID(conf.child)
-debugger
+      let childProduct = makeMyProductModelID(conf.child)
+// debugger
       if (certificate[TYPE] === childProduct) {
         logger.debug('New child application was approved. Check if parent application can be auto-approved')
         await autoApproveAPI.checkCPs(opts.application)
@@ -168,7 +169,7 @@ debugger
     },
     // check if auto-approve ifvapplication Legal entity product was submitted
     onFormsCollected: async ({req}) => {
-debugger
+// debugger
       const { application } = req
       if (application.requestFor !== conf.parent)
         return
@@ -179,7 +180,7 @@ debugger
 
   return { plugin }
 }
-function makeProductModelID(modelId) {
+function makeMyProductModelID(modelId) {
   let parts = modelId.split('.')
   parts[parts.length - 1] = 'My' + parts[parts.length - 1]
   return parts.join('.')
