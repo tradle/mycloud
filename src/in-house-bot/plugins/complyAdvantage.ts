@@ -199,7 +199,8 @@ class ComplyAdvantageAPI {
           last_name: lastName,
         },
         filters: {
-          birth_year: new Date(dateOfBirth).getFullYear()
+          birth_year: new Date(dateOfBirth).getFullYear(),
+          remove_deceased: '1'
         }
       }
     }
@@ -255,6 +256,7 @@ class ComplyAdvantageAPI {
     //   // need to request again
     //   return {resource, rawData: json, hits: []} //, error: `Check failed for "${search_term}": ${json.status}: ${json.message}`}
     // }
+    // debugger
     let rawData = json  &&  json.content.data
     let entityType = criteria.entity_type
     if (!entityType)
