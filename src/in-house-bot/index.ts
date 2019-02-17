@@ -640,7 +640,8 @@ export const loadComponentsAndPlugins = ({
 
     ;[
       'hand-sig',
-      'documentValidity'
+      'documentValidity',
+      'fill-myproduct'
     ].forEach(name => attachPlugin({ name, requiresConf: false }))
 
     // used for some demo
