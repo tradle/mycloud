@@ -1,10 +1,23 @@
-import Env from './env'
+import http from 'http'
+import https from 'https'
 import { IAWSServiceConfig } from './types'
 
-export const createConfig = ({ region, local } : {
+export const createConfig = ({ region, local }: {
   region: string
   local?: boolean
-}):IAWSServiceConfig => {
+}): IAWSServiceConfig => {
+  const opts = {
+    keepAlive: true,
+    maxSockets: 50,
+    rejectUnauthorized: true
+  }
+
+  const agent = local ? new http.Agent(opts) : new https.Agent(opts)
+
+  // agent is an EventEmitter
+  // @ts-ignore
+  agent.setMaxListeners(0)
+
   const services = {
     maxRetries: 6,
     region,
@@ -16,6 +29,9 @@ export const createConfig = ({ region, local } : {
         connectTimeout: 10000,
         timeout: 10000,
       }
+    },
+    httpOptions: {
+      agent
     }
   } as IAWSServiceConfig
 

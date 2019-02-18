@@ -1,3 +1,4 @@
+import http from 'http'
 import { EventEmitter } from 'events'
 import { Middleware as ComposeMiddleware } from 'koa-compose'
 import { Context as KoaContext } from 'koa'
@@ -370,18 +371,21 @@ export type DatedValue = {
 }
 
 export interface IAWSServiceConfig {
+  httpOptions?: {
+    agent: http.Agent
+  }
   maxRetries?: number
   region: string
-  s3: any
-  dynamodb: any
-  iot: any
-  iotdata: any
-  sts: any
-  sns: any
-  kms: any
-  lambda: any
-  cloudformation: any
-  xray: any
+  s3?: any
+  dynamodb?: any
+  iot?: any
+  iotdata?: any
+  sts?: any
+  sns?: any
+  kms?: any
+  lambda?: any
+  cloudformation?: any
+  xray?: any
 }
 
 export interface IEndpointInfo extends IIotEndpointInfo {
