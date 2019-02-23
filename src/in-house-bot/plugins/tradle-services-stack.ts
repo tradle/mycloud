@@ -17,6 +17,8 @@ export interface TradleServicesStackPluginOpts extends IPluginOpts {
   conf: TradleServicesStackOpts
 }
 
+export const name = 'tradleServicesStack'
+
 export const createPlugin: CreatePlugin<TradleServicesStack> = (
   components,
   pluginOpts: TradleServicesStackPluginOpts

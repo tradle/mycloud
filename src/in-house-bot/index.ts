@@ -695,7 +695,7 @@ export const loadComponentsAndPlugins = ({
   ) {
     attachPlugin({ name: 'deployment', requiresConf: false })
     if (components.deployment.isTradle) {
-      attachPlugin({ name: 'tradle-services-stack' })
+      attachPlugin({ name: 'tradleServicesStack' })
     }
   }
   // if (runAsyncHandlers) {
