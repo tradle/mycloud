@@ -99,6 +99,7 @@
     "build:lib": "mkdir -p lib/ && tsc && npm run copy-static-assets && npm run gen:versioninfo && npm run gen:resourcedefs",
     "build": "npm run build:lib && npm run build:yml",
     "reinstall": "rm -rf node_modules && npm install",
+    "localstack:reset": "npm run localstack:stop && rm -rf .localstack && npm run localstack:start",
     "localstack:start": "./src/scripts/localstack.sh up -d",
     "localstack:stop": "./src/scripts/localstack.sh down",
     "localstack:restart": "./src/scripts/localstack.sh down && ./src/scripts/localstack.sh up -d",
