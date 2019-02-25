@@ -43,11 +43,19 @@ export const createPlugin: CreatePlugin<TradleServicesStack> = (
   }
 
   const onChildDeploymentCreated: PluginLifecycle.onResourceCreated = async childDeployment => {
-    await ensurePushNotificationsRegistration(childDeployment as IChildDeployment)
+    try {
+      await ensurePushNotificationsRegistration(childDeployment as IChildDeployment)
+    } catch (err) {
+      logger.error('1. failed to ensure push notifications registration', err)
+    }
   }
 
   const onChildDeploymentChanged: PluginLifecycle.onResourceChanged = async ({ value }) => {
-    await ensurePushNotificationsRegistration(value as IChildDeployment)
+    try {
+      await ensurePushNotificationsRegistration(value as IChildDeployment)
+    } catch (err) {
+      logger.error('2. failed to ensure push notifications registration', err)
+    }
   }
 
   return {

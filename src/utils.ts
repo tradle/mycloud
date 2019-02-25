@@ -53,6 +53,7 @@ import {
   Bot,
   Seal,
   StackStatusEvent,
+  GetPNSTopicOpts,
 } from './types'
 
 import * as types from './typeforce-types'
@@ -1643,3 +1644,6 @@ export const assertNoNullProps = (obj: any, msg: string) => {
     }
   }
 }
+
+export const getPNSTopic = (opts: GetPNSTopicOpts) =>
+  `arn:aws:sns:${opts.region}${opts.notifierAccountId}:${opts.accountId}-${opts.permalink}`

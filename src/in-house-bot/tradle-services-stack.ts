@@ -1,10 +1,5 @@
 import { post } from '../utils'
-
-export interface RegisterPushNotifierOpts {
-  permalink: string
-  accountId: string
-  region: string
-}
+import { RegisterPushNotifierOpts } from './types';
 
 export interface TradleServicesStackOpts {
   apiKey: string

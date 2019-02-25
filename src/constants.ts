@@ -17,7 +17,7 @@ import {
   TIMESTAMP,
   VERSION,
   PROTOCOL_VERSION,
-  TYPES as BASE_TYPES,
+  TYPES as BASE_TYPES
 } from '@tradle/constants'
 
 const unitToMillis = {
@@ -25,7 +25,7 @@ const unitToMillis = {
   hour: 60 * 60000,
   day: 24 * 60 * 60000,
   month: 30 * 24 * 60 * 60000,
-  year: 365 * 24 * 60 * 60000,
+  year: 365 * 24 * 60 * 60000
 }
 
 const TYPES = {
@@ -36,7 +36,7 @@ const TYPES = {
   BACKLINK_ITEM: 'tradle.BacklinkItem',
   SEAL_STATE: 'tradle.SealState',
   DELIVERY_ERROR: 'tradle.DeliveryError',
-  SEALABLE_BATCH: 'tradle.SealableBatch',
+  SEALABLE_BATCH: 'tradle.SealableBatch'
 }
 
 const UNSIGNED_TYPES = [
@@ -147,6 +147,12 @@ const constants = {
   MIN_SESSION_TTL_SECONDS: 900,
   MAX_DELIVERY_ATTEMPTS: 20,
   BATCH_SEALING_PROTOCOL_VERSION: 'v1',
+  TRADLE: {
+    API_BASE_URL: 'https://t22ju1ga5c.execute-api.us-east-1.amazonaws.com/dev',
+    PERMALINK: '9658992cbb1499c1fd9f7d92e1dee43eb65f403b3a32f2d888d2f241c4bdf7b6',
+    ORG_NAME: 'Tradle',
+    ACCOUNT_ID: '210041114155'
+  }
 }
 
 export = constants

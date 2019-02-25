@@ -72,6 +72,8 @@ import {
   IDebug,
   UpdateResourceOpts,
   ResourceStub,
+  SendPushNotification,
+  SendPushNotificationOpts,
 } from './types'
 
 import { createLinker, appLinks as defaultAppLinks } from './app-links'
@@ -86,7 +88,6 @@ import Objects from './objects'
 import Messages from './messages'
 import Identities from './identities'
 import Auth from './auth'
-import Push from './push'
 import Seals, { CreateSealOpts } from './seals'
 import { createSealBatcher } from './batch-seals'
 import Blockchain from './blockchain'
@@ -193,7 +194,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public userSim: User
   public friends: Friends
   public messaging: Messaging
-  public pushNotifications: Push
+  // public pushNotifications: Push
   public s3Utils: S3Utils
   public snsUtils: SNSUtils
   public iot: Iot
@@ -503,7 +504,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       get seals () { return bot.seals },
       get friends() { return bot.friends },
       get delivery() { return bot.delivery },
-      get pushNotifications() { return bot.pushNotifications },
+      get sendPushNotification() { return bot.sendPushNotification },
       get auth() { return bot.auth },
     })
 
@@ -573,12 +574,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     })
 
     // bot.define('router', './router', bot.construct)
-
-    const pushNotifications = bot.pushNotifications = new Push({
-      logger: logger.sub('push'),
-      serverUrl: constants.PUSH_SERVER_URL[bot.env.STAGE],
-      conf: bot.kv.sub('push:')
-    })
 
     // bot.bot = bot.require('bot', './bot')
     bot.define('mailer', './mailer', Mailer => new Mailer({
@@ -761,8 +756,19 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   }
 
   // proxy methods
-  public get sendPushNotification() { return this.messaging.sendPushNotification }
-  public get registerWithPushNotificationsServer() { return this.messaging.registerWithPushNotificationsServer }
+  public sendPushNotification = async ({ recipient }: SendPushNotificationOpts) => {
+    const topic = utils.getPNSTopic({
+      accountId: this.env.AWS_ACCOUNT_ID,
+      region: this.env.AWS_REGION,
+      permalink: await this.getMyPermalink(),
+      notifierAccountId: constants.TRADLE.ACCOUNT_ID,
+    })
+
+    await this.snsUtils.publish({
+      topic,
+      message: JSON.stringify({ subscriber: recipient })
+    })
+  }
   public get setCustomModels() { return this.modelStore.setCustomModels }
   public get initInfra() { return this.init.initInfra }
   public get updateInfra() { return this.init.updateInfra }
@@ -1209,7 +1215,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     inbound?: boolean
   }) => {
     const { batch, async, spread, inbound=false } = opts
-    if (!batch.every(item => item.message._inbound == inbound)) {
+    if (!batch.every(item => item.message._inbound === inbound)) {
       throw new Errors.InvalidInput('expected all messages to be either inbound or outbound')
     }
 
