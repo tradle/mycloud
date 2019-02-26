@@ -370,10 +370,12 @@ export type DatedValue = {
   value: any
 }
 
+export interface AWSHttpOptions {
+  agent?: http.Agent
+}
+
 export interface IAWSServiceConfig {
-  httpOptions?: {
-    agent: http.Agent
-  }
+  httpOptions?: AWSHttpOptions
   maxRetries?: number
   region: string
   s3?: any

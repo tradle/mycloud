@@ -1,6 +1,6 @@
 import http from 'http'
 import https from 'https'
-import { IAWSServiceConfig } from './types'
+import { IAWSServiceConfig, AWSHttpOptions } from './types'
 
 export const createConfig = ({ region, local }: {
   region: string
@@ -12,11 +12,15 @@ export const createConfig = ({ region, local }: {
     rejectUnauthorized: true
   }
 
-  const agent = local ? new http.Agent(opts) : new https.Agent(opts)
+  const httpOptions:AWSHttpOptions = {}
+  if (!local) {
+    const agent = new https.Agent(opts)
+    // agent is an EventEmitter
+    // @ts-ignore
+    agent.setMaxListeners(0)
+    httpOptions.agent = agent
+  }
 
-  // agent is an EventEmitter
-  // @ts-ignore
-  agent.setMaxListeners(0)
 
   const services = {
     maxRetries: 6,
@@ -30,9 +34,7 @@ export const createConfig = ({ region, local }: {
         timeout: 10000,
       }
     },
-    httpOptions: {
-      agent
-    }
+    httpOptions
   } as IAWSServiceConfig
 
   if (local) {

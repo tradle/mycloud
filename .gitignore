@@ -26,3 +26,4 @@ lib/serverless-interpolated.json
 *.sublime-*
 schematest.js
 src/cli/cloudformation-template.json
+.localstack
