@@ -636,6 +636,7 @@ export const loadComponentsAndPlugins = ({
       'cibiChecker',
       'gdcChecker',
       'sme-auto-approve',
+      'facetecZoom',
     ].forEach(name => attachPlugin({ name }))
 
     ;[
