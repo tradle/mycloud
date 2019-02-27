@@ -1646,4 +1646,4 @@ export const assertNoNullProps = (obj: any, msg: string) => {
 }
 
 export const getPNSTopic = (opts: GetPNSTopicOpts) =>
-  `arn:aws:sns:${opts.region}${opts.notifierAccountId}:${opts.accountId}-${opts.permalink}`
+  `arn:aws:sns:${opts.region}:${opts.notifierAccountId}:${opts.accountId}-${opts.permalink}`
