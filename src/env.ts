@@ -1,4 +1,3 @@
-
 import './globals'
 // import './console'
 
@@ -15,6 +14,7 @@ import {
 } from './types'
 import { WARMUP_SOURCE_NAME, ROOT_LOGGING_NAMESPACE } from './constants'
 import Logger, { Level } from './logger'
+import { parseArn } from './utils';
 
 export default class Env {
   public lambda:Lambda
@@ -109,7 +109,7 @@ export default class Env {
       writer: props.IS_TESTING ? createTestingLogger(ROOT_LOGGING_NAMESPACE) : global.console,
       outputFormat: props.DEBUG_FORMAT || 'text',
       context: {},
-      level: 'DEBUG_LEVEL' in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG,
+      level: 'DEBUG_LEVEL' in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG
       // writer: console,
       // outputFormat: 'text'
     })
@@ -123,7 +123,9 @@ export default class Env {
     }
   }
 
-  public get xraySegment() { return this.lambda.xraySegment }
+  public get xraySegment() {
+    return this.lambda.xraySegment
+  }
 
   public set = props => {
     Object.assign(this, props)
@@ -148,7 +150,7 @@ export default class Env {
     return this.lambda ? this.lambda.getRemainingTimeWithBuffer(buffer) : 0
   }
 
-  public setLambda = (lambda) => {
+  public setLambda = lambda => {
     this.lambda = lambda
     this.setRequestContext(lambda.reqCtx)
     const { event, context } = lambda.execCtx
@@ -210,6 +212,10 @@ export default class Env {
     if ('SEAL_BATCHING_PERIOD' in props) {
       this.SEAL_BATCHING_PERIOD = parseInt(props.SEAL_BATCHING_PERIOD, 10)
     }
+
+    if (props.R_STACK && !this.AWS_ACCOUNT_ID) {
+      this.AWS_ACCOUNT_ID = parseArn(props.R_STACK).accountId
+    }
   }
 }
 
@@ -224,6 +230,6 @@ const createTestingLogger = (name?: string) => {
     info: debug(`INFO:${prefix}`),
     debug: debug(`DEBUG:${prefix}`),
     silly: debug(`SILLY:${prefix}`),
-    ridiculous: debug(`RIDICULOUS:${prefix}`),
+    ridiculous: debug(`RIDICULOUS:${prefix}`)
   }
 }
