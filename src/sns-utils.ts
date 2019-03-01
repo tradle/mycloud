@@ -169,6 +169,24 @@ export class SNSUtils implements ISMS {
     await client.publish(params).promise()
   }
 
+  public allowCrossAccountPublish = async (topic: string, accounts: string[]) => {
+    const { Attributes } = await this.getTopicAttributes(topic)
+    const policy = JSON.parse(Attributes.Policy)
+    // remove old statements
+    const statements = policy.Statement.filter(({ Sid }) => !Sid.startsWith('allowCrossAccountPublish'))
+    statements.push(genCrossAccountPublishPermission(topic, accounts))
+    const params:AWS.SNS.SetTopicAttributesInput = {
+      TopicArn: topic,
+      AttributeName: 'Policy',
+      AttributeValue: JSON.stringify({
+        ...policy,
+        Statement: statements
+      })
+    }
+
+    await this.setTopicAttributes(params)
+  }
+
   private _client = (arnOrRegion?: string) => {
     if (!arnOrRegion) return this.aws.sns
 

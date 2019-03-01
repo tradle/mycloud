@@ -1,33 +1,36 @@
 import _ from 'lodash'
 import { selectModelProps } from '../../utils'
 import {
-  IPluginOpts,
   CreatePlugin,
+  IChildDeployment,
   IDeploymentConf,
   IDeploymentPluginConf,
   IPBReq,
-  ValidatePluginConf,
-  UpdatePluginConf,
+  IPluginOpts,
   PluginLifecycle,
-  IChildDeployment,
-  VersionInfo,
+  UpdatePluginConf,
+  ValidatePluginConf,
+  VersionInfo
 } from '../types'
 
 import Errors from '../../errors'
 import constants from '../../constants'
 import { Deployment, createDeployment } from '../deployment'
-import { TYPES, TRADLE } from '../constants'
-import { getParsedFormStubs, didPropChange } from '../utils'
+import { TRADLE, TYPES } from '../constants'
+import { didPropChange, getParsedFormStubs } from '../utils'
 
-const { TYPE, WEB_APP_URL } = constants
-const templateFileName = 'compiled-cloudformation-template.json'
-const { DEPLOYMENT_PRODUCT, DEPLOYMENT_CONFIG_FORM, SIMPLE_MESSAGE } = TYPES
+const { TYPE } = constants
+const { DEPLOYMENT_PRODUCT, DEPLOYMENT_CONFIG_FORM } = TYPES
+const getCommit = (childDeployment: IChildDeployment) => _.get(childDeployment, 'version.commit')
 
 export interface IDeploymentPluginOpts extends IPluginOpts {
   conf: IDeploymentPluginConf
 }
 
-export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger }:IDeploymentPluginOpts) => {
+export const createPlugin: CreatePlugin<Deployment> = (
+  components,
+  { conf, logger }: IDeploymentPluginOpts
+) => {
   const { bot, applications, productsAPI, employeeManager, alerts } = components
   const orgConf = components.conf
   const { org } = orgConf
@@ -40,7 +43,8 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
     if (req && req.payload && req.payload[TYPE] === DEPLOYMENT_CONFIG_FORM) {
       form = req.payload
     } else {
-      const latest = getParsedFormStubs(application).reverse()
+      const latest = getParsedFormStubs(application)
+        .reverse()
         .find(({ type }) => type === DEPLOYMENT_CONFIG_FORM)
 
       const { link } = latest
@@ -52,9 +56,9 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
     const botPermalink = await getBotPermalink
     const deploymentOpts = {
       ...configuration,
-       // backwards compat
+      // backwards compat
       stackName: configuration.stackName || configuration.stackPrefix,
-      configurationLink: link,
+      configurationLink: link
     } as IDeploymentConf
 
     // async
@@ -133,8 +137,8 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
     }
   }
 
-  const onChildDeploymentChanged:PluginLifecycle.onResourceChanged = async ({ old, value }) => {
-    if (didPropChange({ old, value, prop: 'stackId' })) {
+  const maybeNotifyCreators = async ({ old, value }) => {
+    if (value.configuration && didPropChange({ old, value, prop: 'stackId' })) {
       // using bot.tasks is hacky, but because this fn currently purposely stalls for minutes on end,
       // stream-processor will time out processing this item and the lambda will exit before anyone gets notified
       bot.tasks.add({
@@ -142,10 +146,24 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
         promise: deployment.notifyCreatorsOfChildDeployment(value)
       })
     }
+  }
+
+  const onChildDeploymentCreated: PluginLifecycle.onResourceCreated = async childDeployment => {
+    maybeNotifyCreators({ old: {}, value: childDeployment })
+
+    try {
+      await alerts.childLaunched(childDeployment as any)
+    } catch (err) {
+      logger.error('failed to alert about new child', err)
+    }
+  }
+
+  const onChildDeploymentChanged: PluginLifecycle.onResourceChanged = async ({ old, value }) => {
+    maybeNotifyCreators({ old, value })
 
     const from = old as IChildDeployment
     const to = value as IChildDeployment
-    if (_.get(from, 'version.commit') === _.get(to, 'version.commit')) {
+    if (getCommit(from) === getCommit(to)) {
       try {
         await alerts.childRolledBack({ to })
       } catch (err) {
@@ -155,23 +173,14 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
       return
     }
 
-    const freshlyDeployed = !from.stackId && to.stackId
-    if (freshlyDeployed) {
-      try {
-        await alerts.childLaunched(to as any)
-      } catch (err) {
-        logger.error('failed to alert about new child', err)
-      }
-    } else {
-      try {
-        await alerts.childUpdated({ from, to })
-      } catch (err) {
-        logger.error('failed to alert about child update', err)
-      }
+    try {
+      await alerts.childUpdated({ from, to })
+    } catch (err) {
+      logger.error('failed to alert about child update', err)
     }
   }
 
-  const onVersionInfoCreated:PluginLifecycle.onResourceCreated = async (resource) => {
+  const onVersionInfoCreated: PluginLifecycle.onResourceCreated = async resource => {
     if (resource._org === TRADLE.PERMALINK && Deployment.isStableReleaseTag(resource.tag)) {
       await alerts.updateAvailable({
         current: bot.version,
@@ -198,14 +207,14 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
       'onmessage:tradle.cloud.UpdateResponse': async (req: IPBReq) => {
         await deployment.handleUpdateResponse(req.payload)
       },
+      'onResourceCreated:tradle.cloud.ChildDeployment': onChildDeploymentCreated,
       'onResourceChanged:tradle.cloud.ChildDeployment': onChildDeploymentChanged,
-      'onResourceCreated:tradle.cloud.ChildDeployment': value => onChildDeploymentChanged({ old: {}, value }),
-      'onResourceCreated:tradle.VersionInfo': onVersionInfoCreated,
+      'onResourceCreated:tradle.VersionInfo': onVersionInfoCreated
     } as PluginLifecycle.Methods
   }
 }
 
-export const validateConf:ValidatePluginConf = async ({ bot, pluginConf }) => {
+export const validateConf: ValidatePluginConf = async ({ bot, pluginConf }) => {
   const { senderEmail } = pluginConf as IDeploymentPluginConf
   if (senderEmail) {
     const resp = await bot.mailer.canSendFrom(senderEmail)
@@ -215,7 +224,7 @@ export const validateConf:ValidatePluginConf = async ({ bot, pluginConf }) => {
   }
 }
 
-export const updateConf:UpdatePluginConf = async ({ bot, pluginConf }) => {
+export const updateConf: UpdatePluginConf = async ({ bot, pluginConf }) => {
   const { replication } = pluginConf as IDeploymentPluginConf
   if (!replication) return
 

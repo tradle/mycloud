@@ -53,6 +53,7 @@ import {
   Bot,
   Seal,
   StackStatusEvent,
+  GetPNSTopicOpts,
 } from './types'
 
 import * as types from './typeforce-types'
@@ -1635,3 +1636,14 @@ export const tryAsync = <A, B>(fn:Promiser<A, B|void>, onError:ErrorHandler=noop
     }
   }
 }
+
+export const assertNoNullProps = (obj: any, msg: string) => {
+  for (let p in obj) {
+    if (obj[p] == null) {
+      throw new Errors.InvalidInput(msg)
+    }
+  }
+}
+
+export const getPNSTopic = (opts: GetPNSTopicOpts) =>
+  `arn:aws:sns:${opts.region}:${opts.notifierAccountId}:${opts.accountId}-${opts.permalink}`
