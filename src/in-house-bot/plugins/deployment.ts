@@ -138,7 +138,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
   }
 
   const maybeNotifyCreators = async ({ old, value }) => {
-    if (didPropChange({ old, value, prop: 'stackId' })) {
+    if (value.configuration && didPropChange({ old, value, prop: 'stackId' })) {
       // using bot.tasks is hacky, but because this fn currently purposely stalls for minutes on end,
       // stream-processor will time out processing this item and the lambda will exit before anyone gets notified
       bot.tasks.add({
