@@ -44,7 +44,6 @@ import {
   Identities,
   Messages,
   Objects,
-  Push,
   Seals,
   ModelStore,
   Delivery,
@@ -52,6 +51,7 @@ import {
   Storage,
   TaskManager,
   ISession,
+  SendPushNotification
 } from './types'
 
 const {
@@ -80,7 +80,7 @@ type MessagingOpts = {
   delivery: Delivery
   seals: Seals
   modelStore: ModelStore
-  pushNotifications: Push
+  sendPushNotification: SendPushNotification
   tasks: TaskManager
   network: any
 }
@@ -96,7 +96,6 @@ export default class Messaging {
   private get storage() { return this.components.storage }
   private get modelStore() { return this.components.modelStore }
   private get seals() { return this.components.seals }
-  private get pushNotifications() { return this.components.pushNotifications }
   private get tasks() { return this.components.tasks }
   private network: any
   private components: MessagingOpts
@@ -380,7 +379,7 @@ export default class Messaging {
         this.logger.debug('live delivery canceled', error)
       } else if (Errors.matches(err, Errors.ClientUnreachable)) {
         this.logger.debug('live delivery failed, client unreachable', { recipient })
-        if (this.pushNotifications) {
+        if (this.components.sendPushNotification) {
           try {
             await this.sendPushNotification(recipient)
           } catch (pushErr) {
@@ -466,20 +465,7 @@ export default class Messaging {
   }
 
   public sendPushNotification = async (recipient:string):Promise<void> => {
-    const { identity, keys } = await this.identity.getPrivate()
-    await this.pushNotifications.push({
-      key: getSigningKey(keys),
-      identity,
-      subscriber: recipient
-    })
-  }
-
-  public registerWithPushNotificationsServer = async ():Promise<void> => {
-    const { identity, keys } = await this.identity.getPrivate()
-    await this.pushNotifications.ensureRegistered({
-      key: getSigningKey(keys),
-      identity
-    })
+    await this.components.sendPushNotification({ recipient })
   }
 
   // public for testing purposes

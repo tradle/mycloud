@@ -1,9 +1,5 @@
-
-import {
-  PRIVATE_CONF_BUCKET as defaults,
-  TYPES as BASE_TYPES
-} from '../constants'
-
+import { PRIVATE_CONF_BUCKET as defaults, TYPES as BASE_TYPES, TRADLE } from '../constants'
+export { TRADLE }
 export const PRIVATE_CONF_BUCKET = {
   ...defaults,
   bot: 'conf/bot.json',
@@ -11,7 +7,7 @@ export const PRIVATE_CONF_BUCKET = {
   termsAndConditions: 'conf/terms-and-conditions.md',
   org: 'org/org.json',
   info: 'info/info.json',
-  kycServiceDiscovery: 'discovery/ecs-services.json',
+  kycServiceDiscovery: 'discovery/ecs-services.json'
 }
 
 export const MODELS_HASH_PROPERTY = 'modelsHash'
@@ -34,12 +30,5 @@ export const TYPES = {
   ORGANIZATION: 'tradle.Organization',
   STYLES_PACK: 'tradle.StylesPack',
   MY_EMPLOYEE_ONBOARDING: 'tradle.MyEmployeeOnboarding',
-  ASSIGN_RELATIONSHIP_MANAGER: 'tradle.AssignRelationshipManager',
-}
-
-export const TRADLE = {
-  API_BASE_URL: 'https://t22ju1ga5c.execute-api.us-east-1.amazonaws.com/dev',
-  PERMALINK: '9658992cbb1499c1fd9f7d92e1dee43eb65f403b3a32f2d888d2f241c4bdf7b6',
-  ORG_NAME: 'Tradle',
-  ACCOUNT_ID: '210041114155',
+  ASSIGN_RELATIONSHIP_MANAGER: 'tradle.AssignRelationshipManager'
 }

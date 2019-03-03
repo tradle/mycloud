@@ -24,8 +24,9 @@ import {
   SNSEvent,
   EnumValueStub,
   VersionInfo,
-  Registry,
+  Registry
 } from '../../types'
+import { TradleServicesStack } from '../tradle-services-stack'
 
 export * from '../plugin-types'
 export * from '../../types'
@@ -54,7 +55,7 @@ export interface IProductsConf {
 }
 
 export interface ITours {
-  [name:string]: ITradleObject
+  [name: string]: ITradleObject
 }
 
 export interface KVMap {
@@ -119,7 +120,8 @@ export interface IBotComponents {
   emailBasedVerifier?: EmailBasedVerifier
   smsBasedVerifier?: SMSBasedVerifier
   documentChecker?: DocumentCheckerAPI
-  [x:string]: any
+  tradleServicesStack?: TradleServicesStack
+  [x: string]: any
 }
 
 export type CliOpts = {
@@ -248,14 +250,14 @@ export interface ICommandContext {
   employee?: boolean
   sudo?: boolean
   confirmed?: boolean
-  [x:string]: any
+  [x: string]: any
 }
 
 export interface ICommandOutput {
   ctx: ICommandContext
   command?: ICommand
-  result?:any
-  error?:any
+  result?: any
+  error?: any
 }
 
 // export interface IDeferredCommandOutput extends ICommandOutput {
@@ -271,18 +273,18 @@ export interface ICommand {
   name: string
   description: string
   examples: string[]
-  exec: (opts:ICommandContext) => Promise<any>
-  parse?: (args:string, opts?:any) => any
+  exec: (opts: ICommandContext) => Promise<any>
+  parse?: (args: string, opts?: any) => any
   parseOpts?: any
-  sendResult?: (opts:ICommandSendResultOpts) => Promise<any>
+  sendResult?: (opts: ICommandSendResultOpts) => Promise<any>
   aliases?: string[]
   adminOnly?: boolean
 }
 
 export type Name = {
-  firstName:string
-  lastName:string
-  formatted?:string
+  firstName: string
+  lastName: string
+  formatted?: string
 }
 
 export type ClaimType = 'bulk' | 'prefill'
@@ -355,9 +357,7 @@ export interface StackDeploymentInfo {
   adminEmail?: string
 }
 
-export interface CallHomeOpts extends StackDeploymentInfo {
-
-}
+export interface CallHomeOpts extends StackDeploymentInfo {}
 
 export interface IDeploymentConfForm extends ITradleObject {
   adminEmail: string
@@ -376,7 +376,7 @@ export interface IChildDeployment {
 export interface IPBotLambdaOpts extends ILambdaOpts<IPBMiddlewareContext> {
   event: string
   preware?: IPBMiddleware
-  [x:string]: any
+  [x: string]: any
 }
 
 interface IDeploymentReplicationRegionConf {
@@ -426,7 +426,7 @@ export interface IAppLinkSet {
 }
 
 export interface ITradleCheck extends ITradleObject {
-  aspects: string|string[]
+  aspects: string | string[]
   status: EnumValueStub
 }
 
