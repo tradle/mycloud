@@ -45,11 +45,13 @@ interface IFacetecZoomCheck {
 }
 
 interface IFacetecZoomCheckConf {
-    appToken: string
+    appToken: string,
+    serverToken: string
 }
 
 const DEFAULT_CONF = {
-    appToken: ''
+    appToken: '',
+    serverToken: ''
 }
 
 export class IFacetecZoomCheckAPI {
@@ -78,7 +80,8 @@ export class IFacetecZoomCheckAPI {
         try {
           const res = await post(API_URL + '/liveness', form, {
             headers: {
-                'X-App-Token': this.conf.appToken
+                'X-App-Token': this.conf.appToken,
+                'X-Server-Token': this.conf.serverToken
             },
             timeout: REQUEST_TIMEOUT,
           })
@@ -192,13 +195,17 @@ debugger
 
 export const validateConf:ValidatePluginConf = async (opts) => {
     const pluginConf = opts.pluginConf as IFacetecZoomCheckConf
-    const { appToken } = pluginConf
+    const { appToken, serverToken } = pluginConf
   
     let err = ''
     if (!appToken)
       err = '\nExpected "appToken".'
     else if (typeof appToken !== 'string')
       err += '\nExpected "appToken" to be a string.'
+    else if (!serverToken)
+      err = '\nExpected "serverToken".'
+    else if (typeof serverToken !== 'string')
+      err += '\nExpected "serverToken" to be a string.'  
     if (err.length)
       throw new Error(err)
 }
