@@ -1,26 +1,26 @@
-import _ from "lodash"
+import _ from 'lodash'
 // @ts-ignore
-import Promise from "bluebird"
-import AWS from "aws-sdk"
-import { FindOpts, Filter } from "@tradle/dynamodb"
-import buildResource from "@tradle/build-resource"
-import { wrapBucket, Bucket } from "@tradle/aws-s3-client"
+import Promise from 'bluebird'
+import AWS from 'aws-sdk'
+import { FindOpts, Filter } from '@tradle/dynamodb'
+import buildResource from '@tradle/build-resource'
+import { wrapBucket, Bucket } from '@tradle/aws-s3-client'
 import {
   genSetDeliveryPolicyParams,
   genCrossAccountPublishPermission
-} from "@tradle/aws-sns-client"
+} from '@tradle/aws-sns-client'
 import {
   getResourcesByType,
   getLambdaS3Keys,
   setTemplateParameterDefaults,
   lockParametersToDefaults
-} from "@tradle/aws-cloudformation-client"
-import { TYPE, SIG, ORG, unitToMillis } from "../constants"
-import { TRADLE } from "./constants"
-import { randomStringWithLength } from "../crypto"
-import baseModels from "../models"
-import { Alerts } from "./alerts"
-import { createRegionalS3Client, RegionalS3Client } from "./serverless-regional-s3"
+} from '@tradle/aws-cloudformation-client'
+import { TYPE, SIG, ORG, unitToMillis } from '../constants'
+import { TRADLE } from './constants'
+import { randomStringWithLength } from '../crypto'
+import baseModels from '../models'
+import { Alerts } from './alerts'
+import { createRegionalS3Client, RegionalS3Client } from './serverless-regional-s3'
 import {
   Env,
   Bot,
@@ -46,14 +46,14 @@ import {
   StackLaunchParameters,
   MyCloudLaunchTemplate,
   MyCloudUpdateTemplate
-} from "./types"
+} from './types'
 
-import { StackUtils } from "../stack-utils"
-import { media } from "./media"
-import Errors from "../errors"
-import { getLogo } from "./image-utils"
-import * as utils from "../utils"
-import * as Templates from "./templates"
+import { StackUtils } from '../stack-utils'
+import { media } from './media'
+import Errors from '../errors'
+import { getLogo } from './image-utils'
+import * as utils from '../utils'
+import * as Templates from './templates'
 import {
   getAppLinks,
   getAppLinksInstructions,
@@ -61,53 +61,53 @@ import {
   isProbablyTradle,
   getTradleBotStub,
   urlsFuzzyEqual
-} from "./utils"
+} from './utils'
 
-import { getLogAlertsTopicName } from "./log-processor"
+import { getLogAlertsTopicName } from './log-processor'
 
 const { toSortableTag } = utils
 
 const TMP_SNS_TOPIC_TTL = unitToMillis.day
 const LOG_TOPIC_TTL = unitToMillis.year
 const UPDATE_TOPIC_TTL = unitToMillis.year
-const LAUNCH_MESSAGE = "Launch your Tradle MyCloud"
-const ONLINE_MESSAGE = "Your Tradle MyCloud is online!"
-const CHILD_DEPLOYMENT = "tradle.cloud.ChildDeployment"
-const PARENT_DEPLOYMENT = "tradle.cloud.ParentDeployment"
-const CONFIGURATION = "tradle.cloud.Configuration"
-const AWS_REGION = "tradle.cloud.AWSRegion"
-const TMP_SNS_TOPIC = "tradle.cloud.TmpSNSTopic"
-const VERSION_INFO = "tradle.cloud.VersionInfo"
-const UPDATE_REQUEST = "tradle.cloud.UpdateRequest"
-const UPDATE_RESPONSE = "tradle.cloud.UpdateResponse"
-const UPDATE = "tradle.cloud.Update"
+const LAUNCH_MESSAGE = 'Launch your Tradle MyCloud'
+const ONLINE_MESSAGE = 'Your Tradle MyCloud is online!'
+const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
+const PARENT_DEPLOYMENT = 'tradle.cloud.ParentDeployment'
+const CONFIGURATION = 'tradle.cloud.Configuration'
+const AWS_REGION = 'tradle.cloud.AWSRegion'
+const TMP_SNS_TOPIC = 'tradle.cloud.TmpSNSTopic'
+const VERSION_INFO = 'tradle.cloud.VersionInfo'
+const UPDATE_REQUEST = 'tradle.cloud.UpdateRequest'
+const UPDATE_RESPONSE = 'tradle.cloud.UpdateResponse'
+const UPDATE = 'tradle.cloud.Update'
 const NO_SENDER_EMAIL = 'not configured to send emails. conf is missing "senderEmail"'
 const UPDATE_REQUEST_TTL = 10 * unitToMillis.minute
 // for non-inlined version info
-const VERSION_INFO_REQUIRED_PROPS = ["tag", "commit", "branch", "templateUrl"]
+const VERSION_INFO_REQUIRED_PROPS = ['tag', 'commit', 'branch', 'templateUrl']
 const DEFAULT_LAUNCH_TEMPLATE_OPTS = {
-  template: "action",
+  template: 'action',
   data: {
     blocks: [
-      { body: "Hi there," },
-      { body: "Click below to launch your Tradle MyCloud" },
+      { body: 'Hi there,' },
+      { body: 'Click below to launch your Tradle MyCloud' },
       {
         body: `Note: You will be shown a form with a field "Stack Name". Don't edit it as it will break your template.`
       },
       {
         action: {
-          text: "Launch MyCloud",
-          href: "{{launchUrl}}"
+          text: 'Launch MyCloud',
+          href: '{{launchUrl}}'
         }
       }
     ],
-    signature: "{{fromOrg.name}} Team"
+    signature: '{{fromOrg.name}} Team'
     // twitter: 'tradles'
   }
 }
 
 const DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS = {
-  template: "action",
+  template: 'action',
   data: {
     blocks: [
       { body: ONLINE_MESSAGE },
@@ -115,12 +115,12 @@ const DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS = {
       { body: 'Use <a href="{{web}}">this link</a> to add it to your Tradle web app' },
       { body: 'Give <a href="{{employeeOnboarding}}">this link</a> to employees' }
     ],
-    signature: "{{fromOrg.name}} Team"
+    signature: '{{fromOrg.name}} Team'
     // twitter: 'tradles'
   }
 }
 
-const ALERT_BRANCHES = ["master"]
+const ALERT_BRANCHES = ['master']
 
 // generated in AWS console
 const UPDATE_STACK_TOPIC_DELIVERY_POLICY = {
@@ -132,7 +132,7 @@ const UPDATE_STACK_TOPIC_DELIVERY_POLICY = {
       numMaxDelayRetries: 0,
       numNoDelayRetries: 0,
       numMinDelayRetries: 0,
-      backoffFunction: "exponential"
+      backoffFunction: 'exponential'
     },
     disableSubscriptionOverrides: false,
     defaultThrottlePolicy: {
@@ -149,15 +149,15 @@ const LOGGING_TOPIC_DELIVERY_POLICY = _.merge(UPDATE_STACK_TOPIC_DELIVERY_POLICY
   }
 })
 
-const ON_CHILD_STACK_STATUS_CHANGED_LAMBDA_NAME = "onChildStackStatusChanged"
-const LOG_PROCESSOR_LAMBDA_NAME = "logProcessor"
-const LOG_ALERTS_PROCESSOR_LAMBDA_NAME = "logAlertProcessor"
+const ON_CHILD_STACK_STATUS_CHANGED_LAMBDA_NAME = 'onChildStackStatusChanged'
+const LOG_PROCESSOR_LAMBDA_NAME = 'logProcessor'
+const LOG_ALERTS_PROCESSOR_LAMBDA_NAME = 'logAlertProcessor'
 const createMappingsForUpdate = (adminEmail?: string) => ({
   org: utils.pickNonNull({
     init: {
-      name: "",
-      domain: "",
-      logo: ""
+      name: '',
+      domain: '',
+      logo: ''
     },
     contact: adminEmail && { adminEmail }
   })
@@ -222,7 +222,7 @@ interface GenUpdatePackageForStackOpts {
   region?: string
 }
 
-const BlockchainNetworkModel = baseModels["tradle.BlockchainNetwork"]
+const BlockchainNetworkModel = baseModels['tradle.BlockchainNetwork']
 
 export class Deployment {
   // exposed for testing
@@ -236,18 +236,18 @@ export class Deployment {
   private isTradle: boolean
   private regionalS3: RegionalS3Client
 
-  public static encodeRegion = (region: string) => region.replace(/[-]/g, ".")
-  public static decodeRegion = (region: string) => region.replace(/[.]/g, "-")
+  public static encodeRegion = (region: string) => region.replace(/[-]/g, '.')
+  public static decodeRegion = (region: string) => region.replace(/[.]/g, '-')
   public static decodeBlockchainEnumValue = value =>
     utils
       .getEnumValueId({
         model: BlockchainNetworkModel,
         value
       })
-      .replace(/[.]/g, ":")
+      .replace(/[.]/g, ':')
 
   public static encodeBlockchainEnumValue = (str: string) => {
-    const id = str.replace(/[:]/g, ".")
+    const id = str.replace(/[:]/g, '.')
     return buildResource.enumValue({
       model: BlockchainNetworkModel,
       value: { id }
@@ -280,7 +280,7 @@ export class Deployment {
     stage?: string
   }) => {
     if (!stage) {
-      stage = _.get(template, "Parameters.Stage.Default", "dev")
+      stage = _.get(template, 'Parameters.Stage.Default', 'dev')
     }
 
     return `tdl-${stackName}-ltd-${stage}`
@@ -304,7 +304,7 @@ export class Deployment {
   public static ensureInitLogIsRetained = (template: CFTemplate) => {
     // otherwise it's impossible to figure out what went wrong when the stack
     // doesn't succeed
-    template.Resources.BotUnderscoreoninitLogGroup.DeletionPolicy = "Retain"
+    template.Resources.BotUnderscoreoninitLogGroup.DeletionPolicy = 'Retain'
   }
 
   public static getAdminEmailFromTemplate = (template: CFTemplate) => {
@@ -368,7 +368,7 @@ export class Deployment {
       this.getDeploymentBucketForRegion(region)
     ])
 
-    this.logger.silly("generating cloudformation template with configuration", {
+    this.logger.silly('generating cloudformation template with configuration', {
       configuration,
       version: versionInfo
     })
@@ -382,7 +382,7 @@ export class Deployment {
     const { templateUrl } = await this._saveTemplateAndCode({ template, parentTemplate, bucket })
 
     const stage = template.Parameters.Stage.Default
-    this.logger.debug("generated cloudformation template for child deployment")
+    this.logger.debug('generated cloudformation template for child deployment')
     const { deploymentUUID } = template.Mappings.deployment.init
     // const promiseTmpTopic = this._setupStackStatusAlerts({
     //   id: deploymentUUID,
@@ -439,7 +439,7 @@ export class Deployment {
     }
 
     if (!childDeployment) {
-      throw new Errors.NotFound("child deployment for stackId: " + stackId)
+      throw new Errors.NotFound('child deployment for stackId: ' + stackId)
     }
 
     let configuration
@@ -449,7 +449,7 @@ export class Deployment {
       Errors.ignoreNotFound(err)
       Errors.rethrowAs(
         err,
-        new Errors.NotFound("original configuration for child deployment not found")
+        new Errors.NotFound('original configuration for child deployment not found')
       )
     }
 
@@ -486,9 +486,9 @@ export class Deployment {
   }
 
   public genUpdatePackageForStack = async (opts: GenUpdatePackageForStackOpts) => {
-    utils.requireOpts(opts, ["parentTemplateUrl"])
+    utils.requireOpts(opts, ['parentTemplateUrl'])
     if (!opts.region) {
-      utils.requireOpts(opts, ["stackId"])
+      utils.requireOpts(opts, ['stackId'])
     }
 
     let { stackOwner, stackId, region, parentTemplateUrl } = opts
@@ -531,7 +531,7 @@ export class Deployment {
     return await this.getChildDeployment({
       filter: {
         EQ: {
-          "identity._permalink": createdBy
+          'identity._permalink': createdBy
         },
         NULL: {
           stackId: false
@@ -546,7 +546,7 @@ export class Deployment {
     return await this.getChildDeployment({
       filter: {
         EQ: {
-          "configuredBy._permalink": configuredBy
+          'configuredBy._permalink': configuredBy
         },
         NULL: {
           stackId: false
@@ -586,7 +586,7 @@ export class Deployment {
       _.merge(
         {
           orderBy: {
-            property: "_time",
+            property: '_time',
             desc: true
           },
           filter: {
@@ -603,13 +603,13 @@ export class Deployment {
   public getParentDeployment = async (): Promise<ITradleObject> => {
     return await this.bot.db.findOne({
       orderBy: {
-        property: "_time",
+        property: '_time',
         desc: true
       },
       filter: {
         EQ: {
           [TYPE]: PARENT_DEPLOYMENT,
-          "childIdentity._permalink": await this.bot.getMyPermalink()
+          'childIdentity._permalink': await this.bot.getMyPermalink()
         }
       }
     })
@@ -625,7 +625,7 @@ export class Deployment {
     if (this.callHomeDisabled) return
 
     const { bot, logger } = this
-    logger.debug("preparing to call home")
+    logger.debug('preparing to call home')
 
     const tasks = []
     const callHomeOpts = await this._normalizeCallHomeOpts({
@@ -637,9 +637,9 @@ export class Deployment {
     })
 
     if (referrerUrl && deploymentUUID) {
-      this.logger.debug("calling parent")
+      this.logger.debug('calling parent')
       const callHomeToParent = this.callHomeTo(callHomeOpts).catch(err => {
-        this.logger.debug("failed to call home to parent", {
+        this.logger.debug('failed to call home to parent', {
           error: err.stack,
           parent: referrerUrl
         })
@@ -651,10 +651,10 @@ export class Deployment {
     }
 
     if (!referrerUrl || !urlsFuzzyEqual(referrerUrl, TRADLE.API_BASE_URL)) {
-      this.logger.debug("calling tradle")
-      const callTradleOpts = _.omit(callHomeOpts, ["referrerUrl", "deploymentUUID"])
+      this.logger.debug('calling tradle')
+      const callTradleOpts = _.omit(callHomeOpts, ['referrerUrl', 'deploymentUUID'])
       const callHomeToTradle = this.callHomeToTradle(callTradleOpts).catch(err => {
-        this.logger.debug("failed to call home to tradle", {
+        this.logger.debug('failed to call home to tradle', {
           error: err.stack
         })
 
@@ -704,7 +704,7 @@ export class Deployment {
         })
       }
     } catch (err) {
-      this.logger.error("failed to add referring MyCloud as friend", err)
+      this.logger.error('failed to add referring MyCloud as friend', err)
     }
 
     const callHomeUrl = this.getCallHomeUrl(referrerUrl)
@@ -721,7 +721,7 @@ export class Deployment {
     try {
       await utils.runWithTimeout(() => utils.post(callHomeUrl, launchData), { millis: 10000 })
     } catch (err) {
-      Errors.rethrow(err, "developer")
+      Errors.rethrow(err, 'developer')
       this.logger.error(`failed to call home to: ${referrerUrl}`, err)
     }
 
@@ -747,27 +747,27 @@ export class Deployment {
   public handleCallHome = async (report: ICallHomePayload) => {
     const { deploymentUUID, apiUrl, org, identity, stackId, version, adminEmail } = report
     if (utils.isLocalUrl(apiUrl)) {
-      this.logger.info("ignoring call home from dev env MyCloud", report)
+      this.logger.info('ignoring call home from dev env MyCloud', report)
       return true
     }
 
-    this.logger.silly("received call home", report)
+    this.logger.silly('received call home', report)
 
     let childDeployment
     if (deploymentUUID) {
       try {
         childDeployment = await this.getChildDeploymentByDeploymentUUID(deploymentUUID)
-        this.logger.silly("found child deployment by deploymentUUID")
+        this.logger.silly('found child deployment by deploymentUUID')
       } catch (err) {
         Errors.ignoreNotFound(err)
-        this.logger.error("deployment configuration mapping not found", { apiUrl, deploymentUUID })
+        this.logger.error('deployment configuration mapping not found', { apiUrl, deploymentUUID })
       }
     }
 
     if (!childDeployment && stackId) {
       try {
         childDeployment = await this.getChildDeploymentByStackId(stackId)
-        this.logger.silly("found child deployment by stackId")
+        this.logger.silly('found child deployment by stackId')
       } catch (err) {
         Errors.ignoreNotFound(err)
       }
@@ -807,14 +807,14 @@ export class Deployment {
 
     if (childDeployment) {
       if (!childDeploymentRes.isModified()) {
-        this.logger.silly("child deployment resource unchanged")
+        this.logger.silly('child deployment resource unchanged')
         return true
       }
 
-      this.logger.silly("updating child deployment resource")
+      this.logger.silly('updating child deployment resource')
       childDeploymentRes.version()
     } else {
-      this.logger.silly("creating child deployment resource")
+      this.logger.silly('creating child deployment resource')
     }
 
     await childDeploymentRes.signAndSave()
@@ -825,14 +825,14 @@ export class Deployment {
 
   public handleChildStackStatusEvent = async (event: StackStatusEvent) => {
     const { resourceType, status } = event
-    if (resourceType !== "AWS::CloudFormation::Stack") return
+    if (resourceType !== 'AWS::CloudFormation::Stack') return
     // can ignore this one
-    if (status === "UPDATE_COMPLETE_CLEANUP_IN_PROGRESS") return
+    if (status === 'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS') return
 
     try {
       await this.setChildStackStatus(event)
     } catch (err) {
-      this.logger.debug("failed to save child stack status", Errors.export(err))
+      this.logger.debug('failed to save child stack status', Errors.export(err))
       Errors.ignoreNotFound(err)
     }
   }
@@ -868,7 +868,7 @@ export class Deployment {
 
     let message
     if (isEmployee(configurerUser)) {
-      const someLinks = _.omit(links, "employeeOnboarding")
+      const someLinks = _.omit(links, 'employeeOnboarding')
       message = `The MyCloud you drafted has been launched
 
 ${this.genUsageInstructions(someLinks)}`
@@ -893,7 +893,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public notifyCreators = async ({ configuration, apiUrl, identity }: INotifyCreatorsOpts) => {
-    this.logger.debug("attempting to notify of stack launch")
+    this.logger.debug('attempting to notify of stack launch')
     const { hrEmail, adminEmail, _author } = configuration as IDeploymentConfForm
 
     const botPermalink = buildResource.permalink(identity)
@@ -902,8 +902,8 @@ ${this.genUsageInstructions(links)}`
       configurer: _author,
       links
     }).catch(err => {
-      this.logger.error("failed to send message to creator", err)
-      Errors.rethrow(err, "developer")
+      this.logger.error('failed to send message to creator', err)
+      Errors.rethrow(err, 'developer')
     })
 
     let emailAdmin
@@ -912,12 +912,12 @@ ${this.genUsageInstructions(links)}`
         .send({
           from: this.conf.senderEmail,
           to: _.uniq([hrEmail, adminEmail]),
-          format: "html",
+          format: 'html',
           ...this.genLaunchedEmail({ ...links, fromOrg: this.org })
         })
         .catch(err => {
-          this.logger.error("failed to email creators", err)
-          Errors.rethrow(err, "developer")
+          this.logger.error('failed to email creators', err)
+          Errors.rethrow(err, 'developer')
         })
     } else {
       emailAdmin = Promise.resolve()
@@ -937,13 +937,13 @@ ${this.genUsageInstructions(links)}`
     })
 
   public genLaunchEmailBody = values => {
-    const renderConf = _.get(this.conf || {}, "templates.launch") || {}
+    const renderConf = _.get(this.conf || {}, 'templates.launch') || {}
     const opts = _.defaults(renderConf, DEFAULT_LAUNCH_TEMPLATE_OPTS)
     return this.genEmailBody({ ...opts, values })
   }
 
   public genLaunchedEmailBody = values => {
-    const renderConf = _.get(this.conf || {}, "templates.launched") || {}
+    const renderConf = _.get(this.conf || {}, 'templates.launched') || {}
     const opts = _.defaults(renderConf, DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS)
     return this.genEmailBody({ ...opts, values })
   }
@@ -986,7 +986,7 @@ ${this.genUsageInstructions(links)}`
     const { Resources, Mappings, Parameters } = template
     const { deployment } = Mappings
     const logoPromise = getLogo(configuration).catch(err => {
-      this.logger.warn("failed to get logo", { domain })
+      this.logger.warn('failed to get logo', { domain })
     })
 
     const stage = template.Parameters.Stage.Default
@@ -1014,7 +1014,7 @@ ${this.genUsageInstructions(links)}`
     template: CFTemplate
     bucket: string
   }): Promise<MyCloudUpdateTemplate> => {
-    utils.requireOpts(opts, ["template", "bucket"])
+    utils.requireOpts(opts, ['template', 'bucket'])
 
     let { template, bucket } = opts
     template = _.cloneDeep(template)
@@ -1028,7 +1028,7 @@ ${this.genUsageInstructions(links)}`
 
     const initProps = template.Resources.Initialize.Properties
     Object.keys(initProps).forEach(key => {
-      if (key !== "ServiceToken" && key !== "commit") {
+      if (key !== 'ServiceToken' && key !== 'commit') {
         delete initProps[key]
       }
     })
@@ -1095,7 +1095,7 @@ ${this.genUsageInstructions(links)}`
       _.merge(
         {
           orderBy: {
-            property: "dateExpires",
+            property: 'dateExpires',
             desc: false
           },
           filter: {
@@ -1114,7 +1114,7 @@ ${this.genUsageInstructions(links)}`
   public setChildStackStatus = async ({ stackId, status, subscriptionArn }: StackStatusEvent) => {
     const childDeployment = await this.getChildDeploymentByStackId(stackId)
     if (childDeployment.status === status) {
-      this.logger.debug("ignoring duplicate child stack status update", {
+      this.logger.debug('ignoring duplicate child stack status update', {
         status,
         childDeployment: childDeployment._permalink
       })
@@ -1122,7 +1122,7 @@ ${this.genUsageInstructions(links)}`
       return childDeployment
     }
 
-    this.logger.debug("updating child deployment status", {
+    this.logger.debug('updating child deployment status', {
       status,
       childDeployment: childDeployment._permalink
     })
@@ -1169,9 +1169,9 @@ ${this.genUsageInstructions(links)}`
   }) => {
     const { commit } = template.Resources.Initialize.Properties
     const key = `templates/template-${commit}-${Date.now()}-${randomStringWithLength(10)}.json`
-    await this._bucket(bucket).putJSON(key, template, { acl: "public-read" })
+    await this._bucket(bucket).putJSON(key, template, { acl: 'public-read' })
     const url = this.bot.s3Utils.getUrlForKey({ bucket, key })
-    this.logger.silly("saved template", { bucket, key, url })
+    this.logger.silly('saved template', { bucket, key, url })
     return url
   }
 
@@ -1183,7 +1183,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _setupStackStatusAlerts = async (opts: ChildStackIdentifier) => {
-    utils.requireOpts(opts, ["stackOwner", "stackId"])
+    utils.requireOpts(opts, ['stackOwner', 'stackId'])
     const arn = await this._createStackUpdateTopic(opts)
     return await this._subscribeToChildStackStatusAlerts(arn)
   }
@@ -1199,13 +1199,13 @@ ${this.genUsageInstructions(links)}`
 
   private static getS3KeysForSubstacks = (template: CFTemplate) => {
     const { Resources } = template
-    return getResourcesByType(template, "AWS::CloudFormation::Stack")
+    return getResourcesByType(template, 'AWS::CloudFormation::Stack')
       .map(stack => {
         const { TemplateURL } = stack.Properties
-        if (TemplateURL["Fn::Sub"]) return TemplateURL["Fn::Sub"]
+        if (TemplateURL['Fn::Sub']) return TemplateURL['Fn::Sub']
 
-        const [delimiter, parts] = TemplateURL["Fn::Join"]
-        return parts.filter(part => typeof part === "string").join(delimiter)
+        const [delimiter, parts] = TemplateURL['Fn::Join']
+        return parts.filter(part => typeof part === 'string').join(delimiter)
       })
       .map(url => url.match(/\.s3\.amazonaws\.com\/(.*)$/)[1])
   }
@@ -1238,16 +1238,16 @@ ${this.genUsageInstructions(links)}`
     keys = keys.filter((key, i) => !exists[i])
 
     if (!keys.length) {
-      this.logger.debug("target bucket already has s3 dependencies")
+      this.logger.debug('target bucket already has s3 dependencies')
       return
     }
 
-    this.logger.debug("copying s3 dependencies (lambda code and child stack templates)", {
+    this.logger.debug('copying s3 dependencies (lambda code and child stack templates)', {
       source: source.id,
       target: target.id
     })
 
-    await source.copyFilesTo({ bucket, keys, acl: "public-read" })
+    await source.copyFilesTo({ bucket, keys, acl: 'public-read' })
     return { bucket: target, keys }
   }
 
@@ -1260,7 +1260,7 @@ ${this.genUsageInstructions(links)}`
     template: CFTemplate
     bucket: string
   }): Promise<{ url: string; code: CodeLocation }> => {
-    this.logger.debug("saving template and lambda code", { bucket })
+    this.logger.debug('saving template and lambda code', { bucket })
     const [templateUrl, code] = await Promise.all([
       this.savePublicTemplate({ bucket, template }),
       this.copyChildTemplateDependencies({ bucket, template })
@@ -1270,7 +1270,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public createRegionalDeploymentBuckets = async ({ regions }: { regions: string[] }) => {
-    this.logger.debug("creating regional buckets", { regions })
+    this.logger.debug('creating regional buckets', { regions })
     return await this.regionalS3.createRegionalBuckets({
       // not a real bucket
       bucket: this.getDeploymentBucketLogicalName(),
@@ -1293,7 +1293,7 @@ ${this.genUsageInstructions(links)}`
   //   notificationTopics?: string[]
   // }) => {
   //   await this.bot.lambdaUtils.invoke({
-  //     name: "updateStack",
+  //     name: 'updateStack',
   //     arg: { templateUrl, notificationTopics }
   //   })
   // }
@@ -1313,7 +1313,7 @@ ${this.genUsageInstructions(links)}`
       tag
     }: {
       tag: string
-    } = { tag: "latest" }
+    } = { tag: 'latest' }
   ) => {
     const provider = await getTradleBotStub()
     return this.requestUpdateFromProvider({ provider, tag })
@@ -1340,7 +1340,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public draftUpdateRequest = opts => {
-    utils.requireOpts(opts, ["tag", "provider"])
+    utils.requireOpts(opts, ['tag', 'provider'])
 
     // if (parent[TYPE] !== PARENT_DEPLOYMENT) {
     //   throw new Errors.InvalidInput(`expected "parent" to be tradle.MyCloudFriend`)
@@ -1352,7 +1352,7 @@ ${this.genUsageInstructions(links)}`
       .draft({ type: UPDATE_REQUEST })
       .set(
         utils.pickNonNull({
-          service: "tradle",
+          service: 'tradle',
           stage: env.STACK_STAGE,
           region: this._thisRegion,
           stackId: this._thisStackArn,
@@ -1377,7 +1377,7 @@ ${this.genUsageInstructions(links)}`
     //   return v1.handleUpdateRequest({ req, from })
     // }
 
-    utils.requireOpts(req, ["stackId", "tag"])
+    utils.requireOpts(req, ['stackId', 'tag'])
 
     // if (req.currentCommit === this.bot.version.commit) {
     //   this.logger.debug('child is up to date')
@@ -1401,7 +1401,7 @@ ${this.genUsageInstructions(links)}`
       .set(
         utils.pickNonNull({
           templateUrl,
-          notificationTopics: notificationTopics.length ? notificationTopics.join(",") : null,
+          notificationTopics: notificationTopics.length ? notificationTopics.join(',') : null,
           request: req,
           provider: from.identity,
           tag: versionInfo.tag,
@@ -1419,7 +1419,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public getVersionInfoByTag = async (tag: string): Promise<VersionInfo> => {
-    if (tag === "latest") return this.getLatestVersionInfo()
+    if (tag === 'latest') return this.getLatestVersionInfo()
 
     return await this.bot.db.findOne({
       filter: {
@@ -1438,7 +1438,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public getLatestStableVersionInfo = async (): Promise<VersionInfo> => {
-    this.logger.debug("looking up latest stable version")
+    this.logger.debug('looking up latest stable version')
     // try {
     return await this._getLatestStableVersionInfoNew()
     // } catch (err) {
@@ -1451,7 +1451,7 @@ ${this.genUsageInstructions(links)}`
   public getLatestVersionInfo = async (): Promise<VersionInfo> => {
     return await this.bot.db.findOne({
       orderBy: {
-        property: "sortableTag",
+        property: 'sortableTag',
         desc: true
       },
       filter: {
@@ -1470,7 +1470,7 @@ ${this.genUsageInstructions(links)}`
           // this is an expensive query as VersionInfo doesn't have a _org / _time index
           allowScan: true,
           orderBy: {
-            property: "_time",
+            property: '_time',
             desc: true
           },
           filter: {
@@ -1519,7 +1519,7 @@ ${this.genUsageInstructions(links)}`
       }
     } catch (err) {
       Errors.ignoreNotFound(err)
-      this.logger.warn("received stack update response...but no request was made, ignoring", {
+      this.logger.warn('received stack update response...but no request was made, ignoring', {
         from: provider,
         updateResponse: this.bot.buildStub(updateResponse)
       })
@@ -1528,7 +1528,7 @@ ${this.genUsageInstructions(links)}`
     }
 
     if (req._time + UPDATE_REQUEST_TTL < Date.now()) {
-      const msg = "received update response for expired request, ignoring"
+      const msg = 'received update response for expired request, ignoring'
       this.logger.warn(msg, {
         from: provider,
         updateResponse: this.bot.buildStub(updateResponse)
@@ -1545,7 +1545,7 @@ ${this.genUsageInstructions(links)}`
 
   public saveUpdate = async (updateResponse: ITradleObject) => {
     const { templateUrl, notificationTopics, tag } = updateResponse
-    this.logger.debug("saving update", {
+    this.logger.debug('saving update', {
       tag: updateResponse.tag
     })
 
@@ -1564,20 +1564,20 @@ ${this.genUsageInstructions(links)}`
   }
 
   public lookupLatestUpdateRequest = async ({ provider }: { provider: string }) => {
-    if (!(typeof provider === "string" && provider)) {
+    if (!(typeof provider === 'string' && provider)) {
       throw new Errors.InvalidInput('expected string "provider" permalink')
     }
 
     return await this.bot.db.findOne({
       orderBy: {
-        property: "_time",
+        property: '_time',
         desc: true
       },
       filter: {
         EQ: {
           [TYPE]: UPDATE_REQUEST,
           [ORG]: await this.bot.getMyPermalink(),
-          "provider._permalink": provider
+          'provider._permalink': provider
         }
       }
     })
@@ -1590,7 +1590,7 @@ ${this.genUsageInstructions(links)}`
 
     const { items } = await this.bot.db.find({
       orderBy: {
-        property: "sortableTag",
+        property: 'sortableTag',
         desc: false
       },
       filter: {
@@ -1614,7 +1614,7 @@ ${this.genUsageInstructions(links)}`
 
     const { items } = await this.bot.db.find({
       orderBy: {
-        property: "sortableTag",
+        property: 'sortableTag',
         desc: false
       },
       filter: {
@@ -1632,7 +1632,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public alertChildrenAboutVersion = async (versionInfo: Partial<VersionInfo>) => {
-    utils.requireOpts(versionInfo, "tag")
+    utils.requireOpts(versionInfo, 'tag')
     if (!versionInfo[SIG]) {
       versionInfo = await this.getVersionInfoByTag(versionInfo.tag)
     }
@@ -1660,7 +1660,7 @@ ${this.genUsageInstructions(links)}`
     const { aws, stackUtils } = this.bot
     const resources = await stackUtils.getStackResources()
     const { PhysicalResourceId } = resources.find(r => {
-      return r.ResourceType === "AWS::SNS::Topic" && r.LogicalResourceId === "AwsAlertsAlarm"
+      return r.ResourceType === 'AWS::SNS::Topic' && r.LogicalResourceId === 'AwsAlertsAlarm'
     })
 
     const { Subscriptions } = await aws.sns
@@ -1669,7 +1669,7 @@ ${this.genUsageInstructions(links)}`
       })
       .promise()
 
-    const emails = Subscriptions.filter(s => s.Protocol === "email")
+    const emails = Subscriptions.filter(s => s.Protocol === 'email')
     if (emails.length) {
       return emails[0].Endpoint
     }
@@ -1681,16 +1681,16 @@ ${this.genUsageInstructions(links)}`
   private _getLatestStableVersionInfoNew = async (): Promise<VersionInfo> => {
     return await this.bot.db.findOne({
       orderBy: {
-        property: "sortableTag",
+        property: 'sortableTag',
         desc: true
       },
       filter: {
         EQ: {
           [TYPE]: VERSION_INFO,
           [ORG]: await this.bot.getMyPermalink(),
-          "releaseChannel.id": buildResource.enumValue({
-            model: baseModels["tradle.cloud.ReleaseChannel"],
-            value: "stable"
+          'releaseChannel.id': buildResource.enumValue({
+            model: baseModels['tradle.cloud.ReleaseChannel'],
+            value: 'stable'
           }).id
         }
       }
@@ -1702,7 +1702,7 @@ ${this.genUsageInstructions(links)}`
     const params: FindOpts = {
       limit: 10,
       orderBy: {
-        property: "sortableTag",
+        property: 'sortableTag',
         desc: true
       },
       filter: {
@@ -1772,12 +1772,12 @@ ${this.genUsageInstructions(links)}`
     const policy = JSON.parse(Attributes.Policy)
     // remove old statements
     const statements = policy.Statement.filter(
-      ({ Sid }) => !Sid.startsWith("allowCrossAccountPublish")
+      ({ Sid }) => !Sid.startsWith('allowCrossAccountPublish')
     )
     statements.push(genCrossAccountPublishPermission(topic, accounts))
     const params: AWS.SNS.SetTopicAttributesInput = {
       TopicArn: topic,
-      AttributeName: "Policy",
+      AttributeName: 'Policy',
       AttributeValue: JSON.stringify({
         ...policy,
         Statement: statements
@@ -1791,7 +1791,7 @@ ${this.genUsageInstructions(links)}`
     const arn = await this._createTopicForCrossAccountEvents({
       topic: getStackUpdateTopicName({ stackOwner, stackId }),
       stackId,
-      allowRoles: ["*"],
+      allowRoles: ['*'],
       deliveryPolicy: UPDATE_STACK_TOPIC_DELIVERY_POLICY
     })
 
@@ -1848,7 +1848,7 @@ ${this.genUsageInstructions(links)}`
 
     const exists = await this.bot.lambdaUtils.canSNSInvokeLambda(lambda)
     if (exists) {
-      this.logger.debug("sns -> lambda permission already exists", { lambda })
+      this.logger.debug('sns -> lambda permission already exists', { lambda })
       return
     }
 
@@ -1858,7 +1858,7 @@ ${this.genUsageInstructions(links)}`
   private _subscribeEmailToTopic = async ({ email, topic }) => {
     return await this.snsUtils.subscribeIfNotSubscribed({
       topic,
-      protocol: "email",
+      protocol: 'email',
       target: email
     })
   }
@@ -1866,7 +1866,7 @@ ${this.genUsageInstructions(links)}`
   private _subscribeLambdaToTopic = async ({ lambda, topic }) => {
     return await this.snsUtils.subscribeIfNotSubscribed({
       topic,
-      protocol: "lambda",
+      protocol: 'lambda',
       target: lambda
     })
   }
@@ -1887,7 +1887,7 @@ ${this.genUsageInstructions(links)}`
     })
 
     if (existing) {
-      this.logger.debug("updating tmp topic", {
+      this.logger.debug('updating tmp topic', {
         topic,
         permalink: existing._permalink
       })
@@ -1898,7 +1898,7 @@ ${this.genUsageInstructions(links)}`
         .version()
         .signAndSave()
     } else {
-      this.logger.debug("creating tmp topic", { topic })
+      this.logger.debug('creating tmp topic', { topic })
       await this.bot.signAndSave({
         [TYPE]: TMP_SNS_TOPIC,
         ...props
@@ -1941,7 +1941,7 @@ ${this.genUsageInstructions(links)}`
     // template doesn't exist if this is a stack update just loaded from tradle
     const exists = await utils.doesHttpEndpointExist(templateUrl)
     if (exists) {
-      this.logger.debug("template already saved", {
+      this.logger.debug('template already saved', {
         templateUrl
       })
 
@@ -1951,7 +1951,7 @@ ${this.genUsageInstructions(links)}`
     const template = await bot.stackUtils.getStackTemplate()
     const { bucket, key } = bot.s3Utils.parseS3Url(templateUrl)
     if (bucket !== bot.buckets.ServerlessDeployment.id) {
-      this.logger.error("expected template to be stored in serverless deployment bucket", {
+      this.logger.error('expected template to be stored in serverless deployment bucket', {
         bucket,
         key
       })
@@ -1959,7 +1959,7 @@ ${this.genUsageInstructions(links)}`
       return
     }
 
-    this.logger.debug("saving template for current version", { bucket, key })
+    this.logger.debug('saving template for current version', { bucket, key })
     await bot.buckets.ServerlessDeployment.putJSON(key, template)
   }
 
@@ -2096,14 +2096,14 @@ const shouldSendVersionAlert = (versionInfo: VersionInfo) => {
 }
 
 const sortVersions = (items: any[], desc?: boolean) => {
-  const sorted = _.sortBy(items, ["sortableTag", "_time"])
+  const sorted = _.sortBy(items, ['sortableTag', '_time'])
   return desc ? sorted.reverse() : sorted
 }
 
 const getReleaseChannel = (tag: string) => {
-  if (Deployment.isReleaseCandidateTag(tag)) return "releasecandidate"
-  if (Deployment.isTransitionReleaseTag(tag)) return "transition"
-  if (Deployment.isStableReleaseTag(tag)) return "stable"
+  if (Deployment.isReleaseCandidateTag(tag)) return 'releasecandidate'
+  if (Deployment.isTransitionReleaseTag(tag)) return 'transition'
+  if (Deployment.isStableReleaseTag(tag)) return 'stable'
 
   throw new Errors.InvalidInput(`unable to parse release channel from tag: ${tag}`)
 }
