@@ -13,7 +13,7 @@ import IotMessage from "@tradle/iot-message"
 import ModelsPack from "@tradle/models-pack"
 import { ILambdaAWSExecutionContext } from "../types"
 import { createTestBot } from "../"
-import { loudAsync } from "../utils"
+import { loudAsync, promiseNoop } from "../utils"
 import { topics as EventTopics } from "../events"
 import { toStreamItems } from "./utils"
 import Errors from "../errors"
@@ -71,6 +71,7 @@ test(
     // clean up, just in case
     try {
       await Promise.map(await users.list(), user => users.del(user.id))
+      // tslint:disable-next-line no-empty
     } catch (err) {}
 
     // const user : Object = {
@@ -208,7 +209,7 @@ test(
 
     const sandbox = sinon.createSandbox()
     const bot = createTestBot()
-    const { objects, messages, identities } = bot
+    const { objects } = bot
     const { users } = bot
 
     // let updatedUser
@@ -296,7 +297,7 @@ test(
     })
 
     sandbox.stub(bot.aws.iotdata, "publish").callsFake(() => ({
-      promise: async () => {}
+      promise: promiseNoop
     }))
 
     await bot.lambdas.onmessage().handler(
@@ -443,7 +444,7 @@ test(
       _virtual: ["_sigPubKey", "_link", "_permalink", "_author", "_recipient"],
       object: {
         _author: "cf9bfbd126553ce71975c00201c73a249eae05ad9030632f278b38791d74a283",
-        _link: _link,
+        _link,
         _permalink: _link,
         _sigPubKey:
           "04ab6be656d0d6e95e15b3b2b3c9de36929b32f82de955a6a16be590be544947c5c383fbcce54be3ee86d42b1c1e8b27b285f9df17b50ce0621557d455c4058611",

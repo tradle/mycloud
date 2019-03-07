@@ -32,7 +32,8 @@ export default class Iot implements IIotEndpointInfo {
   private logger: Logger
   private prefix: string
   private endpointReady: boolean
-  constructor({ services, env, prefix = "" }: IotOpts) {
+  constructor(private opts: IotOpts) {
+    const { services, env, prefix = "" } = opts
     this.services = services
     this.prefix = prefix
     this.logger = env.logger.sub("iot-utils")
@@ -64,7 +65,6 @@ export default class Iot implements IIotEndpointInfo {
   }
 
   public fetchEndpoint = async () => {
-    debugger
     const { endpointAddress } = await this.services.iot
       .describeEndpoint({
         endpointType: "iot:Data-ATS"
@@ -80,7 +80,8 @@ export default class Iot implements IIotEndpointInfo {
     if (!(cached && isATSEndpoint(cached))) {
       const endpoint = await this.fetchEndpoint()
       if (endpoint) {
-        mergeIntoAWSConfig({
+        mergeIntoAWSConfig(AWS, {
+          region: this.opts.env.AWS_REGION,
           iotdata: { endpoint }
         })
       }

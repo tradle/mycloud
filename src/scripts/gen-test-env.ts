@@ -5,6 +5,7 @@ process.env.IS_LAMBDA_ENVIRONMENT = "false"
 import path from "path"
 import promisify from "pify"
 import _fs from "fs"
+import AWS from 'aws-sdk'
 import { LambdaClient } from "@tradle/aws-lambda-client"
 import { createClientCache } from "@tradle/aws-client-factory"
 import { prettify } from "../string-utils"
@@ -27,9 +28,8 @@ const prefix = `${service}-${custom.stage}-`
 loadCredentials()
 process.env.AWS_REGION = serverlessYml.provider.region
 
-const env = new Env(process.env)
 const logger = new Logger("gen:testenv")
-const aws = createClientCache()
+const aws = createClientCache({ AWS })
 const lambdaUtils = new LambdaClient({ client: aws.lambda })
 const getEnv = async () => {
   const setEnvFnName = `${prefix}onmessage`

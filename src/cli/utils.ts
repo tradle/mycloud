@@ -151,7 +151,7 @@ const genLocalResources = async ({ region, stackName }: { region: string; stackN
       }
 
       try {
-        await s3.wrapBucket(params).promise()
+        await s3.createBucket(params).promise()
       } catch (err) {
         Errors.ignore(err, { code: "BucketAlreadyExists" })
       }

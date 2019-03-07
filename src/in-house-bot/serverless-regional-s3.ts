@@ -30,7 +30,7 @@ export class RegionalS3Client {
     region: string
   }): Promise<string> => {
     const baseName = this.getBucketBaseName(bucket)
-    const buckets = this.listBuckets()
+    const buckets = await this.listBuckets()
     const regional = getRegionalBucket({ bucket, region, buckets })
     if (!regional) {
       throw new Errors.NotFound(`corresponding bucket in ${region} for bucket: ${bucket}`)
@@ -162,9 +162,7 @@ export class RegionalS3Client {
     return toDel
   }
 
-  public listBuckets = async () => {
-    return this.opts.s3Client.listBuckets()
-  }
+  public listBuckets = () => this.opts.s3Client.listBuckets()
 }
 
 const getRegionalBucket = ({ bucket, region, buckets }) => {

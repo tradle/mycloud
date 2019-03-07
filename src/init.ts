@@ -1,6 +1,6 @@
 import _ from "lodash"
 import { createClient as wrapCloudwatchClient } from "@tradle/aws-cloudwatch-client"
-import { updateLambdaEnvironmentsForStack } from "@tradle/aws-combo"
+import { updateLambdaEnvironmentsForStack, services } from "@tradle/aws-combo"
 import { getLink, getIdentitySpecs, getChainKey, genIdentity } from "./crypto"
 
 import { ensureTimestamped } from "./utils"
@@ -71,8 +71,6 @@ export default class Init {
       iot,
       seals,
       logger,
-      cloudformation,
-      cloudwatch,
       lambdaUtils
     } = opts
 
@@ -207,7 +205,9 @@ export default class Init {
   }
 
   private _decreaseDynamodbScalingReactionTime = async () => {
-    await this.opts.cloudwatch.updateDynamodbConsumptionAlarms({
+    if (this.opts.isTesting) return
+
+    await services.cloudwatch({ client: this.opts.aws.cloudwatch }).updateDynamodbConsumptionAlarms({
       tables: Object.keys(this.tables).map(logicalId => this.tables[logicalId].name),
       transform: alarm => ({
         ...alarm,
@@ -217,10 +217,12 @@ export default class Init {
   }
 
   private _setIotEndpointEnvVar = async () => {
+    if (this.opts.isTesting) return
+
     const IOT_ENDPOINT = await this.iot.getEndpoint()
     await updateLambdaEnvironmentsForStack({
       lambda: this.opts.lambdaUtils,
-      cloudformation: this.opts.cloudformation,
+      cloudformation: services.cloudformation({ client: this.opts.aws.cloudformation }),
       stackName: this.stackUtils.thisStackArn,
       map: functionConf => ({
         IOT_ENDPOINT

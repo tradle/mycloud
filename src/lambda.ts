@@ -148,7 +148,7 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
       namespace: `lambda:${this.shortName}`
     })
 
-    bot.aws.on("new", ({ name, recordable }) => this._recordService(recordable, name))
+    bot.aws.events.on("new", ({ name, recordable }) => this._recordService(recordable))
 
     this.tasks = bot.tasks
     this.tasks.add({
@@ -738,8 +738,7 @@ Previous exit stack: ${this.lastExitStack}`)
     forEachInstantiatedRecordableService(this.aws, this._recordService)
   }
 
-  private _recordService = (service, name) => {
-    debugger
+  private _recordService = service => {
     if (!service.$startRecording) return
 
     service.$stopRecording()

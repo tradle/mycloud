@@ -107,7 +107,7 @@ test('deployment by referral', loudAsync(async (t) => {
   //   throw new Errors.NotFound(key)
   // })
 
-  const regionalBucket = parentDeployment.getDeploymentBucketForRegion(region)
+  const regionalBucket = await parentDeployment.getDeploymentBucketForRegion(region)
 
   let deploymentConf: IMyDeploymentConf
   let expectedLaunchReport

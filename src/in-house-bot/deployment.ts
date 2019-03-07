@@ -233,8 +233,8 @@ export class Deployment {
   private logger: Logger
   private conf?: IDeploymentPluginConf
   private org?: IOrganization
-  private isTradle: boolean
   private regionalS3: RegionalS3Client
+  public isTradle: boolean
 
   public static encodeRegion = (region: string) => region.replace(/[-]/g, '.')
   public static decodeRegion = (region: string) => region.replace(/[.]/g, '-')
@@ -1198,7 +1198,6 @@ ${this.genUsageInstructions(links)}`
   }
 
   private static getS3KeysForSubstacks = (template: CFTemplate) => {
-    const { Resources } = template
     return getResourcesByType(template, 'AWS::CloudFormation::Stack')
       .map(stack => {
         const { TemplateURL } = stack.Properties

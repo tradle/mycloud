@@ -3,8 +3,9 @@ import _ from "lodash"
 // @ts-ignore
 import Promise from "bluebird"
 import createCredstash from "nodecredstash"
+import AWS from 'aws-sdk'
 import { createClientCache, ClientCache } from "@tradle/aws-client-factory"
-import { services as awsServices } from "@tradle/aws-combo"
+import { services as awsServices, AWSServices } from "@tradle/aws-combo"
 import { S3Client } from "@tradle/aws-s3-client"
 import { SNSClient } from "@tradle/aws-sns-client"
 import { LambdaClient } from "@tradle/aws-lambda-client"
@@ -225,8 +226,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public lambdaUtils: LambdaClient
   public lambdaInvoker: LambdaInvoker
   public lambdaWarmup: LambdaWarmUp
-  public cloudformation: CloudFormationClient
-  public cloudwatch: CloudWatchClient
   public tasks: TaskManager
   public modelStore: ModelStore
   public mailer: IMailer
@@ -437,6 +436,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
     const serviceMap = (bot.serviceMap = createServiceMap({ env }))
     const awsClientCache = (bot.aws = createClientCache({
+      AWS,
       defaults: createConfig({
         region: env.AWS_REGION,
         local: env.IS_LOCAL
@@ -474,7 +474,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     // const stackUtils = (bot.stackUtils = awsServices.cloudformation(getAWSClientOpts())
 
     bot.stackUtils = new StackUtils({
-      cfClient: bot.cloudformation,
+      cfClient: awsServices.cloudformation({ client: awsClientCache.cloudformation }),
       apiId: serviceMap.RestApi.ApiGateway.id,
       stackArn: serviceMap.Stack,
       deploymentBucket: buckets.ServerlessDeployment,
@@ -483,9 +483,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       lambdaUtils,
       logger: logger.sub("stack-utils")
     })
-
-    bot.cloudformation = awsServices.cloudformation({ client: awsClientCache.cloudformation })
-    bot.cloudwatch = awsServices.cloudwatch({ client: awsClientCache.cloudwatch })
 
     const iot = (bot.iot = new Iot({
       services: awsClientCache,
@@ -517,7 +514,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     }))
 
     const objects = (bot.objects = new Objects({
-      objectStore: buckets.Objects,
+      objectStore: buckets.Objects.jsonKV(),
       embeds,
       logger: bot.logger.sub("objects")
     }))
@@ -672,13 +669,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
     // bot.define('router', './router', bot.construct)
 
-    // bot.bot = bot.require('bot', './bot')
-    bot.define('mailer', './mailer', Mailer => new Mailer({
-      client: bot.aws.ses,
-      logger: bot.logger.sub('mailer')
-    }))
-
-    // bot.bot = bot.require('bot', './bot')
     bot.define(
       "mailer",
       "./mailer",

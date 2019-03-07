@@ -4,6 +4,7 @@ import "nock"
 import { parse as parseURL } from "url"
 import http from "http"
 import crypto from "crypto"
+import _AWS from 'aws-sdk'
 import "../globals"
 import Env from "../env"
 // console.warn('make sure localstack is running (npm run localstack:start)')
@@ -44,7 +45,7 @@ const httpRequestInterceptor = (...args) => {
 }
 
 export const install = (target = process.env): void => {
-  targetLocalstack()
+  targetLocalstack(_AWS)
   if (http.request !== httpRequestInterceptor) {
     http.request = httpRequestInterceptor
   }
@@ -118,17 +119,6 @@ export const install = (target = process.env): void => {
       ;(callback || params)(null, {})
     })
   }
-
-  const _AWS = require("aws-sdk")
-  debugger
-  const iot = new _AWS.Iot()
-  debugger
-  iot
-    .describeEndpoint()
-    .promise()
-    .then(() => {
-      debugger
-    })
 }
 
 export const get = () => ({ ...props })

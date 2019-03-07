@@ -1,3 +1,4 @@
+import http from 'http'
 import { EventEmitter } from "events"
 import { Middleware as ComposeMiddleware } from "koa-compose"
 import { Context as KoaContext } from "koa"
@@ -40,7 +41,6 @@ import { ContentAddressedStore } from "../content-addressed-store"
 import { KV } from "../kv"
 import { CacheableBucketItem } from "../cacheable-bucket-item"
 import { Friends } from "../friends"
-import { Push } from "../push"
 import { User } from "../user"
 // import { Discovery } from "../discovery"
 import { Backlinks } from "../backlinks"
@@ -382,6 +382,27 @@ export type DatedValue = {
   value: any
 }
 
+export interface AWSHttpOptions {
+  agent?: http.Agent
+}
+  
+export interface IAWSServiceConfig {
+  httpOptions?: AWSHttpOptions
+  maxRetries?: number
+  region: string
+  s3?: any
+  dynamodb?: any
+  iot?: any
+  iotdata?: any
+  sts?: any
+  sns?: any
+  kms?: any
+  lambda?: any
+  cloudformation?: any
+  xray?: any
+}
+
+  
 export interface IEndpointInfo extends IIotEndpointInfo {
   aws: boolean
   endpoint: string

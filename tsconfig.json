@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "watch": true,
     "preserveConstEnums": true,
     "sourceMap": true,
     "target": "es2017",

@@ -1,4 +1,3 @@
-import http from 'http'
 import https from 'https'
 import { IAWSServiceConfig, AWSHttpOptions } from './types'
 

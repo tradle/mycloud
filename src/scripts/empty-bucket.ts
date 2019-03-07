@@ -25,7 +25,7 @@ if (profile) {
   AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile })
 }
 
-const aws = createClientCache()
+const aws = createClientCache({ AWS })
 const s3Utils = createClient({ client: aws.s3 })
 s3Utils.emptyBucket({ bucket }).catch(err => {
   console.error(err.stack)
