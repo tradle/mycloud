@@ -44,8 +44,8 @@ import { Friends } from "../friends"
 import { User } from "../user"
 // import { Discovery } from "../discovery"
 import { Backlinks } from "../backlinks"
-import { StackUtils } from "../stack-utils"
-import { Iot, IIotEndpointInfo } from "../iot-utils"
+import { StackUtils } from "../aws/stack-utils"
+import { Iot } from "../aws/iot-utils"
 import { Events, EventTopic } from "../events"
 import { Mailer } from "../mailer"
 import { MiddlewareContainer } from "../middleware-container"
@@ -402,9 +402,12 @@ export interface IAWSServiceConfig {
   xray?: any
 }
 
-  
-export interface IEndpointInfo extends IIotEndpointInfo {
+
+
+export interface IEndpointInfo {
   aws: boolean
+  parentTopic: string
+  clientIdPrefix: string
   endpoint: string
   version: VersionInfo
 }

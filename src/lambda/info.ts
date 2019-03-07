@@ -1,6 +1,6 @@
 import compose from 'koa-compose'
 import cors from 'kcors'
-import { extend, pick } from 'lodash'
+import { clone, extend, pick } from 'lodash'
 import { version as protocolVersion } from '@tradle/protocol'
 import { get } from '../middleware/noop-route'
 import { Lambda } from '../types'
@@ -22,12 +22,9 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
       logger.debug('setting bot endpoint info')
       if (!ctx.body) ctx.body = {}
 
-      const [chainKey, endpointInfo] = await Promise.all([
-        bot.identity.getChainKeyPub().catch(Errors.ignoreNotFound),
-        bot.getEndpointInfo()
-      ])
-
-      const { version, ...connectEndpoint } = endpointInfo
+      const chainKey = await bot.identity.getChainKeyPub().catch(Errors.ignoreNotFound)
+      const { version, ...connectEndpoint } = clone(bot.endpointInfo)
+      // @ts-ignore
       version.protocol = protocolVersion
       extend(ctx.body, {
         connectEndpoint,

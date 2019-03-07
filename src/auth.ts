@@ -1,15 +1,15 @@
 // @ts-ignore
-import Promise from "bluebird"
-import merge from "lodash/merge"
-import clamp from "lodash/clamp"
-import { TYPE } from "@tradle/constants"
-import { TaskManager } from "./task-manager"
-import { typeforce, ensureNoVirtualProps, pickNonNull } from "./utils"
-import { isHex } from "./string-utils"
-import { randomString, getPermalink } from "./crypto"
-import Errors from "./errors"
-import * as types from "./typeforce-types"
-import * as constants from "./constants"
+import Promise from 'bluebird'
+import merge from 'lodash/merge'
+import clamp from 'lodash/clamp'
+import { TYPE } from '@tradle/constants'
+import { TaskManager } from './task-manager'
+import { typeforce, ensureNoVirtualProps, pickNonNull } from './utils'
+import { isHex } from './string-utils'
+import { randomString, getPermalink } from './crypto'
+import Errors from './errors'
+import * as types from './typeforce-types'
+import * as constants from './constants'
 import {
   Logger,
   Identities,
@@ -23,11 +23,12 @@ import {
   Iot,
   DB,
   ModelStore,
-  ClientCache
-} from "./types"
+  ClientCache,
+  IEndpointInfo
+} from './types'
 
 const { HANDSHAKE_TIMEOUT } = constants
-const SESSION = "tradle.IotSession"
+const SESSION = 'tradle.IotSession'
 
 interface IChallengeResponse extends ITradleObject {
   clientId: string
@@ -61,6 +62,7 @@ interface IChallengeResponse extends ITradleObject {
 // })
 
 type AuthOpts = {
+  endpointInfo: IEndpointInfo
   uploadFolder: string
   aws: ClientCache
   // tables: any
@@ -89,7 +91,7 @@ export default class Auth {
   private uploadFolder: string
   private sessionTTL: number
 
-  constructor(opts: AuthOpts) {
+  constructor(private opts: AuthOpts) {
     // lazy define
     this.aws = opts.aws
     // this.tables = opts.tables
@@ -98,7 +100,7 @@ export default class Auth {
     this.messages = opts.messages
     this.db = opts.db
     this.iot = opts.iot
-    this.logger = opts.logger.sub("auth")
+    this.logger = opts.logger.sub('auth')
     this.tasks = opts.tasks
     this.modelStore = opts.modelStore
     this.uploadFolder = opts.uploadFolder
@@ -111,7 +113,7 @@ export default class Auth {
   }
 
   public putSession = async (session: ISession): Promise<ISession> => {
-    this.logger.debug("saving session", session)
+    this.logger.debug('saving session', session)
 
     // allow multiple sessions for the same user?
     // await deleteSessionsByPermalink(permalink)
@@ -137,7 +139,7 @@ export default class Auth {
       },
       {
         expected: { authenticated: true },
-        ReturnValues: "ALL_NEW"
+        ReturnValues: 'ALL_NEW'
       }
     )
   }
@@ -163,7 +165,7 @@ export default class Auth {
     const latest = await this.db.findOne({
       allowScan: true,
       orderBy: {
-        property: "_time",
+        property: '_time',
         desc: true
       },
       filter: {
@@ -175,12 +177,12 @@ export default class Auth {
           subscribed: true
         },
         STARTS_WITH: {
-          clientId: ((this.iot && this.iot.clientIdPrefix) || "") + permalink
+          clientId: (this.opts.endpointInfo.clientIdPrefix || '') + permalink
         }
       }
     })
 
-    this.logger.debug("latest authenticated session", { user: permalink })
+    this.logger.debug('latest authenticated session', { user: permalink })
     return latest
   }
 
@@ -212,7 +214,7 @@ export default class Auth {
     } catch (err) {
       // @ts-ignore
       debugger
-      this.logger.error("received invalid input", err.stack)
+      this.logger.error('received invalid input', err.stack)
       Errors.rethrowAs(err, new Errors.InvalidInput(err.message))
     }
 
@@ -222,15 +224,15 @@ export default class Auth {
     const session = await this.getSession({ clientId })
 
     if (challenge !== session.challenge) {
-      throw new Errors.HandshakeFailed("stored challenge does not match response")
+      throw new Errors.HandshakeFailed('stored challenge does not match response')
     }
 
     if (permalink !== session.permalink) {
-      throw new Errors.HandshakeFailed("claimed permalink changed from preauth")
+      throw new Errors.HandshakeFailed('claimed permalink changed from preauth')
     }
 
     if (Date.now() - session._time > HANDSHAKE_TIMEOUT) {
-      throw new Errors.HandshakeFailed("handshake timed out")
+      throw new Errors.HandshakeFailed('handshake timed out')
     }
 
     // validate sig
@@ -239,7 +241,7 @@ export default class Auth {
 
     // console.log(`claimed: ${permalink}, actual: ${challengeResponse._author}`)
     if (challengeResponse._author !== permalink) {
-      throw new Errors.HandshakeFailed("signature does not match claimed identity")
+      throw new Errors.HandshakeFailed('signature does not match claimed identity')
     }
 
     // const promiseCredentials = this.createCredentials(session)
@@ -258,7 +260,7 @@ export default class Auth {
     })
 
     this.tasks.add({
-      name: "savesession",
+      name: 'savesession',
       promise: this.putSession(session)
     })
 
@@ -267,7 +269,7 @@ export default class Auth {
 
   public createCredentials = async (clientId: string, role: string): Promise<IRoleCredentials> => {
     this.logger.debug(`generating temp keys for client ${clientId}, role ${role}`)
-    this.logger.info("assuming role", role)
+    this.logger.info('assuming role', role)
     const params: AWS.STS.AssumeRoleRequest = {
       RoleArn: role,
       RoleSessionName: randomString(16),
@@ -279,7 +281,7 @@ export default class Auth {
 
     const { AssumedRoleUser, Credentials } = await promiseRole
 
-    this.logger.debug("assumed role", role)
+    this.logger.debug('assumed role', role)
     return {
       accessKey: Credentials.AccessKeyId,
       secretKey: Credentials.SecretAccessKey,
@@ -302,7 +304,7 @@ export default class Auth {
         opts
       )
     } catch (err) {
-      this.logger.error("received invalid input", { input: opts, stack: err.stack })
+      this.logger.error('received invalid input', { input: opts, stack: err.stack })
       throw new Errors.InvalidInput(err.message)
     }
 
@@ -320,18 +322,6 @@ export default class Auth {
 
     const maybeAddContact = this.identities.addContact(identity)
     const challenge = this.createChallenge()
-    // const getIotEndpoint = this.iot.getEndpoint()
-    // const saveSession = this.tables.Presence.put({
-    //   Item: {
-    //     clientId,
-    //     permalink,
-    //     challenge,
-    //     time: Date.now(),
-    //     authenticated: false,
-    //     connected: false
-    //   }
-    // })
-
     const dateCreated = Date.now()
     const sessionProps = {
       [TYPE]: SESSION,
@@ -375,13 +365,13 @@ export default class Auth {
 
   public getPermalinkFromClientId = (clientId: string): string => {
     // split off stackName prefix if it's there
-    const { clientIdPrefix } = this.iot
+    const { clientIdPrefix } = this.opts.endpointInfo
     if (clientIdPrefix && clientId.startsWith(clientIdPrefix)) {
       clientId = clientId.slice(clientIdPrefix.length)
     }
 
     if (!isHex(clientId)) {
-      clientId = new Buffer(clientId, "base64").toString("hex")
+      clientId = new Buffer(clientId, 'base64').toString('hex')
     }
 
     return clientId.slice(0, 64)
@@ -393,7 +383,7 @@ export default class Auth {
       ...update
     }
 
-    opts = merge({ ReturnValues: "ALL_NEW" }, opts)
+    opts = merge({ ReturnValues: 'ALL_NEW' }, opts)
     return await this.db.update(update, opts)
   }
 }

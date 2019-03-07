@@ -366,6 +366,8 @@ provider:
       Fn::GetAtt: IAM.Outputs.AutoScalingDynamoDBRole
     R_TOPIC_AdminAlerts:
       Ref: AwsAlertsAlarm
+    IOT_ENDPOINT:
+      Fn::GetAtt: Discovery.Outputs.IotEndpoint
 
   apiKeys:
     - Fn::Sub: 'issue2233WorkaroundKey1-${AWS::StackName}'
@@ -1557,6 +1559,12 @@ resources:
         VersioningConfiguration:
           Status: Enabled
 
+    Discovery:
+      Type: AWS::CloudFormation::Stack
+      Properties:
+        TemplateURL:
+          Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/discovery.json'
+
     Keys:
       Type: AWS::CloudFormation::Stack
       Properties:
@@ -1706,6 +1714,7 @@ resources:
     Initialize:
       Type: Custom::InitializeDeployment
       DependsOn:
+        - Discovery
         - Buckets
         - Keys
         - Tables

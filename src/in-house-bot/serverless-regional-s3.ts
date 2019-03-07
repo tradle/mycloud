@@ -29,7 +29,6 @@ export class RegionalS3Client {
     bucket: string
     region: string
   }): Promise<string> => {
-    const baseName = this.getBucketBaseName(bucket)
     const buckets = await this.listBuckets()
     const regional = getRegionalBucket({ bucket, region, buckets })
     if (!regional) {

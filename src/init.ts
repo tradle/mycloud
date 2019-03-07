@@ -1,11 +1,11 @@
-import _ from "lodash"
-import { createClient as wrapCloudwatchClient } from "@tradle/aws-cloudwatch-client"
-import { updateLambdaEnvironmentsForStack, services } from "@tradle/aws-combo"
-import { getLink, getIdentitySpecs, getChainKey, genIdentity } from "./crypto"
+import _ from 'lodash'
+import { createClient as wrapCloudwatchClient } from '@tradle/aws-cloudwatch-client'
+import { updateLambdaEnvironmentsForStack, services } from '@tradle/aws-combo'
+import { getLink, getIdentitySpecs, getChainKey, genIdentity } from './crypto'
 
-import { ensureTimestamped } from "./utils"
-import Errors from "./errors"
-import { TYPES, PRIVATE_CONF_BUCKET } from "./constants"
+import { ensureTimestamped } from './utils'
+import Errors from './errors'
+import { TYPES, PRIVATE_CONF_BUCKET } from './constants'
 
 import {
   Bot,
@@ -26,7 +26,7 @@ import {
   CloudWatchClient,
   CloudFormationClient,
   LambdaClient
-} from "./types"
+} from './types'
 
 // import wrapCloudwatchClient from "./cloudwatch"
 
@@ -87,7 +87,7 @@ export default class Init {
     this.stackUtils = stackUtils
     this.iot = iot
     this.seals = seals
-    this.logger = logger.sub("init")
+    this.logger = logger.sub('init')
   }
 
   public ensureInitialized = async (opts?: IInitOpts) => {
@@ -100,15 +100,14 @@ export default class Init {
   public initInfra = async (opts?: IInitOpts) => {
     const [identityInfo] = await Promise.all([
       this.initIdentity(opts),
-      this._decreaseDynamodbScalingReactionTime(),
-      this._setIotEndpointEnvVar()
+      this._decreaseDynamodbScalingReactionTime()
     ])
 
     return identityInfo
   }
 
   public updateInfra = async (opts?: any) => {
-    await Promise.all([this._decreaseDynamodbScalingReactionTime(), this._setIotEndpointEnvVar()])
+    await Promise.all([this._decreaseDynamodbScalingReactionTime()])
   }
 
   public initIdentity = async (opts: IInitOpts = {}) => {
@@ -147,7 +146,7 @@ export default class Init {
     this.objects.addMetadata(pub)
     // setVirtual(pub, { _author: pub._permalink })
 
-    this.logger.info("created identity", JSON.stringify(pub))
+    this.logger.info('created identity', JSON.stringify(pub))
     return priv
   }
 
@@ -164,7 +163,7 @@ export default class Init {
 
       if (existing && !isSameKeySet(existing, keys)) {
         throw new Errors.Exists(
-          "refusing to overwrite identity keys. " +
+          'refusing to overwrite identity keys. ' +
             'If you\'re absolutely sure you want to do this, use the "force" flag'
         )
       }
@@ -207,27 +206,15 @@ export default class Init {
   private _decreaseDynamodbScalingReactionTime = async () => {
     if (this.opts.isTesting) return
 
-    await services.cloudwatch({ client: this.opts.aws.cloudwatch }).updateDynamodbConsumptionAlarms({
-      tables: Object.keys(this.tables).map(logicalId => this.tables[logicalId].name),
-      transform: alarm => ({
-        ...alarm,
-        EvaluationPeriods: 1
+    await services
+      .cloudwatch({ client: this.opts.aws.cloudwatch })
+      .updateDynamodbConsumptionAlarms({
+        tables: Object.keys(this.tables).map(logicalId => this.tables[logicalId].name),
+        transform: alarm => ({
+          ...alarm,
+          EvaluationPeriods: 1
+        })
       })
-    })
-  }
-
-  private _setIotEndpointEnvVar = async () => {
-    if (this.opts.isTesting) return
-
-    const IOT_ENDPOINT = await this.iot.getEndpoint()
-    await updateLambdaEnvironmentsForStack({
-      lambda: this.opts.lambdaUtils,
-      cloudformation: services.cloudformation({ client: this.opts.aws.cloudformation }),
-      stackName: this.stackUtils.thisStackArn,
-      map: functionConf => ({
-        IOT_ENDPOINT
-      })
-    })
   }
 }
 
@@ -250,6 +237,6 @@ const isSameKeySet = (a, b) => {
 
 const keySetToFingerprint = set =>
   _.chain(set)
-    .sortBy("fingerprint")
-    .map("fingerprint")
+    .sortBy('fingerprint')
+    .map('fingerprint')
     .value()

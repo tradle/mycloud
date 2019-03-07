@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import proc from "child_process"
-import { StackUtils } from "../stack-utils"
+import { StackUtils } from "../aws/stack-utils"
 import { getVar } from "../cli/get-template-var"
 import { toSortableTag } from "../utils"
 

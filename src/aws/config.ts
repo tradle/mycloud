@@ -1,7 +1,13 @@
 import { AWSConfig, getLocalstackConfig } from "@tradle/aws-common-utils"
 import merge from "lodash/merge"
 
-export const createConfig = ({ region, local }: { region: string; local: boolean }): AWSConfig => {
+interface CreateConfigOpts { 
+  region: string
+  local: boolean 
+  iotEndpoint: string 
+}
+
+export const createConfig = ({ region, local, iotEndpoint }: CreateConfigOpts): AWSConfig => {
   const config: AWSConfig = {
     maxRetries: 6,
     region,
@@ -12,7 +18,8 @@ export const createConfig = ({ region, local }: { region: string; local: boolean
       httpOptions: {
         connectTimeout: 10000,
         timeout: 10000
-      }
+      },
+      endpoint: iotEndpoint
     }
   }
 

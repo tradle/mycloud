@@ -1,9 +1,11 @@
 import transform from 'lodash/transform'
 import format from 'string-format'
+import getLocalIP from 'localip'
 import { getStackName, getLocalResourceName } from '../cli/utils'
 import serverlessYml from '../cli/serverless-yml'
 import { parseEnvVarName } from '../service-map'
 import { getStackParameter } from '../cli/get-stack-parameter'
+import { getVar } from '../cli/get-template-var'
 const {
   service,
   custom,
@@ -33,6 +35,11 @@ Object.keys(environment).forEach(key => {
 
   if (key === 'BLOCKCHAIN') {
     map[key] = blockchain
+    return
+  }
+
+  if (key === 'IOT_ENDPOINT') {
+    map[key] = `${getLocalIP()}:${getVar('serverless-iot-local.httpPort')}`
     return
   }
 

@@ -5,7 +5,7 @@ import pick from "lodash/pick"
 import truncate from "lodash/truncate"
 import isEmpty from "lodash/isEmpty"
 import Errors from "../errors"
-import { StackUtils } from "../stack-utils"
+import { StackUtils } from "../aws/stack-utils"
 import { TRADLE } from "./constants"
 import { sha256 } from "../crypto"
 import {

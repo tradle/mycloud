@@ -15,11 +15,11 @@ import {
   VersionInfo,
   CFTemplate,
   ClientCache
-} from "./types"
+} from "../types"
 
-import Errors from "./errors"
-import * as utils from "./utils"
-import { splitCamelCaseToArray, replaceAll } from "./string-utils"
+import Errors from "../errors"
+import * as utils from "../utils"
+import { splitCamelCaseToArray, replaceAll } from "../string-utils"
 
 // const version = require('./version') as VersionInfo
 

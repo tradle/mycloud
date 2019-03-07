@@ -116,16 +116,10 @@ const exp = {
     return requireDefault("./blockchain")
   },
   get Iot() {
-    return requireDefault("./iot-utils")
-  },
-  get S3() {
-    return requireDefault("./s3-utils")
-  },
-  get lambdaUtils(): LambdaUtils {
-    return requireDefault("./lambda-utils")
+    return requireDefault("./aws/iot-utils")
   },
   get stackUtils(): StackUtils {
-    return requireDefault("./stack-utils")
+    return requireDefault("./aws/stack-utils")
   },
   get dbUtils() {
     return requireDefault("./db-utils")

@@ -48,7 +48,7 @@ import {
   MyCloudUpdateTemplate
 } from './types'
 
-import { StackUtils } from '../stack-utils'
+import { StackUtils } from '../aws/stack-utils'
 import { media } from './media'
 import Errors from '../errors'
 import { getLogo } from './image-utils'
@@ -1144,6 +1144,11 @@ ${this.genUsageInstructions(links)}`
   // look for -deploymentbucket-*
   public getDeploymentBucketLogicalName = () => `${this._thisStackName}-deploymentbucket`
 
+  public getRegionalBucketName = (region:string) => this.regionalS3.getRegionalBucketName({ 
+    bucket: this.getDeploymentBucketLogicalName(),
+    region
+  })
+  
   public getDeploymentBucketForRegion = async (region: string) => {
     if (region === this._thisRegion) {
       return this.deploymentBucket.id

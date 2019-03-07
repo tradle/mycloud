@@ -21,9 +21,8 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
     async (ctx:any, next) => {
       const ips = getRequestIps(ctx.request)
       const { clientId, identity } = ctx.event
-      const getEndpoint = bot.getEndpointInfo()
       ctx.session = await auth.createSession({ clientId, identity, ips })
-      ctx.session.connectEndpoint = await getEndpoint
+      ctx.session.connectEndpoint = bot.endpointInfo
       ctx.session.region = bot.env.AWS_REGION
       if (lambda.isEmulated) {
         ctx.session.s3Endpoint = bot.aws.s3.endpoint.host

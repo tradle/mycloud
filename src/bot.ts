@@ -28,7 +28,7 @@ import * as utils from "./utils"
 import constants, { TYPE, TYPES, SIG, ORG, ORG_SIG, BATCH_SEALING_PROTOCOL_VERSION } from "./constants"
 import { createConfig } from './aws/config'
 import { createResolver as createS3EmbedResolver } from "./aws/s3-embed-resolver"
-import { StackUtils } from './stack-utils'
+import { StackUtils } from './aws/stack-utils'
 const VERSION = require("./version")
 const {
   defineGetter,
@@ -113,7 +113,7 @@ import User from './user'
 import Storage from './storage'
 import TaskManager from './task-manager'
 import Messaging from './messaging'
-import Iot from './iot-utils'
+import Iot from './aws/iot-utils'
 import { ContentAddressedStore, createContentAddressedStore } from "./content-addressed-store"
 import KV from './kv'
 import Errors from './errors'
@@ -356,11 +356,11 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   }
 
   public scheduler: Scheduler
+  public endpointInfo: IEndpointInfo
 
   // PRIVATE
   private outboundMessageLocker: Locker
   private inboundMessageLocker: Locker
-  private endpointInfo: Partial<IEndpointInfo>
   private middleware: MiddlewareContainer<IBotMiddlewareContext>
   private _resourceModuleStore: IResourcePersister
   private _graphql: IGraphqlAPI
@@ -391,6 +391,14 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     //     throw new Error('multiple instances not allowed')
     //   }
     // }
+
+    this.endpointInfo = {
+      aws: true,
+      version: this.version,
+      clientIdPrefix: env.IOT_CLIENT_ID_PREFIX,
+      parentTopic: env.IOT_PARENT_TOPIC,
+      endpoint: env.IOT_ENDPOINT
+    }
 
     const logger = (bot.logger = env.logger)
     const { network } = bot
@@ -439,7 +447,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       AWS,
       defaults: createConfig({
         region: env.AWS_REGION,
-        local: env.IS_LOCAL
+        local: env.IS_LOCAL,
+        iotEndpoint: this.endpointInfo.endpoint,
       }),
       useGlobalConfigClock: true
     }))
@@ -485,7 +494,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     })
 
     const iot = (bot.iot = new Iot({
-      services: awsClientCache,
+      clients: awsClientCache,
       env
     }))
 
@@ -632,6 +641,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     bot.conf = bot.kv.sub("bot:conf:")
 
     const auth = (bot.auth = new Auth({
+      endpointInfo: this.endpointInfo,
       uploadFolder: bot.serviceMap.Bucket.FileUpload,
       logger: bot.logger.sub("auth"),
       aws: awsClientCache,
@@ -737,12 +747,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
     this._resourceModuleStore = getResourceModuleStore(this)
 
-    this.endpointInfo = {
-      aws: true,
-      version: this.version,
-      ...this.iot.endpointInfo
-    }
-
     this.lambdas = Object.keys(lambdaCreators).reduce((map, name) => {
       map[name] = opts =>
         lambdaCreators[name].createLambda({
@@ -781,13 +785,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
     setupDefaultHooks(this)
     if (ready) this.ready()
-  }
-
-  public getEndpointInfo = async (): Promise<IEndpointInfo> => {
-    return {
-      ...this.endpointInfo,
-      endpoint: await this.iot.getEndpoint()
-    }
   }
 
   public toMessageBatch = batch => {
