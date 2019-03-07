@@ -1,5 +1,8 @@
+//var fs = require('fs');
+
 // @ts-ignore
 import FormData from 'form-data'
+import DataURI from 'strong-data-uri'
 import _ from 'lodash'
 import { buildResourceStub } from '@tradle/build-resource'
 import constants from '@tradle/constants'
@@ -36,7 +39,7 @@ const PROVIDER = 'FaceTec, Inc.'
 
 const API_URL = 'https://api.zoomauth.com/api/v1/biometrics'
 
-const REQUEST_TIMEOUT = 10000
+const REQUEST_TIMEOUT = 40000
 
 interface IFacetecZoomCheck {
     application: IPBApp
@@ -45,13 +48,11 @@ interface IFacetecZoomCheck {
 }
 
 interface IFacetecZoomCheckConf {
-    appToken: string,
-    serverToken: string
+    appToken: string
 }
 
 const DEFAULT_CONF = {
-    appToken: '',
-    serverToken: ''
+    appToken: ''
 }
 
 export class IFacetecZoomCheckAPI {
@@ -73,20 +74,30 @@ export class IFacetecZoomCheckAPI {
         await this.bot.resolveEmbeds(form)
         let facemap = form.facemap.url
         let sessionId = form.sessionId
-    
-        const formData = new FormData();
-        formData.append("sessionId", sessionId);
-        formData.append("facemap", facemap);
+        let buf = DataURI.decode(facemap)
+
+       // var fd =  fs.openSync('facemap.bin', 'w');
+       // fs.write(fd, buf, 0, buf.length, 0, function(err,written){
+
+       // });
+       // fs.writeFileSync('sessionid.txt', sessionId)
+
+        const dataToUpload = new FormData()
+	      dataToUpload.append('sessionId', sessionId)
+	      dataToUpload.append('facemap', buf, {
+		        contentType: 'application/zip',
+		        filename: 'blob'
+	      })
+
         try {
-          const res = await post(API_URL + '/liveness', form, {
-            headers: {
+          const res = await post(API_URL + '/liveness', dataToUpload, {
+              headers: {
                 'X-App-Token': this.conf.appToken,
-                'X-Server-Token': this.conf.serverToken
-            },
-            timeout: REQUEST_TIMEOUT,
+              },
+              timeout: REQUEST_TIMEOUT,
           })
     
-          rawData = await res.json() // whatever is returned may be not JSON
+          rawData = sanitize(res).sanitized
           this.logger.debug('Liveness selfie check:', rawData)
         } catch (err) {
           debugger
@@ -98,7 +109,7 @@ export class IFacetecZoomCheckAPI {
         if (rawData.data.livenessResult !== 'passed') {
             this.logger.error('selfie liveness check negative', rawData.data)
             // error happens
-            error = rawData.data.message
+            error = rawData.data.livenessResult
             return { status: 'fail', rawData, error }
         }
       
@@ -195,17 +206,13 @@ debugger
 
 export const validateConf:ValidatePluginConf = async (opts) => {
     const pluginConf = opts.pluginConf as IFacetecZoomCheckConf
-    const { appToken, serverToken } = pluginConf
+    const { appToken } = pluginConf
   
     let err = ''
     if (!appToken)
       err = '\nExpected "appToken".'
     else if (typeof appToken !== 'string')
       err += '\nExpected "appToken" to be a string.'
-    else if (!serverToken)
-      err = '\nExpected "serverToken".'
-    else if (typeof serverToken !== 'string')
-      err += '\nExpected "serverToken" to be a string.'  
     if (err.length)
       throw new Error(err)
 }
