@@ -1,4 +1,4 @@
-import "./globals"
+import './globals'
 // import './console'
 
 import clone from "lodash/clone"
@@ -10,10 +10,11 @@ import {
   IRequestContext,
   CloudName,
   IBlockchainIdentifier,
-  SealingMode
-} from "./types"
-import { WARMUP_SOURCE_NAME, ROOT_LOGGING_NAMESPACE } from "./constants"
-import Logger, { Level } from "./logger"
+  SealingMode,
+} from './types'
+import { WARMUP_SOURCE_NAME, ROOT_LOGGING_NAMESPACE } from './constants'
+import Logger, { Level } from './logger'
+import { parseArn } from './utils';
 
 export default class Env {
   public lambda: Lambda
@@ -108,7 +109,7 @@ export default class Env {
       writer: props.IS_TESTING ? createTestingLogger(ROOT_LOGGING_NAMESPACE) : global.console,
       outputFormat: props.DEBUG_FORMAT || "text",
       context: {},
-      level: "DEBUG_LEVEL" in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG
+      level: 'DEBUG_LEVEL' in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG
       // writer: console,
       // outputFormat: 'text'
     })
@@ -214,6 +215,10 @@ export default class Env {
     this.IOT_PARENT_TOPIC = this.STACK_NAME
     if ("SEAL_BATCHING_PERIOD" in props) {
       this.SEAL_BATCHING_PERIOD = parseInt(props.SEAL_BATCHING_PERIOD, 10)
+    }
+
+    if (props.R_STACK && !this.AWS_ACCOUNT_ID) {
+      this.AWS_ACCOUNT_ID = parseArn(props.R_STACK).accountId
     }
   }
 }

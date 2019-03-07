@@ -570,7 +570,7 @@ export class Deployment {
   }
 
   public getChildDeploymentWithProps = async (props = {}): Promise<IDeploymentConf> => {
-    assertNoNullProps(props, `invalid filter props: ${JSON.stringify(props)}`)
+    utils.assertNoNullProps(props, `invalid filter props: ${JSON.stringify(props)}`)
 
     return this.getChildDeployment({
       filter: {
@@ -1439,13 +1439,7 @@ ${this.genUsageInstructions(links)}`
 
   public getLatestStableVersionInfo = async (): Promise<VersionInfo> => {
     this.logger.debug('looking up latest stable version')
-    // try {
     return await this._getLatestStableVersionInfoNew()
-    // } catch (err) {
-    //   // TODO: scrap _getLatestStableVersionInfoOld
-    //   Errors.ignoreNotFound(err)
-    //   return await this._getLatestStableVersionInfoOld()
-    // }
   }
 
   public getLatestVersionInfo = async (): Promise<VersionInfo> => {
@@ -1697,36 +1691,6 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  private _getLatestStableVersionInfoOld = async (): Promise<VersionInfo> => {
-    const botPermalink = await this.bot.getMyPermalink()
-    const params: FindOpts = {
-      limit: 10,
-      orderBy: {
-        property: 'sortableTag',
-        desc: true
-      },
-      filter: {
-        EQ: {
-          [TYPE]: VERSION_INFO,
-          [ORG]: botPermalink
-        }
-      }
-    }
-
-    let pages = 0
-    while (pages++ < 10) {
-      let { items = [], endPosition } = await this.bot.db.find(params)
-      let stable = items.find(item => Deployment.isStableReleaseTag(item.tag))
-      if (stable) return stable
-
-      if (items.length < params.limit) {
-        throw new Errors.NotFound(`not found`)
-      }
-
-      params.checkpoint = endPosition
-    }
-  }
-
   private _normalizeCallHomeOpts = async (opts: Partial<CallHomeOpts>) => {
     return await Promise.props({
       ...opts,
@@ -1763,28 +1727,8 @@ ${this.genUsageInstructions(links)}`
 
     const limitReceiveRateParams = genSetDeliveryPolicyParams(arn, deliveryPolicy)
     await this.snsUtils.setTopicAttributes(limitReceiveRateParams)
-    await this._allowCrossAccountPublish(arn, allowRoles)
+    await this.snsUtils.allowCrossAccountPublish(arn, allowRoles)
     return arn
-  }
-
-  private _allowCrossAccountPublish = async (topic: string, accounts: string[]) => {
-    const { Attributes } = await this.snsUtils.getTopicAttributes(topic)
-    const policy = JSON.parse(Attributes.Policy)
-    // remove old statements
-    const statements = policy.Statement.filter(
-      ({ Sid }) => !Sid.startsWith('allowCrossAccountPublish')
-    )
-    statements.push(genCrossAccountPublishPermission(topic, accounts))
-    const params: AWS.SNS.SetTopicAttributesInput = {
-      TopicArn: topic,
-      AttributeName: 'Policy',
-      AttributeValue: JSON.stringify({
-        ...policy,
-        Statement: statements
-      })
-    }
-
-    await this.snsUtils.setTopicAttributes(params)
   }
 
   private _createStackUpdateTopic = async ({ stackOwner, stackId }: ChildStackIdentifier) => {
@@ -1971,13 +1915,7 @@ ${this.genUsageInstructions(links)}`
       return
     }
 
-    const { versionInfo, updated } = await this._saveMyDeploymentVersionInfo()
-    // const forced = this.bot.version.alert
-    // const should = updated && shouldSendVersionAlert(this.bot.version)
-    // if (forced || should) {
-    //   await this.alertChildrenAboutVersion(versionInfo)
-    // }
-
+    await this._saveMyDeploymentVersionInfo()
     await monitorSelf
   }
 
@@ -2004,57 +1942,9 @@ ${this.genUsageInstructions(links)}`
       client: bot.s3Utils
     })
   }
-
-  // private _setLambdaCodePointers = ({ template, bucket }: {
-  //   template: CFTemplate
-  //   bucket: string
-  // }) => {
-  //   _.forEach(template.Resources, resource => {
-  //     if (resource.Type === 'AWS::Lambda::Function') {
-  //       resource.Properties.Code.S3Bucket = bucket
-  //     }
-  //   })
-  // }
-
-  // private _refreshTmpSNSTopic = async (arn: string) => {
-  //   const existing = await this.bot.db.findOne({
-  //     filter: {
-  //       EQ: {
-  //         [TYPE]: TMP_SNS_TOPIC,
-  //         topic: arn
-  //       }
-  //     }
-  //   })
-
-  //   const updated = await this.bot.draft({ resource: existing })
-  //     .set({
-  //       dateExpires: getTmpTopicExpirationDate()
-  //     })
-  //     .version()
-  //     .signAndSave()
-
-  //   return updated.toJSON()
-  // }
 }
 
-// const UPDATE_STACK_LAMBDAS = [
-//   'updateStack'
-// ]
-
 const getArnRegion = (arn: string) => utils.parseArn(arn).region
-
-// export const getUpdateStackAssumedRoles = (stackId: string, lambdas=UPDATE_STACK_LAMBDAS) => {
-//   // maybe make a separate lambda for this (e.g. update-stack)
-//   const {
-//     accountId,
-//     name,
-//     region,
-//   } = StackUtils.parseStackArn(stackId)
-
-//   return lambdas.map(
-//     lambdaName => `arn:aws:sts::${accountId}:assumed-role/${name}-${region}-updateStackRole/${name}-${lambdaName}`
-//   )
-// }
 
 export const getCrossAccountLambdaRole = ({
   stackId,
@@ -2077,23 +1967,6 @@ const getStackUpdateTopicName = ({ stackOwner, stackId }: ChildStackIdentifier) 
 // const getTmpTopicExpirationDate = () => Date.now() + TMP_SNS_TOPIC_TTL
 const getStackUpdateTopicExpirationDate = () => Date.now() + UPDATE_TOPIC_TTL
 const getLogAlertsTopicExpirationDate = () => Date.now() + LOG_TOPIC_TTL
-
-const assertNoNullProps = (obj: any, msg: string) => {
-  for (let p in obj) {
-    if (obj[p] == null) {
-      throw new Errors.InvalidInput(msg)
-    }
-  }
-}
-
-const shouldSendVersionAlert = (versionInfo: VersionInfo) => {
-  // force
-  if (versionInfo.alert) return true
-
-  if (versionInfo.commitsSinceTag !== 0) return false
-
-  return ALERT_BRANCHES.includes(versionInfo.branch)
-}
 
 const sortVersions = (items: any[], desc?: boolean) => {
   const sorted = _.sortBy(items, ['sortableTag', '_time'])

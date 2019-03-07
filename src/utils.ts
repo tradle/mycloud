@@ -52,8 +52,9 @@ import {
   IBotMessageEvent,
   Bot,
   Seal,
-  StackStatusEvent
-} from "./types"
+  StackStatusEvent,
+  GetPNSTopicOpts,
+} from './types'
 
 import * as types from "./typeforce-types"
 import Logger, { consoleLogger } from "./logger"
@@ -1658,3 +1659,14 @@ export const tryAsync = <A, B>(
     }
   }
 }
+
+export const assertNoNullProps = (obj: any, msg: string) => {
+  for (let p in obj) {
+    if (obj[p] == null) {
+      throw new Errors.InvalidInput(msg)
+    }
+  }
+}
+
+export const getPNSTopic = (opts: GetPNSTopicOpts) =>
+  `arn:aws:sns:${opts.region}:${opts.notifierAccountId}:${opts.accountId}-${opts.permalink}`

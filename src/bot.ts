@@ -24,7 +24,10 @@ import createDB from "./db"
 import { createDBUtils } from "./db-utils"
 import { StreamProcessor } from "./stream-processor"
 import * as utils from "./utils"
-import { TYPE, TYPES, SIG, ORG, ORG_SIG, BATCH_SEALING_PROTOCOL_VERSION } from "./constants"
+import constants, { TYPE, TYPES, SIG, ORG, ORG_SIG, BATCH_SEALING_PROTOCOL_VERSION } from "./constants"
+import { createConfig } from './aws/config'
+import { createResolver as createS3EmbedResolver } from "./aws/s3-embed-resolver"
+import { StackUtils } from './stack-utils'
 const VERSION = require("./version")
 const {
   defineGetter,
@@ -81,46 +84,42 @@ import {
   IAMClient,
   CloudFormationClient,
   CloudWatchClient,
-  EmbedResolver
-} from "./types"
+  EmbedResolver,
+  SendPushNotification,
+  SendPushNotificationOpts,
+} from './types'
 
-import { createLinker, appLinks as defaultAppLinks } from "./app-links"
-import { createLambda } from "./lambda"
-import { createLocker, Locker } from "./locker"
-import { Logger } from "./logger"
-import Env from "./env"
-import Events from "./events"
-import Identity from "./identity"
-import Secrets from "./secrets"
-import Objects from "./objects"
-import Messages from "./messages"
-import Identities from "./identities"
-import Auth from "./auth"
-import Push from "./push"
-import Seals, { CreateSealOpts } from "./seals"
-import { createSealBatcher } from "./batch-seals"
-import Blockchain from "./blockchain"
-import Backlinks from "./backlinks"
-import Delivery from "./delivery"
-// import Discovery from "./discovery"
-import Friends from "./friends"
-import Init from "./init"
-import User from "./user"
-import Storage from "./storage"
-import TaskManager from "./task-manager"
-import Messaging from "./messaging"
-import StackUtils from "./stack-utils"
-import Iot from "./iot-utils"
+import { createLinker, appLinks as defaultAppLinks } from './app-links'
+import { createLambda } from './lambda'
+import { createLocker, Locker } from './locker'
+import { Logger } from './logger'
+import Env from './env'
+import Events from './events'
+import Identity from './identity'
+import Secrets from './secrets'
+import Objects from './objects'
+import Messages from './messages'
+import Identities from './identities'
+import Auth from './auth'
+import Seals, { CreateSealOpts } from './seals'
+import { createSealBatcher } from './batch-seals'
+import Blockchain from './blockchain'
+import Backlinks from './backlinks'
+import Delivery from './delivery'
+import Friends from './friends'
+import Init from './init'
+import User from './user'
+import Storage from './storage'
+import TaskManager from './task-manager'
+import Messaging from './messaging'
+import Iot from './iot-utils'
 import { ContentAddressedStore, createContentAddressedStore } from "./content-addressed-store"
-import KV from "./kv"
-import Errors from "./errors"
-import { MiddlewareContainer } from "./middleware-container"
-import { hookUp as setupDefaultHooks } from "./hooks"
-import { Resource, ResourceInput, IResourcePersister } from "./resource"
-import networks from "./networks"
-import constants from "./constants"
-import { createConfig } from "./aws/config"
-import { createResolver as createS3EmbedResolver } from "./aws/s3-embed-resolver"
+import KV from './kv'
+import Errors from './errors'
+import { MiddlewareContainer } from './middleware-container'
+import { hookUp as setupDefaultHooks } from './hooks'
+import { Resource, ResourceInput, IResourcePersister } from './resource'
+import networks from './networks'
 
 const { addLinks } = crypto
 
@@ -218,15 +217,14 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public userSim: User
   public friends: Friends
   public messaging: Messaging
-  public pushNotifications: Push
   public s3Utils: S3Client
   public snsUtils: SNSClient
+  public stackUtils: StackUtils
   public iamClient: IAMClient
   public iot: Iot
   public lambdaUtils: LambdaClient
   public lambdaInvoker: LambdaInvoker
   public lambdaWarmup: LambdaWarmUp
-  public stackUtils: StackUtils
   public cloudformation: CloudFormationClient
   public cloudwatch: CloudWatchClient
   public tasks: TaskManager
@@ -598,21 +596,11 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       messages,
       modelStore,
       tasks,
-      get seals() {
-        return bot.seals
-      },
-      get friends() {
-        return bot.friends
-      },
-      get delivery() {
-        return bot.delivery
-      },
-      get pushNotifications() {
-        return bot.pushNotifications
-      },
-      get auth() {
-        return bot.auth
-      }
+      get seals () { return bot.seals },
+      get friends() { return bot.friends },
+      get delivery() { return bot.delivery },
+      get sendPushNotification() { return bot.sendPushNotification },
+      get auth() { return bot.auth },
     }))
 
     const friends = (bot.friends = new Friends({
@@ -684,10 +672,10 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
     // bot.define('router', './router', bot.construct)
 
-    const pushNotifications = (bot.pushNotifications = new Push({
-      logger: logger.sub("push"),
-      serverUrl: constants.PUSH_SERVER_URL[bot.env.STAGE],
-      conf: bot.kv.sub("push:")
+    // bot.bot = bot.require('bot', './bot')
+    bot.define('mailer', './mailer', Mailer => new Mailer({
+      client: bot.aws.ses,
+      logger: bot.logger.sub('mailer')
     }))
 
     // bot.bot = bot.require('bot', './bot')
@@ -898,13 +886,21 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     return messages
   }
 
+  public sendPushNotification = async ({ recipient }: SendPushNotificationOpts) => {
+    const topic = utils.getPNSTopic({
+      accountId: this.env.AWS_ACCOUNT_ID,
+      region: this.env.AWS_REGION,
+      permalink: await this.getMyPermalink(),
+      notifierAccountId: constants.TRADLE.ACCOUNT_ID,
+    })
+
+    await this.snsUtils.publish({
+      topic,
+      message: JSON.stringify({ subscriber: recipient })
+    })
+  }
+
   // proxy methods
-  public get sendPushNotification() {
-    return this.messaging.sendPushNotification
-  }
-  public get registerWithPushNotificationsServer() {
-    return this.messaging.registerWithPushNotificationsServer
-  }
   public get setCustomModels() {
     return this.modelStore.setCustomModels
   }
@@ -935,6 +931,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public get getStackResourceName() {
     return this.env.getStackResourceName
   }
+
 
   public sealIfNotBatching = async (opts: CreateSealOpts) => {
     if (!this.sealBatcher) {
@@ -1399,9 +1396,9 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     spread?: boolean
     inbound?: boolean
   }) => {
-    const { batch, async, spread, inbound = false } = opts
+    const { batch, async, spread, inbound=false } = opts
     if (!batch.every(item => item.message._inbound === inbound)) {
-      throw new Errors.InvalidInput("expected all messages to be either inbound or outbound")
+      throw new Errors.InvalidInput('expected all messages to be either inbound or outbound')
     }
 
     const topic = inbound ? EventTopics.message.inbound : EventTopics.message.outbound

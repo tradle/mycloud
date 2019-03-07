@@ -2,19 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0-rc.21](https://github.com/tradle/mycloud/compare/v2.4.0-rc.20...v2.4.0-rc.21) (2019-02-08)
+# [2.4.0-rc.22](https://github.com/tradle/mycloud/compare/v2.4.0-rc.21...v2.4.0-rc.22) (2019-02-24)
 
 
 ### Bug Fixes
 
-* don't override _org in identity.sign(), refactor witness() test ([0627ded](https://github.com/tradle/mycloud/commit/0627ded))
-* messages test ([fdf68aa](https://github.com/tradle/mycloud/commit/fdf68aa))
-* rm pre-sign strip of protocol version ([2bab96b](https://github.com/tradle/mycloud/commit/2bab96b))
+* optimize response for person - added remove_deseased to filter ([c97385d](https://github.com/tradle/mycloud/commit/c97385d))
 
 
 ### Features
 
-* add EnableTracing parameter to allow toggling AWS X-Ray ([4d44988](https://github.com/tradle/mycloud/commit/4d44988))
+* added plugin that fills MyProduct with props that get derived from other Product forms ([2adc2bb](https://github.com/tradle/mycloud/commit/2adc2bb))
+* optimize http by enabling keep-alive ([0b64e14](https://github.com/tradle/mycloud/commit/0b64e14))
+* translations moved to S3 ([4d014e2](https://github.com/tradle/mycloud/commit/4d014e2))
 
 
 

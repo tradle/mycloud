@@ -105,7 +105,7 @@ export {
   Logger,
   CacheableBucketItem,
   Friends,
-  Push,
+  // Push,
   User,
   // Discovery,
   Lambda,
@@ -970,3 +970,19 @@ export interface EmbedResolver {
   resolveAll: <T>(object: T) => Promise<T>
   getEmbeds: <T>(object: T) => ParsedRelocatedEmbedUrl[]
 }
+
+export interface RegisterPushNotifierOpts {
+  region: string
+  permalink: string
+  accountId: string
+}
+
+export interface GetPNSTopicOpts extends RegisterPushNotifierOpts {
+  notifierAccountId: string
+}
+
+export interface SendPushNotificationOpts {
+  recipient: string
+}
+
+export type SendPushNotification = (opts: SendPushNotificationOpts) => Promise<void>
