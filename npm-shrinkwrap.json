@@ -52,14 +52,14 @@
       }
     },
     "@tradle/aws-client-factory": {
-      "version": "1.0.1-alpha.11",
-      "from": "@tradle/aws-client-factory@>=1.0.1-alpha.11 <1.1.0",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-client-factory/-/aws-client-factory-1.0.1-alpha.11.tgz"
+      "version": "1.0.1-alpha.14",
+      "from": "@tradle/aws-client-factory@latest",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-client-factory/-/aws-client-factory-1.0.1-alpha.14.tgz"
     },
     "@tradle/aws-cloudformation-client": {
-      "version": "1.0.1-alpha.11",
-      "from": "@tradle/aws-cloudformation-client@>=1.0.1-alpha.11 <1.1.0",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-cloudformation-client/-/aws-cloudformation-client-1.0.1-alpha.11.tgz",
+      "version": "1.0.1-alpha.14",
+      "from": "@tradle/aws-cloudformation-client@latest",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-cloudformation-client/-/aws-cloudformation-client-1.0.1-alpha.14.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -69,9 +69,9 @@
       }
     },
     "@tradle/aws-cloudwatch-client": {
-      "version": "1.0.1-alpha.11",
-      "from": "@tradle/aws-cloudwatch-client@>=1.0.1-alpha.11 <1.1.0",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-cloudwatch-client/-/aws-cloudwatch-client-1.0.1-alpha.11.tgz",
+      "version": "1.0.1-alpha.14",
+      "from": "@tradle/aws-cloudwatch-client@latest",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-cloudwatch-client/-/aws-cloudwatch-client-1.0.1-alpha.14.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -81,9 +81,9 @@
       }
     },
     "@tradle/aws-combo": {
-      "version": "1.0.1-alpha.11",
-      "from": "@tradle/aws-combo@>=1.0.1-alpha.11 <1.1.0",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-combo/-/aws-combo-1.0.1-alpha.11.tgz",
+      "version": "1.0.1-alpha.14",
+      "from": "@tradle/aws-combo@latest",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-combo/-/aws-combo-1.0.1-alpha.14.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -93,9 +93,9 @@
       }
     },
     "@tradle/aws-common-utils": {
-      "version": "1.0.1-alpha.11",
-      "from": "@tradle/aws-common-utils@>=1.0.1-alpha.11 <1.1.0",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-common-utils/-/aws-common-utils-1.0.1-alpha.11.tgz",
+      "version": "1.0.1-alpha.12",
+      "from": "@tradle/aws-common-utils@latest",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-common-utils/-/aws-common-utils-1.0.1-alpha.12.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -125,9 +125,9 @@
       }
     },
     "@tradle/aws-iam-client": {
-      "version": "1.0.1-alpha.11",
-      "from": "@tradle/aws-iam-client@>=1.0.1-alpha.11 <1.1.0",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-iam-client/-/aws-iam-client-1.0.1-alpha.11.tgz",
+      "version": "1.0.1-alpha.14",
+      "from": "@tradle/aws-iam-client@latest",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-iam-client/-/aws-iam-client-1.0.1-alpha.14.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -137,9 +137,9 @@
       }
     },
     "@tradle/aws-lambda-client": {
-      "version": "1.0.1-alpha.11",
-      "from": "@tradle/aws-lambda-client@>=1.0.1-alpha.11 <1.1.0",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-lambda-client/-/aws-lambda-client-1.0.1-alpha.11.tgz",
+      "version": "1.0.1-alpha.14",
+      "from": "@tradle/aws-lambda-client@latest",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-lambda-client/-/aws-lambda-client-1.0.1-alpha.14.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -149,9 +149,9 @@
       }
     },
     "@tradle/aws-s3-client": {
-      "version": "1.0.1-alpha.11",
-      "from": "@tradle/aws-s3-client@>=1.0.1-alpha.11 <1.1.0",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-s3-client/-/aws-s3-client-1.0.1-alpha.11.tgz",
+      "version": "1.0.1-alpha.14",
+      "from": "@tradle/aws-s3-client@latest",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-s3-client/-/aws-s3-client-1.0.1-alpha.14.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -161,9 +161,9 @@
       }
     },
     "@tradle/aws-sns-client": {
-      "version": "1.0.1-alpha.11",
-      "from": "@tradle/aws-sns-client@>=1.0.1-alpha.11 <1.1.0",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-sns-client/-/aws-sns-client-1.0.1-alpha.11.tgz",
+      "version": "1.0.1-alpha.14",
+      "from": "@tradle/aws-sns-client@latest",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-sns-client/-/aws-sns-client-1.0.1-alpha.14.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -390,12 +390,12 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#a2e6e6602c956b91bfacbad6ad5dd3adfef15465"
+      "resolved": "git://github.com/tradle/models.git#ad17db8fcd10bd344a1dd15c5cd750759de9b8d5"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
       "from": "tradle/models-cloud",
-      "resolved": "git://github.com/tradle/models-cloud.git#b382fbf37303dfa07b92773951d193cb03f70c51"
+      "resolved": "git://github.com/tradle/models-cloud.git#e8f9d965014fbc0059d67dbe26706fc21584b812"
     },
     "@tradle/models-corporate-onboarding": {
       "version": "1.0.0",
@@ -1211,9 +1211,9 @@
       }
     },
     "aws-sdk": {
-      "version": "2.249.1",
-      "from": "aws-sdk@2.249.1",
-      "resolved": "https://registry.npmjs.org/aws-sdk/-/aws-sdk-2.249.1.tgz",
+      "version": "2.290.0",
+      "from": "aws-sdk@2.290.0",
+      "resolved": "https://registry.npmjs.org/aws-sdk/-/aws-sdk-2.290.0.tgz",
       "dev": true,
       "dependencies": {
         "base64-js": {
@@ -1250,12 +1250,6 @@
           "version": "3.1.0",
           "from": "uuid@3.1.0",
           "resolved": "https://registry.npmjs.org/uuid/-/uuid-3.1.0.tgz",
-          "dev": true
-        },
-        "xml2js": {
-          "version": "0.4.17",
-          "from": "xml2js@0.4.17",
-          "resolved": "https://registry.npmjs.org/xml2js/-/xml2js-0.4.17.tgz",
           "dev": true
         }
       }
@@ -1550,14 +1544,7 @@
     "babel-plugin-transform-regenerator": {
       "version": "6.26.0",
       "from": "babel-plugin-transform-regenerator@>=6.22.0 <7.0.0",
-      "resolved": "https://registry.npmjs.org/babel-plugin-transform-regenerator/-/babel-plugin-transform-regenerator-6.26.0.tgz",
-      "dependencies": {
-        "regenerator-transform": {
-          "version": "0.10.1",
-          "from": "regenerator-transform@>=0.10.0 <0.11.0",
-          "resolved": "https://registry.npmjs.org/regenerator-transform/-/regenerator-transform-0.10.1.tgz"
-        }
-      }
+      "resolved": "https://registry.npmjs.org/babel-plugin-transform-regenerator/-/babel-plugin-transform-regenerator-6.26.0.tgz"
     },
     "babel-plugin-transform-strict-mode": {
       "version": "6.24.1",
@@ -9041,6 +9028,11 @@
       "from": "regenerator-runtime@>=0.11.0 <0.12.0",
       "resolved": "https://registry.npmjs.org/regenerator-runtime/-/regenerator-runtime-0.11.1.tgz"
     },
+    "regenerator-transform": {
+      "version": "0.10.1",
+      "from": "regenerator-transform@>=0.10.0 <0.11.0",
+      "resolved": "https://registry.npmjs.org/regenerator-transform/-/regenerator-transform-0.10.1.tgz"
+    },
     "regex-not": {
       "version": "1.0.2",
       "from": "regex-not@>=1.0.0 <2.0.0",
@@ -9951,7 +9943,7 @@
     },
     "source-map-support": {
       "version": "0.4.18",
-      "from": "source-map-support@>=0.4.18 <0.5.0",
+      "from": "source-map-support@0.4.18",
       "resolved": "https://registry.npmjs.org/source-map-support/-/source-map-support-0.4.18.tgz",
       "dependencies": {
         "source-map": {
@@ -11789,12 +11781,6 @@
       "version": "1.1.1",
       "from": "xml2js-parser@latest",
       "resolved": "https://registry.npmjs.org/xml2js-parser/-/xml2js-parser-1.1.1.tgz"
-    },
-    "xmlbuilder": {
-      "version": "4.2.1",
-      "from": "xmlbuilder@4.2.1",
-      "resolved": "https://registry.npmjs.org/xmlbuilder/-/xmlbuilder-4.2.1.tgz",
-      "dev": true
     },
     "xmldom": {
       "version": "0.1.19",

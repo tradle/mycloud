@@ -4,7 +4,11 @@ import _ from 'lodash'
 import Promise from 'bluebird'
 import createCredstash from 'nodecredstash'
 import AWS from 'aws-sdk'
-import { createClientCache, ClientCache } from '@tradle/aws-client-factory'
+import {
+  createClientCache,
+  ClientCache,
+  monitor as monitorClient
+} from '@tradle/aws-client-factory'
 import { services as awsServices, AWSServices } from '@tradle/aws-combo'
 import { S3Client } from '@tradle/aws-s3-client'
 import { SNSClient } from '@tradle/aws-sns-client'
@@ -82,7 +86,6 @@ import {
   Buckets,
   Tables,
   IMailer,
-  PresignEmbeddedMediaOpts,
   ILambdaExecutionContext,
   VersionInfo,
   IDebug,
@@ -90,10 +93,7 @@ import {
   ResourceStub,
   LambdaInvoker,
   IAMClient,
-  CloudFormationClient,
-  CloudWatchClient,
   EmbedResolver,
-  SendPushNotification,
   SendPushNotificationOpts
 } from './types'
 
@@ -459,6 +459,12 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       }),
       useGlobalConfigClock: true
     }))
+
+    awsClientCache.forEach((client, name) => {
+      const clientLogger = logger.sub(`aws-${name}`)
+      // @ts-ignore
+      awsClientCache[name] = monitorClient({ client, logger: clientLogger })
+    })
 
     const dbUtils = (bot.dbUtils = createDBUtils({
       aws: awsClientCache,
