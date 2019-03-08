@@ -1,7 +1,12 @@
 import extend from 'lodash/extend'
 import { Models } from './types'
 
-const core = require('@tradle/models').models
+const requireModels = moduleName => {
+  const module = require(moduleName)
+  return module.models || module
+}
+
+const core = requireModels('@tradle/models')
 
 const baseMessageModel = core['tradle.Message']
 if (!baseMessageModel.properties._counterparty) {
@@ -84,12 +89,12 @@ core[jsonItem.id] = jsonItem
 const models = extend(
   {},
   core,
-  require('@tradle/custom-models').models,
-  require('@tradle/models-corporate-onboarding').models,
-  require('@tradle/models-products-bot'),
-  require('@tradle/models-onfido'),
-  require('@tradle/models-nz'),
-  require('@tradle/models-cloud'),
+  requireModels('@tradle/custom-models'),
+  requireModels('@tradle/models-corporate-onboarding'),
+  requireModels('@tradle/models-products-bot'),
+  requireModels('@tradle/models-onfido'),
+  requireModels('@tradle/models-nz'),
+  requireModels('@tradle/models-cloud')
 )
 
 export = models as Models
