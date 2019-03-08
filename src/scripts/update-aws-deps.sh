@@ -24,6 +24,6 @@ do
   then
     npm link "@tradle/$item"
   else
-    npm i -S "@tradle/$item"
+    npm i -S "@tradle/$item@$VERSION"
   fi
 done
