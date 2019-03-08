@@ -23,12 +23,7 @@ import {
   Secrets,
   AwsApis,
   Iot,
-  CloudWatchClient,
-  CloudFormationClient,
-  LambdaClient
 } from './types'
-
-// import wrapCloudwatchClient from "./cloudwatch"
 
 const { IDENTITY } = TYPES
 
