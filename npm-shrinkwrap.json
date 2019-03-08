@@ -5834,6 +5834,7 @@
       "version": "3.12.0",
       "from": "https://registry.npmjs.org/js-yaml/-/js-yaml-3.12.0.tgz",
       "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-3.12.0.tgz",
+      "dev": true,
       "dependencies": {
         "esprima": {
           "version": "4.0.1",
