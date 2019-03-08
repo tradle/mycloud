@@ -1,24 +1,24 @@
-const debug = require("debug")("tradle:sls:db-utils")
+const debug = require('debug')('tradle:sls:db-utils')
 // @ts-ignore
-import Promise from "bluebird"
-import AWS from "aws-sdk"
-import { AttributePath, PathElement } from "@aws/dynamodb-expressions"
-import _ from "lodash"
+import Promise from 'bluebird'
+import AWS from 'aws-sdk'
+import { AttributePath, PathElement } from '@aws/dynamodb-expressions'
+import _ from 'lodash'
 // import {
 //   marshalItem as marshallDBItem,
 //   unmarshalItem as unmarshallDBItem
 // } from 'dynamodb-marshaler'
 
-import dynogels from "dynogels"
-import { utils as vrUtils } from "@tradle/validate-resource"
-import { Level } from "./logger"
-import { NotFound } from "./errors"
-import { wait, waitImmediate, traverse, defineGetter, noop } from "./utils"
+import dynogels from 'dynogels'
+import { utils as vrUtils } from '@tradle/validate-resource'
+import { Level } from './logger'
+import { NotFound } from './errors'
+import { wait, waitImmediate, traverse, defineGetter, noop } from './utils'
 
-import { prettify, alphabetical, format } from "./string-utils"
-import { sha256 } from "./crypto"
-import Errors from "./errors"
-import { Env, StreamRecordType, IStreamRecord, Logger, IServiceMap, ClientCache } from "./types"
+import { prettify, alphabetical, format } from './string-utils'
+import { sha256 } from './crypto'
+import Errors from './errors'
+import { Env, StreamRecordType, IStreamRecord, Logger, IServiceMap, ClientCache } from './types'
 
 export type PropPath = string | string[]
 export type PathAndValuePair = [PropPath, any]
@@ -82,7 +82,7 @@ const renderDefinitions = ({
 }) => {
   definitions = _.cloneDeep(definitions)
   _.forEach(definitions, (resource, logicalId) => {
-    if (resource.Type === "AWS::DynamoDB::Table") {
+    if (resource.Type === 'AWS::DynamoDB::Table') {
       resource.Properties.TableName = serviceMap.Table[logicalId]
     }
   })
@@ -103,7 +103,7 @@ function createDBUtils({
 }) {
   const getDefinitions = _.memoize(() =>
     renderDefinitions({
-      definitions: require("./definitions"),
+      definitions: require('./definitions'),
       serviceMap
     })
   )
@@ -120,20 +120,20 @@ function createDBUtils({
   }
 
   const { debug } = logger
-  const dynogelsLogger = logger.sub("dynogels")
+  const dynogelsLogger = logger.sub('dynogels')
   if (logger.level >= Level.WARN) {
-    const level = logger.level >= Level.SILLY ? "info" : "warn"
+    const level = logger.level >= Level.SILLY ? 'info' : 'warn'
     dynogels.log = {
       info: noop,
-      warn: (...data) => dynogelsLogger.warn("", data),
-      level: "warn"
+      warn: (...data) => dynogelsLogger.warn('', data),
+      level: 'warn'
     }
   }
 
   function getTable(TableName) {
     const batchWriteToTable = async ops => {
       ops.forEach(({ type }) => {
-        if (type !== "put" && type !== "del") {
+        if (type !== 'put' && type !== 'del') {
           throw new Error(`expected "type" to be either "put" or "del", got ${type}`)
         }
       })
@@ -144,7 +144,7 @@ function createDBUtils({
         await batchPut({
           RequestItems: {
             [TableName]: batch.map(({ type, value }) => {
-              const reqType = type === "put" ? "PutRequest" : "DeleteRequest"
+              const reqType = type === 'put' ? 'PutRequest' : 'DeleteRequest'
               return {
                 [reqType]: { Item: value }
               }
@@ -155,12 +155,12 @@ function createDBUtils({
     }
 
     const batchPutToTable = async items => {
-      const ops = items.map(value => ({ type: "put", value }))
+      const ops = items.map(value => ({ type: 'put', value }))
       return batchWriteToTable(ops)
     }
 
     const batchDeleteFromTable = async items => {
-      const ops = items.map(value => ({ type: "del", value }))
+      const ops = items.map(value => ({ type: 'del', value }))
       return batchWriteToTable(ops)
     }
 
@@ -198,7 +198,7 @@ function createDBUtils({
     tableAPI.client = aws.documentclient
     tableAPI.rawClient = aws.dynamodb
     tableAPI.name = TableName
-    defineGetter(tableAPI, "definition", () => getCachedDefinition(TableName))
+    defineGetter(tableAPI, 'definition', () => getCachedDefinition(TableName))
     tableAPI.batchProcess = ({ params = {}, ...opts }) => {
       return batchProcess({
         params: { ...params, TableName },
@@ -268,8 +268,8 @@ function createDBUtils({
       // logCapacityConsumption(method, result)
       return result
     } catch (err) {
-      Errors.rethrow(err, "system")
-      if (err.code === "ValidationException") {
+      Errors.rethrow(err, 'system')
+      if (err.code === 'ValidationException') {
         Errors.rethrowAs(err, new Errors.InvalidInput(err.message))
       }
 
@@ -286,8 +286,8 @@ function createDBUtils({
     return aws.dynamodb[method](params).promise()
   }
 
-  const createTable = params => dynamoDBExec("createTable", params)
-  const deleteTable = params => dynamoDBExec("deleteTable", params)
+  const createTable = params => dynamoDBExec('createTable', params)
+  const deleteTable = params => dynamoDBExec('deleteTable', params)
 
   const batchProcess = async ({
     params,
@@ -298,7 +298,7 @@ function createDBUtils({
     processOne?: ItemWorker
     processBatch?: BatchWorker
   }) => {
-    const method = params.KeyConditionExpression ? "query" : "scan"
+    const method = params.KeyConditionExpression ? 'query' : 'scan'
     let lastEvaluatedKey = null
     let retry = true
     let keepGoing: boolean | void = true
@@ -353,12 +353,12 @@ function createDBUtils({
         if (!filter(item)) return
 
         await execWhile(
-          "delete",
+          'delete',
           {
             TableName,
             Key: _.pick(item, keyProps)
           },
-          err => err.code === "LimitExceededException" || err.code === "ResourceNotFoundException"
+          err => err.code === 'LimitExceededException' || err.code === 'ResourceNotFoundException'
         )
 
         count++
@@ -387,9 +387,9 @@ function createDBUtils({
 
   const get = async (params: AWS.DynamoDB.GetItemInput) => {
     maybeForceConsistentRead(params)
-    const result = await exec("get", params)
+    const result = await exec('get', params)
     if (!result.Item) {
-      throw new NotFound(JSON.stringify(_.pick(params, ["TableName", "Key"])))
+      throw new NotFound(JSON.stringify(_.pick(params, ['TableName', 'Key'])))
     }
 
     // debug(`got item from ${params.TableName}: ${prettify(result)}`)
@@ -397,18 +397,18 @@ function createDBUtils({
   }
 
   const put = async (params: AWS.DynamoDB.PutItemInput) => {
-    const result = await exec("put", params)
+    const result = await exec('put', params)
     return tweakReturnValue(params, result)
   }
 
   const del = async (params: AWS.DynamoDB.DeleteItemInput) => {
-    const result = await exec("delete", params)
+    const result = await exec('delete', params)
     return tweakReturnValue(params, result)
   }
 
   const find = async (params: AWS.DynamoDB.QueryInput) => {
     maybeForceConsistentRead(params)
-    const result = await exec("query", params)
+    const result = await exec('query', params)
     return result.Items.map(fixUnmarshallItem)
   }
 
@@ -423,7 +423,7 @@ function createDBUtils({
   }
 
   const update = async (params: AWS.DynamoDB.UpdateItemInput) => {
-    const result = await exec("update", params)
+    const result = await exec('update', params)
     return tweakReturnValue(params, result)
   }
 
@@ -431,12 +431,12 @@ function createDBUtils({
     // ConsistentRead not supported on GlobalSecondaryIndexes
     if (CONSISTENT_READ_EVERYTHING && !params.IndexName && !params.ConsistentRead) {
       params.ConsistentRead = true
-      logger.info("forcing consistent read")
+      logger.info('forcing consistent read')
     }
   }
 
   function tweakReturnValue(params, result) {
-    if (params.ReturnValues !== "NONE") {
+    if (params.ReturnValues !== 'NONE') {
       return result.Attributes
     }
 
@@ -445,12 +445,12 @@ function createDBUtils({
 
   const scan = async (params: AWS.DynamoDB.ScanInput) => {
     maybeForceConsistentRead(params)
-    const { Items } = await exec("scan", params)
+    const { Items } = await exec('scan', params)
     return Items
   }
 
   const rawBatchPut = async (params: AWS.DynamoDB.BatchWriteItemInput) => {
-    return await exec("batchWrite", params)
+    return await exec('batchWrite', params)
   }
 
   // const create = co(function* (schema) {
@@ -503,7 +503,7 @@ function createDBUtils({
     }
 
     types.forEach(id => {
-      const num = parseInt(sha256(id, "hex").slice(0, 6), 16)
+      const num = parseInt(sha256(id, 'hex').slice(0, 6), 16)
       const idx = num % tableNames.length
       modelToBucket[id] = tableNames[idx]
     })
@@ -565,7 +565,7 @@ function getRecordsFromEvent(event: any): IStreamRecord[] {
       id: eventID,
       type: getEventType(eventName),
       time: ApproximateCreationDateTime,
-      service: "dynamodb",
+      service: 'dynamodb',
       source: getTableNameFromStreamEvent(event),
       old: OldImage && unmarshallDBItem(OldImage),
       value: NewImage && unmarshallDBItem(NewImage)
@@ -574,19 +574,19 @@ function getRecordsFromEvent(event: any): IStreamRecord[] {
 }
 
 const getEventType = (eventName: AWS.DynamoDBStreams.OperationType): StreamRecordType => {
-  if (eventName === "INSERT") {
-    return "create"
+  if (eventName === 'INSERT') {
+    return 'create'
   }
 
-  if (eventName === "MODIFY") {
-    return "update"
+  if (eventName === 'MODIFY') {
+    return 'update'
   }
 
-  if (eventName === "REMOVE") {
-    return "delete"
+  if (eventName === 'REMOVE') {
+    return 'delete'
   }
 
-  return "unknown:" + eventName
+  return 'unknown:' + eventName
 }
 
 const EVENT_SOURCE_ARN_TABLE_NAME_REGEX = /:table\/([^/]+)/
@@ -598,13 +598,13 @@ function getTableNameFromStreamEvent(event) {
 function logCapacityConsumption(method, result) {
   let type
   switch (method) {
-    case "get":
-    case "query":
-    case "scan":
-      type = "RCU"
+    case 'get':
+    case 'query':
+    case 'scan':
+      type = 'RCU'
       break
     default:
-      type = "WCU"
+      type = 'WCU'
       break
   }
 
@@ -619,21 +619,21 @@ const getUpdateParams = (item): any => {
   const toSet = keys.filter(key => item[key] != null)
   const toRemove = keys.filter(key => item[key] == null)
 
-  let UpdateExpression = ""
+  let UpdateExpression = ''
   if (toSet.length) {
-    const ops = toSet.map(key => `#${key} = :${key}`).join(", ")
+    const ops = toSet.map(key => `#${key} = :${key}`).join(', ')
     UpdateExpression += `SET ${ops} `
   }
 
   if (toRemove.length) {
-    debug(`removing properties: ${toRemove.join(", ")}`)
-    const ops = toRemove.map(key => `#${key}`).join(", ")
+    debug(`removing properties: ${toRemove.join(', ')}`)
+    const ops = toRemove.map(key => `#${key}`).join(', ')
     UpdateExpression += `REMOVE ${ops} `
   }
 
   UpdateExpression = UpdateExpression.trim()
   if (!UpdateExpression.length) {
-    throw new Error("nothing was updated!")
+    throw new Error('nothing was updated!')
   }
 
   const ExpressionAttributeNames = {}
@@ -654,7 +654,7 @@ const getUpdateParams = (item): any => {
 
 export const toAttributePath = (path: PropPath) => {
   const parts = [].concat(path).map(name => ({
-    type: "AttributeName",
+    type: 'AttributeName',
     name
   })) as PathElement[]
 

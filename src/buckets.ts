@@ -1,14 +1,14 @@
-import Cache from "lru-cache"
-import { wrapBucketMemoized } from "@tradle/aws-s3-client"
-import { IBucketsInfo, Buckets } from "./types"
-import { isPromise } from "./utils"
+import Cache from 'lru-cache'
+import { wrapBucketMemoized } from '@tradle/aws-s3-client'
+import { IBucketsInfo, Buckets } from './types'
+import { isPromise } from './utils'
 // const BUCKET_NAMES = ['Secrets', 'Objects', 'PublicConf']
 const MINUTE = 60 * 1000
 const HOUR = 60 * MINUTE
 const MEG = 1024 * 1024
 const byteLengthFn = val => {
   if (isPromise(val)) return 10000 // HACK
-  if (typeof val === "string" || Buffer.isBuffer(val)) {
+  if (typeof val === 'string' || Buffer.isBuffer(val)) {
     return Buffer.byteLength(val)
   }
 
@@ -61,7 +61,7 @@ export const getBuckets = ({ logger, serviceMap, s3Client }): Buckets => {
     if (buckets[name]) return
 
     const physicalId = serviceMap.Bucket[name]
-    if (!physicalId) throw new Error("bucket not found")
+    if (!physicalId) throw new Error('bucket not found')
 
     buckets[name] = wrapBucketMemoized({
       client: s3Client,

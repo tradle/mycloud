@@ -1,5 +1,5 @@
-import IotMessage from "@tradle/iot-message"
-import { AwsApis, Env, Logger } from "../types"
+import IotMessage from '@tradle/iot-message'
+import { AwsApis, Env, Logger } from '../types'
 const DEFAULT_QOS = 1
 
 interface IotOpts {
@@ -20,17 +20,17 @@ export default class Iot {
   constructor(private opts: IotOpts) {
     const { clients, env } = opts
     this.clients = clients
-    this.logger = env.logger.sub("iot-utils")
+    this.logger = env.logger.sub('iot-utils')
   }
 
   public publish = async (params: IIotPublishOpts) => {
     params = { ...params }
-    if (!("qos" in params)) params.qos = DEFAULT_QOS
+    if (!('qos' in params)) params.qos = DEFAULT_QOS
 
     params.payload = await IotMessage.encode({
-      type: "messages",
+      type: 'messages',
       payload: params.payload,
-      encoding: "gzip"
+      encoding: 'gzip'
     })
 
     this.logger.debug(`publishing to ${params.topic}`)
@@ -38,10 +38,10 @@ export default class Iot {
   }
 
   public fetchEndpoint = async () => {
-    this.logger.debug("fetching iot endpoint")
+    this.logger.debug('fetching iot endpoint')
     const { endpointAddress } = await this.clients.iot
       .describeEndpoint({
-        endpointType: "iot:Data-ATS"
+        endpointType: 'iot:Data-ATS'
       })
       .promise()
 

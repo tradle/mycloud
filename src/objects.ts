@@ -1,5 +1,5 @@
-import clone from "lodash/clone"
-import cloneDeep from "lodash/cloneDeep"
+import clone from 'lodash/clone'
+import cloneDeep from 'lodash/cloneDeep'
 import {
   ITradleObject,
   IRetryableTaskOpts,
@@ -8,17 +8,17 @@ import {
   Env,
   EmbedResolver,
   PresignEmbeddedMediaOpts
-} from "./types"
+} from './types'
 
-import * as types from "./typeforce-types"
-import Errors from "./errors"
-import { TYPE } from "./constants"
-import { typeforce, setVirtual, download, logifyFunction } from "./utils"
-import { extractSigPubKey, getLinks } from "./crypto"
-import { MiddlewareContainer } from "./middleware-container"
+import * as types from './typeforce-types'
+import Errors from './errors'
+import { TYPE } from './constants'
+import { typeforce, setVirtual, download, logifyFunction } from './utils'
+import { extractSigPubKey, getLinks } from './crypto'
+import { MiddlewareContainer } from './middleware-container'
 // const { get, put, createPresignedUrl } = require('./s3-utils')
-import { prettify } from "./string-utils"
-import { RetryableTask } from "./retryable-task"
+import { prettify } from './string-utils'
+import { RetryableTask } from './retryable-task'
 
 type ObjectMetadata = {
   _sigPubKey: string
@@ -38,27 +38,27 @@ export default class Objects {
   constructor(private opts: ObjectsOpts) {
     const { logger } = opts
     this.middleware = new MiddlewareContainer({
-      logger: logger.sub("mid"),
+      logger: logger.sub('mid'),
       getContextForEvent: (event, object) => ({
         event: object
       })
     })
 
-    this.middleware.hookSimple("put", this._put)
+    this.middleware.hookSimple('put', this._put)
 
     // logging
     this.put = logifyFunction({
       fn: this.put.bind(this),
       name: obj => `Objects.put ${obj[TYPE]}`,
       logger,
-      level: "silly"
+      level: 'silly'
     })
 
     this.get = logifyFunction({
       fn: this.get.bind(this),
       name: link => `Objects.get ${link}`,
       logger,
-      level: "silly"
+      level: 'silly'
     })
   }
 
@@ -86,7 +86,7 @@ export default class Objects {
       try {
         _sigPubKey = extractSigPubKey(object).pub
       } catch (err) {
-        this.opts.logger.error("invalid object", {
+        this.opts.logger.error('invalid object', {
           object,
           error: err.stack
         })
@@ -128,7 +128,7 @@ export default class Objects {
 
   public getWithRetry = async (link: string, opts: IRetryableTaskOpts) => {
     const task = new RetryableTask(opts)
-    this.opts.logger.silly("getting with retry", link)
+    this.opts.logger.silly('getting with retry', link)
     return await task.run(() => this.get(link))
   }
 
@@ -152,7 +152,7 @@ export default class Objects {
   }
 
   public put = async (object: ITradleObject) => {
-    await this.middleware.fire("put", object)
+    await this.middleware.fire('put', object)
   }
 
   public _put = async (object: ITradleObject) => {

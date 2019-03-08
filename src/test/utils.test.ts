@@ -1,16 +1,16 @@
-require("./env").install()
+require('./env').install()
 
 // tslint:disable:no-console
 
-import test from "tape"
-import _ from "lodash"
+import test from 'tape'
+import _ from 'lodash'
 // @ts-ignore
-import Promise from "bluebird"
-import Cache from "lru-cache"
-import sinon from "sinon"
-import ModelsPack from "@tradle/models-pack"
-import Logger, { noopLogger } from "../logger"
-import KV from "../kv"
+import Promise from 'bluebird'
+import Cache from 'lru-cache'
+import sinon from 'sinon'
+import ModelsPack from '@tradle/models-pack'
+import Logger, { noopLogger } from '../logger'
+import KV from '../kv'
 // import KVS3 from "../kv-s3"
 import {
   importKey,
@@ -18,8 +18,8 @@ import {
   sha256,
   signWithPemEncodedKey,
   verifyWithPemEncodedKey
-} from "../crypto"
-import * as utils from "../utils"
+} from '../crypto'
+import * as utils from '../utils'
 import {
   loudAsync,
   firstSuccess,
@@ -35,18 +35,18 @@ import {
   allSettled,
   runWithBackoffWhile,
   runWithTimeout
-} from "../utils"
-import Errors from "../errors"
-import { createTestBot } from "../"
-import { createSilentLogger } from "./utils"
-import { models as PingPongModels } from "../ping-pong-models"
-import { TaskManager } from "../task-manager"
-import { Bot, UpdateableKeyValueStore } from "../types"
-import { createContentAddressedStore } from "../content-addressed-store"
-import KeyValueMem from "../key-value-mem"
+} from '../utils'
+import Errors from '../errors'
+import { createTestBot } from '../'
+import { createSilentLogger } from './utils'
+import { models as PingPongModels } from '../ping-pong-models'
+import { TaskManager } from '../task-manager'
+import { Bot, UpdateableKeyValueStore } from '../types'
+import { createContentAddressedStore } from '../content-addressed-store'
+import KeyValueMem from '../key-value-mem'
 
 // const { KVTable } = require("../definitions")
-const aliceKeys = require("./fixtures/alice/keys")
+const aliceKeys = require('./fixtures/alice/keys')
 
 const bot = createTestBot()
 
@@ -61,11 +61,11 @@ interface IErrorMatchTest {
 }
 
 test(
-  "run with backoff while",
+  'run with backoff while',
   loudAsync(async t => {
     const clock = sinon.useFakeTimers()
     const sandbox = sinon.createSandbox()
-    const waitStub = sandbox.stub(utils, "wait").callsFake(async millis => {
+    const waitStub = sandbox.stub(utils, 'wait').callsFake(async millis => {
       clock.tick(millis)
     })
 
@@ -81,22 +81,22 @@ test(
       maxDelay: 1000,
       // test 5
       maxTime: 60000,
-      logger: new Logger("test:runWithBackoffWhile")
+      logger: new Logger('test:runWithBackoffWhile')
     }
 
     const task = () => {
-      throw new Error("" + i++)
+      throw new Error('' + i++)
     }
 
     let i = 0
     try {
       await runWithBackoffWhile(task, opts)
-      t.fail("expected error")
+      t.fail('expected error')
     } catch (err) {
-      t.equal(err.message, "0", "last error is propagated on failure")
+      t.equal(err.message, '0', 'last error is propagated on failure')
     }
 
-    t.equal(i, 1, "shouldTryAgain respected")
+    t.equal(i, 1, 'shouldTryAgain respected')
 
     i = 0
     opts.shouldTryAgain = err => true
@@ -104,12 +104,12 @@ test(
 
     try {
       await runWithBackoffWhile(task, opts)
-      t.fail("expected error")
+      t.fail('expected error')
     } catch (err) {
       t.ok(Errors.matches(err, Errors.Timeout))
     }
 
-    t.equal(i, 3, "fail after maxAttempts")
+    t.equal(i, 3, 'fail after maxAttempts')
     const delays = waitStub.getCalls().map(call => call.args[0])
     t.ok(
       delays.every((delay, i) => {
@@ -117,7 +117,7 @@ test(
 
         return delay === delays[i - 1] * opts.factor
       }),
-      "initialDelay, factor respected"
+      'initialDelay, factor respected'
     )
 
     i = 0
@@ -127,13 +127,13 @@ test(
 
     try {
       await runWithBackoffWhile(task, opts)
-      t.fail("expected error")
+      t.fail('expected error')
     } catch (err) {
       t.ok(Errors.matches(err, Errors.Timeout))
     }
 
     t.equal(i, 3)
-    t.ok(waitStub.getCalls().every(call => call.args[0] <= 200), "maxDelay respected")
+    t.ok(waitStub.getCalls().every(call => call.args[0] <= 200), 'maxDelay respected')
 
     i = 0
     opts.maxTime = 200
@@ -141,12 +141,12 @@ test(
 
     try {
       await runWithBackoffWhile(task, opts)
-      t.fail("expected error")
+      t.fail('expected error')
     } catch (err) {
       t.ok(Errors.matches(err, Errors.Timeout))
     }
 
-    t.equal(i, 2, "maxTime respected")
+    t.equal(i, 2, 'maxTime respected')
 
     clock.restore()
     sandbox.restore()
@@ -155,7 +155,7 @@ test(
 )
 
 test(
-  "cachify",
+  'cachify',
   loudAsync(async t => {
     const data = {
       a: 1
@@ -167,7 +167,7 @@ test(
         misses[key] = (misses[key] || 0) + 1
         if (key in data) return data[key]
 
-        throw new Error("not found")
+        throw new Error('not found')
       },
       put: async (key, value) => {
         data[key] = value
@@ -180,23 +180,23 @@ test(
 
     const cachified = cachify(raw)
     // miss
-    t.equal(await cachified.get("a"), data.a)
+    t.equal(await cachified.get('a'), data.a)
     t.equal(misses.a, 1)
 
     // hit
-    t.equal(await cachified.get("a"), data.a)
+    t.equal(await cachified.get('a'), data.a)
     t.equal(misses.a, 1)
 
-    cachified.put("a", 2)
+    cachified.put('a', 2)
     // miss
-    t.equal(await cachified.get("a"), data.a)
+    t.equal(await cachified.get('a'), data.a)
     t.equal(misses.a, 2)
 
-    cachified.put("a", 3)
+    cachified.put('a', 3)
     // miss
     // hit
-    const miss = cachified.get("a")
-    const hit = cachified.get("a")
+    const miss = cachified.get('a')
+    const hit = cachified.get('a')
     t.equal(await miss, data.a)
     t.equal(misses.a, 3)
     t.equal(await hit, data.a)
@@ -206,17 +206,17 @@ test(
 )
 
 test(
-  "cachifyFunction",
+  'cachifyFunction',
   loudAsync(async t => {
     const actions = [
       async () => {
-        throw new Error("test fail a")
+        throw new Error('test fail a')
       },
       async () => {
-        return "a"
+        return 'a'
       },
       async () => {
-        return "a"
+        return 'a'
       }
     ]
 
@@ -229,35 +229,35 @@ test(
     }
 
     let i = 0
-    const { call, del } = cachifyFunction(container, "fn")
+    const { call, del } = cachifyFunction(container, 'fn')
     try {
       await call()
-      t.fail("expected error")
+      t.fail('expected error')
     } catch (err) {
-      t.equal(err.message, "test fail a")
+      t.equal(err.message, 'test fail a')
     }
 
     t.equal(i, 1)
-    t.equal(await call(), "a")
+    t.equal(await call(), 'a')
     t.equal(i, 2)
-    t.equal(await call(), "a")
+    t.equal(await call(), 'a')
     t.equal(i, 2)
     del()
-    t.equal(await call(), "a")
+    t.equal(await call(), 'a')
     t.equal(i, 3)
     t.end()
   })
 )
 
 test(
-  "cachifyPromiser",
+  'cachifyPromiser',
   loudAsync(async t => {
     const actions = [
       async () => {
-        throw new Error("test err")
+        throw new Error('test err')
       },
       async () => {
-        return "a"
+        return 'a'
       }
     ]
 
@@ -266,16 +266,16 @@ test(
 
     try {
       await fn()
-      t.fail("expected error")
+      t.fail('expected error')
     } catch (err) {
-      t.equal(err.message, "test err")
+      t.equal(err.message, 'test err')
     }
 
-    t.equal(await fn(), "a")
-    t.equal(await fn(), "a")
+    t.equal(await fn(), 'a')
+    t.equal(await fn(), 'a')
     try {
-      fn("something")
-      t.fail("expected error")
+      fn('something')
+      t.fail('expected error')
     } catch (err) {
       t.ok(/arguments/.test(err.message))
     }
@@ -284,78 +284,14 @@ test(
   })
 )
 
-// test(
-//   "wrap",
-//   loudAsync(async t => {
-//     const lambdaUtils = require("../lambda-utils")
-//     const { performServiceDiscovery } = lambdaUtils
-//     lambdaUtils.performServiceDiscovery = () => Promise.resolve()
-
-//     const expectedRet = {
-//       something: "good"
-//     }
-
-//     const expectedError = new Error("blah happened")
-
-//     const originals = {
-//       good: {
-//         *generatorSuccess() {
-//           return expectedRet
-//         },
-//         promiserSuccess() {
-//           return Promise.resolve(expectedRet)
-//         },
-//         syncSuccess() {
-//           return expectedRet
-//         }
-//       },
-//       bad: {
-//         *generatorError() {
-//           throw expectedError
-//         },
-//         promiserError() {
-//           return Promise.reject(expectedError)
-//         },
-//         syncError() {
-//           throw expectedError
-//         }
-//       }
-//     }
-
-//     const good = values(originals.good).map(wrap)
-//     const bad = values(originals.bad).map(wrap)
-//     await good.map(lambda => {
-//       return new Promise(resolve => {
-//         lambda({}, {}, (err, result) => {
-//           t.error(err)
-//           t.same(result, expectedRet)
-//           resolve()
-//         })
-//       })
-//     })
-
-//     await bad.map(lambda => {
-//       return new Promise(resolve => {
-//         lambda({}, {}, (err, result) => {
-//           t.equal(err, expectedError)
-//           resolve()
-//         })
-//       })
-//     })
-
-//     lambdaUtils.performServiceDiscovery = performServiceDiscovery
-//     t.end()
-//   })
-// )
-
-test("batch by size", t => {
+test('batch by size', t => {
   const sampleJSON = {
     blah: 1,
-    url: "http://blah.com/blah?blah=blah#blah=blah%$^*)_@#*("
+    url: 'http://blah.com/blah?blah=blah#blah=blah%$^*)_@#*('
   }
 
   const s = JSON.stringify(sampleJSON)
-  const length = Buffer.byteLength(s, "utf8")
+  const length = Buffer.byteLength(s, 'utf8')
   const MAX = length
   const oneThird = Math.floor(length / 3)
   const twoFifths = Math.floor((2 * length) / 5)
@@ -369,8 +305,8 @@ test("batch by size", t => {
     // // 2
     [s.slice(0, twoFifths), s.slice(0, twoFifths)],
     // 3
-    [s.slice(0, twoFifths), s.slice(0, threeFifths), "a".repeat(leftOver)],
-    ["a"]
+    [s.slice(0, twoFifths), s.slice(0, threeFifths), 'a'.repeat(leftOver)],
+    ['a']
   ]
 
   const input = expected.reduce((arr, next) => arr.concat(next), [])
@@ -380,20 +316,20 @@ test("batch by size", t => {
 })
 
 test(
-  "content-addressed-storage",
+  'content-addressed-storage',
   loudAsync(async t => {
     const store = new KeyValueMem()
     const contentAddressedStore = createContentAddressedStore({ store })
-    const key = await contentAddressedStore.put("a")
-    t.equal(key, sha256("a", "hex"))
-    t.same(await store.get(key), "a")
+    const key = await contentAddressedStore.put('a')
+    t.equal(key, sha256('a', 'hex'))
+    t.same(await store.get(key), 'a')
     t.end()
   })
 )
 ;[
   // KeyValueTable,
   {
-    name: "dynamodb based",
+    name: 'dynamodb based',
     create: (bot: Bot): UpdateableKeyValueStore => {
       const { db } = bot
       return new KV({ db, prefix: String(Date.now()) })
@@ -413,83 +349,83 @@ test(
     `key-value table (${name})`,
     loudAsync(async t => {
       const conf = create(bot)
-      t.equal(await conf.has("a"), false)
-      await conf.put("a", {
-        b: "c",
+      t.equal(await conf.has('a'), false)
+      await conf.put('a', {
+        b: 'c',
         age: 75,
         _time: 123
       })
 
-      t.equal(await conf.has("a"), true)
-      t.same(await conf.get("a"), {
-        b: "c",
+      t.equal(await conf.has('a'), true)
+      t.same(await conf.get('a'), {
+        b: 'c',
         age: 75,
         _time: 123
       })
 
       if (conf instanceof KV) {
-        await conf.update("a", {
-          UpdateExpression: "SET #age = #age + :incr",
+        await conf.update('a', {
+          UpdateExpression: 'SET #age = #age + :incr',
           ExpressionAttributeNames: {
-            "#age": "age"
+            '#age': 'age'
           },
           ExpressionAttributeValues: {
-            ":incr": 1
+            ':incr': 1
           },
-          ReturnValues: "UPDATED_NEW"
+          ReturnValues: 'UPDATED_NEW'
         })
       } else if (conf.update) {
-        await conf.update("a", {
-          UpdateExpression: "SET #value.#age = #value.#age + :incr",
+        await conf.update('a', {
+          UpdateExpression: 'SET #value.#age = #value.#age + :incr',
           ExpressionAttributeNames: {
-            "#value": "value",
-            "#age": "age"
+            '#value': 'value',
+            '#age': 'age'
           },
           ExpressionAttributeValues: {
-            ":incr": 1
+            ':incr': 1
           },
-          ReturnValues: "UPDATED_NEW"
+          ReturnValues: 'UPDATED_NEW'
         })
       } else {
-        await conf.put("a", {
-          ...(await conf.get("a")),
+        await conf.put('a', {
+          ...(await conf.get('a')),
           age: 76
         })
       }
 
-      t.same((await conf.get("a")).age, 76)
+      t.same((await conf.get('a')).age, 76)
 
-      const sub = conf.sub("mynamespace:")
-      t.equal(await sub.has("a"), false)
+      const sub = conf.sub('mynamespace:')
+      t.equal(await sub.has('a'), false)
       try {
-        await sub.get("mynamespace:a")
-        t.fail("sub should not have value")
+        await sub.get('mynamespace:a')
+        t.fail('sub should not have value')
       } catch (err) {
         t.ok(err)
       }
 
-      await sub.put("a", {
-        d: "e",
+      await sub.put('a', {
+        d: 'e',
         _time: 123
       })
 
-      t.equal(await sub.has("a"), true)
-      t.same(await sub.get("a"), {
-        d: "e",
+      t.equal(await sub.has('a'), true)
+      t.same(await sub.get('a'), {
+        d: 'e',
         _time: 123
       })
 
-      t.equal(await conf.has("mynamespace:a"), true)
-      t.same(await conf.get("mynamespace:a"), {
-        d: "e",
+      t.equal(await conf.has('mynamespace:a'), true)
+      t.same(await conf.get('mynamespace:a'), {
+        d: 'e',
         _time: 123
       })
 
-      await sub.del("a")
-      t.equal(await sub.has("a"), false)
+      await sub.del('a')
+      t.equal(await sub.has('a'), false)
       try {
-        await sub.get("a")
-        t.fail("sub should not have value")
+        await sub.get('a')
+        t.fail('sub should not have value')
       } catch (err) {
         t.ok(err)
       }
@@ -588,39 +524,39 @@ test(
 //   t.end()
 // }))
 
-test("errors", t => {
+test('errors', t => {
   const tests: IErrorMatchTest[] = [
     {
-      error: new TypeError("bad type"),
+      error: new TypeError('bad type'),
       matches: [
-        { type: "system", result: true },
-        { type: { message: "bad type" }, result: true },
+        { type: 'system', result: true },
+        { type: { message: 'bad type' }, result: true },
         { type: { message: /bad type/ }, result: true },
         { type: {}, result: true }
       ]
     },
     {
       error: (() => {
-        const err: any = new Error("resource not found")
-        err.code = "ResourceNotFoundException"
-        err.name = "somename"
+        const err: any = new Error('resource not found')
+        err.code = 'ResourceNotFoundException'
+        err.name = 'somename'
         return err
       })(),
       matches: [
         {
-          type: "system",
+          type: 'system',
           result: false
         },
         {
           type: {
-            code: "ResourceNotFoundException"
+            code: 'ResourceNotFoundException'
           },
           result: true
         },
         {
           type: {
-            code: "ResourceNotFoundException",
-            name: "someothername"
+            code: 'ResourceNotFoundException',
+            name: 'someothername'
           },
           result: false
         },
@@ -639,35 +575,35 @@ test("errors", t => {
 })
 
 test(
-  "sign/verify",
+  'sign/verify',
   loudAsync(async t => {
-    const key = aliceKeys.find(key => key.type === "ec")
-    const sig = signWithPemEncodedKey(key.encoded.pem.priv, "a")
-    t.ok(verifyWithPemEncodedKey(key.encoded.pem.pub, "a", new Buffer(sig, "hex")))
-    t.notOk(verifyWithPemEncodedKey(key.encoded.pem.pub, "a1", sig))
+    const key = aliceKeys.find(key => key.type === 'ec')
+    const sig = signWithPemEncodedKey(key.encoded.pem.priv, 'a')
+    t.ok(verifyWithPemEncodedKey(key.encoded.pem.pub, 'a', new Buffer(sig, 'hex')))
+    t.notOk(verifyWithPemEncodedKey(key.encoded.pem.pub, 'a1', sig))
 
     const ecKey = importKey(key)
-    const sig1 = ecKey.signSync("b")
-    t.ok(ecKey.verifySync("b", sig1))
-    t.notOk(ecKey.verifySync("b", sig))
-    t.notOk(ecKey.verifySync("b1", sig1))
+    const sig1 = ecKey.signSync('b')
+    t.ok(ecKey.verifySync('b', sig1))
+    t.notOk(ecKey.verifySync('b', sig))
+    t.notOk(ecKey.verifySync('b1', sig1))
 
-    const sig2 = await promisify(ecKey.sign)("c")
-    t.ok(await promisify(ecKey.verify)("c", sig2))
-    t.notOk(await promisify(ecKey.verify)("c", sig))
-    t.notOk(await promisify(ecKey.verify)("c1", sig2))
+    const sig2 = await promisify(ecKey.sign)('c')
+    t.ok(await promisify(ecKey.verify)('c', sig2))
+    t.notOk(await promisify(ecKey.verify)('c', sig))
+    t.notOk(await promisify(ecKey.verify)('c1', sig2))
 
-    const sig3 = await ecKey.promiseSign("d")
-    t.ok(await ecKey.promiseVerify("d", sig3))
-    t.notOk(await ecKey.promiseVerify("d", sig))
-    t.notOk(await ecKey.promiseVerify("d1", sig3))
+    const sig3 = await ecKey.promiseSign('d')
+    t.ok(await ecKey.promiseVerify('d', sig3))
+    t.notOk(await ecKey.promiseVerify('d', sig))
+    t.notOk(await ecKey.promiseVerify('d1', sig3))
 
     t.end()
   })
 )
 
 test(
-  "first success",
+  'first success',
   loudAsync(async t => {
     const pending = [wait(200).then(() => 200), timeoutIn({ millis: 150 })]
 
@@ -688,7 +624,7 @@ test(
         timeoutIn({ millis: 100 })
       ])
 
-      t.fail("expected error")
+      t.fail('expected error')
     } catch (err) {
       t.ok(err)
     }
@@ -698,23 +634,23 @@ test(
 )
 
 test(
-  "runWithTimeout",
+  'runWithTimeout',
   loudAsync(async t => {
     const unhandledRejectionHandler = (reason, promise) => {
       t.fail(`unhandled rejection: ${reason.message}`)
     }
 
-    process.on("unhandledRejection", unhandledRejectionHandler)
+    process.on('unhandledRejection', unhandledRejectionHandler)
 
     const willTimeout = runWithTimeout(() => wait(500), {
       millis: 100,
-      error: new Error("timeout1")
+      error: new Error('timeout1')
     })
 
     const willSucceed = runWithTimeout(
       async () => {
         await wait(100)
-        return "yay"
+        return 'yay'
       },
       {
         millis: 500
@@ -724,32 +660,32 @@ test(
     const willTimeoutThenFail = runWithTimeout(
       async () => {
         await wait(500)
-        throw new Error("oopsers")
+        throw new Error('oopsers')
       },
       {
         millis: 100,
-        error: new Error("timeout2")
+        error: new Error('timeout2')
       }
     )
 
-    willTimeout.then(() => t.fail("expected timeout"), err => t.equal(err.message, "timeout1"))
+    willTimeout.then(() => t.fail('expected timeout'), err => t.equal(err.message, 'timeout1'))
 
-    willSucceed.then(result => t.equal(result, "yay"), t.error)
+    willSucceed.then(result => t.equal(result, 'yay'), t.error)
 
     willTimeoutThenFail.then(
-      () => t.fail("expected timeout"),
-      err => t.equal(err.message, "timeout2")
+      () => t.fail('expected timeout'),
+      err => t.equal(err.message, 'timeout2')
     )
 
     await allSettled([willTimeout, willSucceed, willTimeoutThenFail])
 
-    process.removeListener("unhandledRejection", unhandledRejectionHandler)
+    process.removeListener('unhandledRejection', unhandledRejectionHandler)
     t.end()
   })
 )
 
 test(
-  "batchProcess",
+  'batchProcess',
   loudAsync(async t => {
     let i = 0
 
@@ -803,10 +739,10 @@ test(
 )
 
 test(
-  "ModelStore",
+  'ModelStore',
   loudAsync(async t => {
     const sandbox = sinon.createSandbox()
-    const testPrefix = "test"
+    const testPrefix = 'test'
     const friend1 = {
       identity: fakeIdentityStub(testPrefix),
       domain: `${testPrefix}.example1.com`
@@ -835,7 +771,7 @@ test(
 
     // sandbox.stub(bot.s3Utils, 'put').callsFake(fakePut)
     // sandbox.stub(bot.s3Utils, 'gzipAndPut').callsFake(fakePut)
-    sandbox.stub(bot.s3Utils, "get").callsFake(async ({ key }) => {
+    sandbox.stub(bot.s3Utils, 'get').callsFake(async ({ key }) => {
       const Body = await fakeGet({ key })
       return {
         Body: new Buffer(JSON.stringify(Body))
@@ -843,10 +779,10 @@ test(
     })
 
     // sandbox.stub(bot.s3Utils, 'getJSON').callsFake(fakeGet)
-    sandbox.stub(store.bucket, "get").callsFake(key => fakeGet({ key }))
-    sandbox.stub(store.bucket, "getJSON").callsFake(key => fakeGet({ key }))
-    sandbox.stub(store.bucket, "gzipAndPut").callsFake((key, value) => fakePut({ key, value }))
-    sandbox.stub(bot.friends, "getByDomain").callsFake(async domain => {
+    sandbox.stub(store.bucket, 'get').callsFake(key => fakeGet({ key }))
+    sandbox.stub(store.bucket, 'getJSON').callsFake(key => fakeGet({ key }))
+    sandbox.stub(store.bucket, 'gzipAndPut').callsFake((key, value) => fakePut({ key, value }))
+    sandbox.stub(bot.friends, 'getByDomain').callsFake(async domain => {
       if (domain === friend1.domain) return friend1
       if (domain === friend2.domain) return friend2
 
@@ -855,7 +791,7 @@ test(
 
     try {
       await store.getModelsPackByDomain(friend1.domain)
-      t.fail("expected error")
+      t.fail('expected error')
     } catch (err) {
       // 1
       t.equal(Errors.isNotFound(err), true)
@@ -865,12 +801,12 @@ test(
     const modelsPack = ModelsPack.pack({
       models: [
         {
-          type: "tradle.Model",
+          type: 'tradle.Model',
           id: `${namespace}.Name`,
-          title: "Custom Name",
+          title: 'Custom Name',
           properties: {
             name: {
-              type: "string"
+              type: 'string'
             }
           }
         }
@@ -879,17 +815,17 @@ test(
 
     try {
       await store.addModelsPack({ modelsPack })
-      t.fail("expected error")
+      t.fail('expected error')
     } catch (err) {
       // 2
       t.ok(/namespace/.test(err.message))
     }
 
     modelsPack.namespace = namespace
-    modelsPack._author = "abc"
+    modelsPack._author = 'abc'
     try {
       await store.addModelsPack({ modelsPack })
-      t.fail("expected error")
+      t.fail('expected error')
     } catch (err) {
       // 3
       t.ok(/domain/i.test(err.message))
@@ -902,13 +838,13 @@ test(
     // 5
     t.same(
       await store.getCumulativeModelsPack(),
-      _.omit(modelsPack, "namespace"),
-      "models pack added to cumulative pack"
+      _.omit(modelsPack, 'namespace'),
+      'models pack added to cumulative pack'
     )
 
     await store.saveCustomModels({
       modelsPack: {
-        namespace: "ping.pong",
+        namespace: 'ping.pong',
         models: _.values(PingPongModels)
       }
     })
@@ -919,19 +855,19 @@ test(
     })
 
     // 6
-    t.equal(isCumulative, true, "my custom models added to cumulative models pack")
+    t.equal(isCumulative, true, 'my custom models added to cumulative models pack')
 
     const namespace2 = domainToNamespace(friend2.domain)
     const modelsPack2 = ModelsPack.pack({
       namespace: namespace2,
       models: [
         {
-          type: "tradle.Model",
+          type: 'tradle.Model',
           id: `${namespace2}.Name`,
-          title: "Custom Name1",
+          title: 'Custom Name1',
           properties: {
             name: {
-              type: "string"
+              type: 'string'
             }
           }
         }
@@ -947,14 +883,14 @@ test(
         }
       })
 
-      t.fail("expected validation to fail")
+      t.fail('expected validation to fail')
     } catch (err) {
       // 7
       t.ok(/domain|namespace/i.test(err.message))
     }
 
     // tslint:disable-next-line
-    console.log("patience...")
+    console.log('patience...')
     await store.addModelsPack({ modelsPack: modelsPack2 })
     cumulative = await store.getCumulativeModelsPack()
     isCumulative = modelsPack.models
@@ -979,7 +915,7 @@ test(
 )
 
 test(
-  "scheduler",
+  'scheduler',
   loudAsync(async t => {
     const clock = sinon.useFakeTimers()
     clock.setSystemTime(0)
@@ -990,17 +926,17 @@ test(
     const MIN = 60
     const MIN_MILLIS = 60 * 1000
     const everyMin = {
-      name: "a",
+      name: 'a',
       period: MIN
     }
 
     const everyTwoMin = {
-      name: "b",
+      name: 'b',
       period: 2 * MIN
     }
 
     const everyHour = {
-      name: "c",
+      name: 'c',
       period: 60 * MIN
     }
 
@@ -1030,22 +966,22 @@ test(
 )
 
 test(
-  "task manager",
+  'task manager',
   loudAsync(async t => {
     const tasks = new TaskManager({ logger: noopLogger })
     const good = tasks.add({
-      name: "a",
-      promise: Promise.delay(100).then(() => "a")
+      name: 'a',
+      promise: Promise.delay(100).then(() => 'a')
     })
 
     const bad = tasks.add({
-      name: "b",
+      name: 'b',
       promise: Promise.delay(200).then(() => {
-        throw new Error("b")
+        throw new Error('b')
       })
     })
 
-    t.equal(await good, "a")
+    t.equal(await good, 'a')
     t.equal(tasks.length(), 1)
 
     const results = await tasks.awaitAllSettled()
@@ -1109,13 +1045,13 @@ function sum(arr) {
 
 const domainToNamespace = domain =>
   domain
-    .split(".")
+    .split('.')
     .reverse()
-    .join(".")
+    .join('.')
 
 let identityStubCounter = 0
 const fakeIdentityStub = prefix => ({
-  _t: "tradle.Identity",
-  _permalink: (prefix || "") + identityStubCounter++,
-  _link: (prefix || "") + identityStubCounter++
+  _t: 'tradle.Identity',
+  _permalink: (prefix || '') + identityStubCounter++,
+  _link: (prefix || '') + identityStubCounter++
 })

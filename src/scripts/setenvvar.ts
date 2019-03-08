@@ -3,11 +3,7 @@
 const co = require('co')
 const { loadCredentials } = require('../cli/utils')
 const { stackUtils } = require('../').createRemoteBot()
-let {
-  functions,
-  key,
-  value=null
-} = require('minimist')(process.argv.slice(2), {
+let { functions, key, value = null } = require('minimist')(process.argv.slice(2), {
   alias: {
     k: 'key',
     v: 'value',
@@ -25,7 +21,7 @@ const { service, custom } = yml
 const { stage, prefix } = custom
 loadCredentials()
 
-co(function* () {
+co(function*() {
   if (functions) {
     functions = functions.split(',').map(f => f.trim())
   }
@@ -35,13 +31,12 @@ co(function* () {
   }
 
   console.log('setting', update)
-  yield stackUtils.updateEnvironments(function ({ FunctionName }) {
+  yield stackUtils.updateEnvironments(function({ FunctionName }) {
     if (functions && !functions.includes(FunctionName.slice(prefix.length))) return null
 
     return update
   })
-})
-.catch(err => {
+}).catch(err => {
   console.error(err)
   process.exit(1)
 })

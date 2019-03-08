@@ -1,17 +1,17 @@
-import _ from "lodash"
-import createError from "error-ex"
+import _ from 'lodash'
+import createError from 'error-ex'
 // @ts-ignore
-import Promise from "bluebird"
-import crypto from "crypto"
-import QR from "@tradle/qr-schema"
+import Promise from 'bluebird'
+import crypto from 'crypto'
+import QR from '@tradle/qr-schema'
 // import { createPlugin as createRemediationPlugin, Remediation } from './plugins/remediation'
-import { TYPE, SIG, AUTHOR, OWNER } from "@tradle/constants"
-import buildResource from "@tradle/build-resource"
-import baseModels from "../models"
-import Errors from "../errors"
-import { TYPES } from "./constants"
-import { ContentAddressedStore } from "../content-addressed-store"
-import { stubToId, idToStub } from "./data-claim"
+import { TYPE, SIG, AUTHOR, OWNER } from '@tradle/constants'
+import buildResource from '@tradle/build-resource'
+import baseModels from '../models'
+import Errors from '../errors'
+import { TYPES } from './constants'
+import { ContentAddressedStore } from '../content-addressed-store'
+import { stubToId, idToStub } from './data-claim'
 import {
   Logger,
   Bot,
@@ -23,7 +23,7 @@ import {
   IPBReq,
   IDataBundle,
   KeyValueStoreExtended
-} from "./types"
+} from './types'
 
 const {
   DATA_CLAIM,
@@ -38,15 +38,15 @@ const {
 const notNull = val => !!val
 const getDraftPermalinkFromStub = (stub: ClaimStub) => stub.key
 
-const DEFAULT_CLAIM_NOT_FOUND_MESSAGE = "Claim not found"
-const DEFAULT_BUNDLE_MESSAGE = "Please see your data and verifications"
+const DEFAULT_CLAIM_NOT_FOUND_MESSAGE = 'Claim not found'
+const DEFAULT_BUNDLE_MESSAGE = 'Please see your data and verifications'
 const CustomErrors = {
-  ClaimNotFound: createError("ClaimNotFound"),
-  InvalidBundleItem: createError("InvalidBundleItem"),
-  InvalidBundlePointer: createError("InvalidBundlePointer")
+  ClaimNotFound: createError('ClaimNotFound'),
+  InvalidBundleItem: createError('InvalidBundleItem'),
+  InvalidBundlePointer: createError('InvalidBundlePointer')
 }
 
-const DEFAULT_CLAIM_TYPE: ClaimType = "bulk"
+const DEFAULT_CLAIM_TYPE: ClaimType = 'bulk'
 
 export { CustomErrors as Errors }
 
@@ -99,9 +99,9 @@ export class Remediation {
     this.productsAPI = productsAPI
     this.logger = logger
     this.conf = conf
-    this.keyToClaimIds = bot.conf.sub("remediation:")
+    this.keyToClaimIds = bot.conf.sub('remediation:')
     this.store = new ContentAddressedStore({
-      store: bot.buckets.PrivateConf.folder("remediation").jsonKV()
+      store: bot.buckets.PrivateConf.folder('remediation').jsonKV()
     })
   }
 
@@ -193,7 +193,7 @@ export class Remediation {
     claimType: ClaimType
     bundle?: any
   }): Promise<ClaimStub> => {
-    if (claimType === "bulk" && !bundle) {
+    if (claimType === 'bulk' && !bundle) {
       try {
         await this.getBundle({ key })
       } catch (err) {
@@ -212,21 +212,21 @@ export class Remediation {
     }
 
     const qrData = QR.toHex({
-      schema: "ImportData",
+      schema: 'ImportData',
       data: importDataPayload
     })
 
-    const [mobile, web] = ["mobile", "web"].map(platform =>
+    const [mobile, web] = ['mobile', 'web'].map(platform =>
       this.bot.appLinks.getImportDataLink({
         platform,
-        schema: "ImportData",
+        schema: 'ImportData',
         ...importDataPayload
       })
     )
 
     return {
       key,
-      nonce: typeof nonce === "string" ? nonce : nonce.toString("hex"),
+      nonce: typeof nonce === 'string' ? nonce : nonce.toString('hex'),
       claimId,
       claimType,
       qrData,
@@ -371,8 +371,8 @@ export class Remediation {
     let items = bundle.items.map(item =>
       _.extend(
         {
-          [SIG]: "sigplaceholder",
-          [AUTHOR]: "authorplaceholder",
+          [SIG]: 'sigplaceholder',
+          [AUTHOR]: 'authorplaceholder',
           _time: Date.now()
         },
         item
@@ -386,12 +386,12 @@ export class Remediation {
   public getInviteForDraftApp = async ({ application }: { application: ITradleObject }) => {
     const { claimId } = await this.createClaimForApplication({
       draft: application,
-      claimType: "prefill"
+      claimType: 'prefill'
     })
 
     const provider = await this.bot.getPermalink()
     const context = claimId
-    const [mobile, web] = ["mobile", "web"].map(platform =>
+    const [mobile, web] = ['mobile', 'web'].map(platform =>
       this.bot.appLinks.getApplyForProductLink({
         provider,
         host: this.bot.apiBaseUrl,
@@ -414,7 +414,7 @@ export class Remediation {
     if (model.id === VERIFICATION) {
       if (item.document == null) {
         throw new CustomErrors.InvalidBundlePointer(
-          "expected verification.document to point to a form or index in bundle"
+          'expected verification.document to point to a form or index in bundle'
         )
       }
 

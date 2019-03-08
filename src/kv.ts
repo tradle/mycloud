@@ -1,15 +1,15 @@
-import { omit } from "lodash"
-import { DynamoDB } from "aws-sdk"
+import { omit } from 'lodash'
+import { DynamoDB } from 'aws-sdk'
 
-import { TYPE } from "@tradle/constants"
+import { TYPE } from '@tradle/constants'
 
-import { DB, Table, UpdateableKeyValueStore } from "./types"
+import { DB, Table, UpdateableKeyValueStore } from './types'
 
-import Errors from "./errors"
-import { ensureTimestamped } from "./utils"
-import models from "./models"
+import Errors from './errors'
+import { ensureTimestamped } from './utils'
+import models from './models'
 
-const KVModel = models["tradle.POJO"]
+const KVModel = models['tradle.POJO']
 
 type SetItem = string | number
 
@@ -25,7 +25,7 @@ export default class KV implements UpdateableKeyValueStore {
   private keyProperty: string
   private _table: Table
   private _tableName: string
-  constructor({ db, prefix = "" }) {
+  constructor({ db, prefix = '' }) {
     this.db = db
     this.client = db.rawClient
     this.prefix = prefix
@@ -37,7 +37,7 @@ export default class KV implements UpdateableKeyValueStore {
   public has = async (key: string): Promise<boolean> => {
     try {
       await this.get(key, {
-        AttributesToGet: ["key"]
+        AttributesToGet: ['key']
       })
 
       return true
@@ -79,7 +79,7 @@ export default class KV implements UpdateableKeyValueStore {
     return result && this.exportValue(result)
   }
 
-  public sub = (prefix = ""): KV => {
+  public sub = (prefix = ''): KV => {
     return new KV({
       db: this.db,
       prefix: this.prefix + prefix
@@ -166,7 +166,7 @@ export default class KV implements UpdateableKeyValueStore {
   private exportValue = value => omit(value, [this.keyProperty, TYPE])
 
   private _validateKV = (key: string, value: any) => {
-    if (Object.prototype.toString.call(value) !== "[object Object]") {
+    if (Object.prototype.toString.call(value) !== '[object Object]') {
       throw new Errors.InvalidInput(
         '"value" must be a plain javascript object (no arrays, strings, etc.)'
       )

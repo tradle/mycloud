@@ -1,6 +1,6 @@
-import { Lambda } from "../types"
-import { fromSchedule } from "../lambda"
-import { DEFAULT_WARMUP_EVENT } from "../constants"
+import { Lambda } from '../types'
+import { fromSchedule } from '../lambda'
+import { DEFAULT_WARMUP_EVENT } from '../constants'
 
 export const createLambda = opts => {
   const lambda = fromSchedule(opts)

@@ -8,11 +8,11 @@
 //   job.name
 // })
 
-import getPropAtPath from "lodash/get"
-import Errors from "../../errors"
-import { IBotComponents, Seal, Job, LowFundsInput } from "../types"
-import { sendConfirmedSeals } from "../utils"
-import { DEFAULT_WARMUP_EVENT, TYPES } from "../../constants"
+import getPropAtPath from 'lodash/get'
+import Errors from '../../errors'
+import { IBotComponents, Seal, Job, LowFundsInput } from '../types'
+import { sendConfirmedSeals } from '../utils'
+import { DEFAULT_WARMUP_EVENT, TYPES } from '../../constants'
 // import { Deployment } from '../deployment'
 
 const SAFETY_MARGIN_MILLIS = 20000
@@ -33,7 +33,7 @@ export const warmup: Executor = async ({ job, components }) => {
 
 export const reinitializeContainers: Executor = async ({ job, components }) => {
   const { stackUtils, lambdaInvoker } = components.bot
-  const functions = getPropAtPath(job, ["input", "functions"])
+  const functions = getPropAtPath(job, ['input', 'functions'])
   await stackUtils.reinitializeContainers(functions)
   await lambdaInvoker.scheduleWarmUp()
 }
@@ -67,13 +67,13 @@ export const pollchain: Executor = async ({ job, components }): Promise<Seal[]> 
   } while (haveTime && batch.length)
 
   if (!haveTime) {
-    logger.debug("almost out of time, exiting early")
+    logger.debug('almost out of time, exiting early')
   }
 
   return results
 }
 
-const isLowFundsError = (err: any) => Errors.matches(err, { name: "LowFunds" })
+const isLowFundsError = (err: any) => Errors.matches(err, { name: 'LowFunds' })
 
 export const sealpending: Executor = async ({ job, components }): Promise<Seal[]> => {
   const { bot, alerts } = components
@@ -94,7 +94,7 @@ export const sealpending: Executor = async ({ job, components }): Promise<Seal[]
   } while (haveTime && !error && batch.seals.length)
 
   if (!haveTime) {
-    logger.debug("almost out of time, exiting early")
+    logger.debug('almost out of time, exiting early')
   }
 
   if (error && isLowFundsError(error)) {
@@ -119,7 +119,7 @@ export const createSealBatch: Executor = async ({ job, components }) => {
   //   return
   // }
 
-  logger.debug("creating seal batch")
+  logger.debug('creating seal batch')
   const signed = await bot
     .draft({
       type: TYPES.SEALABLE_BATCH,

@@ -2,16 +2,16 @@
 
 // tslint:disable:no-console
 
-import minimist from "minimist"
-import AWS from "aws-sdk"
-import { createClientCache } from "@tradle/aws-client-factory"
-import { createClient } from "@tradle/aws-s3-client"
+import minimist from 'minimist'
+import AWS from 'aws-sdk'
+import { createClientCache } from '@tradle/aws-client-factory'
+import { createClient } from '@tradle/aws-s3-client'
 
-const yml = require("../cli/serverless-yml")
+const yml = require('../cli/serverless-yml')
 const argv = minimist(process.argv.slice(2), {
   alias: {
-    p: "profile",
-    b: "bucket"
+    p: 'profile',
+    b: 'bucket'
   }
 })
 

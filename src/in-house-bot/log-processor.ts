@@ -1,13 +1,13 @@
 // @ts-ignore
-import Promise from "bluebird"
-import json2yaml from "json2yaml"
-import pick from "lodash/pick"
-import truncate from "lodash/truncate"
-import isEmpty from "lodash/isEmpty"
-import Errors from "../errors"
-import { StackUtils } from "../aws/stack-utils"
-import { TRADLE } from "./constants"
-import { sha256 } from "../crypto"
+import Promise from 'bluebird'
+import json2yaml from 'json2yaml'
+import pick from 'lodash/pick'
+import truncate from 'lodash/truncate'
+import isEmpty from 'lodash/isEmpty'
+import Errors from '../errors'
+import { StackUtils } from '../aws/stack-utils'
+import { TRADLE } from './constants'
+import { sha256 } from '../crypto'
 import {
   Bot,
   IPBLambda,
@@ -17,10 +17,10 @@ import {
   KeyValueStore,
   IBotComponents,
   ILoggingConf
-} from "./types"
+} from './types'
 
-import { Logger, Level, noopLogger } from "../logger"
-import { parseArn, get } from "../utils"
+import { Logger, Level, noopLogger } from '../logger'
+import { parseArn, get } from '../utils'
 
 type SendAlertInput = {
   key: string
@@ -82,18 +82,18 @@ export type ParsedAlertEvent = {
   body?: ParsedLogEvent
 }
 
-const LOG_GROUP_PREFIX = "/aws/lambda/"
+const LOG_GROUP_PREFIX = '/aws/lambda/'
 const ALERT_CONCURRENCY = 10
 const createDummyAlerter = (logger: Logger) => async (event: ParsedLogEvent) => {
   // TODO
-  logger.debug("TODO: send alert for event", getLogEventKey(event))
+  logger.debug('TODO: send alert for event', getLogEventKey(event))
 }
 
-const REQUEST_LIFECYCLE_PROP = "__"
+const REQUEST_LIFECYCLE_PROP = '__'
 const LIFECYCLE = {
-  START: "START",
-  END: "END",
-  REPORT: "REPORT"
+  START: 'START',
+  END: 'END',
+  REPORT: 'REPORT'
 }
 
 const REGEX = {
@@ -103,12 +103,12 @@ const REGEX = {
 }
 
 const XRAY_SPAM = [
-  "AWS_XRAY_CONTEXT_MISSING is set. Configured context missing strategy",
-  "AWS_XRAY_DAEMON_ADDRESS is set",
-  "_X_AMZN_TRACE_ID is missing required data",
-  "Subsegment streaming threshold set to",
-  "capturing all http requests with AWSXRay",
-  "AWSXray is off"
+  'AWS_XRAY_CONTEXT_MISSING is set. Configured context missing strategy',
+  'AWS_XRAY_DAEMON_ADDRESS is set',
+  '_X_AMZN_TRACE_ID is missing required data',
+  'Subsegment streaming threshold set to',
+  'capturing all http requests with AWSXRay',
+  'AWSXray is off'
 ]
 
 // const MONTHS = [
@@ -129,7 +129,7 @@ const XRAY_SPAM = [
 const leftPad = (value: string | number, length: number) => {
   value = String(value)
   if (value.length < length) {
-    return "0".repeat(length - value.length) + value
+    return '0'.repeat(length - value.length) + value
   }
 
   return value
@@ -152,13 +152,13 @@ const toDate = (timestamp: number) => {
 const getShortGroupName = (logGroup: string) => logGroup.slice(LOG_GROUP_PREFIX.length)
 
 const parseFunctionVersion = ({ logStream }: CloudWatchLogsEvent) => {
-  const start = logStream.indexOf("[")
-  const end = logStream.indexOf("]")
+  const start = logStream.indexOf('[')
+  const end = logStream.indexOf(']')
   return logStream.slice(start + 1, end)
 }
 
 const parseFunctionName = ({ logGroup }: CloudWatchLogsEvent) => {
-  return logGroup.split("/").pop()
+  return logGroup.split('/').pop()
 }
 
 const getTopicArn = ({ accountId, region, topicName }) =>
@@ -204,7 +204,7 @@ export class LogProcessor {
     logger = noopLogger,
     saveLevel = Level.DEBUG,
     alertLevel = Level.ERROR,
-    ext = "json"
+    ext = 'json'
   }: LogProcessorOpts) {
     this.ignoreGroups = ignoreGroups
     this.sendAlert = sendAlert
@@ -261,14 +261,14 @@ export class LogProcessor {
   public loadAlertEvent = async (event: ParsedAlertEvent) => {
     const { eventUrl } = event
     if (eventUrl) {
-      this.logger.debug("fetching remote log event")
+      this.logger.debug('fetching remote log event')
       try {
         event.body = await get(eventUrl)
       } catch (err) {
-        Errors.rethrowAs(err, new Errors.InvalidInput("unable to fetch alert body"))
+        Errors.rethrowAs(err, new Errors.InvalidInput('unable to fetch alert body'))
       }
 
-      if (typeof event.body === "string") {
+      if (typeof event.body === 'string') {
         event.body = JSON.parse(event.body)
       }
     }
@@ -313,7 +313,7 @@ export const fromLambda = ({
   // const sendAlert:SendAlert = createDummyAlerter(logger)
   const sendAlert: SendAlert = async ({ key, event }) => {
     const snsEvent = createAlertEvent({ key, event })
-    logger.debug("sending alert", snsEvent)
+    logger.debug('sending alert', snsEvent)
     await bot.snsUtils.publish({
       topic,
       message: {
@@ -330,7 +330,7 @@ export const fromLambda = ({
     store,
     sendAlert,
     logger,
-    ext: compress ? "json.gz" : "json"
+    ext: compress ? 'json.gz' : 'json'
   })
 }
 
@@ -384,7 +384,7 @@ export const parseLogEntryMessage = (message: string) => {
     }
   }
 
-  const [date, requestId, bodyStr] = message.split("\t", 3)
+  const [date, requestId, bodyStr] = message.split('\t', 3)
   const body = parseMessageBody(bodyStr)
   if (body) {
     return {
@@ -408,10 +408,10 @@ export const parseMessageBody = (message: string) => {
 
   // messages that get logged when AWSJS_DEBUG flag is on
   // e.g. [AWS dynamodb 200 0.136s 0 retries] ...
-  if (message.startsWith("[AWS")) {
+  if (message.startsWith('[AWS')) {
     return {
       __aws_verbose__: true,
-      level: "SILLY",
+      level: 'SILLY',
       msg: message
     }
   }
@@ -425,8 +425,8 @@ export const parseMessageBody = (message: string) => {
   }
 
   const lower = message.toLowerCase()
-  if (lower.includes("unhandledpromiserejectionwarning") || lower.includes("error")) {
-    unparsed.level = "ERROR"
+  if (lower.includes('unhandledpromiserejectionwarning') || lower.includes('error')) {
+    unparsed.level = 'ERROR'
     unparsed.unparseableLogEntry = true
   }
 
@@ -453,7 +453,7 @@ export const parseLogEvent = (
     try {
       return parseLogEntry(entry)
     } catch (err) {
-      logger.debug("failed to parse log entry", {
+      logger.debug('failed to parse log entry', {
         error: err.message,
         entry
       })
@@ -517,18 +517,18 @@ export const parseLogAlertsTopicArn = (topic: string) => {
 }
 
 export const parseLogAlertsTopicName = (name: string) => {
-  if (!name.endsWith("-alerts")) {
+  if (!name.endsWith('-alerts')) {
     throw new Errors.InvalidInput(`invalid log alerts topic name: ${name}`)
   }
 
   return {
-    stackName: name.slice(0, name.indexOf("-alerts"))
+    stackName: name.slice(0, name.indexOf('-alerts'))
   }
 }
 
 export const getAlertEventKey = (event: ParsedAlertEvent) => {
   const { accountId, stackName, region, timestamp } = event
-  const hash = sha256(event, "hex").slice(0, 10)
+  const hash = sha256(event, 'hex').slice(0, 10)
   const { year, month, day, hour, minute } = toDate(timestamp)
   return `alerts/${accountId}/${stackName}-${region}/${year}-${month}-${day}/${hour}:00/${minute}-${hash}`
 }
@@ -552,7 +552,7 @@ export const sendLogAlert = async ({
     body,
     from: senderEmail,
     to: destinationEmails,
-    format: "text"
+    format: 'text'
   })
 }
 
@@ -566,11 +566,11 @@ export const generateAlertEmail = (alert: ParsedAlertEvent) => {
   const { stackName, accountId } = alert
   const subject = truncate(`${alert.body.function.name} (${accountId}): ${errorMsgs[0]}`, {
     length: 100
-  }).replace(/[\r\n]/g, " ")
+  }).replace(/[\r\n]/g, ' ')
 
   let body = json2yaml.stringify(gist)
   if (errorMsgs.length) {
-    body = `ERRORS: ${errorMsgs.join("\n")}
+    body = `ERRORS: ${errorMsgs.join('\n')}
 
 ${body}`
   }
@@ -594,4 +594,4 @@ const isAsSevere = (level: Level, otherLevel: Level) =>
 const isErrorEntry = ({ level }: { level: string }) => isAsSevere(Level[level], Level.ERROR)
 
 const getEntryGist = (entry: ParsedEntry): ParsedEntryGist =>
-  pick(entry, ["level", "msg", "namespace", "details"])
+  pick(entry, ['level', 'msg', 'namespace', 'details'])

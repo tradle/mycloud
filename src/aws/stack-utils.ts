@@ -1,10 +1,10 @@
-import _ from "lodash"
+import _ from 'lodash'
 import {
   updateLambdaEnvironmentsForStack,
   TransformFunctionConfig,
   reinitializeContainers
-} from "@tradle/aws-combo"
-import { CloudFormationClient } from "@tradle/aws-cloudformation-client"
+} from '@tradle/aws-combo'
+import { CloudFormationClient } from '@tradle/aws-cloudformation-client'
 import {
   Env,
   Logger,
@@ -15,11 +15,11 @@ import {
   VersionInfo,
   CFTemplate,
   ClientCache
-} from "../types"
+} from '../types'
 
-import Errors from "../errors"
-import * as utils from "../utils"
-import { splitCamelCaseToArray, replaceAll } from "../string-utils"
+import Errors from '../errors'
+import * as utils from '../utils'
+import { splitCamelCaseToArray, replaceAll } from '../string-utils'
 
 // const version = require('./version') as VersionInfo
 
@@ -29,7 +29,7 @@ interface StackInfo {
   region: string
 }
 
-const stripDashes = str => str.replace(/[-]/g, "")
+const stripDashes = str => str.replace(/[-]/g, '')
 
 interface StackUtilsOpts {
   aws: ClientCache
@@ -98,7 +98,7 @@ export default class StackUtils {
     const { Mappings } = resources
     const updates = []
     utils.traverse(resources).forEach(function(value) {
-      if (this.key === "Fn::FindInMap") {
+      if (this.key === 'Fn::FindInMap') {
         updates.push({
           path: this.path.slice(0, -1),
           value: _.get(Mappings, value)
@@ -113,7 +113,7 @@ export default class StackUtils {
   public resolveMappings = StackUtils.resolveMappings
 
   public static get serverlessYml() {
-    return require("./cli/serverless-yml")
+    return require('./cli/serverless-yml')
   }
   public static get serverlessYmlWithResolvedMappings() {
     return StackUtils.resolveMappings(StackUtils.serverlessYml)
@@ -133,7 +133,7 @@ export default class StackUtils {
 
   public static parseStackArn = (arn: string) => {
     const parsed = utils.parseArn(arn)
-    const name = parsed.id.split("/")[0]
+    const name = parsed.id.split('/')[0]
     const { service, stage } = StackUtils.parseStackName(name)
     return {
       ...parsed,
@@ -203,17 +203,17 @@ export default class StackUtils {
   }
 
   private _getLocalStackTemplate = async () => {
-    return _.cloneDeep(require("./cli/cloudformation-template.json"))
+    return _.cloneDeep(require('./cli/cloudformation-template.json'))
   }
 
   private _getLocalStackParameterValues = async () => {
-    const { Parameters } = require("./cli/cloudformation-template.json")
-    const { getVar } = require("./cli/get-template-var")
+    const { Parameters } = require('./cli/cloudformation-template.json')
+    const { getVar } = require('./cli/get-template-var')
     return _.transform(
       Parameters,
       (result, value: any, key: string) => {
         const custom = getVar(`stackParameters.${key}`)
-        result[key] = typeof custom === "undefined" ? value.Default : custom
+        result[key] = typeof custom === 'undefined' ? value.Default : custom
       },
       {}
     )

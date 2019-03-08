@@ -1,10 +1,10 @@
-import typeforce from "typeforce"
-import pick from "lodash/pick"
-import { KeyValueStore } from "./types"
-import Errors from "./errors"
-import { runWithTimeout } from "./utils"
+import typeforce from 'typeforce'
+import pick from 'lodash/pick'
+import { KeyValueStore } from './types'
+import Errors from './errors'
+import { runWithTimeout } from './utils'
 
-const STATE_TYPE = "tradle.cloud.StreamProcessingError"
+const STATE_TYPE = 'tradle.cloud.StreamProcessingError'
 
 type StreamProcessorOpts = {
   store: KeyValueStore
@@ -36,10 +36,10 @@ export default class StreamProcessor {
   public processBatch = async (opts: ProcessBatchOpts) => {
     typeforce(
       {
-        batch: "Array",
-        worker: "Function",
-        perItemTimeout: "Number",
-        timeout: "Number"
+        batch: 'Array',
+        worker: 'Function',
+        perItemTimeout: 'Number',
+        timeout: 'Number'
       },
       opts
     )
@@ -81,7 +81,7 @@ export default class StreamProcessor {
         checkpoint.errors = []
       } catch (error) {
         checkpoint.eventId = event.id
-        checkpoint.errors.push(pick(error, ["message", "stack"]))
+        checkpoint.errors.push(pick(error, ['message', 'stack']))
         break
       }
     }

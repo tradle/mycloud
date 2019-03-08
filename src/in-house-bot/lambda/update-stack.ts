@@ -1,5 +1,5 @@
-import { fromLambda } from "../lambda"
-import { DEPLOYMENT_UPDATE_STACK } from "../lambda-events"
+import { fromLambda } from '../lambda'
+import { DEPLOYMENT_UPDATE_STACK } from '../lambda-events'
 
 const lambda = fromLambda({ event: DEPLOYMENT_UPDATE_STACK })
 const { bot, logger } = lambda

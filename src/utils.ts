@@ -1,32 +1,32 @@
-import querystring from "querystring"
-import crypto from "crypto"
-import zlib from "zlib"
-import { parse as parseURL } from "url"
-import _ from "lodash"
+import querystring from 'querystring'
+import crypto from 'crypto'
+import zlib from 'zlib'
+import { parse as parseURL } from 'url'
+import _ from 'lodash'
 
 // allow override promise
 // @ts-ignore
-import Promise from "bluebird"
+import Promise from 'bluebird'
 
-import AWSXray from "aws-xray-sdk-core"
-import format from "string-format"
-import FormData from "form-data"
-import microtime from "./microtime"
-import typeforce from "typeforce"
-import bindAll from "bindall"
+import AWSXray from 'aws-xray-sdk-core'
+import format from 'string-format'
+import FormData from 'form-data'
+import microtime from './microtime'
+import typeforce from 'typeforce'
+import bindAll from 'bindall'
 // import clone from 'xtend'
-import traverse from "traverse"
-import dotProp from "dot-prop"
-import { v4 as uuid } from "uuid"
-import { wrap as co } from "co"
-import promisify from "pify"
-import IP from "ip"
-import isGenerator from "is-generator-function"
-import { encode as encodeDataURI, decode as decodeDataURI } from "strong-data-uri"
-import validateResource from "@tradle/validate-resource"
-import buildResource from "@tradle/build-resource"
-import fetch from "node-fetch"
-import { prettify, stableStringify, safeStringify, alphabetical } from "./string-utils"
+import traverse from 'traverse'
+import dotProp from 'dot-prop'
+import { v4 as uuid } from 'uuid'
+import { wrap as co } from 'co'
+import promisify from 'pify'
+import IP from 'ip'
+import isGenerator from 'is-generator-function'
+import { encode as encodeDataURI, decode as decodeDataURI } from 'strong-data-uri'
+import validateResource from '@tradle/validate-resource'
+import buildResource from '@tradle/build-resource'
+import fetch from 'node-fetch'
+import { prettify, stableStringify, safeStringify, alphabetical } from './string-utils'
 import {
   SIG,
   TYPE,
@@ -36,9 +36,9 @@ import {
   DATE_ZERO,
   UNSIGNED_TYPES,
   PROTOCOL_VERSION
-} from "./constants"
+} from './constants'
 
-import Errors from "./errors"
+import Errors from './errors'
 import {
   CacheContainer,
   ISettledPromise,
@@ -53,22 +53,22 @@ import {
   Bot,
   Seal,
   StackStatusEvent,
-  GetPNSTopicOpts,
+  GetPNSTopicOpts
 } from './types'
 
-import * as types from "./typeforce-types"
-import Logger, { consoleLogger } from "./logger"
-import Env from "./env"
-import baseModels from "./models"
+import * as types from './typeforce-types'
+import Logger, { consoleLogger } from './logger'
+import Env from './env'
+import baseModels from './models'
 
-export { clone, extend, isEqual as deepEqual, isEqual } from "lodash"
+export { clone, extend, isEqual as deepEqual, isEqual } from 'lodash'
 
-export { toSortableTag, compareTags } from "lexicographic-semver"
+export { toSortableTag, compareTags } from 'lexicographic-semver'
 
-const BaseObjectModel = baseModels["tradle.Object"]
-const debug = require("debug")("tradle:sls:utils")
+const BaseObjectModel = baseModels['tradle.Object']
+const debug = require('debug')('tradle:sls:utils')
 const notNull = obj => obj != null
-const isPromise = obj => obj && typeof obj.then === "function"
+const isPromise = obj => obj && typeof obj.then === 'function'
 const toPromise = <T>(obj: T | Promise<T>): Promise<T> =>
   isPromise(obj) ? obj : Promise.resolve(obj)
 const {
@@ -123,7 +123,7 @@ export const timeoutIn = ({ millis = 0, error, unref }: ITimeoutOpts) => {
   const promise = new Promise((resolve, reject) => {
     timeout = createTimeout(
       () => {
-        const actualErr = typeof error === "function" ? error() : error
+        const actualErr = typeof error === 'function' ? error() : error
 
         reject(actualErr || new Errors.Timeout(`timed out after ${millis}ms`))
       },
@@ -227,7 +227,7 @@ export function loudAsync(asyncFn) {
 }
 
 export function toBuffer(data) {
-  if (typeof data === "string") return new Buffer(data)
+  if (typeof data === 'string') return new Buffer(data)
   if (Buffer.isBuffer(data)) return data
 
   return new Buffer(stableStringify(data))
@@ -258,7 +258,7 @@ export function cachifyPromiser(fn, opts = {}) {
   const cachified = function(...args) {
     if (args.length) {
       throw new Errors.InvalidInput(
-        "functions cachified with cachifyPromiser do not accept arguments"
+        'functions cachified with cachifyPromiser do not accept arguments'
       )
     }
 
@@ -292,7 +292,7 @@ export function firstSuccess(promises) {
       // treat it as a rejection so Promise.all immediately bails out.
       return p.then(
         val => {
-          const wrapper = new FirstSuccessWrapper("wrapper for success")
+          const wrapper = new FirstSuccessWrapper('wrapper for success')
           wrapper.firstSuccessResult = val
           return Promise.reject(wrapper)
         },
@@ -302,7 +302,7 @@ export function firstSuccess(promises) {
   ).then(
     // If '.all' resolved, we've just got an array of errors.
     errors => {
-      const wrapper = new MultiErrorWrapper("wrapper for errors")
+      const wrapper = new MultiErrorWrapper('wrapper for errors')
       wrapper.errors = errors
       return Promise.reject(wrapper)
     },
@@ -321,7 +321,7 @@ export const logifyFunction = ({
   fn,
   name,
   logger,
-  level = "silly",
+  level = 'silly',
   logInputOutput = false,
   printError = getErrorIdentifier
 }: {
@@ -333,7 +333,7 @@ export const logifyFunction = ({
   printError?: (err: any, args: any[]) => string
 }) => {
   return async function(...args) {
-    const taskName = typeof name === "function" ? name.apply(this, args) : name
+    const taskName = typeof name === 'function' ? name.apply(this, args) : name
 
     const start = Date.now()
     let duration
@@ -348,9 +348,9 @@ export const logifyFunction = ({
       duration = Date.now() - start
       const parts = [taskName]
       if (logInputOutput) {
-        parts.push("input:", prettify(args))
+        parts.push('input:', prettify(args))
         if (!err) {
-          parts.push("output:", prettify(ret))
+          parts.push('output:', prettify(ret))
         }
       }
 
@@ -358,8 +358,8 @@ export const logifyFunction = ({
         parts.push(printError(err, args))
       }
 
-      logger[level](parts.join(" "), {
-        tags: ["perf"],
+      logger[level](parts.join(' '), {
+        tags: ['perf'],
         success: !err,
         time: duration
       })
@@ -378,7 +378,7 @@ type LogifyOpts = {
 export const logify = <T>(component: T, opts: LogifyOpts, methods?: string[]): T => {
   const { logger, level, logInputOutput } = opts
   if (!methods) {
-    methods = Object.keys(component).filter(k => typeof component[k] === "function")
+    methods = Object.keys(component).filter(k => typeof component[k] === 'function')
   }
 
   const { name } = component.constructor
@@ -493,7 +493,7 @@ export function cachify({
     put: async (key, value, ...rest) => {
       // TODO (if actually needed):
       // get cached value, skip put if identical
-      if (logger) logger.silly("cache set", { key })
+      if (logger) logger.silly('cache set', { key })
 
       const keyStr = stableStringify(key)
       if (logger && cache.has(keyStr)) {
@@ -509,7 +509,7 @@ export function cachify({
     },
     del: async key => {
       const keyStr = stableStringify(key)
-      if (logger) logger.silly("cache unset", { key })
+      if (logger) logger.silly('cache unset', { key })
       cache.del(keyStr)
       return await del(key)
     }
@@ -600,7 +600,7 @@ export const toISODateString = (dateObj: Date, utc?: boolean) => {
 const zeroPad = (n, digits) => {
   const nStr = String(n)
   const padLength = digits - nStr.length
-  return padLength > 0 ? "0".repeat(padLength) + nStr : nStr
+  return padLength > 0 ? '0'.repeat(padLength) + nStr : nStr
 }
 
 export const getLaunchStackUrl = ({
@@ -610,30 +610,30 @@ export const getLaunchStackUrl = ({
   quickLink = true
 }: ILaunchStackUrlOpts) => {
   const qs = querystring.stringify(pickNonNull({ stackName, templateURL: templateUrl }))
-  const path = quickLink ? "stacks/create/review" : "stacks/new"
+  const path = quickLink ? 'stacks/create/review' : 'stacks/new'
   return `${LAUNCH_STACK_BASE_URL}?region=${region}#/${path}?${qs}`
 }
 
 export const parseLaunchStackUrl = (url: string) => {
-  const [main, hash] = url.split("#")
-  const q1 = querystring.parse(main.split("?")[1])
-  const q2 = querystring.parse(hash.split("?")[1])
+  const [main, hash] = url.split('#')
+  const q1 = querystring.parse(main.split('?')[1])
+  const q2 = querystring.parse(hash.split('?')[1])
   return { ...q1, ...q2 }
 }
 
 export const getUpdateStackUrl = ({ stackId, templateUrl }: IUpdateStackUrlOpts) => {
   const qs = querystring.stringify(pickNonNull({ stackId, templateURL: templateUrl }))
-  const path = "stack/update"
+  const path = 'stack/update'
   return `${LAUNCH_STACK_BASE_URL}#/${path}?${qs}`
 }
 
 export function domainToUrl(domain) {
-  if (domain.startsWith("//")) {
-    return "https:" + domain
+  if (domain.startsWith('//')) {
+    return 'https:' + domain
   }
 
   if (!/^https?:\/\//.test(domain)) {
-    return "https://" + domain
+    return 'https://' + domain
   }
 
   return domain
@@ -687,7 +687,7 @@ export const runWithBackoffWhile = async (
     logger
   }: IBackoffOptions
 ) => {
-  if (typeof maxDelay !== "number") maxDelay = maxTime / 2
+  if (typeof maxDelay !== 'number') maxDelay = maxTime / 2
 
   const start = Date.now()
   let millisToWait = initialDelay
@@ -706,13 +706,13 @@ export const runWithBackoffWhile = async (
       millisToWait = Math.min(maxDelay, millisToWait * factor, maxTime - (Date.now() - start))
 
       if (millisToWait < 0) {
-        if (logger) logger.debug("giving up")
+        if (logger) logger.debug('giving up')
         break
       }
     }
   }
 
-  throw new Errors.Timeout("timed out")
+  throw new Errors.Timeout('timed out')
 }
 
 const GIVE_UP_TIME = 2000
@@ -769,7 +769,7 @@ export const seriesMap = async (arr, fn) => {
 export const get = async (url: string, opts: any = {}) => {
   // debug(`GET ${url}`)
   const res = await fetch(url, {
-    method: "GET",
+    method: 'GET',
     ...opts
   })
 
@@ -780,12 +780,12 @@ export const post = async (url: string, data: any, opts: any = {}) => {
   // debug(`POST to ${url}`)
   let body
   const headers = {}
-  if (typeof data === "string" || Buffer.isBuffer(data)) {
+  if (typeof data === 'string' || Buffer.isBuffer(data)) {
     body = data
   } else if (data instanceof FormData) {
     body = data
   } else {
-    headers["Content-Type"] = "application/json"
+    headers['Content-Type'] = 'application/json'
     body = JSON.stringify(data)
   }
 
@@ -793,7 +793,7 @@ export const post = async (url: string, data: any, opts: any = {}) => {
     url,
     _.merge(
       {
-        method: "POST",
+        method: 'POST',
         headers,
         body
       },
@@ -813,7 +813,7 @@ export const download = async ({ url }: { url: string }) => {
   }
 
   const buf = await res.buffer()
-  buf.mimetype = res.headers.get("content-type")
+  buf.mimetype = res.headers.get('content-type')
   return buf
 }
 
@@ -830,13 +830,13 @@ export const processResponse = async res => {
   }
 
   const text = await res.text()
-  const contentType = res.headers.get("content-type") || ""
-  if (contentType.startsWith("application/json")) {
+  const contentType = res.headers.get('content-type') || ''
+  if (contentType.startsWith('application/json')) {
     return JSON.parse(text)
   }
 
   // be optimistic
-  if (text[0] === "{" || text[0] === "[") {
+  if (text[0] === '{' || text[0] === '[') {
     try {
       return JSON.parse(text)
     } catch (err) {
@@ -849,10 +849,10 @@ export const processResponse = async res => {
 
 export const doesHttpEndpointExist = async url => {
   try {
-    const res = await fetch(url, { method: "HEAD" })
+    const res = await fetch(url, { method: 'HEAD' })
     return res.status === 200
   } catch (err) {
-    Errors.rethrow(err, "developer")
+    Errors.rethrow(err, 'developer')
     return false
   }
 }
@@ -869,7 +869,7 @@ export function batchByByteLength(arr: (string | Buffer)[], max) {
     item = arr.shift()
     if (!item) break
 
-    itemLength = Buffer.isBuffer(item) ? item.length : Buffer.byteLength(item, "utf8")
+    itemLength = Buffer.isBuffer(item) ? item.length : Buffer.byteLength(item, 'utf8')
     if (length + item.length <= max) {
       cur.push(item)
       length += itemLength
@@ -905,16 +905,16 @@ export const race = Promise.race
 
 export function parseArn(arn) {
   // e.g. arn:aws:lambda:us-east-1:0123456789:function:tradle-dev-http_catchall
-  const parts = arn.split(":")
-  const relativeId = parts.slice(5).join(":")
-  const idParts = relativeId.split("/")
+  const parts = arn.split(':')
+  const relativeId = parts.slice(5).join(':')
+  const idParts = relativeId.split('/')
   return {
     service: parts[2],
     region: parts[3],
     accountId: parts[4],
     relativeId,
     type: idParts[0],
-    id: idParts.slice(1).join("/")
+    id: idParts.slice(1).join('/')
   }
 }
 
@@ -948,8 +948,8 @@ export const wrap = fn => {
 }
 
 export const networkFromIdentifier = str => {
-  const [flavor, networkName] = str.split(":")
-  const networks = require("./networks")
+  const [flavor, networkName] = str.split(':')
+  const networks = require('./networks')
   const forFlavor = networks[flavor] || {}
   return forFlavor[networkName]
 }
@@ -958,19 +958,19 @@ export const getSealBasePubKey = (seal: Seal) => {
   const { basePubKey } = seal
   if (!basePubKey) return
 
-  const networks = require("./networks")
+  const networks = require('./networks')
   const network = _.get(networks, [seal.blockchain, seal.network])
   if (!network) return
 
   let { pub } = basePubKey
-  if (typeof pub === "string") pub = Buffer.from(pub, "hex")
+  if (typeof pub === 'string') pub = Buffer.from(pub, 'hex')
 
   const fingerprint = network.pubKeyToAddress(pub)
   return {
-    [TYPE]: "tradle.PubKey",
+    [TYPE]: 'tradle.PubKey',
     type: seal.blockchain,
     networkName: seal.network,
-    pub: pub.toString("hex"),
+    pub: pub.toString('hex'),
     fingerprint
   }
 }
@@ -986,7 +986,7 @@ export const summarizeObject = object => {
     summary.author = object._author
   }
 
-  if (object[TYPE] === "tradle.Message") {
+  if (object[TYPE] === 'tradle.Message') {
     summary.payload = summarizeObject(object.object)
     delete summary.permalink // messages are not versioned
   }
@@ -1008,7 +1008,7 @@ export const uniqueStrict = arr => {
 }
 
 export const getRequestIps = req => {
-  return [req.ip, req.get("x-forwarded-for"), req.get("x-real-ip")].filter(notNull)
+  return [req.ip, req.get('x-forwarded-for'), req.get('x-real-ip')].filter(notNull)
 }
 
 /*
@@ -1018,7 +1018,7 @@ export const getRequestIps = req => {
 export const createLambdaContext = (fun, cb?) => {
   const functionName = fun.name
   const endTime = new Date().getTime() + (fun.timeout ? fun.timeout * 1000 : 6000)
-  const done = typeof cb === "function" ? cb : (x, y) => x || y // eslint-disable-line no-extra-parens
+  const done = typeof cb === 'function' ? cb : (x, y) => x || y // eslint-disable-line no-extra-parens
 
   return {
     /* Methods */
@@ -1059,8 +1059,8 @@ export const logResponseBody = (logger: Logger) => (req, res, next) => {
   res.end = chunk => {
     if (chunk) chunks.push(chunk)
 
-    const body = Buffer.concat(chunks).toString("utf8")
-    logger.silly("RESPONSE BODY", {
+    const body = Buffer.concat(chunks).toString('utf8')
+    logger.silly('RESPONSE BODY', {
       path: req.path,
       body
     })
@@ -1107,11 +1107,11 @@ export const cachifyFunction = (container: CacheContainer, method: string) => {
         return cached.catch(err => call(...args))
       }
 
-      logger.silly("cache hit", str)
+      logger.silly('cache hit', str)
       return cached
     }
 
-    logger.silly("cache miss", str.slice(0, 10) + "...")
+    logger.silly('cache miss', str.slice(0, 10) + '...')
     const result = original.apply(container, args)
     if (isPromise(result)) {
       result.catch(err => cache.del(str))
@@ -1129,10 +1129,10 @@ export const cachifyFunction = (container: CacheContainer, method: string) => {
 }
 
 export const timeMethods = <T>(obj: T, logger: Logger): T => {
-  logger = logger.sub("timer")
+  logger = logger.sub('timer')
   Object.keys(obj).forEach(key => {
     const val = obj[key]
-    if (typeof val !== "function") return
+    if (typeof val !== 'function') return
 
     obj[key] = (...args) => {
       const start = Date.now()
@@ -1162,9 +1162,9 @@ export const syncClock = async (bot: Bot) => {
   const { PrivateConf } = buckets
   // a cheap request that will trigger clock sync
   return bot.tasks.add({
-    name: "sync-clock",
+    name: 'sync-clock',
     promise: PrivateConf.head(PRIVATE_CONF_BUCKET.identity).catch(err => {
-      Errors.rethrow(err, "developer")
+      Errors.rethrow(err, 'developer')
     })
   })
 }
@@ -1173,19 +1173,19 @@ export const summarize = (payload: any): string => {
   switch (payload[TYPE]) {
     case SIMPLE_MESSAGE:
       return payload.message
-    case "tradle.ProductRequest":
+    case 'tradle.ProductRequest':
       return `for ${payload.requestFor}`
-    case "tradle.Verification":
+    case 'tradle.Verification':
       return `for ${payload.document.id}`
-    case "tradle.FormRequest":
+    case 'tradle.FormRequest':
       return `for ${payload.form}`
     default:
-      return JSON.stringify(payload).slice(0, 200) + "..."
+      return JSON.stringify(payload).slice(0, 200) + '...'
   }
 }
 
 export const getMessageGist = (message): any => {
-  const base = _.pick(message, ["context", "forward", "originalSender"])
+  const base = _.pick(message, ['context', 'forward', 'originalSender'])
   const payload = message.object
   return {
     ...base,
@@ -1223,8 +1223,8 @@ export const isLocalUrl = (url: string) => {
 }
 
 export const isLocalHost = (host: string) => {
-  host = host.split(":")[0]
-  if (host === "localhost") return true
+  host = host.split(':')[0]
+  if (host === 'localhost') return true
 
   const isIP = IP.isV4Format(host) || IP.isV6Format(host)
   return isIP && IP.isPrivate(host)
@@ -1299,7 +1299,7 @@ export const isPlainObject = (obj, opts: IsPlainObjectOpts = {}) =>
       return false
     }
 
-    if (val && typeof val === "object" && !Array.isArray(val)) {
+    if (val && typeof val === 'object' && !Array.isArray(val)) {
       isPlain = _.isPlainObject(val) || (opts.allowBuffers && Buffer.isBuffer(val))
     }
 
@@ -1308,7 +1308,7 @@ export const isPlainObject = (obj, opts: IsPlainObjectOpts = {}) =>
     return isPlain
   }, true)
 
-export const defaultPrimaryKeysSchema = { hashKey: "_permalink" }
+export const defaultPrimaryKeysSchema = { hashKey: '_permalink' }
 
 export const getPrimaryKeySchema = model => {
   return normalizeIndexedProperty(model.primaryKeys || defaultPrimaryKeysSchema)
@@ -1319,7 +1319,7 @@ export const normalizeIndexedProperty = schema => {
     return { hashKey: schema[0], rangeKey: schema[1] }
   }
 
-  if (typeof schema === "string") {
+  if (typeof schema === 'string') {
     return { hashKey: schema }
   }
 
@@ -1327,7 +1327,7 @@ export const normalizeIndexedProperty = schema => {
 }
 
 // see globals.ts
-export const isXrayOn = () => process.env.XRAY_IS_ON === "1"
+export const isXrayOn = () => process.env.XRAY_IS_ON === '1'
 
 export const instrumentWithXray = (Component: any, withXrays: any) => {
   const { name } = Component
@@ -1367,7 +1367,7 @@ const normalizeSendOpts = async (bot: Bot, opts) => {
   opts = _.clone(opts)
 
   let { link, object, to, friend } = opts
-  if (typeof object === "string") {
+  if (typeof object === 'string') {
     object = {
       [TYPE]: SIMPLE_MESSAGE,
       message: object
@@ -1403,7 +1403,7 @@ const normalizeSendOpts = async (bot: Bot, opts) => {
     )
   }
 
-  opts = _.omit(opts, "to")
+  opts = _.omit(opts, 'to')
   opts.object = object
   opts.recipient = normalizeRecipient(to)
   // if (typeof opts.object === 'string') {
@@ -1420,7 +1420,7 @@ const normalizeSendOpts = async (bot: Bot, opts) => {
     try {
       validateResource.resource({ models, model, resource: payload })
     } catch (err) {
-      bot.logger.error("failed to validate resource", {
+      bot.logger.error('failed to validate resource', {
         resource: payload,
         error: err.stack
       })
@@ -1468,7 +1468,7 @@ export const getResourceModuleStore = (bot: Bot) => ({
   logger: bot.logger
 })
 
-export const isIntersection = ({ interfaces = [] }) => interfaces.includes("tradle.Intersection")
+export const isIntersection = ({ interfaces = [] }) => interfaces.includes('tradle.Intersection')
 
 export const isWellBehavedIntersection = model => {
   if (!(isIntersection(model) && isInstantiable(model))) return
@@ -1491,12 +1491,12 @@ export const isWellBehavedIntersection = model => {
 
 export const parseStackStatusEvent = (event: any): StackStatusEvent => {
   // see src/test/fixtures/cloudformation-stack-status.json
-  const props = event.Records[0].Sns.Message.split("\n").reduce((map, line) => {
-    if (line.indexOf("=") === -1) {
+  const props = event.Records[0].Sns.Message.split('\n').reduce((map, line) => {
+    if (line.indexOf('=') === -1) {
       return map
     }
 
-    const [key, value] = line.replace(/[']/g, "").split("=")
+    const [key, value] = line.replace(/[']/g, '').split('=')
     map[key] = value
     return map
   }, {})
@@ -1512,7 +1512,7 @@ export const parseStackStatusEvent = (event: any): StackStatusEvent => {
 
   const subscriptionArn = event.Records[0].EventSubscriptionArn
   if (!(StackId && Timestamp && ResourceStatus && ResourceType && subscriptionArn)) {
-    throw new Errors.InvalidInput("invalid stack status event")
+    throw new Errors.InvalidInput('invalid stack status event')
   }
 
   return {
@@ -1546,27 +1546,27 @@ export const requireOpts = (opts: any, props: string | string[]) => {
     .concat(props)
     .filter(required => _.get(opts, required) == null)
     .map(prop => `"${prop}"`)
-  if (missing.length) throw new Errors.InvalidInput(`expected ${missing.join(", ")}`)
+  if (missing.length) throw new Errors.InvalidInput(`expected ${missing.join(', ')}`)
 }
 
 export const isValidDomain = domain => {
-  return domain.includes(".") && /^(?:[a-zA-Z0-9-_.]+)$/.test(domain)
+  return domain.includes('.') && /^(?:[a-zA-Z0-9-_.]+)$/.test(domain)
 }
 
 export const normalizeDomain = (domain: string) => {
-  domain = domain.replace(/^(?:https?:\/\/)?(?:www\.)?/, "")
+  domain = domain.replace(/^(?:https?:\/\/)?(?:www\.)?/, '')
   if (!isValidDomain(domain)) {
-    throw new Errors.InvalidInput("invalid domain")
+    throw new Errors.InvalidInput('invalid domain')
   }
 
   return domain
 }
 
-export const genStatementId = (base: string) => `${base}${crypto.randomBytes(6).toString("hex")}`
+export const genStatementId = (base: string) => `${base}${crypto.randomBytes(6).toString('hex')}`
 
 export const selectModelProps = ({ object, models }) => {
   const model = models[object[TYPE]]
-  const objModel = models["tradle.Object"]
+  const objModel = models['tradle.Object']
   const props = Object.keys(model.properties).filter(
     prop => prop === TYPE || !objModel.properties[prop]
   )
@@ -1578,20 +1578,20 @@ export const selectModelProps = ({ object, models }) => {
 
 export const getCurrentCallStack = (lineOffset: number = 2) =>
   new Error().stack
-    .split("\n")
+    .split('\n')
     .slice(lineOffset)
-    .join("\n")
+    .join('\n')
 
 export const handleAbandonedPromise = (promise: Promise, logger: Logger = consoleLogger) => {
   // prevent unhandled rejection
   promise.catch(err => {
-    logger.warn("abandoned task eventually failed", {
+    logger.warn('abandoned task eventually failed', {
       error: err.stack
     })
   })
 }
 
-export const isPrimitiveType = val => typeof val !== "object"
+export const isPrimitiveType = val => typeof val !== 'object'
 
 export const plainify = obj =>
   traverse(obj).map(function(value) {
@@ -1603,7 +1603,7 @@ export const plainify = obj =>
       try {
         copy = Buffer.from(value)
       } catch (err) {
-        copy = "[Buffer uncloneable]"
+        copy = '[Buffer uncloneable]'
       }
 
       this.update(copy)
@@ -1612,14 +1612,14 @@ export const plainify = obj =>
     if (Array.isArray(value)) return
     if (!_.isPlainObject(value)) {
       const name = value.constructor && value.constructor.name
-      this.update(name || "SomeComplexObject")
+      this.update(name || 'SomeComplexObject')
     }
   })
 
 export const wrapSlowPoke = ({ fn, time, onSlow }) =>
   async function(...args) {
     const start = Date.now()
-    const { stack } = new Error("slow poke")
+    const { stack } = new Error('slow poke')
     try {
       return await fn.apply(this, args)
     } finally {

@@ -1,13 +1,13 @@
 // @ts-ignore
-import Promise from "bluebird"
-import { graphql, introspectionQuery, buildClientSchema } from "graphql"
-import { print } from "graphql/language/printer"
-import { parse } from "graphql/language/parser"
-import { TYPES } from "@tradle/constants"
-import { createSchema } from "@tradle/schema-graphql"
+import Promise from 'bluebird'
+import { graphql, introspectionQuery, buildClientSchema } from 'graphql'
+import { print } from 'graphql/language/printer'
+import { parse } from 'graphql/language/parser'
+import { TYPES } from '@tradle/constants'
+import { createSchema } from '@tradle/schema-graphql'
 // import { createResolvers } from '@tradle/dynamodb'
-import { createResolvers } from "./resolvers"
-import { Bot, Logger, IGraphqlAPI } from "./types"
+import { createResolvers } from './resolvers'
+import { Bot, Logger, IGraphqlAPI } from './types'
 
 const { MESSAGE } = TYPES
 
@@ -18,24 +18,24 @@ export const createGraphqlAPI = (opts: { bot: Bot; logger: Logger }): IGraphqlAP
   const { objects, embeds, modelStore, db } = bot
 
   let models
-  const postProcess = async (result, op, opts:any={}) => {
+  const postProcess = async (result, op, opts: any = {}) => {
     if (!result) return result
 
     if (Array.isArray(result) && !result.length) {
       return result
     }
 
-    const { select=[] } = opts
+    const { select = [] } = opts
     switch (op) {
-      case "get":
-      case "getByLink":
-      presignEmbeddedMediaLinks(result)
-      break
-      case "list":
-      result.items = presignEmbeddedMediaLinks(result.items)
-      break
-    default:
-      break
+      case 'get':
+      case 'getByLink':
+        presignEmbeddedMediaLinks(result)
+        break
+      case 'list':
+        result.items = presignEmbeddedMediaLinks(result.items)
+        break
+      default:
+        break
     }
 
     return result
@@ -46,7 +46,7 @@ export const createGraphqlAPI = (opts: { bot: Bot; logger: Logger }): IGraphqlAP
   let schema
   const getSchema = (() => {
     return () => {
-      if (!bot.isReady()) throw new Error("bot is not ready")
+      if (!bot.isReady()) throw new Error('bot is not ready')
 
       if (!schema) {
         resolvers = createResolvers({
@@ -83,7 +83,7 @@ export const createGraphqlAPI = (opts: { bot: Bot; logger: Logger }): IGraphqlAP
   }
 
   const setModels = _models => {
-    logger.debug("setting models, regenerating schema")
+    logger.debug('setting models, regenerating schema')
     models = _models
     schema = null
     schema = getSchema()
@@ -92,7 +92,7 @@ export const createGraphqlAPI = (opts: { bot: Bot; logger: Logger }): IGraphqlAP
   bot.promiseReady().then(() => {
     logger.debug(`have cumulative models pack: ${!!modelStore.cumulativeModelsPack}`)
     setModels(modelStore.models)
-    modelStore.on("update:cumulative", () => {
+    modelStore.on('update:cumulative', () => {
       logger.debug(`cumulative models pack was updated`)
       setModels(modelStore.models)
     })
@@ -100,7 +100,7 @@ export const createGraphqlAPI = (opts: { bot: Bot; logger: Logger }): IGraphqlAP
 
   return {
     graphiqlOptions: {},
-    get schema () {
+    get schema() {
       return getSchema()
     },
     exportSchema: () => schemaToJSON(getSchema()),

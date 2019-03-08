@@ -1,9 +1,9 @@
-import path from "path"
-import fs from "fs"
-import caseless from "caseless"
-import { Registry } from "../types"
+import path from 'path'
+import fs from 'fs'
+import caseless from 'caseless'
+import { Registry } from '../types'
 
-const DEFULT_FILTER = file => file !== "index.js" && file.endsWith(".js")
+const DEFULT_FILTER = file => file !== 'index.js' && file.endsWith('.js')
 const DEFAULT_GET_ALIASES = item => [] // no aliases
 
 type GetAliases = (item: any) => string[]
@@ -26,7 +26,6 @@ export const loadFromDir = <T>({
 
     const subModule = require(path.resolve(dir, file))
     const item = prop ? subModule[prop] : subModule
-    if (!item) debugger
     if (item.disabled) return
 
     const name = item.name || path.parse(file).name

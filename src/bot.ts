@@ -1,35 +1,42 @@
-import { EventEmitter } from "events"
-import _ from "lodash"
+import { EventEmitter } from 'events'
+import _ from 'lodash'
 // @ts-ignore
-import Promise from "bluebird"
-import createCredstash from "nodecredstash"
+import Promise from 'bluebird'
+import createCredstash from 'nodecredstash'
 import AWS from 'aws-sdk'
-import { createClientCache, ClientCache } from "@tradle/aws-client-factory"
-import { services as awsServices, AWSServices } from "@tradle/aws-combo"
-import { S3Client } from "@tradle/aws-s3-client"
-import { SNSClient } from "@tradle/aws-sns-client"
-import { LambdaClient } from "@tradle/aws-lambda-client"
-import { DB, Filter } from "@tradle/dynamodb"
-import buildResource from "@tradle/build-resource"
-import { createLambdaInvoker } from "./aws/lambda-invoker"
-import { createWarmup, LambdaWarmUp } from "./aws/warmup"
-import { mixin as readyMixin, IReady } from "./ready-mixin"
-import { mixin as modelsMixin } from "./models-mixin"
-import { topics as EventTopics, toAsyncEvent, toBatchEvent } from "./events"
-import { requireDefault } from "./require-default"
-import { createServiceMap } from "./service-map"
-import { ModelStore, createModelStore } from "./model-store"
-import { getBuckets } from "./buckets"
-import { getTables } from "./tables"
-import createDB from "./db"
-import { createDBUtils } from "./db-utils"
-import { StreamProcessor } from "./stream-processor"
-import * as utils from "./utils"
-import constants, { TYPE, TYPES, SIG, ORG, ORG_SIG, BATCH_SEALING_PROTOCOL_VERSION } from "./constants"
+import { createClientCache, ClientCache } from '@tradle/aws-client-factory'
+import { services as awsServices, AWSServices } from '@tradle/aws-combo'
+import { S3Client } from '@tradle/aws-s3-client'
+import { SNSClient } from '@tradle/aws-sns-client'
+import { LambdaClient } from '@tradle/aws-lambda-client'
+import { DB, Filter } from '@tradle/dynamodb'
+import buildResource from '@tradle/build-resource'
+import { createLambdaInvoker } from './aws/lambda-invoker'
+import { createWarmup, LambdaWarmUp } from './aws/warmup'
+import { mixin as readyMixin, IReady } from './ready-mixin'
+import { mixin as modelsMixin } from './models-mixin'
+import { topics as EventTopics, toAsyncEvent, toBatchEvent } from './events'
+import { requireDefault } from './require-default'
+import { createServiceMap } from './service-map'
+import { ModelStore, createModelStore } from './model-store'
+import { getBuckets } from './buckets'
+import { getTables } from './tables'
+import createDB from './db'
+import { createDBUtils } from './db-utils'
+import { StreamProcessor } from './stream-processor'
+import * as utils from './utils'
+import constants, {
+  TYPE,
+  TYPES,
+  SIG,
+  ORG,
+  ORG_SIG,
+  BATCH_SEALING_PROTOCOL_VERSION
+} from './constants'
 import { createConfig } from './aws/config'
-import { createResolver as createS3EmbedResolver } from "./aws/s3-embed-resolver"
+import { createResolver as createS3EmbedResolver } from './aws/s3-embed-resolver'
 import { StackUtils } from './aws/stack-utils'
-const VERSION = require("./version")
+const VERSION = require('./version')
 const {
   defineGetter,
   getResourceIdentifier,
@@ -42,13 +49,13 @@ const {
   getResourceModuleStore
 } = utils
 
-import * as stringUtils from "./string-utils"
-import baseModels from "./models"
-import * as crypto from "./crypto"
-import { createUsers, Users } from "./users"
+import * as stringUtils from './string-utils'
+import baseModels from './models'
+import * as crypto from './crypto'
+import { createUsers, Users } from './users'
 // import { Friends } from './friends'
-import { createGraphqlAPI } from "./graphql"
-import { Scheduler } from "./scheduler"
+import { createGraphqlAPI } from './graphql'
+import { Scheduler } from './scheduler'
 import {
   IEndpointInfo,
   ILambdaImpl,
@@ -87,7 +94,7 @@ import {
   CloudWatchClient,
   EmbedResolver,
   SendPushNotification,
-  SendPushNotificationOpts,
+  SendPushNotificationOpts
 } from './types'
 
 import { createLinker, appLinks as defaultAppLinks } from './app-links'
@@ -114,7 +121,7 @@ import Storage from './storage'
 import TaskManager from './task-manager'
 import Messaging from './messaging'
 import Iot from './aws/iot-utils'
-import { ContentAddressedStore, createContentAddressedStore } from "./content-addressed-store"
+import { ContentAddressedStore, createContentAddressedStore } from './content-addressed-store'
 import KV from './kv'
 import Errors from './errors'
 import { MiddlewareContainer } from './middleware-container'
@@ -146,34 +153,34 @@ type SendInput = {
 export const createBot = (opts: IBotOpts = {}): Bot => new Bot(opts)
 
 const COUNTERPARTY_CONCURRENCY = 5
-const CREDSTASH_ALGORITHM = "aes-256-gcm"
+const CREDSTASH_ALGORITHM = 'aes-256-gcm'
 
 // this is not good TypeScript,
 // we lose all type checking when exporting like this
 const lambdaCreators: LambdaImplMap = {
   get onmessage() {
-    return require("./lambda/onmessage")
+    return require('./lambda/onmessage')
   },
   get onresourcestream() {
-    return require("./lambda/onresourcestream")
+    return require('./lambda/onresourcestream')
   },
   get oninit() {
-    return require("./lambda/oninit")
+    return require('./lambda/oninit')
   },
   get oniotlifecycle() {
-    return require("./lambda/oniotlifecycle")
+    return require('./lambda/oniotlifecycle')
   },
   get info() {
-    return require("./lambda/info")
+    return require('./lambda/info')
   },
   get preauth() {
-    return require("./lambda/preauth")
+    return require('./lambda/preauth')
   },
   get auth() {
-    return require("./lambda/auth")
+    return require('./lambda/auth')
   },
   get inbox() {
-    return require("./lambda/inbox")
+    return require('./lambda/inbox')
   }
   // get warmup() { return require('./lambda/warmup') },
   // get reinitializeContainers() { return require('./lambda/reinitialize-containers') },
@@ -236,7 +243,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     if (!this._graphql) {
       this._graphql = createGraphqlAPI({
         bot: this,
-        logger: this.logger.sub("graphql")
+        logger: this.logger.sub('graphql')
       })
     }
 
@@ -247,13 +254,13 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public version: VersionInfo
 
   public get isDev() {
-    return this.env.STAGE === "dev"
+    return this.env.STAGE === 'dev'
   }
   public get isStaging() {
-    return this.env.STAGE === "staging"
+    return this.env.STAGE === 'staging'
   }
   public get isProd() {
-    return this.env.STAGE === "prod"
+    return this.env.STAGE === 'prod'
   }
   public get isTesting() {
     return this.env.IS_TESTING
@@ -408,14 +415,14 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       identity,
       db,
       objects,
-      logger: logger.sub("seals")
+      logger: logger.sub('seals')
     })
 
-    if (env.BLOCKCHAIN.blockchain === "corda") {
-      bot.define("seals", "./corda-seals", ({ Seals }) => new Seals(getSealsOpts()))
+    if (env.BLOCKCHAIN.blockchain === 'corda') {
+      bot.define('seals', './corda-seals', ({ Seals }) => new Seals(getSealsOpts()))
       bot.define(
-        "blockchain",
-        "./corda-seals",
+        'blockchain',
+        './corda-seals',
         ({ Blockchain }) =>
           new Blockchain({
             env,
@@ -424,17 +431,17 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       )
     } else {
       bot.define(
-        "blockchain",
-        "./blockchain",
+        'blockchain',
+        './blockchain',
         Blockchain =>
           new Blockchain({
-            logger: logger.sub("blockchain"),
+            logger: logger.sub('blockchain'),
             network,
             identity: bot.identity
           })
       )
 
-      bot.define("seals", "./seals", Seals => new Seals(getSealsOpts()))
+      bot.define('seals', './seals', Seals => new Seals(getSealsOpts()))
     }
 
     // bot.define('faucet', './faucet', createFaucet => createFaucet({
@@ -448,14 +455,14 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       defaults: createConfig({
         region: env.AWS_REGION,
         local: env.IS_LOCAL,
-        iotEndpoint: this.endpointInfo.endpoint,
+        iotEndpoint: this.endpointInfo.endpoint
       }),
       useGlobalConfigClock: true
     }))
 
     const dbUtils = (bot.dbUtils = createDBUtils({
       aws: awsClientCache,
-      logger: logger.sub("db-utils"),
+      logger: logger.sub('db-utils'),
       env,
       serviceMap
     }))
@@ -477,7 +484,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
     bot.lambdaWarmup = createWarmup({
       lambda: lambdaUtils,
-      logger: logger.sub("lambda-warmup")
+      logger: logger.sub('lambda-warmup')
     })
 
     // const stackUtils = (bot.stackUtils = awsServices.cloudformation(getAWSClientOpts())
@@ -490,7 +497,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       aws: awsClientCache,
       env,
       lambdaUtils,
-      logger: logger.sub("stack-utils")
+      logger: logger.sub('stack-utils')
     })
 
     const iot = (bot.iot = new Iot({
@@ -500,7 +507,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
     const modelStore = (bot.modelStore = createModelStore({
       models: baseModels,
-      logger: logger.sub("model-store"),
+      logger: logger.sub('model-store'),
       bucket: buckets.PrivateConf,
       get identities() {
         return bot.identities
@@ -511,21 +518,21 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     }))
 
     const tasks = (bot.tasks = new TaskManager({
-      logger: logger.sub("async-tasks")
+      logger: logger.sub('async-tasks')
     }))
 
     const embeds = (bot.embeds = createS3EmbedResolver({
       bucket: buckets.FileUpload.id,
-      keyPrefix: "",
+      keyPrefix: '',
       client: s3Utils,
-      logger: logger.sub("embeds"),
+      logger: logger.sub('embeds'),
       region: env.AWS_REGION
     }))
 
     const objects = (bot.objects = new Objects({
       objectStore: buckets.Objects.jsonKV(),
       embeds,
-      logger: bot.logger.sub("objects")
+      logger: bot.logger.sub('objects')
     }))
 
     bot.secrets = new Secrets({
@@ -539,11 +546,11 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
           // folder: constants.SECRETS_BUCKET.identityFolder
         })
       }),
-      logger: logger.sub("secrets")
+      logger: logger.sub('secrets')
     })
 
     const identity = (bot.identity = new Identity({
-      logger: logger.sub("identity"),
+      logger: logger.sub('identity'),
       modelStore,
       network,
       objects,
@@ -552,7 +559,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     }))
 
     const identities = (bot.identities = new Identities({
-      logger: bot.logger.sub("identities"),
+      logger: bot.logger.sub('identities'),
       modelStore,
       // circular ref
       get storage() {
@@ -567,7 +574,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     }))
 
     const messages = (bot.messages = new Messages({
-      logger: logger.sub("messages"),
+      logger: logger.sub('messages'),
       objects,
       env,
       identities,
@@ -583,18 +590,18 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       objects,
       dbUtils,
       messages,
-      logger: logger.sub("db")
+      logger: logger.sub('db')
     }))
 
     const storage = (bot.storage = new Storage({
       objects,
       db,
-      logger: logger.sub("storage")
+      logger: logger.sub('storage')
     }))
 
     const messaging = (bot.messaging = new Messaging({
       network,
-      logger: logger.sub("messaging"),
+      logger: logger.sub('messaging'),
       identity,
       storage,
       env,
@@ -602,11 +609,21 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       messages,
       modelStore,
       tasks,
-      get seals () { return bot.seals },
-      get friends() { return bot.friends },
-      get delivery() { return bot.delivery },
-      get sendPushNotification() { return bot.sendPushNotification },
-      get auth() { return bot.auth },
+      get seals() {
+        return bot.seals
+      },
+      get friends() {
+        return bot.friends
+      },
+      get delivery() {
+        return bot.delivery
+      },
+      get sendPushNotification() {
+        return bot.sendPushNotification
+      },
+      get auth() {
+        return bot.auth
+      }
     }))
 
     const friends = (bot.friends = new Friends({
@@ -615,12 +632,12 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       },
       storage,
       identity,
-      logger: bot.logger.sub("friends"),
+      logger: bot.logger.sub('friends'),
       isDev: bot.isDev
     }))
 
     bot.contentAddressedStore = createContentAddressedStore({
-      store: buckets.PrivateConf.folder("content-addressed").jsonKV()
+      store: buckets.PrivateConf.folder('content-addressed').jsonKV()
     })
 
     // bot.define('conf', './key-value-table', ctor => {
@@ -637,13 +654,13 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
     const kv = (bot.kv = new KV({ db }))
 
-    bot.kv = bot.kv.sub("bot:kv:")
-    bot.conf = bot.kv.sub("bot:conf:")
+    bot.kv = bot.kv.sub('bot:kv:')
+    bot.conf = bot.kv.sub('bot:conf:')
 
     const auth = (bot.auth = new Auth({
       endpointInfo: this.endpointInfo,
       uploadFolder: bot.serviceMap.Bucket.FileUpload,
-      logger: bot.logger.sub("auth"),
+      logger: bot.logger.sub('auth'),
       aws: awsClientCache,
       db,
       identities,
@@ -658,12 +675,12 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const events = (bot.events = new Events({
       table: tables.Events,
       dbUtils,
-      logger: logger.sub("events")
+      logger: logger.sub('events')
     }))
 
-    bot.define("init", "./init", bot.construct)
+    bot.define('init', './init', bot.construct)
     // bot.define("discovery", "./discovery", bot.construct)
-    bot.define("userSim", "./user", bot.construct)
+    bot.define('userSim', './user', bot.construct)
 
     const delivery = (bot.delivery = new Delivery({
       auth,
@@ -674,49 +691,49 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       messages,
       modelStore,
       objects,
-      logger: logger.sub("delivery")
+      logger: logger.sub('delivery')
     }))
 
     // bot.define('router', './router', bot.construct)
 
     bot.define(
-      "mailer",
-      "./mailer",
+      'mailer',
+      './mailer',
       Mailer =>
         new Mailer({
           client: bot.aws.ses,
-          logger: bot.logger.sub("mailer")
+          logger: bot.logger.sub('mailer')
         })
     )
 
     bot.define(
-      "backlinks",
-      "./backlinks",
+      'backlinks',
+      './backlinks',
       Backlinks =>
         new Backlinks({
           storage,
           modelStore,
-          logger: logger.sub("backlinks"),
+          logger: logger.sub('backlinks'),
           identity
         })
     )
 
     bot.define(
-      "streamProcessor",
-      "./stream-processor",
+      'streamProcessor',
+      './stream-processor',
       StreamProcessor =>
         new StreamProcessor({
-          store: bot.conf.sub("stream-state")
+          store: bot.conf.sub('stream-state')
         })
     )
 
-    if (this.env.SEALING_MODE === "batch") {
-      this.logger.debug("sealing in batch mode")
-      bot.define("sealBatcher", "./batch-seals", ({ createSealBatcher }) =>
+    if (this.env.SEALING_MODE === 'batch') {
+      this.logger.debug('sealing in batch mode')
+      bot.define('sealBatcher', './batch-seals', ({ createSealBatcher }) =>
         createSealBatcher({
           db,
           folder: bot.buckets.Objects.folder(`seals/batch/${BATCH_SEALING_PROTOCOL_VERSION}`),
-          logger: logger.sub("batch-seals"),
+          logger: logger.sub('batch-seals'),
           safetyBuffer: 2
         })
       )
@@ -758,7 +775,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     }, {})
 
     this.middleware = new MiddlewareContainer({
-      logger: this.logger.sub("mid"),
+      logger: this.logger.sub('mid'),
       getContextForEvent: (event, data) => ({
         bot: this,
         event: data
@@ -766,8 +783,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     })
 
     if (this.isLocal) {
-      const yml = require("./serverless-interpolated")
-      const webPort = _.get(yml, "custom.vars.local.webAppPort", 55555)
+      const yml = require('./serverless-interpolated')
+      const webPort = _.get(yml, 'custom.vars.local.webAppPort', 55555)
       this.appLinks = createLinker({
         web: this.apiBaseUrl.replace(
           /http:\/\/\d+\.\d+.\d+\.\d+:\d+/,
@@ -775,7 +792,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
         )
       })
 
-      require("./test-eventstream").simulateEventStream(this)
+      require('./test-eventstream').simulateEventStream(this)
     } else {
       this.appLinks = defaultAppLinks
     }
@@ -788,7 +805,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   }
 
   public toMessageBatch = batch => {
-    const recipients = pluck(batch, "to").map(normalizeRecipient)
+    const recipients = pluck(batch, 'to').map(normalizeRecipient)
     if (_.uniq(recipients).length > 1) {
       throw new Errors.InvalidInput(`expected a single recipient`)
     }
@@ -812,7 +829,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
   public send = async opts => {
     const batch = await Promise.map([].concat(opts), oneOpts => normalizeSendOpts(this, oneOpts))
-    const byRecipient = _.groupBy(batch, "recipient")
+    const byRecipient = _.groupBy(batch, 'recipient')
     const recipients = Object.keys(byRecipient)
     this.logger.debug(`queueing messages to ${recipients.length} recipients`, {
       recipients
@@ -833,14 +850,14 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
   public _sendBatch = async ({ recipient, batch }) => {
     const { friend = null } = batch.find(message => message.friend) || {}
-    const types = batch.map(m => m[TYPE]).join(", ")
+    const types = batch.map(m => m[TYPE]).join(', ')
     this.logger.debug(`sending to ${recipient}: ${types}`)
     await this.outboundMessageLocker.lock(recipient)
     let messages
     try {
       messages = await this.messaging.queueMessageBatch(batch)
       this.tasks.add({
-        name: "delivery:live",
+        name: 'delivery:live',
         promiser: () =>
           this.messaging.attemptLiveDelivery({
             recipient,
@@ -878,7 +895,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       accountId: this.env.AWS_ACCOUNT_ID,
       region: this.env.AWS_REGION,
       permalink: await this.getMyPermalink(),
-      notifierAccountId: constants.TRADLE.ACCOUNT_ID,
+      notifierAccountId: constants.TRADLE.ACCOUNT_ID
     })
 
     await this.snsUtils.publish({
@@ -919,7 +936,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     return this.env.getStackResourceName
   }
 
-
   public sealIfNotBatching = async (opts: CreateSealOpts) => {
     if (!this.sealBatcher) {
       return await this.seal(opts)
@@ -940,7 +956,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     return await this.send({
       to,
       object: {
-        [TYPE]: "tradle.SimpleMessage",
+        [TYPE]: 'tradle.SimpleMessage',
         message
       }
     })
@@ -1015,7 +1031,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const resource = this.draft({ resource: current }).set(props)
 
     if (!resource.modified) {
-      this.logger.debug("nothing changed, skipping updateResource")
+      this.logger.debug('nothing changed, skipping updateResource')
       return {
         resource: current,
         changed: false
@@ -1072,12 +1088,12 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   }) => {
     const filter: Filter = {
       EQ: {
-        [TYPE]: "tradle.Message",
+        [TYPE]: 'tradle.Message',
         _payloadLink: link
       }
     }
 
-    if (typeof inbound === "boolean") {
+    if (typeof inbound === 'boolean') {
       filter.EQ._inbound = inbound
     }
 
@@ -1087,7 +1103,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     return await this.db.findOne({
       select,
       orderBy: {
-        property: "_time",
+        property: '_time',
         desc: true
       },
       filter
@@ -1128,7 +1144,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       this.backlinks.getBacklinks({
         type,
         permalink,
-        properties: typeof backlinks === "boolean" ? null : backlinks
+        properties: typeof backlinks === 'boolean' ? null : backlinks
       })
     ])
 
@@ -1186,12 +1202,12 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   // }
 
   public ensureDevStage = (msg?: string) => {
-    if (!this.isDev) throw new Errors.DevStageOnly(msg || "forbidden")
+    if (!this.isDev) throw new Errors.DevStageOnly(msg || 'forbidden')
   }
 
   public save = async (resource: ITradleObject, diff?: Diff) => {
     if (!this.isReady()) {
-      this.logger.debug("waiting for this.ready()")
+      this.logger.debug('waiting for this.ready()')
       await this.promiseReady()
     }
 
@@ -1207,7 +1223,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
         error: err.stack
       })
 
-      this.logger.silly("save failed (details)", {
+      this.logger.silly('save failed (details)', {
         input: err.input
       })
 
@@ -1299,7 +1315,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   }) => {
     if (!messages.length) return
 
-    const bySender = _.groupBy(messages, "_author")
+    const bySender = _.groupBy(messages, '_author')
     return await Promise.map(
       _.values(bySender),
       async batch => {
@@ -1331,7 +1347,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     messages: ITradleMessage[]
     async?: boolean
   }) => {
-    const [inbound, outbound] = _.partition(messages, "_inbound")
+    const [inbound, outbound] = _.partition(messages, '_inbound')
     await Promise.all([
       this._fireInboundMessagesRaw({ messages: inbound, async }),
       this._fireOutboundMessagesRaw({ messages: outbound, async })
@@ -1383,7 +1399,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     spread?: boolean
     inbound?: boolean
   }) => {
-    const { batch, async, spread, inbound=false } = opts
+    const { batch, async, spread, inbound = false } = opts
     if (!batch.every(item => item.message._inbound === inbound)) {
       throw new Errors.InvalidInput('expected all messages to be either inbound or outbound')
     }

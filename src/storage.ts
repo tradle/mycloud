@@ -1,13 +1,13 @@
-import cloneDeep from "lodash/cloneDeep"
-import pick from "lodash/pick"
-import typeforce from "typeforce"
-import { TYPE } from "@tradle/constants"
-import Errors from "./errors"
-import { DB, Objects, Logger, ISaveObjectOpts, ITradleObject } from "./types"
+import cloneDeep from 'lodash/cloneDeep'
+import pick from 'lodash/pick'
+import typeforce from 'typeforce'
+import { TYPE } from '@tradle/constants'
+import Errors from './errors'
+import { DB, Objects, Logger, ISaveObjectOpts, ITradleObject } from './types'
 
-import * as types from "./typeforce-types"
+import * as types from './typeforce-types'
 
-import { RESOLVED_PROMISE } from "./utils"
+import { RESOLVED_PROMISE } from './utils'
 
 type StorageOpts = {
   db: DB
@@ -42,7 +42,7 @@ export default class Storage {
     object = cloneDeep(object)
     this.objects.addMetadata(object)
 
-    this.logger.silly("saving", pick(object, [TYPE, "_link", "_permalink"]))
+    this.logger.silly('saving', pick(object, [TYPE, '_link', '_permalink']))
 
     await this.objects.replaceEmbeddedMedia(object)
     await Promise.all([
@@ -61,7 +61,7 @@ export default class Storage {
     try {
       table = await this.db.getTableForType(type)
     } catch (err) {
-      Errors.rethrow(err, "developer")
+      Errors.rethrow(err, 'developer')
       this.logger.debug(`not saving "${type}", don't have a table for it`, Errors.export(err))
       return false
     }

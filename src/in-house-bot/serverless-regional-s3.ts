@@ -1,7 +1,7 @@
-import { regions as REGIONS } from "@tradle/aws-s3-client"
-import Errors from "../errors"
-import { S3Client, Logger, ClientCache, IAMClient } from "../types"
-import { sha256 } from "../crypto"
+import { regions as REGIONS } from '@tradle/aws-s3-client'
+import Errors from '../errors'
+import { S3Client, Logger, ClientCache, IAMClient } from '../types'
+import { sha256 } from '../crypto'
 
 const MAX_BUCKET_NAME_LENGTH = 63
 
@@ -40,9 +40,9 @@ export class RegionalS3Client {
 
   public getBucketBaseName = (bucket: string) =>
     bucket
-      .split("-")
+      .split('-')
       .slice(0, -1)
-      .join("-")
+      .join('-')
 
   public createRegionalBuckets = async ({
     bucket,
@@ -61,7 +61,7 @@ export class RegionalS3Client {
     )
     if (wontCreate.length) {
       this.opts.logger.warn(
-        `will NOT replicate to ${wontCreate.join(", ")}, as buckets already exist in those regions`
+        `will NOT replicate to ${wontCreate.join(', ')}, as buckets already exist in those regions`
       )
     }
 
@@ -78,7 +78,7 @@ export class RegionalS3Client {
     const targets = await Promise.all(
       willCreate.map(async region => {
         const params = getParams(region)
-        this.opts.logger.debug("creating regional bucket", {
+        this.opts.logger.debug('creating regional bucket', {
           bucket: params.Bucket,
           region
         })
@@ -90,7 +90,7 @@ export class RegionalS3Client {
             .putBucketVersioning({
               Bucket: params.Bucket,
               VersioningConfiguration: {
-                Status: "Enabled"
+                Status: 'Enabled'
               }
             })
             .promise()
@@ -122,10 +122,10 @@ export class RegionalS3Client {
                 {
                   Destination: {
                     Bucket: target,
-                    StorageClass: "STANDARD"
+                    StorageClass: 'STANDARD'
                   },
-                  Prefix: "",
-                  Status: "Enabled"
+                  Prefix: '',
+                  Status: 'Enabled'
                 }
               ]
             }
@@ -151,7 +151,7 @@ export class RegionalS3Client {
 
     if (!toDel.length) return []
 
-    this.opts.logger.info("deleting regional buckets", { buckets: toDel })
+    this.opts.logger.info('deleting regional buckets', { buckets: toDel })
     await Promise.all(
       toDel.map(async name => {
         await this.opts.s3Client.destroyBucket({ bucket: name })
@@ -173,16 +173,16 @@ const getRegionalBucketSuffix = ({ bucket, region }: { bucket: string; region: s
   const idx = REGIONS.indexOf(region)
   if (idx === -1) throw new Errors.InvalidInput(`s3 region not supported: ${region}`)
 
-  return "-" + idx.toString(36)
+  return '-' + idx.toString(36)
 }
 
 export const getRegionalBucketName = ({ bucket, region }) => {
   if (isRegionalBucketName(bucket)) {
     // remove regional suffix
     bucket = bucket
-      .split("-")
+      .split('-')
       .slice(0, -1)
-      .join("-")
+      .join('-')
   }
 
   const idx = REGIONS.indexOf(region)
@@ -191,7 +191,7 @@ export const getRegionalBucketName = ({ bucket, region }) => {
   const suffix = getRegionalBucketSuffix({ bucket, region })
   const name = `${bucket}${suffix}`
   if (name.length > MAX_BUCKET_NAME_LENGTH) {
-    const hash = sha256(bucket, "hex").slice(0, 6)
+    const hash = sha256(bucket, 'hex').slice(0, 6)
     // - 1 for '-' char
     const trunc = bucket.slice(0, MAX_BUCKET_NAME_LENGTH - hash.length - suffix.length - 1)
     return `${trunc}-${hash}${suffix}`

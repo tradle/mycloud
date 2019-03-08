@@ -1,5 +1,5 @@
-import Errors from "./errors"
-import { KeyValueStoreExtended, KV } from "./types"
+import Errors from './errors'
+import { KeyValueStoreExtended, KV } from './types'
 
 export default class KeyValueMem implements KeyValueStoreExtended {
   private store: any
@@ -26,7 +26,7 @@ export default class KeyValueMem implements KeyValueStoreExtended {
   }
 
   public sub = () => {
-    throw new Errors.Unsupported("KeyValueMem.sub")
+    throw new Errors.Unsupported('KeyValueMem.sub')
   }
 }
 

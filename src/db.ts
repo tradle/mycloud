@@ -1,9 +1,9 @@
-import _ from "lodash"
-import dynogels from "dynogels"
-import { createTable, DB, Table, utils, Search, ITableOpts } from "@tradle/dynamodb"
-import AWS from "aws-sdk"
+import _ from 'lodash'
+import dynogels from 'dynogels'
+import { createTable, DB, Table, utils, Search, ITableOpts } from '@tradle/dynamodb'
+import AWS from 'aws-sdk'
 // import { createMessagesTable } from './messages-table'
-import { Logger, Objects, Messages, ITradleObject, Model, ModelStore, ClientCache } from "./types"
+import { Logger, Objects, Messages, ITradleObject, Model, ModelStore, ClientCache } from './types'
 import {
   extendTradleObject,
   pluck,
@@ -13,31 +13,31 @@ import {
   toSortableTag,
   wrapSlowPoke,
   isUnsignedType
-} from "./utils"
+} from './utils'
 
-import { TYPE, SIG, ORG, AUTHOR, TYPES, MAX_DB_ITEM_SIZE } from "./constants"
-import Errors from "./errors"
+import { TYPE, SIG, ORG, AUTHOR, TYPES, MAX_DB_ITEM_SIZE } from './constants'
+import Errors from './errors'
 
 const { MESSAGE, SEAL_STATE, DELIVERY_ERROR } = TYPES
-const ORG_OR_AUTHOR = "_orgOrAuthor"
+const ORG_OR_AUTHOR = '_orgOrAuthor'
 const ARTIFICIAL_PROPS = [ORG_OR_AUTHOR]
-const VERSION_INFO = "tradle.cloud.VersionInfo"
-const UPDATE = "tradle.cloud.Update"
-const UPDATE_REQUEST = "tradle.cloud.UpdateRequest"
-const UPDATE_RESPONSE = "tradle.cloud.UpdateResponse"
+const VERSION_INFO = 'tradle.cloud.VersionInfo'
+const UPDATE = 'tradle.cloud.Update'
+const UPDATE_REQUEST = 'tradle.cloud.UpdateRequest'
+const UPDATE_RESPONSE = 'tradle.cloud.UpdateResponse'
 
 const ALLOW_SCAN = [DELIVERY_ERROR]
 
-const ALLOW_SCAN_QUERY = [SEAL_STATE, "tradle.ApplicationSubmission"].concat(ALLOW_SCAN)
+const ALLOW_SCAN_QUERY = [SEAL_STATE, 'tradle.ApplicationSubmission'].concat(ALLOW_SCAN)
 
 // TODO:
 // add whether list should be allowed with additional filter conditions
 // which may make it incredibly expensive to fulfil the "limit"
 const ALLOW_LIST_TYPE = [
   { type: DELIVERY_ERROR },
-  { type: "tradle.Application" },
-  { type: "tradle.ProductRequest" },
-  { type: "tradle.documentChecker.Check", sortedByDB: true }
+  { type: 'tradle.Application' },
+  { type: 'tradle.ProductRequest' },
+  { type: 'tradle.documentChecker.Check', sortedByDB: true }
 ]
 
 const isListable = ({ type, sortedByDB }) => {
@@ -49,12 +49,12 @@ const defaultIndexes = [
   {
     // default for all tradle.Object resources
     hashKey: ORG_OR_AUTHOR,
-    rangeKey: ["_t", "_time"]
+    rangeKey: ['_t', '_time']
   },
   {
     // default for all tradle.Object resources
     hashKey: TYPE,
-    rangeKey: "_time"
+    rangeKey: '_time'
   }
 ]
 
@@ -82,14 +82,14 @@ const deriveProps = opts => {
 // }
 
 const _isScanAllowed = search => {
-  if (search.opType === "query") {
+  if (search.opType === 'query') {
     return ALLOW_SCAN_QUERY.includes(search.type)
   }
 
   return ALLOW_SCAN.includes(search.type)
 }
 
-const shouldMinify = item => item[TYPE] !== "tradle.Message" && !isUnsignedType(item[TYPE])
+const shouldMinify = item => item[TYPE] !== 'tradle.Message' && !isUnsignedType(item[TYPE])
 // const AUTHOR_INDEX = {
 //   // default for all tradle.Object resources
 //   hashKey: '_author',
@@ -121,34 +121,34 @@ const getControlLatestOptions = ({
     throw new Errors.InvalidInput('expected "_link"')
   }
 
-  if (method === "create" && !resource._time) {
+  if (method === 'create' && !resource._time) {
     throw new Errors.InvalidInput('expected "_time"')
   }
 
   const pk = getPrimaryKeySchema(model)
-  if (pk.hashKey !== "_permalink") {
+  if (pk.hashKey !== '_permalink') {
     return
   }
 
   const options = {
     ConditionExpression: Object.keys(table.primaryKeys)
       .map(keyType => `attribute_not_exists(#${keyType})`)
-      .join(" and "),
+      .join(' and '),
     ExpressionAttributeNames: Object.keys(table.primaryKeys).reduce((names, keyType) => {
       names[`#${keyType}`] = table.primaryKeys[keyType]
       return names
     }, {}),
     ExpressionAttributeValues: {
-      ":link": resource._link
+      ':link': resource._link
     }
   }
 
   options.ConditionExpression = `(${options.ConditionExpression}) OR #link = :link`
-  options.ExpressionAttributeNames["#link"] = "_link"
-  if (typeof resource._time === "number") {
-    options.ConditionExpression += " OR #time < :time"
-    options.ExpressionAttributeNames["#time"] = "_time"
-    options.ExpressionAttributeValues[":time"] = resource._time
+  options.ExpressionAttributeNames['#link'] = '_link'
+  if (typeof resource._time === 'number') {
+    options.ConditionExpression += ' OR #time < :time'
+    options.ExpressionAttributeNames['#time'] = '_time'
+    options.ExpressionAttributeValues[':time'] = resource._time
   }
 
   return options
@@ -174,17 +174,17 @@ export = function createDB({ modelStore, objects, clients, dbUtils, messages, lo
   const isScanAllowed = (search: Search) => {
     if (search.allowScan === true) return true
 
-    if (search.opType === "query") {
+    if (search.opType === 'query') {
       if (!search.sortedByDB) {
         debugger
-        logger.error("will soon forbid expensive query", summarizeSearch(search))
+        logger.error('will soon forbid expensive query', summarizeSearch(search))
       }
 
       return true
     }
 
     const allow = _isScanAllowed(search)
-    if (allow) logger.debug("allowing scan", search.type)
+    if (allow) logger.debug('allowing scan', search.type)
     return allow
   }
 
@@ -196,7 +196,7 @@ export = function createDB({ modelStore, objects, clients, dbUtils, messages, lo
     const idx = table.indexes.findIndex(i => i === index)
     const modelIdx = getIndexesForModel({ table, model })[idx]
     if (!modelIdx) {
-      logger.warn("expected corresponding model index", { index, model })
+      logger.warn('expected corresponding model index', { index, model })
       return
     }
 
@@ -206,7 +206,7 @@ export = function createDB({ modelStore, objects, clients, dbUtils, messages, lo
       !isListable(search)
     ) {
       debugger
-      logger.error("will soon forbid expensive query", summarizeSearch(search))
+      logger.error('will soon forbid expensive query', summarizeSearch(search))
       // throw new Errors.InvalidInput(`your filter/orderBy is too broad, please narrow down your query`)
     }
   }
@@ -240,7 +240,7 @@ export = function createDB({ modelStore, objects, clients, dbUtils, messages, lo
     modelMap = dbUtils.getModelMap({ models: modelStore.models })
   }
 
-  modelStore.on("update", updateModelMap)
+  modelStore.on('update', updateModelMap)
   updateModelMap()
 
   const chooseTable = ({ tables, type }) => {
@@ -263,7 +263,7 @@ export = function createDB({ modelStore, objects, clients, dbUtils, messages, lo
         ...commonOpts,
         tableDefinition: cloudformation,
         // all key props are derived
-        derivedProps: pluck(cloudformation.AttributeDefinitions, "AttributeName"),
+        derivedProps: pluck(cloudformation.AttributeDefinitions, 'AttributeName'),
         getIndexesForModel
       } as ITableOpts)
 
@@ -271,7 +271,7 @@ export = function createDB({ modelStore, objects, clients, dbUtils, messages, lo
         fn: table.find.bind(table),
         time: 5000,
         onSlow: ({ time, args, stack }) => {
-          logger.error("db query took more than 5s", { time, args, stack })
+          logger.error('db query took more than 5s', { time, args, stack })
         }
       })
 
@@ -286,18 +286,18 @@ export = function createDB({ modelStore, objects, clients, dbUtils, messages, lo
           })
         }
       }
-      ;["put", "update"].forEach(method => {
+      ;['put', 'update'].forEach(method => {
         table.hook(`${method}:pre`, controlLatestHooks(method))
       })
 
-      table.hook("pre:find:validate", op => {
+      table.hook('pre:find:validate', op => {
         validateFind(op)
       })
 
-      table.hook("find:pre", preProcessSearch)
-      table.hook("find:post", postProcessSearchResult)
-      table.hook("batchPut:pre", ({ args }) => args[0].forEach(checkPre))
-      table.hook("put:pre", ({ args }) => checkPre(args[0]))
+      table.hook('find:pre', preProcessSearch)
+      table.hook('find:post', postProcessSearchResult)
+      table.hook('batchPut:pre', ({ args }) => args[0].forEach(checkPre))
+      table.hook('put:pre', ({ args }) => checkPre(args[0]))
 
       return table
     },
@@ -308,7 +308,7 @@ export = function createDB({ modelStore, objects, clients, dbUtils, messages, lo
     if (EQ._dcounterparty) return
 
     const _counterparty = EQ._author || EQ._recipient || EQ._counterparty
-    if (!(_counterparty && "_inbound" in EQ)) return
+    if (!(_counterparty && '_inbound' in EQ)) return
 
     EQ._dcounterparty = messages.getDCounterpartyKey({
       _counterparty,
@@ -349,7 +349,7 @@ export = function createDB({ modelStore, objects, clients, dbUtils, messages, lo
 
     const msgs = items.map(messages.formatForDelivery)
     const { select } = opts
-    if (!select || select.includes("object")) {
+    if (!select || select.includes('object')) {
       const payloads: ITradleObject[] = await Promise.all(
         msgs.map(msg => objects.get(msg.object._link))
       )
@@ -400,7 +400,7 @@ const logifyDB = (db: DB, logger: Logger) => {
   db.find = logifyFunction({
     logger,
     fn: db.find.bind(db),
-    level: "silly",
+    level: 'silly',
     name: opts => `DB.find ${opts.filter.EQ[TYPE]}`
     // printError: verbosePrint
   })
@@ -408,15 +408,15 @@ const logifyDB = (db: DB, logger: Logger) => {
   db.batchPut = logifyFunction({
     logger,
     fn: db.batchPut.bind(db),
-    level: "silly",
-    name: "DB.batchPut"
+    level: 'silly',
+    name: 'DB.batchPut'
     // printError: verbosePrint
   })
-  ;["get", "put", "del", "update", "merge"].forEach(method => {
+  ;['get', 'put', 'del', 'update', 'merge'].forEach(method => {
     db[method] = logifyFunction({
       logger,
       fn: db[method].bind(db),
-      level: "silly",
+      level: 'silly',
       name: opts => (opts[TYPE] ? `DB.${method} ${opts[TYPE]}` : method)
       // printError: verbosePrint
     })
@@ -427,4 +427,4 @@ const logifyDB = (db: DB, logger: Logger) => {
 
 // const verbosePrint = (error, args) => safeStringify({ error, args })
 
-const summarizeSearch = (op: Search) => _.pick(op, ["filter", "orderBy", "limit"])
+const summarizeSearch = (op: Search) => _.pick(op, ['filter', 'orderBy', 'limit'])

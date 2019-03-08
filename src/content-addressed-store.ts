@@ -1,11 +1,11 @@
-import { sha256 } from "./crypto"
-import { stableStringify } from "./string-utils"
-import { KeyValueStore } from "./types"
+import { sha256 } from './crypto'
+import { stableStringify } from './string-utils'
+import { KeyValueStore } from './types'
 
 type Hasher = (any) => string
 
-const defaultHasher = data => sha256(data, "hex")
-const sha256AndTrunc = (data, length) => sha256(data, "hex").slice(0, length)
+const defaultHasher = data => sha256(data, 'hex')
+const sha256AndTrunc = (data, length) => sha256(data, 'hex').slice(0, length)
 
 export const Hashers = {
   default: defaultHasher,
@@ -41,7 +41,7 @@ export const createContentAddressedStore = (opts: ContentAddressedStoreOpts) =>
   new ContentAddressedStore(opts)
 
 const serialize = data => {
-  if (typeof data === "string" || Buffer.isBuffer(data)) {
+  if (typeof data === 'string' || Buffer.isBuffer(data)) {
     return data
   }
 

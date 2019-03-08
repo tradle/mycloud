@@ -1,10 +1,10 @@
-require("./env").install()
+require('./env').install()
 
 // tslint:disable:no-console
 
 import AWS from 'aws-sdk'
-import sinon from "sinon"
-import { mergeIntoAWSConfig } from "@tradle/aws-common-utils"
+import sinon from 'sinon'
+import { mergeIntoAWSConfig } from '@tradle/aws-common-utils'
 
 mergeIntoAWSConfig(AWS, {
   region: 'us-east-1',
@@ -12,7 +12,7 @@ mergeIntoAWSConfig(AWS, {
   retryDelayOptions: {
     customBackoff(retryCount) {
       if (retryCount > 3) {
-        console.log("AWS SERVICE RETRY COUNT", retryCount)
+        console.log('AWS SERVICE RETRY COUNT', retryCount)
         console.warn(`are you sure localstack is up? To start it, run: npm run localstack:start`)
       }
 
@@ -22,9 +22,9 @@ mergeIntoAWSConfig(AWS, {
   }
 })
 
-import test from "tape"
-import { createTestBot } from "../"
-import { loudAsync } from "../utils"
+import test from 'tape'
+import { createTestBot } from '../'
+import { loudAsync } from '../utils'
 
 const {
   aws,
@@ -34,14 +34,14 @@ const {
 const schema = {
   AttributeDefinitions: [
     {
-      AttributeName: "id",
-      AttributeType: "S"
+      AttributeName: 'id',
+      AttributeType: 'S'
     }
   ],
   KeySchema: [
     {
-      AttributeName: "id",
-      KeyType: "HASH"
+      AttributeName: 'id',
+      KeyType: 'HASH'
     }
   ],
   ProvisionedThroughput: {
@@ -50,18 +50,18 @@ const schema = {
   },
   StreamSpecification: {
     StreamEnabled: true,
-    StreamViewType: "NEW_AND_OLD_IMAGES"
+    StreamViewType: 'NEW_AND_OLD_IMAGES'
   },
-  TableName: "TestTable"
+  TableName: 'TestTable'
 }
 
 test(
-  "batch put",
+  'batch put',
   loudAsync(async t => {
     // const table = await recreateTable(schema)
     const sandbox = sinon.createSandbox()
     const { documentclient } = aws
-    const stub = sandbox.stub(aws.documentclient, "batchWrite").callsFake(({ RequestItems }) => {
+    const stub = sandbox.stub(aws.documentclient, 'batchWrite').callsFake(({ RequestItems }) => {
       let promise
       let items
       for (let TableName in RequestItems) {

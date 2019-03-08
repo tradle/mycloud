@@ -1,11 +1,11 @@
-import _ from "lodash"
-import AWS from "aws-sdk"
-import { Logger } from "../types"
-import { genOptionsBlock } from "./gen-cors-options-block"
+import _ from 'lodash'
+import AWS from 'aws-sdk'
+import { Logger } from '../types'
+import { genOptionsBlock } from './gen-cors-options-block'
 
-const X_INTEGRATION = "x-amazon-apigateway-integration"
-const ALLOW_HEADERS = "method.response.header.Access-Control-Allow-Headers"
-const METHODS = ["GET", "HEAD", "DELETE", "POST", "PUT", "PATCH"]
+const X_INTEGRATION = 'x-amazon-apigateway-integration'
+const ALLOW_HEADERS = 'method.response.header.Access-Control-Allow-Headers'
+const METHODS = ['GET', 'HEAD', 'DELETE', 'POST', 'PUT', 'PATCH']
 
 interface SwaggerOpts {
   apigateway: AWS.APIGateway
@@ -24,10 +24,10 @@ export class Swagger {
     const { body } = await this.opts.apigateway
       .getExport({
         restApiId: this.opts.apiId,
-        exportType: "swagger",
-        accepts: "application/json",
+        exportType: 'swagger',
+        accepts: 'application/json',
         parameters: {
-          extensions: "integrations"
+          extensions: 'integrations'
         },
         stageName: this.opts.stage
       })
@@ -42,8 +42,8 @@ export class Swagger {
     // }
 
     const original = _.cloneDeep(swagger)
-    this.opts.logger.debug("setting binary mime types")
-    swagger["x-amazon-apigateway-binary-media-types"] = ["*/*"]
+    this.opts.logger.debug('setting binary mime types')
+    swagger['x-amazon-apigateway-binary-media-types'] = ['*/*']
     for (let path in swagger.paths) {
       let pathConf = swagger.paths[path]
       // TODO: check methods against serverless.yml
@@ -55,7 +55,7 @@ export class Swagger {
         if (integrationOpts) {
           if (!integrationOpts.contentHandling) {
             // THE SKELETON KEY
-            integrationOpts.contentHandling = "CONVERT_TO_TEXT"
+            integrationOpts.contentHandling = 'CONVERT_TO_TEXT'
           }
 
           integrationOpts.responses.default.responseParameters[ALLOW_HEADERS] =
@@ -70,7 +70,7 @@ export class Swagger {
     }
 
     if (_.isEqual(original, swagger)) {
-      this.opts.logger.debug("skipping update, remote swagger is already up to date")
+      this.opts.logger.debug('skipping update, remote swagger is already up to date')
       return false
     }
 
@@ -82,7 +82,7 @@ export class Swagger {
     await this.opts.apigateway
       .putRestApi({
         restApiId: this.opts.apiId,
-        mode: "merge",
+        mode: 'merge',
         body: JSON.stringify(swagger)
       })
       .promise()

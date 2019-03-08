@@ -1,8 +1,8 @@
-import _ from "lodash"
-import fetch from "node-fetch"
-import FormData from "form-data"
-import buildResource from "@tradle/build-resource"
-import constants from "@tradle/constants"
+import _ from 'lodash'
+import fetch from 'node-fetch'
+import FormData from 'form-data'
+import buildResource from '@tradle/build-resource'
+import constants from '@tradle/constants'
 import {
   Bot,
   Logger,
@@ -11,26 +11,26 @@ import {
   IPBApp,
   IPluginLifecycleMethods,
   ValidatePluginConf
-} from "../types"
-import { getLatestForms, getStatusMessageForCheck } from "../utils"
-import Errors from "../../errors"
-import { post } from "../../utils"
+} from '../types'
+import { getLatestForms, getStatusMessageForCheck } from '../utils'
+import Errors from '../../errors'
+import { post } from '../../utils'
 
 const { TYPE, TYPES } = constants
 const { VERIFICATION } = TYPES
-const SELFIE = "tradle.Selfie"
-const PHOTO_ID = "tradle.PhotoID"
-const FACIAL_RECOGNITION = "tradle.FacialRecognitionCheck"
-const DISPLAY_NAME = "Face Recognition"
-const PROVIDER = "NtechLab"
+const SELFIE = 'tradle.Selfie'
+const PHOTO_ID = 'tradle.PhotoID'
+const FACIAL_RECOGNITION = 'tradle.FacialRecognitionCheck'
+const DISPLAY_NAME = 'Face Recognition'
+const PROVIDER = 'NtechLab'
 const NTECH_API_RESOURCE = {
-  [TYPE]: "tradle.API",
+  [TYPE]: 'tradle.API',
   name: PROVIDER
 }
 
 const REQUEST_TIMEOUT = 10000
 
-export const name = "facial-recognition"
+export const name = 'facial-recognition'
 
 type FacialRecognitionConf = {
   token: string
@@ -62,17 +62,17 @@ export class FacialRecognitionAPI {
       filter: {
         EQ: {
           [TYPE]: FACIAL_RECOGNITION,
-          "application._permalink": application._permalink,
+          'application._permalink': application._permalink,
           provider: PROVIDER,
-          "selfie._link": selfieStub.link,
-          "photoID._link": photoIDStub.link
+          'selfie._link': selfieStub.link,
+          'photoID._link': photoIDStub.link
         }
       }
     })
     // debugger
     if (items.length) return
 
-    this.logger.debug("Face recognition both selfie and photoId ready")
+    this.logger.debug('Face recognition both selfie and photoId ready')
     const tasks = [photoIDStub, selfieStub].map(async stub => {
       const object = await this.bot.getResource(stub)
       return this.bot.embeds.presignEmbeddedMedia({
@@ -123,26 +123,26 @@ export class FacialRecognitionAPI {
     // debugger
     // call whatever API with whatever params
     const form = new FormData()
-    form.append("photo1", selfie)
-    form.append("photo2", photoID)
-    form.append("threshold", this.conf.threshold)
+    form.append('photo1', selfie)
+    form.append('photo2', photoID)
+    form.append('threshold', this.conf.threshold)
     try {
-      const res = await post(this.conf.url + "/v1/verify", form, {
+      const res = await post(this.conf.url + '/v1/verify', form, {
         headers: {
-          Authorization: "Token " + this.conf.token
+          Authorization: 'Token ' + this.conf.token
         },
         timeout: REQUEST_TIMEOUT
       })
 
       rawData = await res.json() // whatever is returned may be not JSON
-      this.logger.debug("Face recognition check, match:", rawData)
+      this.logger.debug('Face recognition check, match:', rawData)
     } catch (err) {
       debugger
       error = `Check was not completed for "${buildResource.title({
         models,
         resource: photoID
       })}": ${err.message}`
-      this.logger.error("Face recognition check error", err)
+      this.logger.error('Face recognition check error', err)
       return { status: false, rawData: {}, error }
     }
 
@@ -187,7 +187,7 @@ export class FacialRecognitionAPI {
   */
 
     if (rawData.code) {
-      this.logger.error("Face recognition check failed", {
+      this.logger.error('Face recognition check failed', {
         param: rawData.param,
         reason: rawData.reason
       })
@@ -207,13 +207,13 @@ export class FacialRecognitionAPI {
     let models = this.bot.models
     let checkStatus, message
     let photoID_displayName = buildResource.title({ models, resource: photoID })
-    if (error) checkStatus = "error"
-    else if (status !== true) checkStatus = "fail"
-    else checkStatus = "pass"
+    if (error) checkStatus = 'error'
+    else if (status !== true) checkStatus = 'fail'
+    else checkStatus = 'pass'
     let checkR: any = {
       status: checkStatus,
       provider: PROVIDER,
-      aspects: "facial similarity",
+      aspects: 'facial similarity',
       rawData,
       application,
       selfie,
@@ -235,10 +235,10 @@ export class FacialRecognitionAPI {
 
   public createVerification = async ({ user, application, photoID }) => {
     const method: any = {
-      [TYPE]: "tradle.APIBasedVerificationMethod",
+      [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: _.clone(NTECH_API_RESOURCE),
       aspect: DISPLAY_NAME,
-      reference: [{ queryId: "n/a" }]
+      reference: [{ queryId: 'n/a' }]
     }
 
     const verification = this.bot
@@ -260,8 +260,8 @@ export class FacialRecognitionAPI {
 }
 
 const DEFAULT_CONF = {
-  url: "http://ec2-18-217-36-56.us-east-2.compute.amazonaws.com:8000",
-  threshold: "strict"
+  url: 'http://ec2-18-217-36-56.us-east-2.compute.amazonaws.com:8000',
+  threshold: 'strict'
 }
 
 export const createPlugin: CreatePlugin<FacialRecognitionAPI> = (components, pluginOpts) => {
@@ -282,8 +282,8 @@ export const createPlugin: CreatePlugin<FacialRecognitionAPI> = (components, plu
       if (req.skipChecks) return
       if (!application) return
       let productId = application.requestFor
-      //let { products } = conf
-      //if (!products  ||  !products[productId])
+      // let { products } = conf
+      // if (!products  ||  !products[productId])
       //  return
 
       const result = await facialRecognition.getSelfieAndPhotoID(application)
@@ -325,12 +325,12 @@ export const createPlugin: CreatePlugin<FacialRecognitionAPI> = (components, plu
 
 export const validateConf: ValidatePluginConf = async opts => {
   const pluginConf = opts.pluginConf as FacialRecognitionConf
-  if (typeof pluginConf.token !== "string") throw new Error('expected "string" token')
-  if (typeof pluginConf.url !== "string") throw new Error('expected "string" url')
-  if (typeof pluginConf.threshold !== "undefined" && typeof pluginConf.threshold !== "string") {
+  if (typeof pluginConf.token !== 'string') throw new Error('expected "string" token')
+  if (typeof pluginConf.url !== 'string') throw new Error('expected "string" url')
+  if (typeof pluginConf.threshold !== 'undefined' && typeof pluginConf.threshold !== 'string') {
     throw new Error('expected "string" threshold')
   }
-  if (pluginConf.threshold === "strict") {
+  if (pluginConf.threshold === 'strict') {
     // check the value to be 'strict','low','medium' or number 0 < x < 1
   }
 }

@@ -1,10 +1,10 @@
-import { AWSConfig, getLocalstackConfig } from "@tradle/aws-common-utils"
-import merge from "lodash/merge"
+import { AWSConfig, getLocalstackConfig } from '@tradle/aws-common-utils'
+import merge from 'lodash/merge'
 
-interface CreateConfigOpts { 
+interface CreateConfigOpts {
   region: string
-  local: boolean 
-  iotEndpoint: string 
+  local: boolean
+  iotEndpoint: string
 }
 
 export const createConfig = ({ region, local, iotEndpoint }: CreateConfigOpts): AWSConfig => {
@@ -12,7 +12,7 @@ export const createConfig = ({ region, local, iotEndpoint }: CreateConfigOpts): 
     maxRetries: 6,
     region,
     s3: {
-      signatureVersion: "v4"
+      signatureVersion: 'v4'
     },
     iotdata: {
       httpOptions: {

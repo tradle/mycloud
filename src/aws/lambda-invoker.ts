@@ -1,11 +1,11 @@
-import { LambdaClient } from "../types"
+import { LambdaClient } from '../types'
 import {
   DEFAULT_WARMUP_EVENT,
   WARMUP_FUNCTION,
   REINITIALIZE_CONTAINERS_FUNCTION,
   SEALPENDING_FUNCTION,
   POLLCHAIN_FUNCTION
-} from "../constants"
+} from '../constants'
 
 export interface LambdaInvokerOpts {
   client: LambdaClient
@@ -22,7 +22,7 @@ export class LambdaInvoker {
       name: REINITIALIZE_CONTAINERS_FUNCTION,
       sync: false,
       arg: {
-        name: "reinitializeContainers",
+        name: 'reinitializeContainers',
         input: functions
       }
     })
@@ -32,7 +32,7 @@ export class LambdaInvoker {
     return await this.client.invoke({
       name: WARMUP_FUNCTION,
       arg: {
-        name: "warmup",
+        name: 'warmup',
         input: event
       },
       sync: false
@@ -44,7 +44,7 @@ export class LambdaInvoker {
       name: SEALPENDING_FUNCTION,
       sync: true,
       arg: {
-        name: "sealpending"
+        name: 'sealpending'
       }
     })
   }
@@ -54,7 +54,7 @@ export class LambdaInvoker {
       name: SEALPENDING_FUNCTION,
       sync: false,
       arg: {
-        name: "sealpending"
+        name: 'sealpending'
       }
     })
   }
@@ -64,7 +64,7 @@ export class LambdaInvoker {
       name: POLLCHAIN_FUNCTION,
       sync: true,
       arg: {
-        name: "pollchain"
+        name: 'pollchain'
       }
     })
   }
@@ -74,7 +74,7 @@ export class LambdaInvoker {
       name: POLLCHAIN_FUNCTION,
       sync: false,
       arg: {
-        name: "pollchain"
+        name: 'pollchain'
       }
     })
   }

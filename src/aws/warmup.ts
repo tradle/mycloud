@@ -5,10 +5,10 @@ import {
   WARMUP_SOURCE_NAME,
   DEFAULT_WARMUP_EVENT,
   unitToMillis
-} from "../constants"
+} from '../constants'
 
-import { LambdaClient, Logger } from "../types"
-import PRICING from "./lambda-pricing"
+import { LambdaClient, Logger } from '../types'
+import PRICING from './lambda-pricing'
 
 interface StringToConf {
   [x: string]: any
@@ -29,7 +29,7 @@ const DEFAULT_CONCURRENCY = 1
 export class LambdaWarmUp {
   constructor(private opts: LambdaWarmUpOpts) {}
   public normalizeWarmUpConf = warmUpConf => {
-    if (typeof warmUpConf === "string") {
+    if (typeof warmUpConf === 'string') {
       return {
         functionName: warmUpConf
       }
@@ -121,7 +121,7 @@ export class LambdaWarmUp {
   }
 
   public warmUpFunction = async warmUpConf => {
-    const { functionName, concurrency, alias = "$LATEST" } = warmUpConf
+    const { functionName, concurrency, alias = '$LATEST' } = warmUpConf
     const opts = {
       name: functionName,
       sync: true,
@@ -140,14 +140,14 @@ export class LambdaWarmUp {
           const resp = await this.opts.lambda.invoke(opts)
           if (!resp) {
             return {
-              error: "received empty response"
+              error: 'received empty response'
             }
           }
 
           let { headers, body, isBase64Encoded } = resp
           body =
             headers && body && isBase64Encoded
-              ? JSON.parse(new Buffer(body, "base64").toString())
+              ? JSON.parse(new Buffer(body, 'base64').toString())
               : resp
 
           this.opts.logger.info(`Warm Up Invoke Success: ${functionName}`, body)
@@ -195,4 +195,4 @@ const getMemorySize = (conf, provider) => {
   return conf.memorySize || provider.memorySize || 128
 }
 
-const getFunctionNameFromArn = (arn: string) => arn.slice(arn.lastIndexOf("function:") + 9)
+const getFunctionNameFromArn = (arn: string) => arn.slice(arn.lastIndexOf('function:') + 9)

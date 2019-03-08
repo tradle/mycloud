@@ -1,6 +1,6 @@
-import pick from "lodash/pick"
-import Embed from "@tradle/embed"
-import { S3Client } from "@tradle/aws-s3-client"
+import pick from 'lodash/pick'
+import Embed from '@tradle/embed'
+import { S3Client } from '@tradle/aws-s3-client'
 import {
   EmbedResolver,
   Logger,
@@ -8,8 +8,8 @@ import {
   ITradleObject,
   ParsedMediaEmbed,
   ParsedRelocatedEmbedUrl
-} from "../types"
-import { download } from "../utils"
+} from '../types'
+import { download } from '../utils'
 
 interface CreateResolverOpts {
   client: S3Client
@@ -46,7 +46,7 @@ export class S3EmbedResolver implements EmbedResolver {
     Embed.presignUrls({
       object,
       sign: ({ bucket, key, path }) => {
-        this.opts.logger.debug("pre-signing url for", {
+        this.opts.logger.debug('pre-signing url for', {
           // @ts-ignore
           type: object._t,
           property: path
@@ -84,7 +84,7 @@ export class S3EmbedResolver implements EmbedResolver {
   }
 
   public resolveOne = async (embed: ParsedS3EmbedUrl): Promise<any> => {
-    this.opts.logger.debug(`resolving embedded media`, pick(embed, ["url", "key", "bucket"]))
+    this.opts.logger.debug(`resolving embedded media`, pick(embed, ['url', 'key', 'bucket']))
 
     const { presigned, key, bucket } = embed
     if (presigned) {
@@ -92,7 +92,7 @@ export class S3EmbedResolver implements EmbedResolver {
     }
 
     const { Body, ContentType } = await this.opts.client.get({ key, bucket })
-    if (ContentType === "binary/octet-stream") {
+    if (ContentType === 'binary/octet-stream') {
       throw new Error(`received embed with incorrect mime type: ${ContentType}`)
     }
 

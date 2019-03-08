@@ -1,20 +1,20 @@
 import './globals'
 // import './console'
 
-import clone from "lodash/clone"
-import yn from "yn"
-import debug from "debug"
+import clone from 'lodash/clone'
+import yn from 'yn'
+import debug from 'debug'
 import {
   IDebug,
   Lambda,
   IRequestContext,
   CloudName,
   IBlockchainIdentifier,
-  SealingMode,
+  SealingMode
 } from './types'
 import { WARMUP_SOURCE_NAME, ROOT_LOGGING_NAMESPACE } from './constants'
 import Logger, { Level } from './logger'
-import { parseArn } from './utils';
+import { parseArn } from './utils'
 
 export default class Env {
   public lambda: Lambda
@@ -89,25 +89,25 @@ export default class Env {
     } = props
 
     if (AWS_LAMBDA_FUNCTION_NAME) {
-      props.CLOUD = "aws"
+      props.CLOUD = 'aws'
     }
 
     props.IS_LOCAL = yn(IS_LOCAL) || yn(IS_OFFLINE)
     props.IS_EMULATED = yn(IS_OFFLINE)
-    props.IS_TESTING = NODE_ENV === "test"
+    props.IS_TESTING = NODE_ENV === 'test'
     props.FUNCTION_NAME = AWS_LAMBDA_FUNCTION_NAME
       ? AWS_LAMBDA_FUNCTION_NAME.slice(STACK_NAME.length + 1)
-      : "unknown"
+      : 'unknown'
 
     // props.MEMORY_SIZE = isNaN(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)
     //   ? 512
     //   : Number(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)
 
     this.logger = new Logger({
-      namespace: props.IS_TESTING ? "" : ROOT_LOGGING_NAMESPACE,
+      namespace: props.IS_TESTING ? '' : ROOT_LOGGING_NAMESPACE,
       // writer: global.console,
       writer: props.IS_TESTING ? createTestingLogger(ROOT_LOGGING_NAMESPACE) : global.console,
-      outputFormat: props.DEBUG_FORMAT || "text",
+      outputFormat: props.DEBUG_FORMAT || 'text',
       context: {},
       level: 'DEBUG_LEVEL' in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG
       // writer: console,
@@ -181,7 +181,7 @@ export default class Env {
   }
 
   public getStackResourceName = (name: string): string => {
-    const { STACK_RESOURCE_PREFIX = "" } = this
+    const { STACK_RESOURCE_PREFIX = '' } = this
     return name.startsWith(STACK_RESOURCE_PREFIX) ? name : `${STACK_RESOURCE_PREFIX}${name}`
   }
 
@@ -192,17 +192,17 @@ export default class Env {
   }
 
   private _recalc = (props: any): void => {
-    if ("STACK_STAGE" in props) {
-      this.DEV = !this.STACK_STAGE.startsWith("prod")
+    if ('STACK_STAGE' in props) {
+      this.DEV = !this.STACK_STAGE.startsWith('prod')
     }
 
-    if ("NO_TIME_TRAVEL" in props) {
+    if ('NO_TIME_TRAVEL' in props) {
       this.NO_TIME_TRAVEL = yn(props.NO_TIME_TRAVEL)
     }
 
     this.REGION = this.AWS_REGION
-    if ("BLOCKCHAIN" in props) {
-      const [blockchain, networkName] = props.BLOCKCHAIN.split(":")
+    if ('BLOCKCHAIN' in props) {
+      const [blockchain, networkName] = props.BLOCKCHAIN.split(':')
       this.BLOCKCHAIN = { blockchain, networkName }
     }
 
@@ -213,7 +213,7 @@ export default class Env {
     this.STACK_RESOURCE_PREFIX = `${this.STACK_NAME}-`
     this.IOT_CLIENT_ID_PREFIX = this.STACK_RESOURCE_PREFIX
     this.IOT_PARENT_TOPIC = this.STACK_NAME
-    if ("SEAL_BATCHING_PERIOD" in props) {
+    if ('SEAL_BATCHING_PERIOD' in props) {
       this.SEAL_BATCHING_PERIOD = parseInt(props.SEAL_BATCHING_PERIOD, 10)
     }
 
@@ -226,7 +226,7 @@ export default class Env {
 export { Env }
 
 const createTestingLogger = (name?: string) => {
-  const prefix = name ? name + ":" : ""
+  const prefix = name ? name + ':' : ''
   return {
     log: debug(`${prefix}`),
     error: debug(`ERROR:${prefix}`),

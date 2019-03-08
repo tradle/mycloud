@@ -1,6 +1,6 @@
-import parse from "yargs-parser"
-import { TYPE } from "@tradle/constants"
-import { randomString } from "../crypto"
+import parse from 'yargs-parser'
+import { TYPE } from '@tradle/constants'
+import { randomString } from '../crypto'
 
 import {
   IConfComponents,
@@ -18,16 +18,16 @@ import {
   KeyValueStore,
   Applications,
   Friends
-} from "./types"
+} from './types'
 
-import Errors from "../errors"
-import { Commands } from "./commands"
-import Logger from "../logger"
+import Errors from '../errors'
+import { Commands } from './commands'
+import Logger from '../logger'
 
 const prettify = obj => JSON.stringify(obj, null, 2)
 const COMMAND_REGEX = /^\/?([^\s]+)\s*(.*)?\s*$/
-const FORBIDDEN_MESSAGE = "Who do you think you are, the admin? This attempt will be logged."
-const NOT_FOUND_MESSAGE = "command not found"
+const FORBIDDEN_MESSAGE = 'Who do you think you are, the admin? This attempt will be logged.'
+const NOT_FOUND_MESSAGE = 'command not found'
 const SUDO = {
   employee: true,
   allowed: true
@@ -56,7 +56,7 @@ export const DEFAULT_ERROR_MESSAGE = `sorry, I don't understand. To see the list
 export const COMMANDS_NAMES = Commands.keys()
 export const EMPLOYEE_COMMANDS_NAMES = Commands.keys().filter(key => !Commands.get(key).adminOnly)
 
-export const CUSTOMER_COMMANDS_NAMES = ["help", "listproducts", "forgetme", "tours"]
+export const CUSTOMER_COMMANDS_NAMES = ['help', 'listproducts', 'forgetme', 'tours']
 
 CUSTOMER_COMMANDS_NAMES.forEach(name => {
   const command = Commands.get(name)
@@ -164,7 +164,7 @@ export class Commander {
     // const message = typeof result === 'string' ? result : json2yaml(result)
     if (!result) return
 
-    const message = typeof result === "string" ? result : prettify(result)
+    const message = typeof result === 'string' ? result : prettify(result)
     await this.sendSimpleMessage({ req, to, message })
   }
 
@@ -185,7 +185,7 @@ export class Commander {
       req,
       to: to || req.user,
       object: {
-        [TYPE]: "tradle.SimpleMessage",
+        [TYPE]: 'tradle.SimpleMessage',
         message
       }
     })
@@ -324,7 +324,7 @@ const preParseCommand = (command: string) => {
     throw new Error(`received malformed command: ${command}`)
   }
 
-  const [commandName, argsStr = ""] = match.slice(1)
+  const [commandName, argsStr = ''] = match.slice(1)
   return { commandName, argsStr }
 }
 
