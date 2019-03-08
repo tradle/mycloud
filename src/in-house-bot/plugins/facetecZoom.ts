@@ -1,5 +1,6 @@
 // @ts-ignore
 import FormData from 'form-data'
+import DataURI from 'strong-data-uri'
 import _ from 'lodash'
 import { buildResourceStub } from '@tradle/build-resource'
 import constants from '@tradle/constants'
@@ -45,13 +46,11 @@ interface IFacetecZoomCheck {
 }
 
 interface IFacetecZoomCheckConf {
-    appToken: string,
-    serverToken: string
+    appToken: string
 }
 
 const DEFAULT_CONF = {
-    appToken: '',
-    serverToken: ''
+    appToken: ''
 }
 
 export class IFacetecZoomCheckAPI {
@@ -68,41 +67,44 @@ export class IFacetecZoomCheckAPI {
 
     selfieLiveness = async (form, application) => {
         let rawData
-        let error
+        let message
         const models = this.bot.models
         await this.bot.resolveEmbeds(form)
         let facemap = form.facemap.url
         let sessionId = form.sessionId
-    
-        const formData = new FormData();
-        formData.append("sessionId", sessionId);
-        formData.append("facemap", facemap);
+        let buf = DataURI.decode(facemap)
+
+        const dataToUpload = new FormData()
+	      dataToUpload.append('sessionId', sessionId)
+	      dataToUpload.append('facemap', buf, {
+		        contentType: 'application/zip',
+		        filename: 'blob'
+	      })
+
         try {
-          const res = await post(API_URL + '/liveness', form, {
-            headers: {
+          const res = await post(API_URL + '/liveness', dataToUpload, {
+              headers: {
                 'X-App-Token': this.conf.appToken,
-                'X-Server-Token': this.conf.serverToken
-            },
-            timeout: REQUEST_TIMEOUT,
+              },
+              timeout: REQUEST_TIMEOUT,
           })
     
-          rawData = await res.json() // whatever is returned may be not JSON
-          this.logger.debug('Liveness selfie check:', rawData)
+          rawData = sanitize(res).sanitized
+          this.logger.debug('Liveness selfie check:', JSON.stringify(rawData, null, 2))
         } catch (err) {
           debugger
-          error = `Check was not completed for "${buildResource.title({models, resource: facemap})}": ${err.message}`
+          message = `Check was not completed for "${buildResource.title({models, resource: facemap})}": ${err.message}`
           this.logger.error('Liveness selfie check error', err)
-          return { status: 'fail', rawData: {}, error }
+          return { status: 'fail', rawData: {}, message }
         }
-
+        message = rawData.meta.message
         if (rawData.data.livenessResult !== 'passed') {
             this.logger.error('selfie liveness check negative', rawData.data)
             // error happens
-            error = rawData.data.message
-            return { status: 'fail', rawData, error }
+            return { status: 'fail', rawData, message }
         }
       
-        return { status: 'pass', rawData, error }
+        return { status: 'pass', rawData, message }
     }
     
     createCheck = async ({ application, status, form }: IFacetecZoomCheck) => {
@@ -113,13 +115,16 @@ export class IFacetecZoomCheckAPI {
           application: buildResourceStub({resource: application, models: this.bot.models}),
           dateChecked: Date.now(),
           aspects: ASPECTS,
+          livenessScore: 0,
           form
         }
         resource.message = getStatusMessageForCheck({models: this.bot.models, check: resource})
         if (status.message)
           resource.resultDetails = status.message
-        if (status.rawData)
+        if (status.rawData) {
           resource.rawData = status.rawData
+          resource.livenessScore = status.rawData.data.livenessScore
+        }  
     
         this.logger.debug(`Creating ${PROVIDER} check for ${ASPECTS}`);
         const check = await this.bot.draft({ type: TRUEFACE_CHECK })
@@ -195,17 +200,13 @@ debugger
 
 export const validateConf:ValidatePluginConf = async (opts) => {
     const pluginConf = opts.pluginConf as IFacetecZoomCheckConf
-    const { appToken, serverToken } = pluginConf
+    const { appToken } = pluginConf
   
     let err = ''
     if (!appToken)
       err = '\nExpected "appToken".'
     else if (typeof appToken !== 'string')
       err += '\nExpected "appToken" to be a string.'
-    else if (!serverToken)
-      err = '\nExpected "serverToken".'
-    else if (typeof serverToken !== 'string')
-      err += '\nExpected "serverToken" to be a string.'  
     if (err.length)
       throw new Error(err)
 }
