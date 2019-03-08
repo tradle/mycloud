@@ -127,13 +127,9 @@ export class IFacetecZoomCheckAPI {
         }  
     
         this.logger.debug(`Creating ${PROVIDER} check for ${ASPECTS}`);
-        try {
         const check = await this.bot.draft({ type: TRUEFACE_CHECK })
             .set(resource)
             .signAndSave()
-        } catch (err) {
-          this.logger.debug(err)  
-        }    
         this.logger.debug(`Created ${PROVIDER} check for ${ASPECTS}`);
     }
 
