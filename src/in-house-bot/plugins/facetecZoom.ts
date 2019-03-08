@@ -1,5 +1,3 @@
-//var fs = require('fs');
-
 // @ts-ignore
 import FormData from 'form-data'
 import DataURI from 'strong-data-uri'
@@ -39,7 +37,7 @@ const PROVIDER = 'FaceTec, Inc.'
 
 const API_URL = 'https://api.zoomauth.com/api/v1/biometrics'
 
-const REQUEST_TIMEOUT = 40000
+const REQUEST_TIMEOUT = 10000
 
 interface IFacetecZoomCheck {
     application: IPBApp
@@ -69,18 +67,12 @@ export class IFacetecZoomCheckAPI {
 
     selfieLiveness = async (form, application) => {
         let rawData
-        let error
+        let message
         const models = this.bot.models
         await this.bot.resolveEmbeds(form)
         let facemap = form.facemap.url
         let sessionId = form.sessionId
         let buf = DataURI.decode(facemap)
-
-       // var fd =  fs.openSync('facemap.bin', 'w');
-       // fs.write(fd, buf, 0, buf.length, 0, function(err,written){
-
-       // });
-       // fs.writeFileSync('sessionid.txt', sessionId)
 
         const dataToUpload = new FormData()
 	      dataToUpload.append('sessionId', sessionId)
@@ -98,22 +90,21 @@ export class IFacetecZoomCheckAPI {
           })
     
           rawData = sanitize(res).sanitized
-          this.logger.debug('Liveness selfie check:', rawData)
+          this.logger.debug('Liveness selfie check:', JSON.stringify(rawData, null, 2))
         } catch (err) {
           debugger
-          error = `Check was not completed for "${buildResource.title({models, resource: facemap})}": ${err.message}`
+          message = `Check was not completed for "${buildResource.title({models, resource: facemap})}": ${err.message}`
           this.logger.error('Liveness selfie check error', err)
-          return { status: 'fail', rawData: {}, error }
+          return { status: 'fail', rawData: {}, message }
         }
-
+        message = rawData.meta.message
         if (rawData.data.livenessResult !== 'passed') {
             this.logger.error('selfie liveness check negative', rawData.data)
             // error happens
-            error = rawData.data.livenessResult
-            return { status: 'fail', rawData, error }
+            return { status: 'fail', rawData, message }
         }
       
-        return { status: 'pass', rawData, error }
+        return { status: 'pass', rawData, message }
     }
     
     createCheck = async ({ application, status, form }: IFacetecZoomCheck) => {
@@ -124,18 +115,25 @@ export class IFacetecZoomCheckAPI {
           application: buildResourceStub({resource: application, models: this.bot.models}),
           dateChecked: Date.now(),
           aspects: ASPECTS,
+          livenessScore: 0,
           form
         }
         resource.message = getStatusMessageForCheck({models: this.bot.models, check: resource})
         if (status.message)
           resource.resultDetails = status.message
-        if (status.rawData)
+        if (status.rawData) {
           resource.rawData = status.rawData
+          resource.livenessScore = status.rawData.data.livenessScore
+        }  
     
         this.logger.debug(`Creating ${PROVIDER} check for ${ASPECTS}`);
+        try {
         const check = await this.bot.draft({ type: TRUEFACE_CHECK })
             .set(resource)
             .signAndSave()
+        } catch (err) {
+          this.logger.debug(err)  
+        }    
         this.logger.debug(`Created ${PROVIDER} check for ${ASPECTS}`);
     }
 
