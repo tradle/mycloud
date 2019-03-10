@@ -4,6 +4,7 @@ import _ from 'lodash'
 import Promise from 'bluebird'
 import createCredstash from 'nodecredstash'
 import AWS from 'aws-sdk'
+import * as awsUtils from '@tradle/aws-common-utils'
 import {
   createClientCache,
   ClientCache,
@@ -485,7 +486,13 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
     const lambdaUtils = (bot.lambdaUtils = awsServices.lambda({ client: awsClientCache.lambda }))
     bot.lambdaInvoker = createLambdaInvoker({
-      client: lambdaUtils
+      client: lambdaUtils,
+      logger: logger.sub('lambda-invoker'),
+      lambdaPrefix: awsUtils.buildLambdaFunctionArn({
+        region: env.AWS_REGION,
+        accountId: env.AWS_ACCOUNT_ID,
+        name: env.STACK_RESOURCE_PREFIX,
+      })
     })
 
     bot.lambdaWarmup = createWarmup({

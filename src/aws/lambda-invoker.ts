@@ -1,4 +1,5 @@
-import { LambdaClient } from '../types'
+import { FirstArgument } from '@tradle/aws-common-utils'
+import { LambdaClient, Logger } from '../types'
 import {
   DEFAULT_WARMUP_EVENT,
   WARMUP_FUNCTION,
@@ -9,16 +10,27 @@ import {
 
 export interface LambdaInvokerOpts {
   client: LambdaClient
+  logger: Logger
+  lambdaPrefix?: string
 }
 
 export class LambdaInvoker {
-  private client: LambdaClient
-  constructor({ client }: LambdaInvokerOpts) {
-    this.client = client
+  constructor(private opts: LambdaInvokerOpts) {}
+
+  private getFunctionArn = (name: string) => (this.opts.lambdaPrefix || '') + name
+  public invoke = (opts: FirstArgument<LambdaClient['invoke']>) => {
+    const { logger, client } = this.opts
+    const arn = this.getFunctionArn(opts.name)
+    logger.debug('invoking', {
+      shortName: opts.name,
+      arn
+    })
+
+    return client.invoke({ ...opts, name: arn })
   }
 
   public scheduleReinitializeContainers = async (functions?: string[]) => {
-    return await this.client.invoke({
+    return await this.invoke({
       name: REINITIALIZE_CONTAINERS_FUNCTION,
       sync: false,
       arg: {
@@ -29,7 +41,7 @@ export class LambdaInvoker {
   }
 
   public scheduleWarmUp = async (event = DEFAULT_WARMUP_EVENT) => {
-    return await this.client.invoke({
+    return await this.invoke({
       name: WARMUP_FUNCTION,
       arg: {
         name: 'warmup',
@@ -40,7 +52,7 @@ export class LambdaInvoker {
   }
 
   public invokeSealPending = async () => {
-    return await this.client.invoke({
+    return await this.invoke({
       name: SEALPENDING_FUNCTION,
       sync: true,
       arg: {
@@ -50,7 +62,7 @@ export class LambdaInvoker {
   }
 
   public scheduleSealPending = async () => {
-    return await this.client.invoke({
+    return await this.invoke({
       name: SEALPENDING_FUNCTION,
       sync: false,
       arg: {
@@ -60,7 +72,7 @@ export class LambdaInvoker {
   }
 
   public invokePollChain = async () => {
-    return await this.client.invoke({
+    return await this.invoke({
       name: POLLCHAIN_FUNCTION,
       sync: true,
       arg: {
@@ -70,7 +82,7 @@ export class LambdaInvoker {
   }
 
   public schedulePollChain = async () => {
-    return await this.client.invoke({
+    return await this.invoke({
       name: POLLCHAIN_FUNCTION,
       sync: false,
       arg: {

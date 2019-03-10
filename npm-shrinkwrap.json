@@ -57,9 +57,9 @@
       "resolved": "https://registry.npmjs.org/@tradle/aws-client-factory/-/aws-client-factory-1.0.1-alpha.14.tgz"
     },
     "@tradle/aws-cloudformation-client": {
-      "version": "1.0.1-alpha.14",
+      "version": "1.0.1-alpha.15",
       "from": "@tradle/aws-cloudformation-client@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-cloudformation-client/-/aws-cloudformation-client-1.0.1-alpha.14.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-cloudformation-client/-/aws-cloudformation-client-1.0.1-alpha.15.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -69,9 +69,9 @@
       }
     },
     "@tradle/aws-cloudwatch-client": {
-      "version": "1.0.1-alpha.14",
+      "version": "1.0.1-alpha.15",
       "from": "@tradle/aws-cloudwatch-client@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-cloudwatch-client/-/aws-cloudwatch-client-1.0.1-alpha.14.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-cloudwatch-client/-/aws-cloudwatch-client-1.0.1-alpha.15.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -81,9 +81,9 @@
       }
     },
     "@tradle/aws-combo": {
-      "version": "1.0.1-alpha.14",
+      "version": "1.0.1-alpha.15",
       "from": "@tradle/aws-combo@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-combo/-/aws-combo-1.0.1-alpha.14.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-combo/-/aws-combo-1.0.1-alpha.15.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -93,9 +93,9 @@
       }
     },
     "@tradle/aws-common-utils": {
-      "version": "1.0.1-alpha.12",
+      "version": "1.0.1-alpha.15",
       "from": "@tradle/aws-common-utils@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-common-utils/-/aws-common-utils-1.0.1-alpha.12.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-common-utils/-/aws-common-utils-1.0.1-alpha.15.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -125,9 +125,9 @@
       }
     },
     "@tradle/aws-iam-client": {
-      "version": "1.0.1-alpha.14",
+      "version": "1.0.1-alpha.15",
       "from": "@tradle/aws-iam-client@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-iam-client/-/aws-iam-client-1.0.1-alpha.14.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-iam-client/-/aws-iam-client-1.0.1-alpha.15.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -137,9 +137,9 @@
       }
     },
     "@tradle/aws-lambda-client": {
-      "version": "1.0.1-alpha.14",
+      "version": "1.0.1-alpha.15",
       "from": "@tradle/aws-lambda-client@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-lambda-client/-/aws-lambda-client-1.0.1-alpha.14.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-lambda-client/-/aws-lambda-client-1.0.1-alpha.15.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -149,9 +149,9 @@
       }
     },
     "@tradle/aws-s3-client": {
-      "version": "1.0.1-alpha.14",
+      "version": "1.0.1-alpha.15",
       "from": "@tradle/aws-s3-client@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-s3-client/-/aws-s3-client-1.0.1-alpha.14.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-s3-client/-/aws-s3-client-1.0.1-alpha.15.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -161,9 +161,9 @@
       }
     },
     "@tradle/aws-sns-client": {
-      "version": "1.0.1-alpha.14",
+      "version": "1.0.1-alpha.15",
       "from": "@tradle/aws-sns-client@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-sns-client/-/aws-sns-client-1.0.1-alpha.14.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-sns-client/-/aws-sns-client-1.0.1-alpha.15.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -1008,7 +1008,8 @@
     "argparse": {
       "version": "1.0.10",
       "from": "argparse@>=1.0.7 <2.0.0",
-      "resolved": "https://registry.npmjs.org/argparse/-/argparse-1.0.10.tgz"
+      "resolved": "https://registry.npmjs.org/argparse/-/argparse-1.0.10.tgz",
+      "dev": true
     },
     "arr-diff": {
       "version": "4.0.0",
@@ -5839,7 +5840,8 @@
         "esprima": {
           "version": "4.0.1",
           "from": "esprima@>=4.0.0 <5.0.0",
-          "resolved": "https://registry.npmjs.org/esprima/-/esprima-4.0.1.tgz"
+          "resolved": "https://registry.npmjs.org/esprima/-/esprima-4.0.1.tgz",
+          "dev": true
         }
       }
     },
@@ -10005,7 +10007,8 @@
     "sprintf-js": {
       "version": "1.0.3",
       "from": "sprintf-js@>=1.0.2 <1.1.0",
-      "resolved": "https://registry.npmjs.org/sprintf-js/-/sprintf-js-1.0.3.tgz"
+      "resolved": "https://registry.npmjs.org/sprintf-js/-/sprintf-js-1.0.3.tgz",
+      "dev": true
     },
     "sshpk": {
       "version": "1.14.1",
