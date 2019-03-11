@@ -1,7 +1,7 @@
 import { Lambda } from '../types'
 import { fromIot } from '../lambda'
 
-export const createLambda = (opts) => {
+export const createLambda = opts => {
   const lambda = fromIot(opts)
   return lambda.use(createMiddleware(lambda, opts))
 }
@@ -22,7 +22,7 @@ export const createMiddleware = (lambda: Lambda, opts) => {
 
     if (topic.startsWith('$aws/events/subscriptions/subscribed')) {
       await handleSubscribe(ctx, next)
-    } else if (topic.startsWith('$aws/events/subscriptions/unsubscribed')) {
+    } else if (topic.startsWith('$aws/events/presence/disconnected')) {
       await handleDisconnect(ctx, next)
     }
   }
