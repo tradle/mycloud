@@ -380,6 +380,7 @@ export default class Messaging {
       } else if (Errors.matches(err, Errors.ClientUnreachable)) {
         this.logger.debug('live delivery failed, client unreachable', { recipient })
         if (this.components.sendPushNotification) {
+          this.logger.debug('requesting push notification', { recipient })
           try {
             await this.sendPushNotification(recipient)
           } catch (pushErr) {
