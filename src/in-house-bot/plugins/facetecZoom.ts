@@ -30,8 +30,8 @@ const { sanitize } = validateResource.utils
 const { TYPE } = constants
 const { VERIFICATION } = constants.TYPES
 const SELFIE = 'tradle.Selfie'
-const TRUEFACE_CHECK = 'tradle.SpoofProofSelfieCheck'
-const ASPECTS = 'Spoof Detection'
+const SELFIE_SPOOF_PROOF_CHECK = 'tradle.SpoofProofSelfieCheck'
+const ASPECTS = 'Selfie fraud detection'
 
 const PROVIDER = 'FaceTec, Inc.'
 
@@ -88,7 +88,7 @@ export class IFacetecZoomCheckAPI {
               },
               timeout: REQUEST_TIMEOUT,
           })
-    
+
           rawData = sanitize(res).sanitized
           this.logger.debug('Liveness selfie check:', JSON.stringify(rawData, null, 2))
         } catch (err) {
@@ -103,13 +103,13 @@ export class IFacetecZoomCheckAPI {
             // error happens
             return { status: 'fail', rawData, message }
         }
-      
+
         return { status: 'pass', rawData, message }
     }
-    
+
     createCheck = async ({ application, status, form }: IFacetecZoomCheck) => {
         let resource:any = {
-          [TYPE]: TRUEFACE_CHECK,
+          [TYPE]: SELFIE_SPOOF_PROOF_CHECK,
           status: status.status,
           provider: PROVIDER,
           application: buildResourceStub({resource: application, models: this.bot.models}),
@@ -124,10 +124,10 @@ export class IFacetecZoomCheckAPI {
         if (status.rawData) {
           resource.rawData = status.rawData
           resource.livenessScore = status.rawData.data.livenessScore
-        }  
-    
+        }
+
         this.logger.debug(`Creating ${PROVIDER} check for ${ASPECTS}`);
-        const check = await this.bot.draft({ type: TRUEFACE_CHECK })
+        const check = await this.bot.draft({ type: SELFIE_SPOOF_PROOF_CHECK })
             .set(resource)
             .signAndSave()
         this.logger.debug(`Created ${PROVIDER} check for ${ASPECTS}`);
@@ -144,18 +144,18 @@ export class IFacetecZoomCheckAPI {
           reference: [{ queryId: 'report:' + rawData._id }],
           rawData: rawData
         }
-    
+
         const verification = this.bot.draft({ type: VERIFICATION })
            .set({
              document: form,
              method
            })
            .toJSON()
-    
+
         await this.applications.createVerification({ application, verification })
         this.logger.debug(`Created ${PROVIDER} verification for ${ASPECTS}`);
         if (application.checks)
-          await this.applications.deactivateChecks({ application, type: TRUEFACE_CHECK, form })
+          await this.applications.deactivateChecks({ application, type: SELFIE_SPOOF_PROOF_CHECK, form })
     }
 }
 
@@ -177,7 +177,7 @@ export const createPlugin: CreatePlugin<IFacetecZoomCheckAPI> = ({ bot, applicat
       const form = await bot.getResource(formStub)
 
 debugger
-      let toCheck = await doesCheckNeedToBeCreated({bot, type: TRUEFACE_CHECK, application, provider: PROVIDER, form, propertiesToCheck: ['scan'], prop: 'form'})
+      let toCheck = await doesCheckNeedToBeCreated({bot, type: SELFIE_SPOOF_PROOF_CHECK, application, provider: PROVIDER, form, propertiesToCheck: ['scan'], prop: 'form'})
       if (!toCheck) {
         logger.debug(`${PROVIDER}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
         return
@@ -195,13 +195,13 @@ debugger
     plugin,
     api: documentChecker
   }
-   
+
 }
 
 export const validateConf:ValidatePluginConf = async (opts) => {
     const pluginConf = opts.pluginConf as IFacetecZoomCheckConf
     const { appToken } = pluginConf
-  
+
     let err = ''
     if (!appToken)
       err = '\nExpected "appToken".'
