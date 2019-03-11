@@ -2,12 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0-rc.23](https://github.com/tradle/mycloud/compare/v2.4.0-rc.22...v2.4.0-rc.23) (2019-03-08)
-
-
-### Bug Fixes
-
-* dev setup with http.Agent ([9f9c56c](https://github.com/tradle/mycloud/commit/9f9c56c))
+# [2.4.0-rc.24](https://github.com/tradle/mycloud/compare/v2.4.0-rc.23...v2.4.0-rc.24) (2019-03-11)
 
 
 
