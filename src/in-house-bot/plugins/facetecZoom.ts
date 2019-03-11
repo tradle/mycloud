@@ -175,6 +175,10 @@ export const createPlugin: CreatePlugin<IFacetecZoomCheckAPI> = ({ bot, applicat
         return
 
       const form = await bot.getResource(formStub)
+      if (!form.facemap) {
+        logger.debug('skipping selfie without facemap', { link: formStub.link })
+        return
+      }
 
 debugger
       let toCheck = await doesCheckNeedToBeCreated({bot, type: SELFIE_SPOOF_PROOF_CHECK, application, provider: PROVIDER, form, propertiesToCheck: ['scan'], prop: 'form'})
