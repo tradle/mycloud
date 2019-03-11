@@ -265,5 +265,9 @@
       "git add"
     ]
   },
-  "standard-version": {}
+  "standard-version": {},
+  "nodemonConfig": {
+    "ignore": ["lib/test/*", "lib/scripts/*", "*.md"],
+    "delay": "2500"
+  }
 }
