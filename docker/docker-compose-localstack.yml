@@ -22,10 +22,10 @@ services:
       - /data
 
   localstack:
-    image: tradle/localstack:0.8.7
+    image: localstack/localstack:0.9.0
     restart: always
     ports:
-      - "4567-4583:4567-4583"
+      - "4567-4584:4567-4584"
       - "8080:8080"
     environment:
       - SERVICES=${SERVICES- }

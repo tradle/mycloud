@@ -10,17 +10,17 @@ import {
   IRequestContext,
   CloudName,
   IBlockchainIdentifier,
-  SealingMode,
+  SealingMode
 } from './types'
 import { WARMUP_SOURCE_NAME, ROOT_LOGGING_NAMESPACE } from './constants'
 import Logger, { Level } from './logger'
-import { parseArn } from './utils';
+import { parseArn } from './utils'
 
 export default class Env {
-  public lambda:Lambda
-  public reqCtx:IRequestContext
+  public lambda: Lambda
+  public reqCtx: IRequestContext
   // public TESTING:boolean
-  public DEV:boolean
+  public DEV: boolean
   // if either IS_LOCAL, or IS_OFFLINE is true
   // operations will be performed on local resources
   // is running locally (not in lambda)
@@ -33,21 +33,21 @@ export default class Env {
   public SERVERLESS_OFFLINE_PORT: number
   public SERVERLESS_OFFLINE_APIGW: string
   public S3_PUBLIC_FACING_HOST: string
-  public DISABLED:boolean
+  public DISABLED: boolean
 
   public CLOUD: CloudName
-  public AWS_REGION:string
-  public REGION:string
-  public AWS_LAMBDA_FUNCTION_NAME:string
-  public FUNCTION_NAME:string
+  public AWS_REGION: string
+  public REGION: string
+  public AWS_LAMBDA_FUNCTION_NAME: string
+  public FUNCTION_NAME: string
   // public MEMORY_SIZE:number
-  public DEBUG_FORMAT:string
-  public DEBUG_LEVEL:string
+  public DEBUG_FORMAT: string
+  public DEBUG_LEVEL: string
 
-  public STACK_RESOURCE_PREFIX:string
-  public STACK_STAGE:string
-  public STACK_NAME:string
-  public SERVERLESS_ALIAS?:string
+  public STACK_RESOURCE_PREFIX: string
+  public STACK_STAGE: string
+  public STACK_NAME: string
+  public SERVERLESS_ALIAS?: string
   public get STAGE() {
     return this.STACK_STAGE
   }
@@ -57,22 +57,22 @@ export default class Env {
   }
 
   public BLOCKCHAIN: IBlockchainIdentifier
-  public CORDA_API_URL?:string
-  public CORDA_API_KEY?:string
-  public NO_TIME_TRAVEL:boolean
-  public IOT_PARENT_TOPIC:string
-  public IOT_CLIENT_ID_PREFIX:string
-  public IOT_ENDPOINT:string
-  public logger:Logger
-  public debug:IDebug
-  public _X_AMZN_TRACE_ID:string
+  public CORDA_API_URL?: string
+  public CORDA_API_KEY?: string
+  public NO_TIME_TRAVEL: boolean
+  public IOT_PARENT_TOPIC: string
+  public IOT_CLIENT_ID_PREFIX: string
+  public IOT_ENDPOINT: string
+  public logger: Logger
+  public debug: IDebug
+  public _X_AMZN_TRACE_ID: string
   public AWS_ACCOUNT_ID: string
   public SESSION_TTL?: number
   public ABORT_REQUESTS_ON_FREEZE?: boolean
   public SEALING_MODE: SealingMode
   public SEAL_BATCHING_PERIOD: number
 
-  constructor(props:any) {
+  constructor(props: any) {
     props = clone(props)
     const {
       // STACK_RESOURCE_PREFIX,
@@ -136,13 +136,13 @@ export default class Env {
     return JSON.stringify(this)
   }
 
-  public sublogger = (namespace:string):Logger => {
+  public sublogger = (namespace: string): Logger => {
     // create sub-logger
     return this.logger.logger({ namespace })
   }
 
   // gets overridden when lambda is attached
-  public getRemainingTime = ():number => {
+  public getRemainingTime = (): number => {
     return this.lambda ? this.lambda.timeLeft : 0
   }
 
@@ -176,18 +176,22 @@ export default class Env {
     return { ...this.reqCtx }
   }
 
-  public getStackResourceShortName = (name: string):string => {
+  public getStackResourceShortName = (name: string): string => {
     return name.slice(this.STACK_RESOURCE_PREFIX.length)
   }
 
-  public getStackResourceName = (name: string):string => {
-    const { STACK_RESOURCE_PREFIX='' } = this
-    return name.startsWith(STACK_RESOURCE_PREFIX)
-      ? name
-      : `${STACK_RESOURCE_PREFIX}${name}`
+  public getStackResourceName = (name: string): string => {
+    const { STACK_RESOURCE_PREFIX = '' } = this
+    return name.startsWith(STACK_RESOURCE_PREFIX) ? name : `${STACK_RESOURCE_PREFIX}${name}`
   }
 
-  private _recalc = (props:any):void => {
+  public getLambdaArn = (lambdaShortName: string) => {
+    const env = this
+    const lambdaName = env.getStackResourceName(lambdaShortName)
+    return `arn:aws:lambda:${env.AWS_REGION}:${env.AWS_ACCOUNT_ID}:function:${lambdaName}`
+  }
+
+  private _recalc = (props: any): void => {
     if ('STACK_STAGE' in props) {
       this.DEV = !this.STACK_STAGE.startsWith('prod')
     }

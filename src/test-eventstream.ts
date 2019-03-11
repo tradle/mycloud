@@ -63,6 +63,7 @@ export const simulateEventStream = (bot: Bot) => {
     await next()
     const parsed = bot.events.parseTopic(event)
     if (parsed.batch) {
+      // tslint:disable-next-line no-console
       console.warn(`batch events not re-emitted async at this time`, event)
       return
     }
@@ -90,6 +91,7 @@ export const simulateEventStream = (bot: Bot) => {
     bot.tasks.add({
       name: `simulate:stream:${event}`,
       promise: fireAsync(event, ctx.event).catch(err => {
+        // tslint:disable-next-line no-console
         console.error(err.stack)
         throw err
       })

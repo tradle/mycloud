@@ -4,11 +4,23 @@ import Promise from 'bluebird'
 import AWS from 'aws-sdk'
 import { FindOpts, Filter } from '@tradle/dynamodb'
 import buildResource from '@tradle/build-resource'
+import { wrapBucket, Bucket } from '@tradle/aws-s3-client'
+import {
+  genSetDeliveryPolicyParams,
+  genCrossAccountPublishPermission
+} from '@tradle/aws-sns-client'
+import {
+  getResourcesByType,
+  getLambdaS3Keys,
+  setTemplateParameterDefaults,
+  lockParametersToDefaults
+} from '@tradle/aws-cloudformation-client'
 import { TYPE, SIG, ORG, unitToMillis } from '../constants'
 import { TRADLE } from './constants'
 import { randomStringWithLength } from '../crypto'
 import baseModels from '../models'
 import { Alerts } from './alerts'
+import { createRegionalS3Client, RegionalS3Client } from './serverless-regional-s3'
 import {
   Env,
   Bot,
@@ -36,9 +48,7 @@ import {
   MyCloudUpdateTemplate
 } from './types'
 
-import { genSetDeliveryPolicyParams, genCrossAccountPublishPermission } from '../sns-utils'
-import { StackUtils } from '../stack-utils'
-import { Bucket } from '../bucket'
+import { StackUtils } from '../aws/stack-utils'
 import { media } from './media'
 import Errors from '../errors'
 import { getLogo } from './image-utils'
@@ -223,6 +233,7 @@ export class Deployment {
   private logger: Logger
   private conf?: IDeploymentPluginConf
   private org?: IOrganization
+  private regionalS3: RegionalS3Client
   public isTradle: boolean
 
   public static encodeRegion = (region: string) => region.replace(/[-]/g, '.')
@@ -279,15 +290,15 @@ export class Deployment {
     template: CFTemplate,
     values: StackUpdateParameters
   ) => {
-    StackUtils.setTemplateParameterDefaults(template, values)
+    setTemplateParameterDefaults(template, values)
   }
 
   public static setLaunchTemplateParameters = (
     template: CFTemplate,
     values: StackLaunchParameters
   ) => {
-    StackUtils.setTemplateParameterDefaults(template, values)
-    StackUtils.lockParametersToDefaults(template)
+    setTemplateParameterDefaults(template, values)
+    lockParametersToDefaults(template)
   }
 
   public static ensureInitLogIsRetained = (template: CFTemplate) => {
@@ -315,6 +326,14 @@ export class Deployment {
     this.isTradle = org && isProbablyTradle({ org })
     this.callHomeDisabled = this.isTradle || !!disableCallHome
     this.opts = opts
+    this.regionalS3 = createRegionalS3Client({
+      clients: bot.aws,
+      iamClient: bot.iamClient,
+      s3Client: bot.s3Utils,
+      iamSupported: !bot.isTesting,
+      versioningSupported: !bot.isTesting,
+      logger
+    })
   }
 
   // const onForm = async ({ bot, user, type, wrapper, currentApplication }) => {
@@ -1125,13 +1144,18 @@ ${this.genUsageInstructions(links)}`
   // look for -deploymentbucket-*
   public getDeploymentBucketLogicalName = () => `${this._thisStackName}-deploymentbucket`
 
+  public getRegionalBucketName = (region:string) => this.regionalS3.getRegionalBucketName({ 
+    bucket: this.getDeploymentBucketLogicalName(),
+    region
+  })
+  
   public getDeploymentBucketForRegion = async (region: string) => {
     if (region === this._thisRegion) {
       return this.deploymentBucket.id
     }
 
     try {
-      return await this.bot.s3Utils.getRegionalBucketForBucket({
+      return await this.regionalS3.getRegionalBucketForBucket({
         bucket: this.getDeploymentBucketLogicalName(),
         region
       })
@@ -1175,12 +1199,11 @@ ${this.genUsageInstructions(links)}`
   }
 
   private static getS3KeysForLambdaCode = (template: CFTemplate): string[] => {
-    return _.uniq(StackUtils.getLambdaS3Keys(template).map(k => k.value)) as string[]
+    return _.uniq(getLambdaS3Keys(template).map(k => k.value)) as string[]
   }
 
   private static getS3KeysForSubstacks = (template: CFTemplate) => {
-    const { Resources } = template
-    return StackUtils.getResourcesByType(template, 'AWS::CloudFormation::Stack')
+    return getResourcesByType(template, 'AWS::CloudFormation::Stack')
       .map(stack => {
         const { TemplateURL } = stack.Properties
         if (TemplateURL['Fn::Sub']) return TemplateURL['Fn::Sub']
@@ -1252,7 +1275,7 @@ ${this.genUsageInstructions(links)}`
 
   public createRegionalDeploymentBuckets = async ({ regions }: { regions: string[] }) => {
     this.logger.debug('creating regional buckets', { regions })
-    return await this.bot.s3Utils.createRegionalBuckets({
+    return await this.regionalS3.createRegionalBuckets({
       // not a real bucket
       bucket: this.getDeploymentBucketLogicalName(),
       regions
@@ -1260,25 +1283,24 @@ ${this.genUsageInstructions(links)}`
   }
 
   public deleteRegionalDeploymentBuckets = async ({ regions }: { regions: string[] }) => {
-    return await this.bot.s3Utils.deleteRegionalBuckets({
+    return await this.regionalS3.deleteRegionalBuckets({
       bucket: this.getDeploymentBucketLogicalName(),
-      regions,
-      iam: this.bot.aws.iam
+      regions
     })
   }
 
-  public updateOwnStack = async ({
-    templateUrl,
-    notificationTopics = []
-  }: {
-    templateUrl: string
-    notificationTopics?: string[]
-  }) => {
-    await this.bot.lambdaUtils.invoke({
-      name: 'updateStack',
-      arg: { templateUrl, notificationTopics }
-    })
-  }
+  // public updateOwnStack = async ({
+  //   templateUrl,
+  //   notificationTopics = []
+  // }: {
+  //   templateUrl: string
+  //   notificationTopics?: string[]
+  // }) => {
+  //   await this.bot.lambdaUtils.invoke({
+  //     name: 'updateStack',
+  //     arg: { templateUrl, notificationTopics }
+  //   })
+  // }
 
   // public requestUpdate = async () => {
   //   const parent = await this.getParentDeployment()
@@ -1352,12 +1374,12 @@ ${this.genUsageInstructions(links)}`
       )
     }
 
-    if (utils.compareTags(req.tag, '2.0.0') < 0) {
-      this.logger.debug('using deployment-v1 to generate template')
-      const { createDeployment } = require('./deployment-v1')
-      const v1 = createDeployment(this.opts)
-      return v1.handleUpdateRequest({ req, from })
-    }
+    // if (utils.compareTags(req.tag, '2.0.0') < 0) {
+    //   this.logger.debug('using deployment-v1 to generate template')
+    //   const { createDeployment } = require('./deployment-v1')
+    //   const v1 = createDeployment(this.opts)
+    //   return v1.handleUpdateRequest({ req, from })
+    // }
 
     utils.requireOpts(req, ['stackId', 'tag'])
 
@@ -1421,7 +1443,7 @@ ${this.genUsageInstructions(links)}`
 
   public getLatestStableVersionInfo = async (): Promise<VersionInfo> => {
     this.logger.debug('looking up latest stable version')
-    return await this._getLatestStableVersionInfo()
+    return await this._getLatestStableVersionInfoNew()
   }
 
   public getLatestVersionInfo = async (): Promise<VersionInfo> => {
@@ -1654,7 +1676,7 @@ ${this.genUsageInstructions(links)}`
     return params.OrgAdminEmail
   }
 
-  private _getLatestStableVersionInfo = async (): Promise<VersionInfo> => {
+  private _getLatestStableVersionInfoNew = async (): Promise<VersionInfo> => {
     return await this.bot.db.findOne({
       orderBy: {
         property: 'sortableTag',
@@ -1748,7 +1770,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _subscribeToChildStackStatusAlerts = async (topic: string) => {
-    const lambda = this.bot.lambdaUtils.getLambdaArn(ON_CHILD_STACK_STATUS_CHANGED_LAMBDA_NAME)
+    const lambda = this.bot.env.getLambdaArn(ON_CHILD_STACK_STATUS_CHANGED_LAMBDA_NAME)
     const subscription = await this._subscribeLambdaToTopic({ topic, lambda })
     return {
       topic,
@@ -1758,7 +1780,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _subscribeToChildStackLoggingAlerts = async (topic: string) => {
-    const lambda = this.bot.lambdaUtils.getLambdaArn(LOG_ALERTS_PROCESSOR_LAMBDA_NAME)
+    const lambda = this.bot.env.getLambdaArn(LOG_ALERTS_PROCESSOR_LAMBDA_NAME)
     const subscribe = this._subscribeLambdaToTopic({ topic, lambda })
     const allow = this._allowSNSToCallLambda({ topic, lambda })
     const [subscription] = await Promise.all([subscribe, allow])
@@ -1772,7 +1794,7 @@ ${this.genUsageInstructions(links)}`
   private _allowSNSToCallLambda = async ({ topic, lambda }) => {
     if (this.bot.isTesting) return
 
-    const exists = await this.bot.lambdaUtils.canSNSInvoke(lambda)
+    const exists = await this.bot.lambdaUtils.canSNSInvokeLambda(lambda)
     if (exists) {
       this.logger.debug('sns -> lambda permission already exists', { lambda })
       return
@@ -1785,7 +1807,7 @@ ${this.genUsageInstructions(links)}`
     return await this.snsUtils.subscribeIfNotSubscribed({
       topic,
       protocol: 'email',
-      endpoint: email
+      target: email
     })
   }
 
@@ -1793,7 +1815,7 @@ ${this.genUsageInstructions(links)}`
     return await this.snsUtils.subscribeIfNotSubscribed({
       topic,
       protocol: 'lambda',
-      endpoint: lambda
+      target: lambda
     })
   }
 
@@ -1919,12 +1941,9 @@ ${this.genUsageInstructions(links)}`
 
   private _bucket = (name: string) => {
     const { bot } = this
-    return new Bucket({
-      name,
-      env: bot.env,
-      s3: bot.aws.s3,
-      s3Utils: bot.s3Utils,
-      logger: bot.logger
+    return wrapBucket({
+      bucket: name,
+      client: bot.s3Utils
     })
   }
 }

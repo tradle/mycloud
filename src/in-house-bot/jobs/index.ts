@@ -22,38 +22,38 @@ type ExecInput = {
   components: IBotComponents
 }
 
-type Executor = (opts:ExecInput) => Promise<any|void>
+type Executor = (opts: ExecInput) => Promise<any | void>
 
-export const warmup:Executor = async ({ job, components }) => {
-  await components.bot.lambdaUtils.warmUp({
+export const warmup: Executor = async ({ job, components }) => {
+  await components.bot.lambdaWarmup.warmUp({
     ...DEFAULT_WARMUP_EVENT,
-    ...job.input,
+    ...job.input
   })
 }
 
-export const reinitializeContainers:Executor = async ({ job, components }) => {
-  const { stackUtils, lambdaUtils } = components.bot
+export const reinitializeContainers: Executor = async ({ job, components }) => {
+  const { stackUtils, lambdaInvoker } = components.bot
   const functions = getPropAtPath(job, ['input', 'functions'])
-  await stackUtils.forceReinitializeContainers(functions)
-  await lambdaUtils.scheduleWarmUp()
+  await stackUtils.reinitializeContainers(functions)
+  await lambdaInvoker.scheduleWarmUp()
 }
 
-export const retryDelivery:Executor = async ({ job, components }) => {
+export const retryDelivery: Executor = async ({ job, components }) => {
   const { bot } = components
   const failed = await bot.delivery.http.getRetriable()
   if (!failed.length) return
 
   await bot._fireDeliveryErrorBatchEvent({
     errors: failed,
-    async: true,
+    async: true
   })
 }
 
-export const pollchain:Executor = async ({ job, components }):Promise<Seal[]> => {
+export const pollchain: Executor = async ({ job, components }): Promise<Seal[]> => {
   const { bot } = components
   const { seals, env, logger } = bot
-  let results:Seal[] = []
-  let batch:Seal[]
+  let results: Seal[] = []
+  let batch: Seal[]
   let haveTime
   do {
     if (batch) {
@@ -75,7 +75,7 @@ export const pollchain:Executor = async ({ job, components }):Promise<Seal[]> =>
 
 const isLowFundsError = (err: any) => Errors.matches(err, { name: 'LowFunds' })
 
-export const sealpending:Executor = async ({ job, components }):Promise<Seal[]> => {
+export const sealpending: Executor = async ({ job, components }): Promise<Seal[]> => {
   const { bot, alerts } = components
   const { seals, env, logger } = bot
   let results = []
@@ -105,12 +105,12 @@ export const sealpending:Executor = async ({ job, components }):Promise<Seal[]> 
 }
 
 const SIX_HOURS = 6 * 3600 * 1000
-export const checkFailedSeals:Executor = async ({ job, components }) => {
-  const { gracePeriod=SIX_HOURS } = job
+export const checkFailedSeals: Executor = async ({ job, components }) => {
+  const { gracePeriod = SIX_HOURS } = job
   return await components.bot.seals.handleFailures({ gracePeriod })
 }
 
-export const createSealBatch:Executor = async ({ job, components }) => {
+export const createSealBatch: Executor = async ({ job, components }) => {
   const { bot, logger } = components
   const { sealBatcher } = bot
   const unsigned = await sealBatcher.genNextBatch()
@@ -120,12 +120,13 @@ export const createSealBatch:Executor = async ({ job, components }) => {
   // }
 
   logger.debug('creating seal batch')
-  const signed = await bot.draft({
-    type: TYPES.SEALABLE_BATCH,
-    resource: unsigned
-  })
-  .signAndSave()
-  .then(r => r.toJSON())
+  const signed = await bot
+    .draft({
+      type: TYPES.SEALABLE_BATCH,
+      resource: unsigned
+    })
+    .signAndSave()
+    .then(r => r.toJSON())
 
   await bot.seal({
     object: signed

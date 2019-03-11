@@ -322,7 +322,7 @@ export default class Identities implements IHasLogger {
       const { link } = await this.getExistingIdentityMapping(identity)
       existing = await this.objects.get(link)
       // }
-    } catch (err) {}
+    } catch (err) {} // tslint:disable-line no-empty
 
     if (existing) {
       if (existing.link === link) {

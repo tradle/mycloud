@@ -19,13 +19,9 @@ if (argv.local) {
   process.exit(0)
 }
 
-const {
-  STACK_STAGE,
-  R_RESTAPI_ApiGateway
-} = require('../test/service-map')
+const { STACK_STAGE, R_RESTAPI_ApiGateway } = require('../test/service-map')
 
 const genSamplesUrl = `https://${R_RESTAPI_ApiGateway}.execute-api.us-east-1.amazonaws.com/${STACK_STAGE}/samples`
-
 ;(async () => {
   const res = await request
     .post(genSamplesUrl)
@@ -39,10 +35,11 @@ const genSamplesUrl = `https://${R_RESTAPI_ApiGateway}.execute-api.us-east-1.ama
   }
 
   if (text) {
+    // tslint:disable-next-line
     console.log(text)
   }
-})()
-.catch(err => {
+})().catch(err => {
+  // tslint:disable-next-line
   console.error(err)
   process.exit(1)
 })

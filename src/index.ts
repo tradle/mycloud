@@ -1,27 +1,23 @@
 import { requireDefault } from './require-default'
 import { createBot as _createBot } from './bot'
 import Env from './env'
-import {
-  LambdaUtils,
-  StackUtils,
-  AwsApis,
-  Bot,
-  IBotOpts
-} from './types'
+import { LambdaUtils, StackUtils, AwsApis, Bot, IBotOpts, ClientCache } from './types'
 
 let bot
 
-const createTestBot = (opts:Partial<IBotOpts>={}) => _createBot({
-  ...opts,
-  env: opts.env || require('./test/env').createTestEnv()
-})
+const createTestBot = (opts: Partial<IBotOpts> = {}) =>
+  _createBot({
+    ...opts,
+    env: opts.env || require('./test/env').createTestEnv()
+  })
 
-const createRemoteBot = (opts:Partial<IBotOpts>={}) => _createBot({
-  ...opts,
-  env: opts.env || require('./cli/remote-service-map')
-})
+const createRemoteBot = (opts: Partial<IBotOpts> = {}) =>
+  _createBot({
+    ...opts,
+    env: opts.env || require('./cli/remote-service-map')
+  })
 
-const createBot = (opts:Partial<IBotOpts>={}) => {
+const createBot = (opts: Partial<IBotOpts> = {}) => {
   if (opts.env) return _createBot(opts)
   if (process.env.IS_OFFLINE || process.env.IS_LOCAL) {
     require('./test/env').install()
@@ -33,14 +29,14 @@ const createBot = (opts:Partial<IBotOpts>={}) => {
 
 const exp = {
   // proxy to default instance props
-  get bot():Bot {
+  get bot(): Bot {
     if (!bot) {
       bot = createBot()
     }
 
     return bot
   },
-  get env():Env {
+  get env(): Env {
     return exp.bot.env
   },
   // sub-modules
@@ -86,18 +82,18 @@ const exp = {
   get Init() {
     return requireDefault('./init')
   },
-  get aws():AwsApis {
+  get aws(): ClientCache {
     return requireDefault('./aws')
   },
-  get awsConfig() {
-    return requireDefault('./aws-config')
-  },
+  // get awsConfig() {
+  //   return requireDefault("./aws-config")
+  // },
   get ContentAddressedStore() {
     return requireDefault('./content-addressed-store')
   },
-  get KeyValueTable() {
-    return requireDefault('./key-value-table')
-  },
+  // get KeyValueTable() {
+  //   return requireDefault('./key-value-table')
+  // },
   get User() {
     return requireDefault('./user')
   },
@@ -110,9 +106,9 @@ const exp = {
   get Delivery() {
     return requireDefault('./delivery')
   },
-  get Discovery() {
-    return requireDefault('./discovery')
-  },
+  // get Discovery() {
+  //   return requireDefault("./discovery")
+  // },
   get Seals() {
     return requireDefault('./seals')
   },
@@ -120,16 +116,10 @@ const exp = {
     return requireDefault('./blockchain')
   },
   get Iot() {
-    return requireDefault('./iot-utils')
+    return requireDefault('./aws/iot-utils')
   },
-  get S3() {
-    return requireDefault('./s3-utils')
-  },
-  get lambdaUtils():LambdaUtils {
-    return requireDefault('./lambda-utils')
-  },
-  get stackUtils():StackUtils {
-    return requireDefault('./stack-utils')
+  get stackUtils(): StackUtils {
+    return requireDefault('./aws/stack-utils')
   },
   get dbUtils() {
     return requireDefault('./db-utils')

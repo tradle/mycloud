@@ -71,7 +71,7 @@ export class Scheduler {
 
   public scheduleJobImmediately = async (job: Job) => {
     this.logger.debug(`scheduling job: ${job.name}`)
-    return await this.bot.lambdaUtils.invoke({
+    return await this.bot.lambdaInvoker.invoke({
       name: job.function,
       arg: job,
       sync: false

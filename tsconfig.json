@@ -16,7 +16,7 @@
     "baseUrl": ".",
     "paths": {
       "*": [
-        "node_modules/*",
+        // "node_modules/*",
         "src/types/*"
       ],
       // "@tradle/in-house-bot": ["src/in-house-bot/index.ts"],
@@ -24,16 +24,15 @@
     },
     "types": [
       "node",
-      "aws-sdk",
       "sinon",
       "lodash",
       "graphql",
       "koa",
-      "superagent",
-      "@tradle/dynamodb"
+      "lru-cache",
+      "superagent"
     ]
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "**/*.js", "src/test/mock/"],
+  "exclude": ["node_modules/**/*.d.ts", "**/*.js", "src/test/mock/"],
   "compileOnSave": false
 }

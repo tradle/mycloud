@@ -1,35 +1,36 @@
 #!/usr/bin/env node
 
-process.env.IS_LAMBDA_ENVIRONMENT = 'false'
+process.env.IS_LAMBDA_ENVIRONMENT = "false"
 
-import path from 'path'
-import promisify from 'pify'
-import _fs from 'fs'
-import { prettify } from '../string-utils'
-import { LambdaUtils } from '../lambda-utils'
-import { Env } from '../env'
-import { createAWSWrapper } from '../aws'
-import { Logger } from '../logger'
-import { createRemoteBot, createTestBot } from '../'
-import { loadCredentials, downloadDeploymentTemplate } from '../cli/utils'
-import { PRIVATE_CONF_BUCKET } from '../in-house-bot/constants'
-import { Bot } from '../types'
-import Errors from '../errors'
+import path from "path"
+import promisify from "pify"
+import _fs from "fs"
+import AWS from 'aws-sdk'
+import { LambdaClient } from "@tradle/aws-lambda-client"
+import { createClientCache } from "@tradle/aws-client-factory"
+import { prettify } from "../string-utils"
+import { Env } from "../env"
+// import { createAWSWrapper } from "../aws"
+import { Logger } from "../logger"
+import { createRemoteBot, createTestBot } from "../"
+import { loadCredentials, downloadDeploymentTemplate } from "../cli/utils"
+import { PRIVATE_CONF_BUCKET } from "../in-house-bot/constants"
+import { Bot } from "../types"
+import Errors from "../errors"
 
-const serverlessYml = require('../cli/serverless-yml')
+const serverlessYml = require("../cli/serverless-yml")
 const fs = promisify(_fs)
-const serviceMapPath = path.resolve(__dirname, '../../src/cli/remote-service-map.json')
-const latestTemplatePath = path.resolve(__dirname, '../../src/cli/cloudformation-template.json')
+const serviceMapPath = path.resolve(__dirname, "../../src/cli/remote-service-map.json")
+const latestTemplatePath = path.resolve(__dirname, "../../src/cli/cloudformation-template.json")
 const { service, custom } = serverlessYml
 const prefix = `${service}-${custom.stage}-`
 
 loadCredentials()
 process.env.AWS_REGION = serverlessYml.provider.region
 
-const env = new Env(process.env)
-const logger = new Logger('gen:testenv')
-const aws = createAWSWrapper({ logger, env })
-const lambdaUtils = new LambdaUtils({ env, aws, logger })
+const logger = new Logger("gen:testenv")
+const aws = createClientCache({ AWS })
+const lambdaUtils = new LambdaClient({ client: aws.lambda })
 const getEnv = async () => {
   const setEnvFnName = `${prefix}onmessage`
   const { Environment } = await lambdaUtils.getConfiguration(setEnvFnName)
@@ -37,7 +38,7 @@ const getEnv = async () => {
   vars.AWS_REGION = serverlessYml.provider.region
   await Promise.all([
     fs.writeFile(serviceMapPath, prettify(vars)),
-    fs.writeFile(serviceMapPath.replace(/\/src\//, '/lib/'), prettify(vars))
+    fs.writeFile(serviceMapPath.replace(/\/src\//, "/lib/"), prettify(vars))
   ])
 }
 
@@ -60,14 +61,14 @@ const getECSDiscovery = async (bot: Bot) => {
   try {
     await bucket.putJSON(PRIVATE_CONF_BUCKET.kycServiceDiscovery, discovery)
   } catch (err) {
-    if (Errors.matches(err, { code: 'NoSuchBucket' })) {
+    if (Errors.matches(err, { code: "NoSuchBucket" })) {
       logger.error(`local bucket ${bucket.id} does not exist!`)
       return
     }
 
-    logger.error('failed to save ECS discovery info to local test bucket', {
+    logger.error("failed to save ECS discovery info to local test bucket", {
       bucket: bucket.id,
-      error: err.stack,
+      error: err.stack
     })
 
     throw err
@@ -81,6 +82,7 @@ getEnv()
     await getECSDiscovery(bot)
   })
   .catch(err => {
+    // tslint:disable-next-line
     console.error(err)
     process.exit(1)
   })

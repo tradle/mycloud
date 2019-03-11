@@ -1,30 +1,32 @@
 import Errors from './errors'
-import {
-  IKeyValueStore
-} from './types'
+import { KeyValueStoreExtended, KV } from './types'
 
-export default class KeyValueMem implements IKeyValueStore {
+export default class KeyValueMem implements KeyValueStoreExtended {
   private store: any
-  constructor () {
+  constructor() {
     this.store = {}
   }
 
-  public exists = async (key:string):Promise<boolean> => {
+  public has = async (key: string): Promise<boolean> => {
     return key in this.store
   }
 
-  public get = async (key:string, opts:any={}) => {
+  public get = async (key: string, opts: any = {}) => {
     if (key in this.store) return this.store[key]
 
     throw new Errors.NotFound(key)
   }
 
-  public put = async (key:string, value) => {
+  public put = async (key: string, value) => {
     this.store[key] = value
   }
 
-  public del = async (key) => {
+  public del = async key => {
     delete this.store[key]
+  }
+
+  public sub = () => {
+    throw new Errors.Unsupported('KeyValueMem.sub')
   }
 }
 

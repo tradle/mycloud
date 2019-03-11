@@ -3,11 +3,7 @@ import { DynamoDB } from 'aws-sdk'
 
 import { TYPE } from '@tradle/constants'
 
-import {
-  IKeyValueStore,
-  DB,
-  Table
-} from './types'
+import { DB, Table, UpdateableKeyValueStore } from './types'
 
 import Errors from './errors'
 import { ensureTimestamped } from './utils'
@@ -22,14 +18,14 @@ type KVPair = {
   value: any
 }
 
-export default class KV implements IKeyValueStore {
+export default class KV implements UpdateableKeyValueStore {
   private db: DB
   private client: DynamoDB
-  private prefix:string
-  private keyProperty:string
+  private prefix: string
+  private keyProperty: string
   private _table: Table
   private _tableName: string
-  constructor ({ db, prefix='' }) {
+  constructor({ db, prefix = '' }) {
     this.db = db
     this.client = db.rawClient
     this.prefix = prefix
@@ -38,7 +34,7 @@ export default class KV implements IKeyValueStore {
     this._tableName = this._getTableName()
   }
 
-  public exists = async (key:string):Promise<boolean> => {
+  public has = async (key: string): Promise<boolean> => {
     try {
       await this.get(key, {
         AttributesToGet: ['key']
@@ -50,40 +46,40 @@ export default class KV implements IKeyValueStore {
     }
   }
 
-  public get = async (key:string, opts:any={}):Promise<any> => {
+  public get = async (key: string, opts: any = {}): Promise<any> => {
     try {
       const result = await this.db.get(this.wrapKey(key), opts)
       return this.exportValue(result)
     } catch (err) {
       if (Errors.isNotFound(err)) {
-        Errors.rethrowAs(err, new Errors.NotFound(`${key}: ${err.message}`))
+        throw new Errors.NotFound(`${key}: ${err.message}`)
       }
 
       throw err
     }
   }
 
-  public put = async (key:string, value:any):Promise<void> => {
+  public put = async (key: string, value: any): Promise<void> => {
     this._validateKV(key, value)
     await this.db.put(this._toItem(key, value))
   }
 
-  public batchPut = async (pairs:KVPair[]):Promise<void> => {
+  public batchPut = async (pairs: KVPair[]): Promise<void> => {
     pairs.forEach(({ key, value }) => this._validateKV(key, value))
     const values = pairs.map(({ key, value }) => this._toItem(key, value))
     await this.db.batchPut(values)
   }
 
-  public del = async (key):Promise<void> => {
+  public del = async (key): Promise<void> => {
     await this.db.del(this.wrapKey(key))
   }
 
-  public update = async (key:string, opts:any):Promise<any> => {
+  public update = async (key: string, opts: any): Promise<any> => {
     const result = await this.db.update(ensureTimestamped(this.wrapKey(key)), opts)
     return result && this.exportValue(result)
   }
 
-  public sub = (prefix=''):KV => {
+  public sub = (prefix = ''): KV => {
     return new KV({
       db: this.db,
       prefix: this.prefix + prefix
@@ -151,11 +147,11 @@ export default class KV implements IKeyValueStore {
   //   await table.update(this.wrapKey(key), params)
   // }
 
-  private getKey = (key:string) => {
+  private getKey = (key: string) => {
     return this.prefix + key
   }
 
-  private wrapKey = (key:string, noType?: boolean) => {
+  private wrapKey = (key: string, noType?: boolean) => {
     const wrapper = {
       [this.keyProperty]: this.prefix + key
     }
@@ -171,7 +167,9 @@ export default class KV implements IKeyValueStore {
 
   private _validateKV = (key: string, value: any) => {
     if (Object.prototype.toString.call(value) !== '[object Object]') {
-      throw new Errors.InvalidInput('"value" must be a plain javascript object (no arrays, strings, etc.)')
+      throw new Errors.InvalidInput(
+        '"value" must be a plain javascript object (no arrays, strings, etc.)'
+      )
     }
 
     if (this.keyProperty in value && key !== value[this.keyProperty]) {

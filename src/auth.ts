@@ -11,7 +11,6 @@ import Errors from './errors'
 import * as types from './typeforce-types'
 import * as constants from './constants'
 import {
-  AwsApis,
   Logger,
   Identities,
   Messages,
@@ -24,6 +23,8 @@ import {
   Iot,
   DB,
   ModelStore,
+  ClientCache,
+  IEndpointInfo
 } from './types'
 
 const { HANDSHAKE_TIMEOUT } = constants
@@ -61,8 +62,9 @@ interface IChallengeResponse extends ITradleObject {
 // })
 
 type AuthOpts = {
+  endpointInfo: IEndpointInfo
   uploadFolder: string
-  aws: any
+  aws: ClientCache
   // tables: any
   identities: Identities
   objects: Objects
@@ -76,7 +78,7 @@ type AuthOpts = {
 }
 
 export default class Auth {
-  private aws: AwsApis
+  private aws: ClientCache
   // private tables: any
   private identities: Identities
   private objects: Objects
@@ -89,7 +91,7 @@ export default class Auth {
   private uploadFolder: string
   private sessionTTL: number
 
-  constructor (opts: AuthOpts) {
+  constructor(private opts: AuthOpts) {
     // lazy define
     this.aws = opts.aws
     // this.tables = opts.tables
@@ -102,11 +104,15 @@ export default class Auth {
     this.tasks = opts.tasks
     this.modelStore = opts.modelStore
     this.uploadFolder = opts.uploadFolder
-    const { sessionTTL=constants.DEFAULT_SESSION_TTL_SECONDS } = opts
-    this.sessionTTL = clamp(sessionTTL, constants.MIN_SESSION_TTL_SECONDS, constants.MAX_SESSION_TTL_SECONDS)
+    const { sessionTTL = constants.DEFAULT_SESSION_TTL_SECONDS } = opts
+    this.sessionTTL = clamp(
+      sessionTTL,
+      constants.MIN_SESSION_TTL_SECONDS,
+      constants.MAX_SESSION_TTL_SECONDS
+    )
   }
 
-  public putSession = async (session:ISession): Promise<ISession> => {
+  public putSession = async (session: ISession): Promise<ISession> => {
     this.logger.debug('saving session', session)
 
     // allow multiple sessions for the same user?
@@ -124,14 +130,18 @@ export default class Auth {
       return await this.updateSession(clientId, { subscribed: false, connected: false })
     }
 
-    return await this.updateSession(clientId, {
-      subscribed: true,
-      connected: true,
-      dateSubscribed: Date.now()
-    }, {
-      expected: { authenticated: true } ,
-      ReturnValues: 'ALL_NEW'
-    })
+    return await this.updateSession(
+      clientId,
+      {
+        subscribed: true,
+        connected: true,
+        dateSubscribed: Date.now()
+      },
+      {
+        expected: { authenticated: true },
+        ReturnValues: 'ALL_NEW'
+      }
+    )
   }
 
   public deleteSession = (clientId: string): Promise<any> => {
@@ -164,11 +174,11 @@ export default class Auth {
           permalink,
           authenticated: true,
           connected: true,
-          subscribed: true,
+          subscribed: true
         },
         STARTS_WITH: {
-          clientId: (this.iot && this.iot.clientIdPrefix || '') + permalink
-        },
+          clientId: (this.opts.endpointInfo.clientIdPrefix || '') + permalink
+        }
       }
     })
 
@@ -187,16 +197,20 @@ export default class Auth {
   //   await Iot.sendChallenge({ clientId, challenge })
   // })
 
-  public handleChallengeResponse = async (challengeResponse: IChallengeResponse)
-    :Promise<ISession> => {
+  public handleChallengeResponse = async (
+    challengeResponse: IChallengeResponse
+  ): Promise<ISession> => {
     // TODO: get rid of this after TypeScript migration
     try {
-      typeforce({
-        clientId: typeforce.String,
-        permalink: typeforce.String,
-        challenge: typeforce.String,
-        position: types.position
-      }, challengeResponse)
+      typeforce(
+        {
+          clientId: typeforce.String,
+          permalink: typeforce.String,
+          challenge: typeforce.String,
+          position: types.position
+        },
+        challengeResponse
+      )
     } catch (err) {
       // @ts-ignore
       debugger
@@ -231,7 +245,8 @@ export default class Auth {
     }
 
     // const promiseCredentials = this.createCredentials(session)
-    const getLastSent = this.messages.getLastMessageTo({ recipient: permalink, body: false })
+    const getLastSent = this.messages
+      .getLastMessageTo({ recipient: permalink, body: false })
       .then(message => this.messages.getMessageStub({ message }))
       .catch(Errors.ignoreNotFound)
 
@@ -252,10 +267,10 @@ export default class Auth {
     return session
   }
 
-  public createCredentials = async (clientId: string, role: string):Promise<IRoleCredentials> => {
+  public createCredentials = async (clientId: string, role: string): Promise<IRoleCredentials> => {
     this.logger.debug(`generating temp keys for client ${clientId}, role ${role}`)
     this.logger.info('assuming role', role)
-    const params:AWS.STS.AssumeRoleRequest = {
+    const params: AWS.STS.AssumeRoleRequest = {
       RoleArn: role,
       RoleSessionName: randomString(16),
       DurationSeconds: this.sessionTTL
@@ -263,10 +278,8 @@ export default class Auth {
 
     // assume role returns temporary keys
     const promiseRole = this.aws.sts.assumeRole(params).promise()
-    const {
-      AssumedRoleUser,
-      Credentials
-    } = await promiseRole
+
+    const { AssumedRoleUser, Credentials } = await promiseRole
 
     this.logger.debug('assumed role', role)
     return {
@@ -283,10 +296,13 @@ export default class Auth {
     ips?: string[]
   }): Promise<IIotClientChallenge> => {
     try {
-      typeforce({
-        clientId: typeforce.String,
-        identity: types.identity
-      }, opts)
+      typeforce(
+        {
+          clientId: typeforce.String,
+          identity: types.identity
+        },
+        opts
+      )
     } catch (err) {
       this.logger.error('received invalid input', { input: opts, stack: err.stack })
       throw new Errors.InvalidInput(err.message)
@@ -306,18 +322,6 @@ export default class Auth {
 
     const maybeAddContact = this.identities.addContact(identity)
     const challenge = this.createChallenge()
-    // const getIotEndpoint = this.iot.getEndpoint()
-    // const saveSession = this.tables.Presence.put({
-    //   Item: {
-    //     clientId,
-    //     permalink,
-    //     challenge,
-    //     time: Date.now(),
-    //     authenticated: false,
-    //     connected: false
-    //   }
-    // })
-
     const dateCreated = Date.now()
     const sessionProps = {
       [TYPE]: SESSION,
@@ -328,13 +332,13 @@ export default class Auth {
       challenge,
       authenticated: false,
       connected: false,
-      subscribed: false,
+      subscribed: false
     }
 
     const session = await this.putSession(sessionProps)
-    const resp:IIotClientChallenge = {
+    const resp: IIotClientChallenge = {
       time: Date.now(),
-      challenge,
+      challenge
     }
 
     // need to wait for this
@@ -343,9 +347,7 @@ export default class Auth {
     return resp
   }
 
-  public getUploadPrefix = (AssumedRoleUser: {
-    AssumedRoleId: string
-  }):string => {
+  public getUploadPrefix = (AssumedRoleUser: { AssumedRoleId: string }): string => {
     return `${this.uploadFolder}/${AssumedRoleUser.AssumedRoleId}/`
   }
 
@@ -353,7 +355,7 @@ export default class Auth {
     return this.getLiveSessionByPermalink(this.getPermalinkFromClientId(clientId))
   }
 
-  public getKeyFromClientId = (clientId) => {
+  public getKeyFromClientId = clientId => {
     return {
       [TYPE]: SESSION,
       clientId,
@@ -361,9 +363,9 @@ export default class Auth {
     }
   }
 
-  public getPermalinkFromClientId = (clientId:string):string => {
+  public getPermalinkFromClientId = (clientId: string): string => {
     // split off stackName prefix if it's there
-    const { clientIdPrefix } = this.iot
+    const { clientIdPrefix } = this.opts.endpointInfo
     if (clientIdPrefix && clientId.startsWith(clientIdPrefix)) {
       clientId = clientId.slice(clientIdPrefix.length)
     }
@@ -375,7 +377,7 @@ export default class Auth {
     return clientId.slice(0, 64)
   }
 
-  private updateSession = async (clientId, update, opts={}):Promise<ISession> => {
+  private updateSession = async (clientId, update, opts = {}): Promise<ISession> => {
     update = {
       ...this.getKeyFromClientId(clientId),
       ...update

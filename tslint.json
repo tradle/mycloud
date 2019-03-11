@@ -23,6 +23,8 @@
     "forin": false,
     "max-classes-per-file": false,
     "no-namespace": false,
-    "no-empty-interface": false
+    "no-empty-interface": false,
+    "ban-types": true,
+    "no-var-requires": false
   }
 }

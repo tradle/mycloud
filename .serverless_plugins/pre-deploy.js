@@ -1,10 +1,12 @@
-const fs = require('fs')
 const path = require('path')
 const AWS = require('aws-sdk')
 const _ = require('lodash')
 const Errors = require('@tradle/errors')
+const {
+  getResourcesByType,
+} = require('@tradle/aws-cloudformation-client')
+
 const { traverse, replaceDeep } = require('../lib/utils')
-const { StackUtils } = require('../lib/stack-utils')
 const { Deployment } = require('../lib/in-house-bot/deployment')
 const {
   validateTemplatesAtPath,
@@ -24,7 +26,7 @@ const CF_ATT_REST_API_ROOT = {
 }
 
 const replaceDeploymentBucketRefs = (template, replacement) => {
-  StackUtils.getResourcesByType(template, 'AWS::Lambda::Function').forEach(resource => {
+  getResourcesByType(template, 'AWS::Lambda::Function').forEach(resource => {
     _.set(resource, CODE_BUCKET_PATH, replacement)
   })
 

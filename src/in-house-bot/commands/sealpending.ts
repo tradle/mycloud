@@ -16,7 +16,7 @@ export const command:ICommand = {
         })
       }
 
-      return await commander.bot.lambdaUtils.invokeSealPending()
+      return await commander.bot.lambdaInvoker.invokeSealPending()
     } catch (err) {
       commander.logger.error('failed to write pending seals', err)
       return []

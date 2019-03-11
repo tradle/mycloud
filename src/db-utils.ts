@@ -13,39 +13,26 @@ import dynogels from 'dynogels'
 import { utils as vrUtils } from '@tradle/validate-resource'
 import { Level } from './logger'
 import { NotFound } from './errors'
-import {
-  wait,
-  waitImmediate,
-  traverse,
-  defineGetter
-} from './utils'
+import { wait, waitImmediate, traverse, defineGetter, noop } from './utils'
 
 import { prettify, alphabetical, format } from './string-utils'
 import { sha256 } from './crypto'
 import Errors from './errors'
-import {
-  Env,
-  StreamRecordType,
-  IStreamRecord,
-  AwsApis,
-  Logger,
-  IServiceMap,
-} from './types'
+import { Env, StreamRecordType, IStreamRecord, Logger, IServiceMap, ClientCache } from './types'
 
-export type PropPath = string|string[]
+export type PropPath = string | string[]
 export type PathAndValuePair = [PropPath, any]
 
 const { marshall, unmarshall } = AWS.DynamoDB.Converter
 const marshallDBItem = item => marshall(item)
 const unmarshallDBItem = item => fixUnmarshallItem(unmarshall(item))
-const fixUnmarshallItem = item => traverse(item).map(function (value) {
-  // unwrap Set instances
-  if (value &&
-    value.values &&
-    value.constructor !== Object) {
-    this.update(value.values)
-  }
-})
+const fixUnmarshallItem = item =>
+  traverse(item).map(function(value) {
+    // unwrap Set instances
+    if (value && value.values && value.constructor !== Object) {
+      this.update(value.values)
+    }
+  })
 
 // const marshallDBItem = marshall
 // const unmarshallDBItem = unmarshall
@@ -56,17 +43,17 @@ type Batch = {
 }
 
 type BackoffOptions = {
-  backoff: (tries:number) => number
+  backoff: (tries: number) => number
   maxTries: number
 }
 
-type BatchWorker = (batch:Batch) => Promise<boolean|void>
-type ItemWorker = (item:any) => Promise<boolean|void>
+type BatchWorker = (batch: Batch) => Promise<boolean | void>
+type ItemWorker = (item: any) => Promise<boolean | void>
 
 const alwaysTrue = (...any) => true
 const MAX_BATCH_SIZE = 25
 const CONSISTENT_READ_EVERYTHING = true
-const defaultBackoffFunction = (retryCount:number) => {
+const defaultBackoffFunction = (retryCount: number) => {
   const delay = Math.pow(2, retryCount) * 500
   return Math.min(jitter(delay, 0.1), 10000)
 }
@@ -86,7 +73,10 @@ export {
   unmarshallDBItem
 }
 
-const renderDefinitions = ({ definitions, serviceMap }: {
+const renderDefinitions = ({
+  definitions,
+  serviceMap
+}: {
   definitions: any
   serviceMap: IServiceMap
 }) => {
@@ -100,20 +90,25 @@ const renderDefinitions = ({ definitions, serviceMap }: {
   return definitions
 }
 
-function createDBUtils ({ aws, logger, env, serviceMap }: {
-  aws: AwsApis
+function createDBUtils({
+  aws,
+  logger,
+  env,
+  serviceMap
+}: {
+  aws: ClientCache
   logger: Logger
   env: Env
   serviceMap: IServiceMap
 }) {
-  const getDefinitions = _.memoize(() => renderDefinitions({
-    definitions: require('./definitions'),
-    serviceMap,
-  }))
+  const getDefinitions = _.memoize(() =>
+    renderDefinitions({
+      definitions: require('./definitions'),
+      serviceMap
+    })
+  )
 
-  const getTableBuckets = _.memoize(() => [
-    getDefinitions().Bucket0
-  ])
+  const getTableBuckets = _.memoize(() => [getDefinitions().Bucket0])
 
   const getCachedDefinition = tableName => {
     const definitions = getDefinitions()
@@ -129,14 +124,14 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
   if (logger.level >= Level.WARN) {
     const level = logger.level >= Level.SILLY ? 'info' : 'warn'
     dynogels.log = {
-      info: () => {},
+      info: noop,
       warn: (...data) => dynogelsLogger.warn('', data),
       level: 'warn'
     }
   }
 
-  function getTable (TableName) {
-    const batchWriteToTable = async (ops) => {
+  function getTable(TableName) {
+    const batchWriteToTable = async ops => {
       ops.forEach(({ type }) => {
         if (type !== 'put' && type !== 'del') {
           throw new Error(`expected "type" to be either "put" or "del", got ${type}`)
@@ -159,17 +154,17 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
       }
     }
 
-    const batchPutToTable = async (items) => {
+    const batchPutToTable = async items => {
       const ops = items.map(value => ({ type: 'put', value }))
       return batchWriteToTable(ops)
     }
 
-    const batchDeleteFromTable = async (items) => {
+    const batchDeleteFromTable = async items => {
       const ops = items.map(value => ({ type: 'del', value }))
       return batchWriteToTable(ops)
     }
 
-    const tableAPI:any = {
+    const tableAPI: any = {
       toString: () => TableName,
       batchWrite: batchWriteToTable,
       batchPut: batchPutToTable,
@@ -194,17 +189,17 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
 
     // aliases
     Object.keys(api).forEach(method => {
-      tableAPI[method] = (params:any={}) => {
+      tableAPI[method] = (params: any = {}) => {
         params.TableName = TableName
         return api[method](params)
       }
     })
 
-    tableAPI.client = aws.docClient
+    tableAPI.client = aws.documentclient
     tableAPI.rawClient = aws.dynamodb
     tableAPI.name = TableName
     defineGetter(tableAPI, 'definition', () => getCachedDefinition(TableName))
-    tableAPI.batchProcess = ({ params={}, ...opts }) => {
+    tableAPI.batchProcess = ({ params = {}, ...opts }) => {
       return batchProcess({
         params: { ...params, TableName },
         ...opts
@@ -213,7 +208,7 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
 
     tableAPI.clear = () => clear(TableName)
     tableAPI.getTableDefinition = () => getTableDefinition(TableName)
-    return tableAPI// timeMethods(tableAPI, logger)
+    return tableAPI // timeMethods(tableAPI, logger)
   }
 
   /**
@@ -269,7 +264,7 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
   const exec = async (method, params) => {
     // params.ReturnConsumedCapacity = 'TOTAL'
     try {
-      const result = await aws.docClient[method](params).promise()
+      const result = await aws.documentclient[method](params).promise()
       // logCapacityConsumption(method, result)
       return result
     } catch (err) {
@@ -287,22 +282,26 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
     }
   }
 
-  const dynamoDBExec = function dynamoDBExec (method, params) {
+  const dynamoDBExec = function dynamoDBExec(method, params) {
     return aws.dynamodb[method](params).promise()
   }
 
   const createTable = params => dynamoDBExec('createTable', params)
   const deleteTable = params => dynamoDBExec('deleteTable', params)
 
-  const batchProcess = async ({ params, processOne, processBatch }: {
+  const batchProcess = async ({
+    params,
+    processOne,
+    processBatch
+  }: {
     params: any
-    processOne?: ItemWorker,
+    processOne?: ItemWorker
     processBatch?: BatchWorker
   }) => {
     const method = params.KeyConditionExpression ? 'query' : 'scan'
     let lastEvaluatedKey = null
     let retry = true
-    let keepGoing:boolean|void = true
+    let keepGoing: boolean | void = true
     let response
     while (keepGoing && (lastEvaluatedKey || retry)) {
       try {
@@ -336,7 +335,7 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
     }
   }
 
-  const getTableDefinition = async (TableName:string) => {
+  const getTableDefinition = async (TableName: string) => {
     const definitions = getDefinitions()
     if (definitions[TableName]) return definitions[TableName]
 
@@ -344,19 +343,23 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
     return Table
   }
 
-  const clear = async (TableName:string, filter:Function=alwaysTrue):Promise<number> => {
+  const clear = async (TableName: string, filter: Function = alwaysTrue): Promise<number> => {
     const { KeySchema } = await getTableDefinition(TableName)
     const keyProps = KeySchema.map(({ AttributeName }) => AttributeName)
     let count = 0
     await batchProcess({
       params: { TableName },
-      processOne: async (item) => {
+      processOne: async item => {
         if (!filter(item)) return
 
-        await execWhile('delete', {
-          TableName,
-          Key: _.pick(item, keyProps)
-        }, err => err.code === 'LimitExceededException' || err.code === 'ResourceNotFoundException')
+        await execWhile(
+          'delete',
+          {
+            TableName,
+            Key: _.pick(item, keyProps)
+          },
+          err => err.code === 'LimitExceededException' || err.code === 'ResourceNotFoundException'
+        )
 
         count++
       }
@@ -365,14 +368,11 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
     return count
   }
 
-  const listTables = async (env:Env) => {
-    let tables:string[] = []
-    let opts:AWS.DynamoDB.ListTablesInput = {}
+  const listTables = async (env: Env) => {
+    let tables: string[] = []
+    let opts: AWS.DynamoDB.ListTablesInput = {}
     while (true) {
-      let {
-        TableNames,
-        LastEvaluatedTableName
-      } = await aws.dynamodb.listTables(opts).promise()
+      let { TableNames, LastEvaluatedTableName } = await aws.dynamodb.listTables(opts).promise()
 
       tables = tables.concat(TableNames)
       if (!TableNames.length || !LastEvaluatedTableName) {
@@ -385,7 +385,7 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
     return tables.filter(name => name.startsWith(env.STACK_RESOURCE_PREFIX))
   }
 
-  const get = async (params:AWS.DynamoDB.GetItemInput) => {
+  const get = async (params: AWS.DynamoDB.GetItemInput) => {
     maybeForceConsistentRead(params)
     const result = await exec('get', params)
     if (!result.Item) {
@@ -396,23 +396,23 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
     return fixUnmarshallItem(result.Item)
   }
 
-  const put = async (params:AWS.DynamoDB.PutItemInput) => {
+  const put = async (params: AWS.DynamoDB.PutItemInput) => {
     const result = await exec('put', params)
     return tweakReturnValue(params, result)
   }
 
-  const del = async (params:AWS.DynamoDB.DeleteItemInput) => {
+  const del = async (params: AWS.DynamoDB.DeleteItemInput) => {
     const result = await exec('delete', params)
     return tweakReturnValue(params, result)
   }
 
-  const find = async (params:AWS.DynamoDB.QueryInput) => {
+  const find = async (params: AWS.DynamoDB.QueryInput) => {
     maybeForceConsistentRead(params)
     const result = await exec('query', params)
     return result.Items.map(fixUnmarshallItem)
   }
 
-  const findOne = async (params:AWS.DynamoDB.QueryInput) => {
+  const findOne = async (params: AWS.DynamoDB.QueryInput) => {
     params.Limit = 1
     const results = await find(params)
     if (!results.length) {
@@ -422,12 +422,12 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
     return results[0]
   }
 
-  const update = async (params:AWS.DynamoDB.UpdateItemInput) => {
+  const update = async (params: AWS.DynamoDB.UpdateItemInput) => {
     const result = await exec('update', params)
     return tweakReturnValue(params, result)
   }
 
-  function maybeForceConsistentRead (params) {
+  function maybeForceConsistentRead(params) {
     // ConsistentRead not supported on GlobalSecondaryIndexes
     if (CONSISTENT_READ_EVERYTHING && !params.IndexName && !params.ConsistentRead) {
       params.ConsistentRead = true
@@ -435,7 +435,7 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
     }
   }
 
-  function tweakReturnValue (params, result) {
+  function tweakReturnValue(params, result) {
     if (params.ReturnValues !== 'NONE') {
       return result.Attributes
     }
@@ -443,13 +443,13 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
     return result
   }
 
-  const scan = async (params:AWS.DynamoDB.ScanInput) => {
+  const scan = async (params: AWS.DynamoDB.ScanInput) => {
     maybeForceConsistentRead(params)
     const { Items } = await exec('scan', params)
     return Items
   }
 
-  const rawBatchPut = async (params:AWS.DynamoDB.BatchWriteItemInput) => {
+  const rawBatchPut = async (params: AWS.DynamoDB.BatchWriteItemInput) => {
     return await exec('batchWrite', params)
   }
 
@@ -465,16 +465,13 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
   // })
 
   const batchPut = async (
-    params:AWS.DynamoDB.BatchWriteItemInput,
-    backoffOptions?:BackoffOptions,
-    processFailedItems=_.identity
+    params: AWS.DynamoDB.BatchWriteItemInput,
+    backoffOptions?: BackoffOptions,
+    processFailedItems = _.identity
   ) => {
     params = { ...params }
 
-    const {
-      backoff,
-      maxTries
-    } = _.defaults(backoffOptions, DEFAULT_BACKOFF_OPTS)
+    const { backoff, maxTries } = _.defaults(backoffOptions, DEFAULT_BACKOFF_OPTS)
 
     let tries = 0
     let failed
@@ -487,13 +484,13 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
       await wait(backoff(tries++))
     }
 
-    const err:any = new Errors.BatchPutFailed()
+    const err: any = new Errors.BatchPutFailed()
     err.failed = failed
     err.attempts = tries
     throw err
   }
 
-  function getModelMap ({ types, models, tableNames }) {
+  function getModelMap({ types, models, tableNames }) {
     if (!tableNames) {
       tableNames = getTableBuckets().map(def => def.TableName)
     }
@@ -502,8 +499,7 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
 
     const modelToBucket = {}
     if (!types) {
-      types = Object.keys(models)
-        .filter(id => vrUtils.isInstantiable(models[id]))
+      types = Object.keys(models).filter(id => vrUtils.isInstantiable(models[id]))
     }
 
     types.forEach(id => {
@@ -549,13 +545,13 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
   // return timeMethods(dbUtils, logger)
 }
 
-function jitter (val, percent) {
+function jitter(val, percent) {
   // jitter by val * percent
   // eslint-disable-next-line no-mixed-operators
   return val * (1 + 2 * percent * Math.random() - percent)
 }
 
-function getRecordsFromEvent (event:any):IStreamRecord[] {
+function getRecordsFromEvent(event: any): IStreamRecord[] {
   return event.Records.map(record => {
     const { eventName, eventID, eventSourceARN, dynamodb } = record
     const {
@@ -563,7 +559,7 @@ function getRecordsFromEvent (event:any):IStreamRecord[] {
       NewImage,
       OldImage,
       ApproximateCreationDateTime
-    } = <AWS.DynamoDBStreams.StreamRecord>dynamodb
+    } = dynamodb as AWS.DynamoDBStreams.StreamRecord
 
     return {
       id: eventID,
@@ -577,7 +573,7 @@ function getRecordsFromEvent (event:any):IStreamRecord[] {
   })
 }
 
-const getEventType = (eventName: AWS.DynamoDBStreams.OperationType):StreamRecordType => {
+const getEventType = (eventName: AWS.DynamoDBStreams.OperationType): StreamRecordType => {
   if (eventName === 'INSERT') {
     return 'create'
   }
@@ -593,24 +589,23 @@ const getEventType = (eventName: AWS.DynamoDBStreams.OperationType):StreamRecord
   return 'unknown:' + eventName
 }
 
-
 const EVENT_SOURCE_ARN_TABLE_NAME_REGEX = /:table\/([^/]+)/
 
-function getTableNameFromStreamEvent (event) {
+function getTableNameFromStreamEvent(event) {
   return event.Records[0].eventSourceARN.match(EVENT_SOURCE_ARN_TABLE_NAME_REGEX)[1]
 }
 
-function logCapacityConsumption (method, result) {
+function logCapacityConsumption(method, result) {
   let type
   switch (method) {
-  case 'get':
-  case 'query':
-  case 'scan':
-    type = 'RCU'
-    break
-  default:
-    type = 'WCU'
-    break
+    case 'get':
+    case 'query':
+    case 'scan':
+      type = 'RCU'
+      break
+    default:
+      type = 'WCU'
+      break
   }
 
   const { ConsumedCapacity } = result
@@ -619,7 +614,7 @@ function logCapacityConsumption (method, result) {
   }
 }
 
-const getUpdateParams = (item):any => {
+const getUpdateParams = (item): any => {
   const keys = Object.keys(item)
   const toSet = keys.filter(key => item[key] != null)
   const toRemove = keys.filter(key => item[key] == null)

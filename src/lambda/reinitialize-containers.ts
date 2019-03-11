@@ -1,19 +1,20 @@
+import { reinitializeContainers } from '@tradle/aws-combo'
 import { Lambda } from '../types'
 import { fromLambda } from '../lambda'
 
-export const createLambda = (opts) => {
+export const createLambda = opts => {
   const lambda = fromLambda(opts)
   return lambda.use(createMiddleware(lambda, opts))
 }
 
-export const createMiddleware = (lambda:Lambda, opts?:any) => {
+export const createMiddleware = (lambda: Lambda, opts?: any) => {
   const { logger, bot } = lambda
-  const { lambdaUtils, stackUtils } = bot
+  const { lambdaInvoker, stackUtils } = bot
   return async (ctx, next) => {
     const { event } = ctx
     logger.debug('reinitializing lambda containers', event)
-    await stackUtils.forceReinitializeContainers(event.functions)
-    await lambdaUtils.scheduleWarmUp()
+    await stackUtils.reinitializeContainers(event.functions)
+    await lambdaInvoker.scheduleWarmUp()
     await next()
   }
 }

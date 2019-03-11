@@ -1,36 +1,34 @@
-import path from 'path'
-import _ from 'lodash'
-import promisify from 'pify'
-import proc from 'child_process'
-import { parseSync as parseEnv } from 'env-file-parser'
-import _fs from 'fs'
-import readline from 'readline'
-import YAML from 'js-yaml'
-import yn from 'yn'
-import getLocalIP from 'localip'
-import isNative from 'is-native-module'
-import AWS from 'aws-sdk'
-import execa from 'execa'
+// tslint:disable:no-console
 
-import { Bucket } from '../bucket'
-import Errors from '../errors'
-import { Env } from '../env'
-import { createRemoteBot } from '../'
-import { createConf } from '../in-house-bot/configure'
-import {
-  Bot
-} from '../in-house-bot/types'
+import path from "path"
+import _ from "lodash"
+import promisify from "pify"
+import proc from "child_process"
+import { parseSync as parseEnv } from "env-file-parser"
+import _fs from "fs"
+import readline from "readline"
+import YAML from "js-yaml"
+import yn from "yn"
+import getLocalIP from "localip"
+import isNative from "is-native-module"
+import AWS from "aws-sdk"
+import execa from "execa"
 
-import * as compile from './compile'
-import { resources as ResourceDefs } from './resources'
-import { createConfig } from '../aws-config'
-import { isLocalUrl, allSettled } from '../utils'
-import { createUtils as createS3Utils } from '../s3-utils'
-import { consoleLogger } from '../logger'
+import { wrapBucket, createClient as createS3Client } from "@tradle/aws-s3-client"
+import Errors from "../errors"
+import { Env } from "../env"
+import { createRemoteBot } from "../"
+import { createConf } from "../in-house-bot/configure"
+import { Bot } from "../in-house-bot/types"
 
-const Localstack = require('../test/localstack')
-const debug = require('debug')('tradle:sls:cli:utils')
-const copy = promisify(require('copy-dynamodb-table').copy)
+import * as compile from "./compile"
+import { resources as ResourceDefs } from "./resources"
+import { createConfig } from "../aws/config"
+import { isLocalUrl, allSettled } from "../utils"
+
+const Localstack = require("../test/localstack")
+const debug = require("debug")("tradle:sls:cli:utils")
+const copy = promisify(require("copy-dynamodb-table").copy)
 
 const pexec = promisify(proc.exec.bind(proc))
 const fs = promisify(_fs)
@@ -39,30 +37,23 @@ const getStackName = () => {
   const {
     service,
     provider: { stage }
-  } = require('./serverless-yml')
+  } = require("./serverless-yml")
 
   return `${service}-${stage}`
 }
 
-const getRegion = () => require('./serverless-yml').provider.region
-
-const getStackResources = ({ bot, stackName }: {
-  bot: Bot
-  stackName: string
-}) => {
-  return bot.stackUtils.getStackResources(stackName || getStackName())
-}
+const getRegion = () => require("./serverless-yml").provider.region
 
 const getPhysicalId = async ({ bot, logicalId }) => {
-  const resources = await getStackResources({
-    bot,
-    stackName: getStackName()
-  })
-
+  const resources = await bot.stackUtils.getStackResources()
   const match = resources.find(({ LogicalResourceId }) => LogicalResourceId === logicalId)
   if (!match) {
     const list = resources.map(({ LogicalResourceId }) => LogicalResourceId)
-    throw new Error(`resource with logical id "${logicalId}" not found. See list of resources in stack: ${JSON.stringify(list)}`)
+    throw new Error(
+      `resource with logical id "${logicalId}" not found. See list of resources in stack: ${JSON.stringify(
+        list
+      )}`
+    )
   }
 
   return match.PhysicalResourceId
@@ -84,103 +75,92 @@ const removeLocalBucket = async ({ bucket, endpoint }) => {
   }
 }
 
-const nukeLocalResources = async ({ region, stackName }: {
-  region: string
-  stackName: string
-}) => {
-  const config = createConfig({ region, local: true })
+const nukeLocalResources = async ({ region, stackName }: { region: string; stackName: string }) => {
+  const env = new Env(process.env)
+  const config = createConfig({ region, local: true, iotEndpoint: env.IOT_ENDPOINT })
   const dynamodb = new AWS.DynamoDB(config.dynamodb)
   const s3 = new AWS.S3(config.s3)
   const delTables = async () => {
     const tables = await dynamodb.listTables().promise()
-    const stackTables = tables.TableNames
-      .filter(t => t.startsWith(`${stackName}-`))
+    const stackTables = tables.TableNames.filter(t => t.startsWith(`${stackName}-`))
 
     await Promise.all(stackTables.map(TableName => dynamodb.deleteTable({ TableName }).promise()))
   }
 
   const delBuckets = async () => {
     const buckets = await s3.listBuckets().promise()
-    const stackBuckets = buckets.Buckets
-      .map(b => b.Name)
-      .filter(b => b.startsWith(`${stackName}-`))
+    const stackBuckets = buckets.Buckets.map(b => b.Name).filter(b => b.startsWith(`${stackName}-`))
 
-    await Promise.all(stackBuckets.map(bucket => removeLocalBucket({ endpoint: s3.config.endpoint, bucket })))
+    await Promise.all(
+      stackBuckets.map(bucket => removeLocalBucket({ endpoint: s3.config.endpoint, bucket }))
+    )
   }
 
-  await Promise.all([
-    delTables(),
-    delBuckets()
-  ])
+  await Promise.all([delTables(), delBuckets()])
 }
 
-const getLocalResourceName = ({ stackName, name }: {
-  stackName: string
-  name: string
-}) => {
+const getLocalResourceName = ({ stackName, name }: { stackName: string; name: string }) => {
   name = name.toLowerCase()
-  if (name === 'bucket0') name = 'bucket-0'
+  if (name === "bucket0") name = "bucket-0"
 
   return `${stackName}-${name}`
 }
 
-const genLocalResources = async ({ region, stackName }: {
-  region: string
-  stackName: string
-}) => {
-
-  const config = createConfig({ region, local: true })
+const genLocalResources = async ({ region, stackName }: { region: string; stackName: string }) => {
+  const env = new Env(process.env)
+  const config = createConfig({ region, local: true, iotEndpoint: env.IOT_ENDPOINT })
   const dynamodb = new AWS.DynamoDB(config.dynamodb)
   const s3 = new AWS.S3(config.s3)
-  const promiseTables = Promise.all(_.map(ResourceDefs.tables, async ({ Properties }, name: string) => {
-    if (Properties.StreamSpecification) {
-      Properties.StreamSpecification.StreamEnabled = true
-    }
+  const promiseTables = Promise.all(
+    _.map(ResourceDefs.tables, async ({ Properties }, name: string) => {
+      if (Properties.StreamSpecification) {
+        Properties.StreamSpecification.StreamEnabled = true
+      }
 
-    delete Properties.TimeToLiveSpecification
-    delete Properties.PointInTimeRecoverySpecification
-    delete Properties.SSESpecification
-    delete Properties.BillingMode
-    Properties.ProvisionedThroughput = {
-      ReadCapacityUnits: 10,
-      WriteCapacityUnits: 10,
-    }
+      delete Properties.TimeToLiveSpecification
+      delete Properties.PointInTimeRecoverySpecification
+      delete Properties.SSESpecification
+      delete Properties.BillingMode
+      Properties.ProvisionedThroughput = {
+        ReadCapacityUnits: 10,
+        WriteCapacityUnits: 10
+      }
 
-    if (Properties.GlobalSecondaryIndexes) {
-      Properties.GlobalSecondaryIndexes = Properties.GlobalSecondaryIndexes.map(index => ({
-        ...index,
-        ProvisionedThroughput: {
-          ReadCapacityUnits: 10,
-          WriteCapacityUnits: 10,
-        }
-      }))
-    }
+      if (Properties.GlobalSecondaryIndexes) {
+        Properties.GlobalSecondaryIndexes = Properties.GlobalSecondaryIndexes.map(index => ({
+          ...index,
+          ProvisionedThroughput: {
+            ReadCapacityUnits: 10,
+            WriteCapacityUnits: 10
+          }
+        }))
+      }
 
-    Properties.TableName = getLocalResourceName({ stackName, name })
-    try {
-      await dynamodb.createTable(Properties).promise()
-    } catch (err) {
-      Errors.ignore(err, { name: 'ResourceInUseException' })
-    }
-  }))
+      Properties.TableName = getLocalResourceName({ stackName, name })
+      try {
+        await dynamodb.createTable(Properties).promise()
+      } catch (err) {
+        Errors.ignore(err, { name: "ResourceInUseException" })
+      }
+    })
+  )
 
-  const promiseBuckets = Promise.all(_.map(ResourceDefs.buckets, async ({ Properties }, name: string) => {
-    const params = {
-      // not the real bucket name
-      Bucket: getLocalResourceName({ stackName, name }),
-    }
+  const promiseBuckets = Promise.all(
+    _.map(ResourceDefs.buckets, async ({ Properties }, name: string) => {
+      const params = {
+        // not the real bucket name
+        Bucket: getLocalResourceName({ stackName, name })
+      }
 
-    try {
-      await s3.createBucket(params).promise()
-    } catch (err) {
-      Errors.ignore(err, { code: 'BucketAlreadyExists' })
-    }
-  }))
+      try {
+        await s3.createBucket(params).promise()
+      } catch (err) {
+        Errors.ignore(err, { code: "BucketAlreadyExists" })
+      }
+    })
+  )
 
-  await Promise.all([
-    promiseTables,
-    promiseBuckets
-  ])
+  await Promise.all([promiseTables, promiseBuckets])
 }
 
 const makeDeploymentBucketPublic = async () => {
@@ -190,45 +170,53 @@ const makeDeploymentBucketPublic = async () => {
   await buckets.ServerlessDeployment.makePublic()
 }
 
-const interpolateTemplate = (opts:{ arg?:string, sync?:boolean }={}) => {
-  const { arg='', sync } = opts
+const interpolateTemplate = (opts: { arg?: string; sync?: boolean } = {}) => {
+  const { arg = "", sync } = opts
   const command = `sls print ${arg}`
   if (sync) {
     return Promise.resolve(proc.execSync(command).toString())
   }
 
   return new Promise((resolve, reject) => {
-    proc.exec(command, {
-      cwd: process.cwd()
-    }, function (err, stdout, stderr) {
-      if (err) {
-        reject(new Error(stderr || stdout || err.message))
-      } else {
-        resolve(stdout.toString())
+    proc.exec(
+      command,
+      {
+        cwd: process.cwd()
+      },
+      (err, stdout, stderr) => {
+        if (err) {
+          reject(new Error(stderr || stdout || err.message))
+        } else {
+          resolve(stdout.toString())
+        }
       }
-    })
+    )
   })
 }
 
 const alphaNumRegex = /^[a-zA-Z][a-zA-Z0-9]+$/
 const stackNameRegex = /^tdl-[a-zA-Z0-9-]+-ltd$/
 
-const compileTemplate = async (path) => {
-  const file = await fs.readFile(path, { encoding: 'utf8' })
+const compileTemplate = async path => {
+  const file = await fs.readFile(path, { encoding: "utf8" })
   const yml = YAML.safeLoad(file)
-  const exists = fs.existsSync('./serverless.yml')
+  const exists = fs.existsSync("./serverless.yml")
   if (!exists) {
-    await fs.writeFile('./serverless.yml', file, { encoding: 'utf8' })
+    await fs.writeFile("./serverless.yml", file, { encoding: "utf8" })
   }
 
   const interpolatedStr = await interpolateTemplate()
   const interpolated = YAML.safeLoad(interpolatedStr)
   if (!stackNameRegex.test(interpolated.service)) {
-    throw new Error(`invalid "service" name "${interpolated.service}", adhere to regex: ${stackNameRegex}`)
+    throw new Error(
+      `invalid "service" name "${interpolated.service}", adhere to regex: ${stackNameRegex}`
+    )
   }
 
   if (!alphaNumRegex.test(interpolated.provider.stage)) {
-    throw new Error(`invalid stage "${interpolated.provider.stage}", adhere to regex: ${alphaNumRegex}`)
+    throw new Error(
+      `invalid stage "${interpolated.provider.stage}", adhere to regex: ${alphaNumRegex}`
+    )
   }
 
   // validateProviderConf(interpolated.custom.providerConf)
@@ -248,39 +236,41 @@ const compileTemplate = async (path) => {
   return YAML.dump(yml)
 }
 
-function loadCredentials () {
-  const AWS = require('aws-sdk')
-  const yml = require('./serverless-yml')
+function loadCredentials() {
+  const AWS = require("aws-sdk")
+  const yml = require("./serverless-yml")
   const { profile } = yml.provider
   AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile })
 }
 
-function getRemoteEnv () {
-  return require('./remote-service-map')
+function getRemoteEnv() {
+  return require("./remote-service-map")
 }
 
-function loadRemoteEnv () {
+function loadRemoteEnv() {
   _.extend(process.env, getRemoteEnv())
   // const { env } = require('../env').tradle
   // env.set(getRemoteEnv())
 }
 
 // borrowed gratefully from https://github.com/juliangruber/native-modules
-const getNativeModules = async (dir='node_modules', modules={}) => {
+const getNativeModules = async (dir = "node_modules", modules = {}) => {
   const lstat = await fs.lstat(dir)
   if (!lstat.isDirectory()) return
 
-  const name = dir.split('node_modules').pop()
+  const name = dir.split("node_modules").pop()
   if (name in modules) return
 
   const files = await fs.readdir(dir)
-  const promiseOne = fs.readFile(`${dir}/package.json`)
-    .then(json => {
-      const pkg = JSON.parse(json.toString('utf8'))
+  const promiseOne = fs.readFile(`${dir}/package.json`).then(
+    json => {
+      const pkg = JSON.parse(json.toString("utf8"))
       if (isNative(pkg)) modules[pkg.name] = true
-    }, err => {
-      if (err.code !== 'ENOENT') throw err
-    })
+    },
+    err => {
+      if (err.code !== "ENOENT") throw err
+    }
+  )
 
   const nested = files
     .filter(f => !/^\./.test(f))
@@ -291,17 +281,18 @@ const getNativeModules = async (dir='node_modules', modules={}) => {
 }
 
 const getProductionModules = async () => {
-  const command = 'npm ls --production --parseable=true --long=false --silent'
+  const command = "npm ls --production --parseable=true --long=false --silent"
   const buf = await pexec(command, {
     cwd: process.cwd()
   })
 
-  return buf.toString()
-    .split('\n')
+  return buf
+    .toString()
+    .split("\n")
     .map(path => {
       return {
         path,
-        name: path.split('node_modules/').pop()
+        name: path.split("node_modules/").pop()
       }
     })
 }
@@ -316,7 +307,7 @@ const getProductionModules = async () => {
 //   }
 // }
 
-const downloadDeploymentTemplate = async (bot:Bot) => {
+const downloadDeploymentTemplate = async (bot: Bot) => {
   return await bot.stackUtils.getStackTemplate()
 }
 
@@ -355,9 +346,9 @@ const downloadDeploymentTemplate = async (bot:Bot) => {
 const cloneRemoteTable = async ({ source, destination }) => {
   loadCredentials()
 
-  const AWS = require('aws-sdk')
-  const yml = require('./serverless-yml')
-  const localCredentials = parseEnv(path.resolve(__dirname, '../../docker/.env'))
+  const AWS = require("aws-sdk")
+  const yml = require("./serverless-yml")
+  const localCredentials = parseEnv(path.resolve(__dirname, "../../docker/.env"))
   const { region } = yml.provider
   await copy({
     config: {
@@ -379,13 +370,16 @@ const cloneRemoteTable = async ({ source, destination }) => {
 }
 
 const alwaysTrue = (...any) => true
-const cloneRemoteBucket = async ({ source, destination, filter=alwaysTrue }) => {
+const cloneRemoteBucket = async ({ source, destination, filter = alwaysTrue }) => {
   loadCredentials()
 
-  const AWS = require('aws-sdk')
-  const sourceBucket = new Bucket({
-    name: source,
-    s3: new AWS.S3()
+  const s3Client = createS3Client({
+    client: new AWS.S3()
+  })
+
+  const sourceBucket = wrapBucket({
+    bucket: source,
+    client: s3Client
   })
 
   const destinationS3 = new AWS.S3({
@@ -398,28 +392,32 @@ const cloneRemoteBucket = async ({ source, destination, filter=alwaysTrue }) => 
     map: batch => {
       const keep = batch.filter(filter)
       console.log(`processing batch of ${keep.length} items`)
-      return Promise.all(keep.map(async (item) => {
-        return destinationS3.putObject({
-          Key: item.Key,
-          Bucket: destination,
-          Body: item.Body,
-          ContentType: item.ContentType
-        }).promise()
-      }))
+      return Promise.all(
+        keep.map(async item => {
+          return destinationS3
+            .putObject({
+              Key: item.Key,
+              Bucket: destination,
+              Body: item.Body,
+              ContentType: item.ContentType
+            })
+            .promise()
+        })
+      )
     }
   })
 }
 
-export const getOfflinePort = (env?:Env) => {
+export const getOfflinePort = (env?: Env) => {
   if (env && env.SERVERLESS_OFFLINE_PORT) {
     return env.SERVERLESS_OFFLINE_PORT
   }
 
-  const yml = require('./serverless-yml')
-  return yml.custom['serverless-offline'].port
+  const yml = require("./serverless-yml")
+  return yml.custom["serverless-offline"].port
 }
 
-export const getOfflineHost = (env?:Env) => {
+export const getOfflineHost = (env?: Env) => {
   if (env && env.SERVERLESS_OFFLINE_APIGW) {
     return env.SERVERLESS_OFFLINE_APIGW
   }
@@ -433,43 +431,63 @@ export const confirm = async (question?: string) => {
 
   const rl = readline.createInterface(process.stdin, process.stdout)
   const answer = await new Promise(resolve => {
-    rl.question('continue? y/[n]:', resolve)
+    rl.question("continue? y/[n]:", resolve)
   })
 
   rl.close()
   return yn(answer)
 }
 
-export const validateTemplateAtPath = async ({ cloudformation, templatePath }: {
+export const validateTemplateAtPath = async ({
+  cloudformation,
+  templatePath
+}: {
   cloudformation: AWS.CloudFormation
   templatePath: string
 }) => {
-  const TemplateBody = await fs.readFile(templatePath, { encoding: 'utf8' })
+  const TemplateBody = await fs.readFile(templatePath, { encoding: "utf8" })
   await cloudformation.validateTemplate({ TemplateBody }).promise()
 }
 
-const getTemplatesFilePaths = (dir: string) => fs.readdirSync(dir)
-  .filter(file => /\.(ya?ml|json)$/.test(file))
-  .map(file => path.resolve(dir, file))
+const getTemplatesFilePaths = (dir: string) =>
+  fs
+    .readdirSync(dir)
+    .filter(file => /\.(ya?ml|json)$/.test(file))
+    .map(file => path.resolve(dir, file))
 
-export const validateTemplatesAtPath = async ({ cloudformation, dir }: {
+export const validateTemplatesAtPath = async ({
+  cloudformation,
+  dir
+}: {
   cloudformation: AWS.CloudFormation
   dir: string
 }) => {
   const files = getTemplatesFilePaths(dir)
-  const results = await allSettled(files.map(templatePath => validateTemplateAtPath({ cloudformation, templatePath })))
-  const errors = results.map((result, i) => result.isRejected && {
-    template: files[i],
-    error: result.reason
-  })
-  .filter(_.identity)
+  const results = await allSettled(
+    files.map(templatePath => validateTemplateAtPath({ cloudformation, templatePath }))
+  )
+  const errors = results
+    .map(
+      (result, i) =>
+        result.isRejected && {
+          template: files[i],
+          error: result.reason
+        }
+    )
+    .filter(_.identity)
 
   if (errors.length) {
     throw new Error(JSON.stringify(errors))
   }
 }
 
-export const uploadTemplatesAtPath = async ({ s3, dir, bucket, prefix, acl }: {
+export const uploadTemplatesAtPath = async ({
+  s3,
+  dir,
+  bucket,
+  prefix,
+  acl
+}: {
   s3: AWS.S3
   dir: string
   bucket: string
@@ -477,23 +495,27 @@ export const uploadTemplatesAtPath = async ({ s3, dir, bucket, prefix, acl }: {
   acl?: AWS.S3.ObjectCannedACL
 }) => {
   const files = getTemplatesFilePaths(dir)
-  const params:AWS.S3.PutObjectRequest = {
+  const params: AWS.S3.PutObjectRequest = {
     Bucket: bucket,
     Key: null,
     Body: null,
-    ACL: acl,
+    ACL: acl
   }
 
-  await Promise.all(files.map(async file => {
-    const template = YAML.safeLoad(await fs.readFile(file))
-    const key = path.basename(file).replace(/\.ya?ml$/, '.json')
-    return s3.putObject({
-      ...params,
-      Key: `${prefix}/${key}`,
-      Body: new Buffer(JSON.stringify(template)),
-      ContentType: 'application/json',
-    }).promise()
-  }))
+  await Promise.all(
+    files.map(async file => {
+      const template = YAML.safeLoad(await fs.readFile(file))
+      const key = path.basename(file).replace(/\.ya?ml$/, ".json")
+      return s3
+        .putObject({
+          ...params,
+          Key: `${prefix}/${key}`,
+          Body: new Buffer(JSON.stringify(template)),
+          ContentType: "application/json"
+        })
+        .promise()
+    })
+  )
 }
 
 export {
@@ -508,7 +530,6 @@ export {
   getRegion,
   getLocalResourceName,
   getStackName,
-  getStackResources,
   getPhysicalId,
   getNativeModules,
   getProductionModules,
