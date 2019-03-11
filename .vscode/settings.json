@@ -26,5 +26,6 @@
   "prettier.useTabs": false,
   "markdown.extension.toc.updateOnSave": true,
   "markdown.extension.toc.levels": "2..6",
-  "markdown.extension.toc.githubCompatibility": true
+  "markdown.extension.toc.githubCompatibility": true,
+  "markdown.extension.preview.autoShowPreviewToSide": true
 }
