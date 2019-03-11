@@ -23,6 +23,7 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [Install dependencies](#install-dependencies)
   - [Set AWS profile](#set-aws-profile)
 - [Local Playground](#local-playground)
+  - [Set TMPDIR env var](#set-tmpdir-env-var)
   - [Start docker](#start-docker)
   - [Start the Playground](#start-the-playground)
   - [Explore the API](#explore-the-api)
@@ -127,6 +128,7 @@ Install: `npm i -g --save-exact typescript@2.8.4`
 
 - [awslocal](https://github.com/localstack/awscli-local). aws-cli wrapper for querying localstack. (On OS X, install with `[sudo] pip install awscli-local`)
 - [Serverless Framework](https://github.com/serverless/serverless) - this is already installed as part of `devDependencies`, but you may also want it installed globally so you can use the serverless cli (`npm i -g serverless`)
+- [nodemon]([https:](https://github.com/remy/nodemon)) - detects changes in code and restarts your local server
 
 ### Clone this project
 
@@ -455,7 +457,7 @@ After deploying to AWS, CloudWatch logs shows:
 module initialization error TypeError
 ```
 
-**Cause**: a native module in your dependency tree was not compiled for the Amazon Linux Container
+**Cause**: a native module in your dependency tree was not compiled for the Amazon Linux Container  
 **Fix**: `npm run rebuild:lambda` and re-deploy
 
 Keep in mind that deployment keys in S3 are based on the current git commit, so you'll need to re-commit before deploying, otherwise AWS CloudFormation will not re-deploy your lambdas with new code.
