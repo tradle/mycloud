@@ -10,7 +10,7 @@ import {
   ITradleObject,
   ResourceStub,
   MiniVersionInfo,
-  IChildDeployment,
+  IChildDeployment
 } from './types'
 
 interface VersionEmailInput {
@@ -25,11 +25,7 @@ export class Alerts {
   private logger: Logger
   private org: IOrganization
   private bot: Bot
-  constructor({ bot, org, logger }: {
-    bot: Bot
-    org: IOrganization
-    logger: Logger
-  }) {
+  constructor({ bot, org, logger }: { bot: Bot; org: IOrganization; logger: Logger }) {
     this.snsUtils = bot.snsUtils
     this.adminAlertsTopic = bot.serviceMap.Topic.AdminAlerts
     this.logger = logger
@@ -37,20 +33,25 @@ export class Alerts {
     this.bot = bot
   }
 
-  public updateAvailable = async ({ current, update }: {
+  public updateAvailable = async ({
+    current,
+    update
+  }: {
     current: VersionInfo
     update: VersionInfo
   }) => {
     this.logger.debug('alerting admin about available update')
     if (compareTags(current.tag, update.tag) >= 0) {
-      throw new Errors.InvalidInput(`expected update version ${update.tag} to be greater than current version ${current.tag}`)
+      throw new Errors.InvalidInput(
+        `expected update version ${update.tag} to be greater than current version ${current.tag}`
+      )
     }
 
     const { org } = this
     const body = generateVersionAlertEmailText({ org, current, update })
     await this._emailAdmin({
       subject: generateVersionAlertSubject({ org, current, update }),
-      body,
+      body
     })
   }
 
@@ -58,8 +59,8 @@ export class Alerts {
     blockchain,
     networkName,
     address,
-    balance=0,
-    minBalance=this.bot.blockchain.minBalance
+    balance = 0,
+    minBalance = this.bot.blockchain.minBalance
   }: LowFundsInput) => {
     await this._emailAdmin({
       subject: `${this.org.name} MyCloud blockchain balance low`,
@@ -75,21 +76,18 @@ Address: ${address}
 
 Grumpily,
 Your MyCloud
-`,
+`
     })
   }
 
-  public childUpdated = async ({ from, to }: {
-    from: IChildDeployment
-    to: IChildDeployment
-  }) => {
+  public childUpdated = async ({ from, to }: { from: IChildDeployment; to: IChildDeployment }) => {
     const { identity } = from
     if (!identity) return
 
     const friend = await this.bot.friends.getByIdentityPermalink(identity._permalink)
     const fromTag = from.version.tag
     const toTag = to.version.tag
-    this._emailAdmin({
+    await this._emailAdmin({
       subject: `[MyCloud.UPDATED]: ${friend.name} ${fromTag} -> ${toTag}`,
       body: `Dearest,
 
@@ -110,7 +108,10 @@ API Url: ${to.apiUrl}
     })
   }
 
-  public childRolledBack = async ({ from, to }: {
+  public childRolledBack = async ({
+    from,
+    to
+  }: {
     from?: IChildDeployment
     to: IChildDeployment
   }) => {
@@ -119,7 +120,7 @@ API Url: ${to.apiUrl}
 
     const friend = await this.bot.friends.getByIdentityPermalink(identity._permalink)
     const { version } = to
-    this._emailAdmin({
+    await this._emailAdmin({
       subject: `[MyCloud.ROLLBACK]: ${friend.name} rolled back MyCloud (${version.tag})`,
       body: `Yo,
 
@@ -145,7 +146,7 @@ API Url: ${to.apiUrl}
 
     const friend = await this.bot.friends.getByIdentityPermalink(identity._permalink)
     const { tag } = childDeployment.version
-    this._emailAdmin({
+    await this._emailAdmin({
       subject: `[MyCloud.NEW]: ${friend.name} (${tag})`,
       body: `Yo,
 
@@ -167,7 +168,7 @@ API Url: ${childDeployment.apiUrl}
       subject,
       message: {
         default: body,
-        email: body,
+        email: body
       }
     })
   }
