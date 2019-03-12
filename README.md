@@ -118,7 +118,7 @@ Make sure you can run docker as non-root. On Linux, you can do this by adding yo
 
 [typescript](typescriptlang.org): This project uses TypeScript, which needs to be compiled to JavaScript prior to use.
 
-Install: `npm i -g --save-exact typescript@2.8.4`
+Install: `npm i -g --save-exact typescript@3.3.3333`
 
 *Note: Depending on your local setup you may need install with `sudo`*
 
@@ -184,9 +184,9 @@ Now open your browser to [http://localhost:55555](http://localhost:55555). If 55
 
 If you don't see your local provider, click the red menu button on the Conversations screen, choose "Add Server Url" and add `http://localhost:21012`
 
-Profile                                    | Conversations                             | Chat
-:-----------------------------------------:|:-----------------------------------------:|:-----------------------------------------:
-![](./docs/images/profile-guided-w250.png) | ![](./docs/images/conversations-guided-w250.png) | ![](./docs/images/chat1-w250.png)
+|                  Profile                   |                  Conversations                   |               Chat                |
+| :----------------------------------------: | :----------------------------------------------: | :-------------------------------: |
+| ![](./docs/images/profile-guided-w250.png) | ![](./docs/images/conversations-guided-w250.png) | ![](./docs/images/chat1-w250.png) |
 
 ### Explore the API
 
