@@ -1,34 +1,34 @@
 // tslint:disable:no-console
 
-import path from "path"
-import _ from "lodash"
-import promisify from "pify"
-import proc from "child_process"
-import { parseSync as parseEnv } from "env-file-parser"
-import _fs from "fs"
-import readline from "readline"
-import YAML from "js-yaml"
-import yn from "yn"
-import getLocalIP from "localip"
-import isNative from "is-native-module"
-import AWS from "aws-sdk"
-import execa from "execa"
+import path from 'path'
+import _ from 'lodash'
+import promisify from 'pify'
+import proc from 'child_process'
+import { parseSync as parseEnv } from 'env-file-parser'
+import _fs from 'fs'
+import readline from 'readline'
+import YAML from 'js-yaml'
+import yn from 'yn'
+import getLocalIP from 'localip'
+import isNative from 'is-native-module'
+import AWS from 'aws-sdk'
+import execa from 'execa'
 
-import { wrapBucket, createClient as createS3Client } from "@tradle/aws-s3-client"
-import Errors from "../errors"
-import { Env } from "../env"
-import { createRemoteBot } from "../"
-import { createConf } from "../in-house-bot/configure"
-import { Bot } from "../in-house-bot/types"
+import { wrapBucket, createClient as createS3Client } from '@tradle/aws-s3-client'
+import Errors from '../errors'
+import { Env } from '../env'
+import { createRemoteBot } from '../'
+import { createConf } from '../in-house-bot/configure'
+import { Bot } from '../in-house-bot/types'
 
-import * as compile from "./compile"
-import { resources as ResourceDefs } from "./resources"
-import { createConfig } from "../aws/config"
-import { isLocalUrl, allSettled } from "../utils"
+import * as compile from './compile'
+import { resources as ResourceDefs } from './resources'
+import { createConfig } from '../aws/config'
+import { isLocalUrl, allSettled } from '../utils'
 
-const Localstack = require("../test/localstack")
-const debug = require("debug")("tradle:sls:cli:utils")
-const copy = promisify(require("copy-dynamodb-table").copy)
+const Localstack = require('../test/localstack')
+const debug = require('debug')('tradle:sls:cli:utils')
+const copy = promisify(require('copy-dynamodb-table').copy)
 
 const pexec = promisify(proc.exec.bind(proc))
 const fs = promisify(_fs)
@@ -37,12 +37,12 @@ const getStackName = () => {
   const {
     service,
     provider: { stage }
-  } = require("./serverless-yml")
+  } = require('./serverless-yml')
 
   return `${service}-${stage}`
 }
 
-const getRegion = () => require("./serverless-yml").provider.region
+const getRegion = () => require('./serverless-yml').provider.region
 
 const getPhysicalId = async ({ bot, logicalId }) => {
   const resources = await bot.stackUtils.getStackResources()
@@ -101,7 +101,7 @@ const nukeLocalResources = async ({ region, stackName }: { region: string; stack
 
 const getLocalResourceName = ({ stackName, name }: { stackName: string; name: string }) => {
   name = name.toLowerCase()
-  if (name === "bucket0") name = "bucket-0"
+  if (name === 'bucket0') name = 'bucket-0'
 
   return `${stackName}-${name}`
 }
@@ -113,6 +113,14 @@ const genLocalResources = async ({ region, stackName }: { region: string; stackN
   const s3 = new AWS.S3(config.s3)
   const promiseTables = Promise.all(
     _.map(ResourceDefs.tables, async ({ Properties }, name: string) => {
+      const TableName = getLocalResourceName({ stackName, name })
+      try {
+        await dynamodb.describeTable({ TableName }).promise()
+        return
+      } catch (err) {
+        Errors.ignore(err, { name: 'ResourceNotFoundException' })
+      }
+
       if (Properties.StreamSpecification) {
         Properties.StreamSpecification.StreamEnabled = true
       }
@@ -136,11 +144,11 @@ const genLocalResources = async ({ region, stackName }: { region: string; stackN
         }))
       }
 
-      Properties.TableName = getLocalResourceName({ stackName, name })
+      Properties.TableName = TableName
       try {
         await dynamodb.createTable(Properties).promise()
       } catch (err) {
-        Errors.ignore(err, { name: "ResourceInUseException" })
+        Errors.ignore(err, { name: 'ResourceInUseException' })
       }
     })
   )
@@ -155,7 +163,7 @@ const genLocalResources = async ({ region, stackName }: { region: string; stackN
       try {
         await s3.createBucket(params).promise()
       } catch (err) {
-        Errors.ignore(err, { code: "BucketAlreadyExists" })
+        Errors.ignore(err, { code: 'BucketAlreadyExists' })
       }
     })
   )
@@ -171,7 +179,7 @@ const makeDeploymentBucketPublic = async () => {
 }
 
 const interpolateTemplate = (opts: { arg?: string; sync?: boolean } = {}) => {
-  const { arg = "", sync } = opts
+  const { arg = '', sync } = opts
   const command = `sls print ${arg}`
   if (sync) {
     return Promise.resolve(proc.execSync(command).toString())
@@ -198,11 +206,11 @@ const alphaNumRegex = /^[a-zA-Z][a-zA-Z0-9]+$/
 const stackNameRegex = /^tdl-[a-zA-Z0-9-]+-ltd$/
 
 const compileTemplate = async path => {
-  const file = await fs.readFile(path, { encoding: "utf8" })
+  const file = await fs.readFile(path, { encoding: 'utf8' })
   const yml = YAML.safeLoad(file)
-  const exists = fs.existsSync("./serverless.yml")
+  const exists = fs.existsSync('./serverless.yml')
   if (!exists) {
-    await fs.writeFile("./serverless.yml", file, { encoding: "utf8" })
+    await fs.writeFile('./serverless.yml', file, { encoding: 'utf8' })
   }
 
   const interpolatedStr = await interpolateTemplate()
@@ -237,14 +245,14 @@ const compileTemplate = async path => {
 }
 
 function loadCredentials() {
-  const AWS = require("aws-sdk")
-  const yml = require("./serverless-yml")
+  const AWS = require('aws-sdk')
+  const yml = require('./serverless-yml')
   const { profile } = yml.provider
   AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile })
 }
 
 function getRemoteEnv() {
-  return require("./remote-service-map")
+  return require('./remote-service-map')
 }
 
 function loadRemoteEnv() {
@@ -254,21 +262,21 @@ function loadRemoteEnv() {
 }
 
 // borrowed gratefully from https://github.com/juliangruber/native-modules
-const getNativeModules = async (dir = "node_modules", modules = {}) => {
+const getNativeModules = async (dir = 'node_modules', modules = {}) => {
   const lstat = await fs.lstat(dir)
   if (!lstat.isDirectory()) return
 
-  const name = dir.split("node_modules").pop()
+  const name = dir.split('node_modules').pop()
   if (name in modules) return
 
   const files = await fs.readdir(dir)
   const promiseOne = fs.readFile(`${dir}/package.json`).then(
     json => {
-      const pkg = JSON.parse(json.toString("utf8"))
+      const pkg = JSON.parse(json.toString('utf8'))
       if (isNative(pkg)) modules[pkg.name] = true
     },
     err => {
-      if (err.code !== "ENOENT") throw err
+      if (err.code !== 'ENOENT') throw err
     }
   )
 
@@ -281,18 +289,18 @@ const getNativeModules = async (dir = "node_modules", modules = {}) => {
 }
 
 const getProductionModules = async () => {
-  const command = "npm ls --production --parseable=true --long=false --silent"
+  const command = 'npm ls --production --parseable=true --long=false --silent'
   const buf = await pexec(command, {
     cwd: process.cwd()
   })
 
   return buf
     .toString()
-    .split("\n")
+    .split('\n')
     .map(path => {
       return {
         path,
-        name: path.split("node_modules/").pop()
+        name: path.split('node_modules/').pop()
       }
     })
 }
@@ -346,9 +354,9 @@ const downloadDeploymentTemplate = async (bot: Bot) => {
 const cloneRemoteTable = async ({ source, destination }) => {
   loadCredentials()
 
-  const AWS = require("aws-sdk")
-  const yml = require("./serverless-yml")
-  const localCredentials = parseEnv(path.resolve(__dirname, "../../docker/.env"))
+  const AWS = require('aws-sdk')
+  const yml = require('./serverless-yml')
+  const localCredentials = parseEnv(path.resolve(__dirname, '../../docker/.env'))
   const { region } = yml.provider
   await copy({
     config: {
@@ -413,8 +421,8 @@ export const getOfflinePort = (env?: Env) => {
     return env.SERVERLESS_OFFLINE_PORT
   }
 
-  const yml = require("./serverless-yml")
-  return yml.custom["serverless-offline"].port
+  const yml = require('./serverless-yml')
+  return yml.custom['serverless-offline'].port
 }
 
 export const getOfflineHost = (env?: Env) => {
@@ -431,7 +439,7 @@ export const confirm = async (question?: string) => {
 
   const rl = readline.createInterface(process.stdin, process.stdout)
   const answer = await new Promise(resolve => {
-    rl.question("continue? y/[n]:", resolve)
+    rl.question('continue? y/[n]:', resolve)
   })
 
   rl.close()
@@ -445,7 +453,7 @@ export const validateTemplateAtPath = async ({
   cloudformation: AWS.CloudFormation
   templatePath: string
 }) => {
-  const TemplateBody = await fs.readFile(templatePath, { encoding: "utf8" })
+  const TemplateBody = await fs.readFile(templatePath, { encoding: 'utf8' })
   await cloudformation.validateTemplate({ TemplateBody }).promise()
 }
 
@@ -505,13 +513,13 @@ export const uploadTemplatesAtPath = async ({
   await Promise.all(
     files.map(async file => {
       const template = YAML.safeLoad(await fs.readFile(file))
-      const key = path.basename(file).replace(/\.ya?ml$/, ".json")
+      const key = path.basename(file).replace(/\.ya?ml$/, '.json')
       return s3
         .putObject({
           ...params,
           Key: `${prefix}/${key}`,
           Body: new Buffer(JSON.stringify(template)),
-          ContentType: "application/json"
+          ContentType: 'application/json'
         })
         .promise()
     })
