@@ -287,6 +287,11 @@ export default class Backlinks {
       if (type === BACKLINK_ITEM) return false
 
       const model = this.models[type]
+      if (!model) {
+        this.logger.error('missing model for type, skipping backlink', { type, permalink: resource._permalink })
+        return false
+      }
+
       // well-behaved intersections can be queried directly
       // without backlink items
       return !isWellBehavedIntersection(model)
