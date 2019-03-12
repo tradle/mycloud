@@ -121,10 +121,7 @@ const genLocalResources = async ({ region, stackName }: { region: string; stackN
         Errors.ignore(err, { name: 'ResourceNotFoundException' })
       }
 
-      if (Properties.StreamSpecification) {
-        Properties.StreamSpecification.StreamEnabled = true
-      }
-
+      delete Properties.StreamSpecification
       delete Properties.TimeToLiveSpecification
       delete Properties.PointInTimeRecoverySpecification
       delete Properties.SSESpecification
