@@ -13,7 +13,7 @@ import {
   ResourceStub,
   CreatePlugin,
   IPluginLifecycleMethods,
-  ValidatePluginConf,
+  ValidatePluginConf
 } from '../types'
 
 const { parseStub } = validateResource.utils
@@ -61,12 +61,11 @@ interface IPersonalInfo {
   dateOfBirth?: number
   country?: ResourceStub
 }
-interface ILegalEntity {
-}
+interface ILegalEntity {}
 
 export const extractors = {
   [PHOTO_ID]: (form: IPersonalInfo) => {
-    const props:IPersonalInfo = getNameFromForm(form) || {}
+    const props: IPersonalInfo = getNameFromForm(form) || {}
     const dateOfBirth = getDateOfBirthFromForm(form)
     if (dateOfBirth) props.dateOfBirth = dateOfBirth
 
@@ -75,13 +74,13 @@ export const extractors = {
 
     return props
   },
-  [LEGAL_ENTITY]: (form) => form
+  [LEGAL_ENTITY]: form => form
 }
 
 export const transformers = {
   [PHOTO_ID]: {
     [ONFIDO_APPLICANT]: (source: IPersonalInfo) => {
-      const props:any = {}
+      const props: any = {}
       if (source.firstName) props.givenName = source.firstName
       if (source.lastName) props.surname = source.lastName
 
@@ -95,11 +94,11 @@ export const transformers = {
     //   return _.pick(source, ['firstName', 'lastName', 'dateOfBirth', 'nationality'])
     // },
     [ADDRESS]: (source: IPersonalInfo) => {
-       return _.pick(source, ['country'])
+      return _.pick(source, ['country'])
     }
   },
   [LEGAL_ENTITY]: {
-    [CONTROLLING_PERSON]: (source) => {
+    [CONTROLLING_PERSON]: source => {
       // const props:any = {}
       // props.legalEntity = source
       return {
@@ -131,11 +130,11 @@ export class SmartPrefill {
     if (!application) return
 
     const { requestFor } = application
-    const { form, prefill={} } = formRequest
+    const { form, prefill = {} } = formRequest
     const productConf = this.conf[requestFor] || {}
     const sources = productConf[form] || []
     if (!sources.length) return
-debugger
+
     const inputs = getParsedFormStubs(application)
       .filter(stub => sources.includes(stub.type))
       .map(stub => {
@@ -150,8 +149,10 @@ debugger
 
     if (!inputs.length) return
 
-    for (const { stub, extractor, transformer } of inputs) {
-      const source = await this.bot.getResource(stub)
+    const inputSources = await Promise.all(inputs.map(({ stub }) => this.bot.getResource(stub)))
+    for (let i = 0; i < inputs.length; i++) {
+      const { extractor, transformer } = inputs[i]
+      const source = inputSources[i]
       const props = extractor(source)
       _.defaults(prefill, transformer(props))
     }
@@ -181,9 +182,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
   return { plugin }
 }
 
-export const validateConf:ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
+export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
   const { models } = bot
-  for (let appType in <ISmartPrefillConf>pluginConf) {
+  for (let appType in pluginConf as ISmartPrefillConf) {
     let toPrefill = pluginConf[appType]
     for (let target in toPrefill) {
       if (!models[target]) throw new Error(`missing model: ${target}`)
