@@ -1,4 +1,6 @@
+import https from 'https'
 import AWS from 'aws-sdk'
+import { HTTPOptions } from 'aws-sdk/lib/config'
 import { AWSConfig, getLocalstackConfig } from '@tradle/aws-common-utils'
 import merge from 'lodash/merge'
 import { Bot } from '../types'
@@ -10,9 +12,24 @@ interface CreateConfigOpts {
 }
 
 export const createConfig = ({ region, local, iotEndpoint }: CreateConfigOpts): AWSConfig => {
+  const httpOptions: any = {
+    keepAlive: true,
+    maxSockets: 50,
+    rejectUnauthorized: true
+  }
+
+  if (!local) {
+    const agent = new https.Agent(httpOptions)
+    // agent is an EventEmitter
+    // @ts-ignore
+    agent.setMaxListeners(0)
+    httpOptions.agent = agent
+  }
+
   const config: AWSConfig = {
     maxRetries: 6,
     region,
+    httpOptions,
     s3: {
       signatureVersion: 'v4'
     },
@@ -25,7 +42,9 @@ export const createConfig = ({ region, local, iotEndpoint }: CreateConfigOpts): 
     }
   }
 
-  if (local) merge(config, getLocalstackConfig())
+  if (local) {
+    merge(config, getLocalstackConfig())
+  }
 
   return config
 }
