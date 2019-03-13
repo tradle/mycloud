@@ -1,5 +1,7 @@
+import AWS from 'aws-sdk'
 import { AWSConfig, getLocalstackConfig } from '@tradle/aws-common-utils'
 import merge from 'lodash/merge'
+import { Bot } from '../types'
 
 interface CreateConfigOpts {
   region: string
@@ -26,4 +28,14 @@ export const createConfig = ({ region, local, iotEndpoint }: CreateConfigOpts): 
   if (local) merge(config, getLocalstackConfig())
 
   return config
+}
+
+export const useRealSES = (bot: Bot) => {
+  const { endpoint } = bot.aws.ses
+  // @ts-ignore
+  bot.aws.ses.endpoint = `https://email.${AWS.config.region}.amazonaws.com`
+  // return undo function
+  return () => {
+    bot.aws.ses.endpoint = endpoint
+  }
 }
