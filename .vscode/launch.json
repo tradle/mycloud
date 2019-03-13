@@ -13,6 +13,18 @@
         "run-script",
         "debug"
       ],
+      "skipFiles": [
+        "<node_internals>/**/*.js",
+        "**/node_modules/pify/**/*.js",
+        "**/node_modules/bluebird/**/*.js",
+        "**/node_modules/p-map/**/*.js",
+        "**/node_modules/p-props/**/*.js",
+        "**/node_modules/p-try/**/*.js",
+        "**/node_modules/sinon/**/*.js",
+        "**/node_modules/tape/**/*.js",
+        "**/node_modules/blue-tape/**/*.js",
+        "**/node_modules/lodash/**/*.js"
+      ],
       "port": 9229
     },
     {
@@ -25,6 +37,43 @@
         "start:fast"
       ],
       "port": 9229
+    },
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach",
+      "port": 9229,
+      "skipFiles": [
+        "<node_internals>/**/*.js",
+        "**/node_modules/pify/**/*.js",
+        "**/node_modules/bluebird/**/*.js",
+        "**/node_modules/p-map/**/*.js",
+        "**/node_modules/p-props/**/*.js",
+        "**/node_modules/p-try/**/*.js",
+        "**/node_modules/sinon/**/*.js",
+        "**/node_modules/tape/**/*.js",
+        "**/node_modules/blue-tape/**/*.js",
+        "**/node_modules/lodash/**/*.js"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Remote Cli",
+      "program": "${workspaceFolder}/lib/scripts/remote-cli.js",
+      "skipFiles": [
+        "<node_internals>/**/*.js",
+        "**/node_modules/pify/**/*.js",
+        "**/node_modules/bluebird/**/*.js",
+        "**/node_modules/p-map/**/*.js",
+        "**/node_modules/p-props/**/*.js",
+        "**/node_modules/p-try/**/*.js",
+        "**/node_modules/sinon/**/*.js",
+        "**/node_modules/tape/**/*.js",
+        "**/node_modules/blue-tape/**/*.js",
+        "**/node_modules/lodash/**/*.js"
+      ],
+      "runtimeArgs": ["--inspect-brk"]
     }
   ]
 }
