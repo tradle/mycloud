@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "2.4.0-rc.25",
+  "version": "2.4.0-rc.26",
   "dependencies": {
     "@aws/dynamodb-auto-marshaller": {
       "version": "0.4.1",

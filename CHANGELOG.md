@@ -2,12 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0-rc.25](https://github.com/tradle/mycloud/compare/v2.4.0-rc.24...v2.4.0-rc.25) (2019-03-11)
+# [2.4.0-rc.26](https://github.com/tradle/mycloud/compare/v2.4.0-rc.25...v2.4.0-rc.26) (2019-03-13)
 
 
 ### Bug Fixes
 
-* **plugins/facetecZoom:** ignore selfies without facemap ([fe489ad](https://github.com/tradle/mycloud/commit/fe489ad))
+* detect missing model when processing backlinks ([e10206a](https://github.com/tradle/mycloud/commit/e10206a))
+* iot disconnected event handling ([9b6e8ad](https://github.com/tradle/mycloud/commit/9b6e8ad))
+* revert lost optimization for http agent reuse ([6405a84](https://github.com/tradle/mycloud/commit/6405a84))
+
+
+### Features
+
+* make facetec zoom verifier conditional ([ccf3311](https://github.com/tradle/mycloud/commit/ccf3311))
 
 
 
