@@ -1,4 +1,3 @@
-
 /**
  * AWS Mailer
  */
@@ -6,12 +5,7 @@
 import _ from 'lodash'
 import { SES } from 'aws-sdk'
 import Errors from './errors'
-import {
-  Logger,
-  IMailer,
-  IMailerSendEmailOpts,
-  IMailerSendEmailResult
-} from './types'
+import { Logger, IMailer, IMailerSendEmailOpts, IMailerSendEmailResult } from './types'
 
 type AWSMailerOpts = {
   logger: Logger
@@ -19,13 +13,9 @@ type AWSMailerOpts = {
 }
 
 // see: https://docs.aws.amazon.com/general/latest/gr/rande.html
-const REGIONS = [
-  'us-east-1',
-  'us-west-2',
-  'eu-west-1',
-]
+const REGIONS = ['us-east-1', 'us-west-2', 'eu-west-1']
 
-const toArray = val => val ? [].concat(val) : []
+const toArray = val => (val ? [].concat(val) : [])
 
 export const validateSendOpts = (opts: IMailerSendEmailOpts) => {
   const { subject } = opts
@@ -36,7 +26,7 @@ export const validateSendOpts = (opts: IMailerSendEmailOpts) => {
 
 export const interpetSendOpts = (opts: IMailerSendEmailOpts): SES.SendEmailRequest => {
   const body = { Data: opts.body }
-  const req:SES.SendEmailRequest = {
+  const req: SES.SendEmailRequest = {
     Source: opts.from,
     Destination: {
       ToAddresses: toArray(opts.to),
@@ -45,7 +35,7 @@ export const interpetSendOpts = (opts: IMailerSendEmailOpts): SES.SendEmailReque
     },
     Message: {
       Subject: { Data: opts.subject },
-      Body: opts.format === 'text' ? { Text: body  } : { Html: body }
+      Body: opts.format === 'text' ? { Text: body } : { Html: body }
     }
   }
 
@@ -64,10 +54,11 @@ export default class Mailer implements IMailer {
     this.logger = logger
   }
 
-  public send = async (opts: IMailerSendEmailOpts):Promise<IMailerSendEmailResult> => {
+  public send = async (opts: IMailerSendEmailOpts): Promise<IMailerSendEmailResult> => {
     validateSendOpts(opts)
     this.logger.debug('sending email', _.omit(opts, 'body'))
-    const res = await this.client.sendEmail(interpetSendOpts(opts)).promise()
+    let interp = interpetSendOpts(opts)
+    const res = await this.client.sendEmail(interp).promise()
     return {
       id: res.MessageId
     }
@@ -84,9 +75,11 @@ export default class Mailer implements IMailer {
 
     let res
     try {
-      res = await this.client.getIdentityVerificationAttributes({
-        Identities: [address]
-      }).promise()
+      res = await this.client
+        .getIdentityVerificationAttributes({
+          Identities: [address]
+        })
+        .promise()
     } catch (err) {
       this.logger.debug('error checking send capability', err)
       Errors.rethrow(err, 'developer')

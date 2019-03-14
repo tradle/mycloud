@@ -219,13 +219,14 @@ export const createPlugin: CreatePlugin<IFacetecZoomCheckAPI> = (
       const value = bot.models[componentType].enum.find(e => e.id === 'facetec')
       if (!value) return
       let { id, title } = value
-      if (!prefill) prefill = {[TYPE]: SELFIE}
-      debugger
+      if (!prefill) prefill = { [TYPE]: SELFIE }
+      // debugger
       formRequest.prefill = {
         component: {
           id: `tradle.SelfieVerifierComponent_${id}`,
           title
-        }, ...prefill
+        },
+        ...prefill
       }
     }
   }
