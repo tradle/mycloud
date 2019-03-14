@@ -134,7 +134,7 @@ export class SmartPrefill {
     const productConf = this.conf[requestFor] || {}
     const sources = productConf[form] || []
     if (!sources.length) return
-    // debugger
+
     const inputs = getParsedFormStubs(application)
       .filter(stub => sources.includes(stub.type))
       .map(stub => {
@@ -149,8 +149,10 @@ export class SmartPrefill {
 
     if (!inputs.length) return
 
-    for (const { stub, extractor, transformer } of inputs) {
-      const source = await this.bot.getResource(stub)
+    const inputSources = await Promise.all(inputs.map(({ stub }) => this.bot.getResource(stub)))
+    for (let i = 0; i < inputs.length; i++) {
+      const { extractor, transformer } = inputs[i]
+      const source = inputSources[i]
       const props = extractor(source)
       _.defaults(prefill, transformer(props))
     }

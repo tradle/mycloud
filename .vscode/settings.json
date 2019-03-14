@@ -16,6 +16,7 @@
   "typescript.updateImportsOnFileMove.enabled": "always",
   "typescript.tsdk": "./node_modules/typescript/lib",
   "typescript.referencesCodeLens.enabled": true,
+  "typescript.preferences.importModuleSpecifier": "relative",
   "debug.node.autoAttach": "on",
   "prettier.tslintIntegration": true,
   "prettier.singleQuote": true,

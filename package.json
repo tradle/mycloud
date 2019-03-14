@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "2.4.0-rc.25",
+  "version": "2.4.0-rc.26",
   "main": "index.js",
   "private": true,
   "repository": "https://github.com/tradle/mycloud",
@@ -267,7 +267,11 @@
   },
   "standard-version": {},
   "nodemonConfig": {
-    "ignore": ["lib/test/*", "lib/scripts/*", "*.md"],
+    "ignore": [
+      "lib/test/*",
+      "lib/scripts/*",
+      "*.md"
+    ],
     "delay": "2500"
   }
 }
