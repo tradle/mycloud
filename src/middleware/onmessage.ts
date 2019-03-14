@@ -30,6 +30,7 @@ export const onMessage = (lambda: Lambda, { onSuccess, onError }) => {
     logger.debug(`preprocessed ${count} messages`)
     await next()
     await Promise.mapSeries(successes, success => onSuccess({ ...success, clientId }))
+    await handleErrors
     logger.debug(`postprocessed ${count} messages`)
   }
 }

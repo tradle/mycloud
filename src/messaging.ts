@@ -11,7 +11,7 @@ import {
   series,
   ensureNoVirtualProps,
   copyVirtual,
-  summarizeObject,
+  summarizeObject
   // proxyProps,
 } from './utils'
 
@@ -29,7 +29,7 @@ import {
   ORG,
   PERMALINK,
   DB_IGNORE_PAYLOAD_TYPES,
-  FORBIDDEN_PAYLOAD_TYPES,
+  FORBIDDEN_PAYLOAD_TYPES
 } from './constants'
 
 import {
@@ -53,14 +53,9 @@ import {
   ISession,
   SendPushNotification
 } from './types'
+import extend = require('lodash/extend')
 
-const {
-  MESSAGE,
-  IDENTITY,
-  SELF_INTRODUCTION,
-  INTRODUCTION,
-  IDENTITY_PUBLISH_REQUEST
-} = TYPES
+const { MESSAGE, IDENTITY, SELF_INTRODUCTION, INTRODUCTION, IDENTITY_PUBLISH_REQUEST } = TYPES
 
 type PayloadWrapper = {
   new: boolean
@@ -85,22 +80,53 @@ type MessagingOpts = {
   network: any
 }
 
+const rethrowAsUnknownMessageAuthor = Errors.rethrower(
+  Errors.UnknownAuthor,
+  Errors.UnknownMessageAuthor,
+  ['itemPermalink']
+)
+const rethrowAsUnknownPayloadAuthor = Errors.rethrower(
+  Errors.UnknownAuthor,
+  Errors.UnknownPayloadAuthor,
+  ['itemPermalink']
+)
+
 export default class Messaging {
   private env: Env
-  private get messages() { return this.components.messages }
-  private get identities() { return this.components.identities }
-  private get identity() { return this.components.identity }
-  private get auth() { return this.components.auth }
-  private get delivery() { return this.components.delivery }
-  private get friends() { return this.components.friends }
-  private get storage() { return this.components.storage }
-  private get modelStore() { return this.components.modelStore }
-  private get seals() { return this.components.seals }
-  private get tasks() { return this.components.tasks }
+  private get messages() {
+    return this.components.messages
+  }
+  private get identities() {
+    return this.components.identities
+  }
+  private get identity() {
+    return this.components.identity
+  }
+  private get auth() {
+    return this.components.auth
+  }
+  private get delivery() {
+    return this.components.delivery
+  }
+  private get friends() {
+    return this.components.friends
+  }
+  private get storage() {
+    return this.components.storage
+  }
+  private get modelStore() {
+    return this.components.modelStore
+  }
+  private get seals() {
+    return this.components.seals
+  }
+  private get tasks() {
+    return this.components.tasks
+  }
   private network: any
   private components: MessagingOpts
-  private logger:Logger
-  constructor (components: MessagingOpts) {
+  private logger: Logger
+  constructor(components: MessagingOpts) {
     this.components = components
     const { env, logger, network } = components
 
@@ -110,7 +136,7 @@ export default class Messaging {
     // _.extend(this, proxyProps(this.components, ['objects', 'messages', 'identities', 'identity', 'auth', 'db', 'delivery']))
   }
 
-  public getOrCreatePayload = async ({ link, object, author }):Promise<PayloadWrapper> => {
+  public getOrCreatePayload = async ({ link, object, author }): Promise<PayloadWrapper> => {
     const ret = {
       new: object && !object[SIG],
       asStored: null,
@@ -144,13 +170,11 @@ export default class Messaging {
 
   public receiveMessage = async ({
     message,
-    clientId,
-    session,
+    clientId
   }: {
     message: any
-    clientId?:string
-    session?: ISession
-  }):Promise<ITradleMessage> => {
+    clientId?: string
+  }): Promise<ITradleMessage> => {
     ensureNoVirtualProps({
       models: this.modelStore.models,
       resource: message
@@ -169,7 +193,8 @@ export default class Messaging {
       let alreadyHaveContact
       if (clientId && !identity[PERMALINK]) {
         const clientIdentityPermalink = this.auth.getPermalinkFromClientId(clientId)
-        alreadyHaveContact = clientIdentityPermalink === this.auth.getPermalinkFromClientId(clientId)
+        alreadyHaveContact =
+          clientIdentityPermalink === this.auth.getPermalinkFromClientId(clientId)
       }
 
       if (!alreadyHaveContact) {
@@ -212,13 +237,13 @@ export default class Messaging {
   }
 
   // public only for testing purposes
-  public _doReceiveMessage = async ({ message }):Promise<ITradleMessage> => {
+  public _doReceiveMessage = async ({ message }): Promise<ITradleMessage> => {
     message = await this.normalizeAndValidateInboundMessage(message)
 
     this.logger.debug('receiving message', summarizeObject(message))
 
     const saveToDB = !DB_IGNORE_PAYLOAD_TYPES.inbound.includes(message.object[TYPE])
-    const tasks:Promise<any>[] = [
+    const tasks: Promise<any>[] = [
       this.storage.save({ object: message.object, saveToDB }),
       this.messages.save(message)
     ]
@@ -238,7 +263,9 @@ export default class Messaging {
     return message
   }
 
-  public normalizeAndValidateInboundMessage = async (message: ITradleMessage):Promise<ITradleMessage> => {
+  public normalizeAndValidateInboundMessage = async (
+    message: ITradleMessage
+  ): Promise<ITradleMessage> => {
     // TODO: uncomment below, check that message is for us
     // await ensureMessageIsForMe({ message })
     // const payload = message.object
@@ -277,10 +304,14 @@ export default class Messaging {
     }
 
     await Promise.all([
-      verifyMessageAuthor
-        .then(() => this.logger.debug('loaded message author')),
-      verifyPayloadAuthor
-        .then(() => this.logger.debug('loaded payload author')),
+      verifyMessageAuthor.then(
+        () => this.logger.debug('loaded message author'),
+        rethrowAsUnknownMessageAuthor
+      ),
+      verifyPayloadAuthor.then(
+        () => this.logger.debug('loaded payload author'),
+        rethrowAsUnknownPayloadAuthor
+      )
     ])
 
     if (payload[PREVLINK]) {
@@ -323,26 +354,26 @@ export default class Messaging {
   //   }
   // })
 
-  public queueMessageBatch = async (batch: IBatchSendOpts):Promise<ITradleMessage[]> => {
+  public queueMessageBatch = async (batch: IBatchSendOpts): Promise<ITradleMessage[]> => {
     const byRecipient = _.groupBy(batch, 'recipient')
-    const results = await Promise.all(Object.keys(byRecipient).map(recipient => {
-      return this._queueMessageBatch(byRecipient[recipient])
-    }))
+    const results = await Promise.all(
+      Object.keys(byRecipient).map(recipient => {
+        return this._queueMessageBatch(byRecipient[recipient])
+      })
+    )
 
     return _.flatten(results)
   }
 
-  public _queueMessageBatch = async (batch: IBatchSendOpts):Promise<ITradleMessage[]> => {
+  public _queueMessageBatch = async (batch: IBatchSendOpts): Promise<ITradleMessage[]> => {
     const { recipient } = batch[0]
     this.logger.debug(`sending batch of ${batch.length} messages to ${recipient}`)
-    const messages = await series(batch.map(
-      sendOpts => () => this._doQueueMessage(sendOpts))
-    )
+    const messages = await series(batch.map(sendOpts => () => this._doQueueMessage(sendOpts)))
 
     return messages
   }
 
-  public queueMessage = async (opts: ISendOpts):Promise<ITradleMessage> => {
+  public queueMessage = async (opts: ISendOpts): Promise<ITradleMessage> => {
     const results = await this.queueMessageBatch([opts])
     return results[0]
   }
@@ -399,7 +430,7 @@ export default class Messaging {
     }
   }
 
-  private _maybeVerifyOrgAuthor = async (object) => {
+  private _maybeVerifyOrgAuthor = async object => {
     if (!object[ORG]) return
 
     await this.identities.verifyOrgAuthor(object)
@@ -419,10 +450,7 @@ export default class Messaging {
     })
   }
 
-  public resumeDelivery = async (opts: {
-    recipient: string
-    friend?: any
-  }) => {
+  public resumeDelivery = async (opts: { recipient: string; friend?: any }) => {
     const ok = await this.delivery.http.resetError({
       counterparty: opts.recipient
     })
@@ -435,7 +463,7 @@ export default class Messaging {
   private _deliverPreviouslyUndelivered = async (opts: {
     recipient: string
     friend?: any
-  }):Promise<boolean> => {
+  }): Promise<boolean> => {
     const { recipient, friend } = opts
 
     let deliveryError
@@ -465,43 +493,45 @@ export default class Messaging {
     return true
   }
 
-  public sendPushNotification = async (recipient:string):Promise<void> => {
+  public sendPushNotification = async (recipient: string): Promise<void> => {
     await this.components.sendPushNotification({ recipient })
   }
 
   // public for testing purposes
-  public _doQueueMessage = async (opts):Promise<ITradleMessage> => {
-    typeforce({
-      recipient: types.link,
-      object: typeforce.maybe(typeforce.Object),
-      other: typeforce.maybe(typeforce.Object),
-    }, opts)
+  public _doQueueMessage = async (opts): Promise<ITradleMessage> => {
+    typeforce(
+      {
+        recipient: types.link,
+        object: typeforce.maybe(typeforce.Object),
+        other: typeforce.maybe(typeforce.Object)
+      },
+      opts
+    )
 
     if (!opts.author) {
       opts.author = await this.identity.getPrivate()
     }
 
-    const { author, recipient, link, object, other={}, time=Date.now() } = opts
+    const { author, recipient, link, object, other = {}, time = Date.now() } = opts
 
     // run in parallel
     const promisePayload = this.getOrCreatePayload({ link, object, author })
     const promisePrev = this.messages.getLastSeqAndLink({ recipient })
     const promiseRecipient = this.identities.byPermalink(recipient)
-    const [payload, recipientObj] = await Promise.all([
-      promisePayload,
-      promiseRecipient
-    ])
+    const [payload, recipientObj] = await Promise.all([promisePayload, promiseRecipient])
 
     // the signature will be validated against the object with
     // media embeded as data urls
     const payloadVirtual = pickVirtual(payload.asSigned)
-    const unsignedMessage = await this.identity.draft(_.extend({}, other, {
-      [TYPE]: MESSAGE,
-      // recipientPubKey: utils.sigPubKey(recipientObj),
-      object: omitVirtual(payload.asSigned),
-      _recipient: getPermalink(recipientObj),
-      _time: time
-    }))
+    const unsignedMessage = await this.identity.draft(
+      _.extend({}, other, {
+        [TYPE]: MESSAGE,
+        // recipientPubKey: utils.sigPubKey(recipientObj),
+        object: omitVirtual(payload.asSigned),
+        _recipient: getPermalink(recipientObj),
+        _time: time
+      })
+    )
 
     // TODO:
     // efficiency can be improved
@@ -544,12 +574,9 @@ export default class Messaging {
     const { identities } = this
     const { object } = opts
     const link = protocol.link(object)
-    const [
-      prev,
-      orig
-    ] = await Promise.all([
+    const [prev, orig] = await Promise.all([
       this.storage.getByLink(object[PREVLINK]).catch(Errors.ignoreNotFound),
-      this.storage.getByLink(object[PERMALINK]).catch(Errors.ignoreNotFound),
+      this.storage.getByLink(object[PERMALINK]).catch(Errors.ignoreNotFound)
     ])
 
     const author = object[AUTHOR]
@@ -557,10 +584,18 @@ export default class Messaging {
       if (prev[OWNER]) {
         // OWNER may change to an array of strings in the future
         if (![].concat(prev[OWNER]).includes(author)) {
-          throw new Errors.InvalidAuthor(`expected ${prev[OWNER]} as specified in the prev verison's ${OWNER} property, got ${author}`)
+          throw new Errors.InvalidAuthor(
+            `expected ${
+              prev[OWNER]
+            } as specified in the prev verison's ${OWNER} property, got ${author}`
+          )
         }
       } else if (prev[AUTHOR] !== author) {
-        this.logger.warn(`object ${buildResource.permalink(object)} author changed from ${prev[AUTHOR]} to ${author} in version ${buildResource.link(object)}`)
+        this.logger.warn(
+          `object ${buildResource.permalink(object)} author changed from ${
+            prev[AUTHOR]
+          } to ${author} in version ${buildResource.link(object)}`
+        )
       }
     } else {
       this.logger.warn(`don't have prev version ${object[PREVLINK]} of object ${link}`)
@@ -591,7 +626,7 @@ export default class Messaging {
 
 export { Messaging }
 
-const getIntroducedIdentity = (payload) => {
+const getIntroducedIdentity = payload => {
   const type = payload[TYPE]
   if (type === IDENTITY) return payload
 
@@ -600,7 +635,7 @@ const getIntroducedIdentity = (payload) => {
   }
 }
 
-const normalizeBuffer = (buf):Buffer => {
+const normalizeBuffer = (buf): Buffer => {
   if (Buffer.isBuffer(buf)) return buf
 
   if (!Array.isArray(buf.data)) throw new Errors.InvalidInput('expected buffer')

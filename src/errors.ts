@@ -4,6 +4,7 @@ import _ from 'lodash'
 import ex from 'error-ex'
 import { AssertionError } from 'assert'
 import { TfTypeError, TfPropertyTypeError } from 'typeforce'
+import { Errors as DBErrors } from '@tradle/dynamodb'
 import { LowFundsInput } from './types'
 
 function createError(name: string): ErrorConstructor {
@@ -180,30 +181,67 @@ class LowFunds extends Error implements LowFundsInput {
   }
 }
 
+const EXPORTABLE_PROPS = [
+  'message',
+  'stack',
+  'name',
+  'type',
+  'retryable',
+  'itemPermalink',
+  'permalink'
+]
+
 const exportError = (err: Error) => {
-  const obj: any = _.pick(err, ['message', 'stack', 'name', 'type'])
+  const obj: any = _.pick(err, EXPORTABLE_PROPS)
+  const name = obj.name || obj.type
   if (obj.type && obj.message && !obj.message.startsWith(obj.type)) {
     obj.message = `${obj.type}: ${obj.message}`
   }
 
+  obj.name = obj.type = name
   return obj
+}
+
+class NotFound extends Error {}
+class UnknownAuthor extends NotFound {
+  public name = 'UnknownAuthor'
+  public itemPermalink?: string
+}
+
+class UnknownPayloadAuthor extends UnknownAuthor {
+  public name = 'UnknownPayloadAuthor'
+}
+class UnknownMessageAuthor extends UnknownAuthor {
+  public name = 'UnknownMessageAuthor'
 }
 
 const NOT_FOUND_MATCH = [
   { name: 'NotFound' },
+  { code: 'NotFound' },
   { code: 'ResourceNotFoundException' },
   { code: 'NoSuchKey' },
-  { code: 'NoSuchBucketPolicy' }
+  { code: 'NoSuchBucketPolicy' },
+  DBErrors.NotFound,
+  NotFound
 ]
+
+const rethrower = (sourceErrCl, targetErrCl, copyProps = []) => err => {
+  ignore(err, sourceErrCl)
+  const toThrow = new targetErrCl(err.message)
+  _.extend(toThrow, _.pick(err, copyProps))
+  rethrowAs(err, toThrow)
+}
 
 const errors = {
   ClientUnreachable: createError('ClientUnreachable'),
-  NotFound: createError('NotFound'),
+  NotFound,
   Forbidden: createError('Forbidden'),
   Expired: createError('Expired'),
   InvalidSignature: createError('InvalidSignature'),
   InvalidAuthor: createError('InvalidAuthor'),
-  UnknownAuthor: createError('UnknownAuthor'),
+  UnknownAuthor,
+  UnknownMessageAuthor,
+  UnknownPayloadAuthor,
   InvalidVersion: createError('InvalidVersion'),
   InvalidMessageFormat: createError('InvalidMessageFormat'),
   InvalidObjectFormat: createError('InvalidObjectFormat'),
@@ -273,7 +311,8 @@ const errors = {
   matches,
   createClass: createError,
   copyStackFrom,
-  rethrowAs
+  rethrowAs,
+  rethrower
 }
 
 export = errors
