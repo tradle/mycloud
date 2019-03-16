@@ -7,11 +7,13 @@ import * as bizUtils from '../../in-house-bot/utils'
 import models from '../../models'
 import { ITradleCheck } from '../../in-house-bot/types'
 
-const getStatusMessageForCheck = (check: ITradleCheck) => bizUtils.getStatusMessageForCheck({ models, check })
-const buildStatus = value => buildResource.enumValue({
-  model: models['tradle.Status'],
-  value
-})
+const getStatusMessageForCheck = (check: ITradleCheck) =>
+  bizUtils.getStatusMessageForCheck({ models, check })
+const buildStatus = value =>
+  buildResource.enumValue({
+    model: models['tradle.Status'],
+    value
+  })
 
 test('check status message', t => {
   const expected = [
@@ -20,36 +22,39 @@ test('check status message', t => {
         status: 'pass',
         aspects: 'document authenticity'
       },
-      out: 'Check(s) passed: document authenticity'
+      out: 'Check passed: document authenticity'
     },
     {
       in: {
         status: 'fail',
         aspects: 'a'
       },
-      out: 'One or more check(s) failed: a'
+      out: 'Check failed: a'
     },
     {
       in: {
         status: 'error',
         aspects: 'a'
       },
-      out: 'One or more check(s) hit an error: a'
+      out: 'Check hit an error: a'
     },
     {
       in: {
         status: 'pending',
-        aspects: 'a, b, c'
+        aspects: ['a', 'b', 'c']
       },
-      out: 'One or more check(s) pending: a, b, c'
+      out: 'One or more checks pending: a,b,c'
     }
   ]
 
   for (const item of expected) {
-    t.equal(getStatusMessageForCheck({
-      aspects: item.in.aspects,
-      status: buildStatus(item.in.status)
-    }), item.out)
+    t.equal(
+      getStatusMessageForCheck({
+        aspects: item.in.aspects,
+        status: buildStatus(item.in.status)
+      }),
+      item.out
+    )
   }
 
   t.end()

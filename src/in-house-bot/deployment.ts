@@ -4,11 +4,23 @@ import Promise from 'bluebird'
 import AWS from 'aws-sdk'
 import { FindOpts, Filter } from '@tradle/dynamodb'
 import buildResource from '@tradle/build-resource'
+import { wrapBucket, Bucket } from '@tradle/aws-s3-client'
+import {
+  genSetDeliveryPolicyParams,
+  genCrossAccountPublishPermission
+} from '@tradle/aws-sns-client'
+import {
+  getResourcesByType,
+  getLambdaS3Keys,
+  setTemplateParameterDefaults,
+  lockParametersToDefaults
+} from '@tradle/aws-cloudformation-client'
 import { TYPE, SIG, ORG, unitToMillis } from '../constants'
 import { TRADLE } from './constants'
 import { randomStringWithLength } from '../crypto'
 import baseModels from '../models'
 import { Alerts } from './alerts'
+import { createRegionalS3Client, RegionalS3Client } from './serverless-regional-s3'
 import {
   Env,
   Bot,
@@ -33,12 +45,10 @@ import {
   StackUpdateParameters,
   StackLaunchParameters,
   MyCloudLaunchTemplate,
-  MyCloudUpdateTemplate,
+  MyCloudUpdateTemplate
 } from './types'
 
-import { genSetDeliveryPolicyParams, genCrossAccountPublishPermission } from '../sns-utils'
-import { StackUtils } from '../stack-utils'
-import { Bucket } from '../bucket'
+import { StackUtils } from '../aws/stack-utils'
 import { media } from './media'
 import Errors from '../errors'
 import { getLogo } from './image-utils'
@@ -50,7 +60,7 @@ import {
   isEmployee,
   isProbablyTradle,
   getTradleBotStub,
-  urlsFuzzyEqual,
+  urlsFuzzyEqual
 } from './utils'
 
 import { getLogAlertsTopicName } from './log-processor'
@@ -81,7 +91,9 @@ const DEFAULT_LAUNCH_TEMPLATE_OPTS = {
     blocks: [
       { body: 'Hi there,' },
       { body: 'Click below to launch your Tradle MyCloud' },
-      { body: `Note: You will be shown a form with a field "Stack Name". Don't edit it as it will break your template.` },
+      {
+        body: `Note: You will be shown a form with a field "Stack Name". Don't edit it as it will break your template.`
+      },
       {
         action: {
           text: 'Launch MyCloud',
@@ -89,7 +101,7 @@ const DEFAULT_LAUNCH_TEMPLATE_OPTS = {
         }
       }
     ],
-    signature: '{{fromOrg.name}} Team',
+    signature: '{{fromOrg.name}} Team'
     // twitter: 'tradles'
   }
 }
@@ -101,16 +113,14 @@ const DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS = {
       { body: ONLINE_MESSAGE },
       { body: 'Use <a href="{{mobile}}">this link</a> to add it to your Tradle mobile app' },
       { body: 'Use <a href="{{web}}">this link</a> to add it to your Tradle web app' },
-      { body: 'Give <a href="{{employeeOnboarding}}">this link</a> to employees' },
+      { body: 'Give <a href="{{employeeOnboarding}}">this link</a> to employees' }
     ],
-    signature: '{{fromOrg.name}} Team',
+    signature: '{{fromOrg.name}} Team'
     // twitter: 'tradles'
   }
 }
 
-const ALERT_BRANCHES = [
-  'master'
-]
+const ALERT_BRANCHES = ['master']
 
 // generated in AWS console
 const UPDATE_STACK_TOPIC_DELIVERY_POLICY = {
@@ -147,9 +157,9 @@ const createMappingsForUpdate = (adminEmail?: string) => ({
     init: {
       name: '',
       domain: '',
-      logo: '',
+      logo: ''
     },
-    contact: adminEmail && { adminEmail },
+    contact: adminEmail && { adminEmail }
   })
 })
 
@@ -223,20 +233,24 @@ export class Deployment {
   private logger: Logger
   private conf?: IDeploymentPluginConf
   private org?: IOrganization
-  private isTradle: boolean
+  private regionalS3: RegionalS3Client
+  public isTradle: boolean
 
   public static encodeRegion = (region: string) => region.replace(/[-]/g, '.')
   public static decodeRegion = (region: string) => region.replace(/[.]/g, '-')
-  public static decodeBlockchainEnumValue = value => utils.getEnumValueId({
-    model: BlockchainNetworkModel,
-    value,
-  }).replace(/[.]/g, ':')
+  public static decodeBlockchainEnumValue = value =>
+    utils
+      .getEnumValueId({
+        model: BlockchainNetworkModel,
+        value
+      })
+      .replace(/[.]/g, ':')
 
   public static encodeBlockchainEnumValue = (str: string) => {
     const id = str.replace(/[:]/g, '.')
     return buildResource.enumValue({
       model: BlockchainNetworkModel,
-      value: { id },
+      value: { id }
     })
   }
 
@@ -252,11 +266,15 @@ export class Deployment {
     return {
       ...form,
       region: Deployment.decodeRegion(region),
-      blockchain: Deployment.decodeBlockchainEnumValue(form.blockchain),
+      blockchain: Deployment.decodeBlockchainEnumValue(form.blockchain)
     } as IDeploymentConf
   }
 
-  public static expandStackName = ({ stackName, template, stage }: {
+  public static expandStackName = ({
+    stackName,
+    template,
+    stage
+  }: {
     stackName: string
     template?: MyCloudLaunchTemplate | MyCloudUpdateTemplate
     stage?: string
@@ -268,13 +286,19 @@ export class Deployment {
     return `tdl-${stackName}-ltd-${stage}`
   }
 
-  public static setUpdateTemplateParameters = (template: CFTemplate, values: StackUpdateParameters) => {
-    StackUtils.setTemplateParameterDefaults(template, values)
+  public static setUpdateTemplateParameters = (
+    template: CFTemplate,
+    values: StackUpdateParameters
+  ) => {
+    setTemplateParameterDefaults(template, values)
   }
 
-  public static setLaunchTemplateParameters = (template: CFTemplate, values: StackLaunchParameters) => {
-    StackUtils.setTemplateParameterDefaults(template, values)
-    StackUtils.lockParametersToDefaults(template)
+  public static setLaunchTemplateParameters = (
+    template: CFTemplate,
+    values: StackLaunchParameters
+  ) => {
+    setTemplateParameterDefaults(template, values)
+    lockParametersToDefaults(template)
   }
 
   public static ensureInitLogIsRetained = (template: CFTemplate) => {
@@ -302,6 +326,14 @@ export class Deployment {
     this.isTradle = org && isProbablyTradle({ org })
     this.callHomeDisabled = this.isTradle || !!disableCallHome
     this.opts = opts
+    this.regionalS3 = createRegionalS3Client({
+      clients: bot.aws,
+      iamClient: bot.iamClient,
+      s3Client: bot.s3Utils,
+      iamSupported: !bot.isTesting,
+      versioningSupported: !bot.isTesting,
+      logger
+    })
   }
 
   // const onForm = async ({ bot, user, type, wrapper, currentApplication }) => {
@@ -338,11 +370,15 @@ export class Deployment {
 
     this.logger.silly('generating cloudformation template with configuration', {
       configuration,
-      version: versionInfo,
+      version: versionInfo
     })
 
     const parentTemplate = await s3Utils.getByUrl(versionInfo.templateUrl)
-    const template = await this.customizeTemplateForLaunch({ template: parentTemplate, configuration, bucket })
+    const template = await this.customizeTemplateForLaunch({
+      template: parentTemplate,
+      configuration,
+      bucket
+    })
     const { templateUrl } = await this._saveTemplateAndCode({ template, parentTemplate, bucket })
 
     const stage = template.Parameters.Stage.Default
@@ -354,11 +390,12 @@ export class Deployment {
     // })
 
     const configuredBy = await this.bot.identities.byPermalink(configuration._author)
-    const childDeploymentRes = await this.bot.draft({ type: CHILD_DEPLOYMENT })
+    const childDeploymentRes = await this.bot
+      .draft({ type: CHILD_DEPLOYMENT })
       .set({
         configuration,
         configuredBy: utils.omitVirtual(configuredBy),
-        deploymentUUID,
+        deploymentUUID
       })
       .signAndSave()
 
@@ -368,13 +405,19 @@ export class Deployment {
       url: stackUtils.getLaunchStackUrl({
         stackName: Deployment.expandStackName({ stackName: configuration.stackName, stage }),
         region: configuration.region,
-        templateUrl,
-      }),
+        templateUrl
+      })
       // snsTopic: (await promiseTmpTopic).topic
     }
   }
 
-  public genUpdatePackage = async ({ versionInfo, createdBy, configuredBy, childDeploymentLink, stackId }: {
+  public genUpdatePackage = async ({
+    versionInfo,
+    createdBy,
+    configuredBy,
+    childDeploymentLink,
+    stackId
+  }: {
     versionInfo: VersionInfo
     childDeploymentLink?: string
     createdBy?: string
@@ -404,14 +447,17 @@ export class Deployment {
       configuration = await this.bot.getResource(childDeployment.configuration)
     } catch (err) {
       Errors.ignoreNotFound(err)
-      Errors.rethrowAs(err, new Errors.NotFound('original configuration for child deployment not found'))
+      Errors.rethrowAs(
+        err,
+        new Errors.NotFound('original configuration for child deployment not found')
+      )
     }
 
     const result = await this.genUpdatePackageForStack({
       // deployment: childDeployment,
       stackOwner: childDeployment.identity._permalink,
       stackId: stackId || childDeployment.stackId,
-      parentTemplateUrl: versionInfo.templateUrl,
+      parentTemplateUrl: versionInfo.templateUrl
     })
 
     return {
@@ -428,14 +474,14 @@ export class Deployment {
     stackOwner,
     stackId,
     region,
-    tag,
+    tag
   }: GenUpdatePackageForStackWithVersionOpts) => {
     const { templateUrl } = await this.getVersionInfoByTag(tag)
     return this.genUpdatePackageForStack({
       stackOwner,
       stackId,
       region,
-      parentTemplateUrl: templateUrl,
+      parentTemplateUrl: templateUrl
     })
   }
 
@@ -450,18 +496,18 @@ export class Deployment {
 
     const [bucket, parentTemplate] = await Promise.all([
       this.getDeploymentBucketForRegion(region),
-      this._getTemplateByUrl(parentTemplateUrl), // should we get via s3 instead?
+      this._getTemplateByUrl(parentTemplateUrl) // should we get via s3 instead?
     ])
 
     const template = await this.customizeTemplateForUpdate({
-     template: parentTemplate,
-     bucket,
-   })
+      template: parentTemplate,
+      bucket
+    })
 
     const { templateUrl, code } = await this._saveTemplateAndCode({
       parentTemplate,
       template,
-      bucket,
+      bucket
     })
 
     let loggingTopic
@@ -477,7 +523,7 @@ export class Deployment {
       templateUrl,
       notificationTopics,
       loggingTopic,
-      updateUrl: stackId && utils.getUpdateStackUrl({ stackId, templateUrl }),
+      updateUrl: stackId && utils.getUpdateStackUrl({ stackId, templateUrl })
     }
   }
 
@@ -494,7 +540,9 @@ export class Deployment {
     })
   }
 
-  public getChildDeploymentConfiguredBy = async (configuredBy: string): Promise<IDeploymentConf> => {
+  public getChildDeploymentConfiguredBy = async (
+    configuredBy: string
+  ): Promise<IDeploymentConf> => {
     return await this.getChildDeployment({
       filter: {
         EQ: {
@@ -511,7 +559,9 @@ export class Deployment {
     return await this.getChildDeploymentWithProps({ stackId })
   }
 
-  public getChildDeploymentByDeploymentUUID = async (deploymentUUID: string): Promise<IDeploymentConf> => {
+  public getChildDeploymentByDeploymentUUID = async (
+    deploymentUUID: string
+  ): Promise<IDeploymentConf> => {
     if (!deploymentUUID) {
       throw new Errors.InvalidInput(`expected deploymentUUID string`)
     }
@@ -519,8 +569,8 @@ export class Deployment {
     return await this.getChildDeploymentWithProps({ deploymentUUID })
   }
 
-  public getChildDeploymentWithProps = async (props={}): Promise<IDeploymentConf> => {
-    assertNoNullProps(props, `invalid filter props: ${JSON.stringify(props)}`)
+  public getChildDeploymentWithProps = async (props = {}): Promise<IDeploymentConf> => {
+    utils.assertNoNullProps(props, `invalid filter props: ${JSON.stringify(props)}`)
 
     return this.getChildDeployment({
       filter: {
@@ -529,18 +579,25 @@ export class Deployment {
     })
   }
 
-  public getChildDeployment = async (findOpts:Partial<FindOpts>={}): Promise<IDeploymentConf> => {
-    return await this.bot.db.findOne(_.merge({
-      orderBy: {
-        property: '_time',
-        desc: true
-      },
-      filter: {
-        EQ: {
-          [TYPE]: CHILD_DEPLOYMENT
-        }
-      }
-    }, findOpts))
+  public getChildDeployment = async (
+    findOpts: Partial<FindOpts> = {}
+  ): Promise<IDeploymentConf> => {
+    return await this.bot.db.findOne(
+      _.merge(
+        {
+          orderBy: {
+            property: '_time',
+            desc: true
+          },
+          filter: {
+            EQ: {
+              [TYPE]: CHILD_DEPLOYMENT
+            }
+          }
+        },
+        findOpts
+      )
+    )
   }
 
   public getParentDeployment = async (): Promise<ITradleObject> => {
@@ -558,7 +615,13 @@ export class Deployment {
     })
   }
 
-  public callHome = async ({ identity, org, referrerUrl, deploymentUUID, adminEmail }: CallHomeOpts={}) => {
+  public callHome = async ({
+    identity,
+    org,
+    referrerUrl,
+    deploymentUUID,
+    adminEmail
+  }: CallHomeOpts = {}) => {
     if (this.callHomeDisabled) return
 
     const { bot, logger } = this
@@ -570,7 +633,7 @@ export class Deployment {
       org,
       referrerUrl,
       deploymentUUID,
-      adminEmail,
+      adminEmail
     })
 
     if (referrerUrl && deploymentUUID) {
@@ -604,10 +667,10 @@ export class Deployment {
     await Promise.all(tasks)
   }
 
-  public callHomeToTradle = async (opts:CallHomeOpts={}) => {
+  public callHomeToTradle = async (opts: CallHomeOpts = {}) => {
     return await this.callHomeTo({
       ...opts,
-      referrerUrl: TRADLE.API_BASE_URL,
+      referrerUrl: TRADLE.API_BASE_URL
     })
   }
 
@@ -620,7 +683,7 @@ export class Deployment {
       identity,
       org,
       deploymentUUID,
-      adminEmail,
+      adminEmail
     } = await this._normalizeCallHomeOpts(opts)
 
     org = utils.omitVirtual(org)
@@ -629,10 +692,9 @@ export class Deployment {
     let saveParentDeployment = utils.RESOLVED_PROMISE
     let friend
     try {
-      friend = await utils.runWithTimeout(
-        () => this.bot.friends.load({ url: referrerUrl }),
-        { millis: 20000 }
-      )
+      friend = await utils.runWithTimeout(() => this.bot.friends.load({ url: referrerUrl }), {
+        millis: 20000
+      })
 
       if (deploymentUUID) {
         saveParentDeployment = this.saveParentDeployment({
@@ -653,7 +715,7 @@ export class Deployment {
       identity,
       stackId: this._thisStackArn,
       version: this.bot.version,
-      adminEmail,
+      adminEmail
     }) as ICallHomePayload
 
     try {
@@ -728,17 +790,20 @@ export class Deployment {
       domain: org.domain
     })
 
-    const childDeploymentRes = this.bot.draft({
+    const childDeploymentRes = this.bot
+      .draft({
         type: CHILD_DEPLOYMENT,
         resource: childDeployment
       })
-      .set(utils.pickNonNull({
-        apiUrl,
-        identity: friend.identity,
-        stackId,
-        version,
-        adminEmail,
-      }))
+      .set(
+        utils.pickNonNull({
+          apiUrl,
+          identity: friend.identity,
+          stackId,
+          version,
+          adminEmail
+        })
+      )
 
     if (childDeployment) {
       if (!childDeploymentRes.isModified()) {
@@ -772,12 +837,17 @@ export class Deployment {
     }
   }
 
-  public saveParentDeployment = async ({ friend, childIdentity, apiUrl }: {
+  public saveParentDeployment = async ({
+    friend,
+    childIdentity,
+    apiUrl
+  }: {
     friend: ITradleObject
     childIdentity: ITradleObject
     apiUrl: string
   }) => {
-    return await this.bot.draft({ type: PARENT_DEPLOYMENT })
+    return await this.bot
+      .draft({ type: PARENT_DEPLOYMENT })
       .set({
         childIdentity,
         parentIdentity: friend.identity,
@@ -787,7 +857,10 @@ export class Deployment {
       .signAndSave()
   }
 
-  public notifyConfigurer = async ({ configurer, links }: {
+  public notifyConfigurer = async ({
+    configurer,
+    links
+  }: {
     links: IAppLinkSet
     configurer: string
   }) => {
@@ -811,7 +884,7 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  public notifyCreatorsOfChildDeployment = async (childDeployment) => {
+  public notifyCreatorsOfChildDeployment = async childDeployment => {
     const { apiUrl, identity } = childDeployment
     const configuration = await this.bot.getResource(childDeployment.configuration)
     // stall till 10000 before time's up
@@ -826,17 +899,17 @@ ${this.genUsageInstructions(links)}`
     const botPermalink = buildResource.permalink(identity)
     const links = this.getAppLinks({ host: apiUrl, permalink: botPermalink })
     const notifyConfigurer = this.notifyConfigurer({
-        configurer: _author,
-        links
-      })
-      .catch(err => {
-        this.logger.error('failed to send message to creator', err)
-        Errors.rethrow(err, 'developer')
-      })
+      configurer: _author,
+      links
+    }).catch(err => {
+      this.logger.error('failed to send message to creator', err)
+      Errors.rethrow(err, 'developer')
+    })
 
     let emailAdmin
     if (this.conf.senderEmail) {
-      emailAdmin = this.bot.mailer.send({
+      emailAdmin = this.bot.mailer
+        .send({
           from: this.conf.senderEmail,
           to: _.uniq([hrEmail, adminEmail]),
           format: 'html',
@@ -856,19 +929,20 @@ ${this.genUsageInstructions(links)}`
     if (firstErr) throw firstErr
   }
 
-  public getAppLinks = ({ host, permalink }) => getAppLinks({
-    bot: this.bot,
-    host,
-    permalink
-  })
+  public getAppLinks = ({ host, permalink }) =>
+    getAppLinks({
+      bot: this.bot,
+      host,
+      permalink
+    })
 
-  public genLaunchEmailBody = (values) => {
+  public genLaunchEmailBody = values => {
     const renderConf = _.get(this.conf || {}, 'templates.launch') || {}
     const opts = _.defaults(renderConf, DEFAULT_LAUNCH_TEMPLATE_OPTS)
     return this.genEmailBody({ ...opts, values })
   }
 
-  public genLaunchedEmailBody = (values) => {
+  public genLaunchedEmailBody = values => {
     const renderConf = _.get(this.conf || {}, 'templates.launched') || {}
     const opts = _.defaults(renderConf, DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS)
     return this.genEmailBody({ ...opts, values })
@@ -890,11 +964,15 @@ ${this.genUsageInstructions(links)}`
 
   public genUsageInstructions = getAppLinksInstructions
 
-  public customizeTemplateForLaunch = async ({ template, configuration, bucket }: {
+  public customizeTemplateForLaunch = async ({
+    template,
+    configuration,
+    bucket
+  }: {
     template: CFTemplate
     configuration: IDeploymentConf
     bucket: string
-  }):Promise<MyCloudLaunchTemplate> => {
+  }): Promise<MyCloudLaunchTemplate> => {
     let { name, domain, logo, stackName, adminEmail, blockchain } = configuration
 
     if (!(name && domain)) {
@@ -915,16 +993,16 @@ ${this.genUsageInstructions(links)}`
     deployment.init = {
       stackName: Deployment.expandStackName({ stackName, stage }),
       referrerUrl: this.bot.apiBaseUrl,
-      deploymentUUID: utils.uuid(),
+      deploymentUUID: utils.uuid()
     } as Partial<IMyDeploymentConf>
 
     Deployment.setLaunchTemplateParameters(template, {
       BlockchainNetwork: blockchain,
       OrgName: name,
       OrgDomain: domain,
-      OrgLogo: await logoPromise || media.LOGO_UNKNOWN,
+      OrgLogo: (await logoPromise) || media.LOGO_UNKNOWN,
       OrgAdminEmail: adminEmail,
-      SourceDeploymentBucket: bucket,
+      SourceDeploymentBucket: bucket
     })
 
     Deployment.ensureInitLogIsRetained(template)
@@ -935,7 +1013,7 @@ ${this.genUsageInstructions(links)}`
   public customizeTemplateForUpdate = async (opts: {
     template: CFTemplate
     bucket: string
-  }):Promise<MyCloudUpdateTemplate> => {
+  }): Promise<MyCloudUpdateTemplate> => {
     utils.requireOpts(opts, ['template', 'bucket'])
 
     let { template, bucket } = opts
@@ -945,7 +1023,7 @@ ${this.genUsageInstructions(links)}`
     // also...we don't have this info
     template.Mappings = createMappingsForUpdate()
     Deployment.setUpdateTemplateParameters(template, {
-      SourceDeploymentBucket: bucket,
+      SourceDeploymentBucket: bucket
     })
 
     const initProps = template.Resources.Initialize.Properties
@@ -1012,18 +1090,23 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  public listTmpSNSTopics = async (opts:Partial<FindOpts>={}) => {
-    const { items } = await this.bot.db.find(_.merge({
-      orderBy: {
-        property: 'dateExpires',
-        desc: false
-      },
-      filter: {
-        EQ: {
-          [TYPE]: TMP_SNS_TOPIC
-        }
-      }
-    }, opts))
+  public listTmpSNSTopics = async (opts: Partial<FindOpts> = {}) => {
+    const { items } = await this.bot.db.find(
+      _.merge(
+        {
+          orderBy: {
+            property: 'dateExpires',
+            desc: false
+          },
+          filter: {
+            EQ: {
+              [TYPE]: TMP_SNS_TOPIC
+            }
+          }
+        },
+        opts
+      )
+    )
 
     return items
   }
@@ -1044,7 +1127,8 @@ ${this.genUsageInstructions(links)}`
       childDeployment: childDeployment._permalink
     })
 
-    const updated = await this.bot.draft({ resource: childDeployment })
+    const updated = await this.bot
+      .draft({ resource: childDeployment })
       .set({ status })
       .version()
       .signAndSave()
@@ -1060,13 +1144,18 @@ ${this.genUsageInstructions(links)}`
   // look for -deploymentbucket-*
   public getDeploymentBucketLogicalName = () => `${this._thisStackName}-deploymentbucket`
 
+  public getRegionalBucketName = (region:string) => this.regionalS3.getRegionalBucketName({ 
+    bucket: this.getDeploymentBucketLogicalName(),
+    region
+  })
+  
   public getDeploymentBucketForRegion = async (region: string) => {
     if (region === this._thisRegion) {
       return this.deploymentBucket.id
     }
 
     try {
-      return await this.bot.s3Utils.getRegionalBucketForBucket({
+      return await this.regionalS3.getRegionalBucketForBucket({
         bucket: this.getDeploymentBucketLogicalName(),
         region
       })
@@ -1076,7 +1165,10 @@ ${this.genUsageInstructions(links)}`
     }
   }
 
-  public savePublicTemplate = async ({ template, bucket }: {
+  public savePublicTemplate = async ({
+    template,
+    bucket
+  }: {
     template: CFTemplate
     bucket: string
   }) => {
@@ -1091,7 +1183,7 @@ ${this.genUsageInstructions(links)}`
   private _monitorChildStack = async ({ stackOwner, stackId }: ChildStackIdentifier) => {
     return await Promise.props({
       statusUpdates: stackOwner && this._setupStackStatusAlerts({ stackOwner, stackId }),
-      logging: this._setupLoggingAlerts({ stackId }),
+      logging: this._setupLoggingAlerts({ stackId })
     })
   }
 
@@ -1101,44 +1193,41 @@ ${this.genUsageInstructions(links)}`
     return await this._subscribeToChildStackStatusAlerts(arn)
   }
 
-  private _setupLoggingAlerts = async ({ stackId }: {
-    stackId: string
-  }) => {
+  private _setupLoggingAlerts = async ({ stackId }: { stackId: string }) => {
     const arn = await this._createLoggingAlertsTopic({ stackId })
     return await this._subscribeToChildStackLoggingAlerts(arn)
   }
 
-  private static getS3KeysForLambdaCode = (template: CFTemplate):string[] => {
-    return _.uniq(
-      StackUtils.getLambdaS3Keys(template).map(k => k.value)
-    ) as string[]
+  private static getS3KeysForLambdaCode = (template: CFTemplate): string[] => {
+    return _.uniq(getLambdaS3Keys(template).map(k => k.value)) as string[]
   }
 
   private static getS3KeysForSubstacks = (template: CFTemplate) => {
-    const { Resources } = template
-    return StackUtils.getResourcesByType(template, 'AWS::CloudFormation::Stack')
+    return getResourcesByType(template, 'AWS::CloudFormation::Stack')
       .map(stack => {
         const { TemplateURL } = stack.Properties
         if (TemplateURL['Fn::Sub']) return TemplateURL['Fn::Sub']
 
         const [delimiter, parts] = TemplateURL['Fn::Join']
-        return parts
-          .filter(part => typeof part === 'string')
-          .join(delimiter)
+        return parts.filter(part => typeof part === 'string').join(delimiter)
       })
       .map(url => url.match(/\.s3\.amazonaws\.com\/(.*)$/)[1])
   }
 
   public static getS3DependencyKeys = (template: CFTemplate) => {
-    return Deployment.getS3KeysForSubstacks(template)
-      .concat(Deployment.getS3KeysForLambdaCode(template))
+    return Deployment.getS3KeysForSubstacks(template).concat(
+      Deployment.getS3KeysForLambdaCode(template)
+    )
   }
 
-  public copyChildTemplateDependencies = async ({ template, bucket }: {
+  public copyChildTemplateDependencies = async ({
+    template,
+    bucket
+  }: {
     template: CFTemplate
     bucket: string
   }) => {
-    let keys:string[] = Deployment.getS3DependencyKeys(template)
+    let keys: string[] = Deployment.getS3DependencyKeys(template)
 
     const source = this.deploymentBucket
     if (bucket === source.id) {
@@ -1166,50 +1255,52 @@ ${this.genUsageInstructions(links)}`
     return { bucket: target, keys }
   }
 
-  private _saveTemplateAndCode = async ({ parentTemplate, template, bucket }: {
+  private _saveTemplateAndCode = async ({
+    parentTemplate,
+    template,
+    bucket
+  }: {
     parentTemplate: MyCloudUpdateTemplate
     template: CFTemplate
     bucket: string
-  }):Promise<{ url: string, code: CodeLocation }> => {
+  }): Promise<{ url: string; code: CodeLocation }> => {
     this.logger.debug('saving template and lambda code', { bucket })
     const [templateUrl, code] = await Promise.all([
       this.savePublicTemplate({ bucket, template }),
-      this.copyChildTemplateDependencies({ bucket, template }),
+      this.copyChildTemplateDependencies({ bucket, template })
     ])
 
     return { templateUrl, code }
   }
 
-  public createRegionalDeploymentBuckets = async ({ regions }: {
-    regions: string[]
-  }) => {
+  public createRegionalDeploymentBuckets = async ({ regions }: { regions: string[] }) => {
     this.logger.debug('creating regional buckets', { regions })
-    return await this.bot.s3Utils.createRegionalBuckets({
+    return await this.regionalS3.createRegionalBuckets({
       // not a real bucket
       bucket: this.getDeploymentBucketLogicalName(),
-      regions,
+      regions
     })
   }
 
-  public deleteRegionalDeploymentBuckets = async ({ regions }: {
-    regions: string[]
-  }) => {
-    return await this.bot.s3Utils.deleteRegionalBuckets({
+  public deleteRegionalDeploymentBuckets = async ({ regions }: { regions: string[] }) => {
+    return await this.regionalS3.deleteRegionalBuckets({
       bucket: this.getDeploymentBucketLogicalName(),
-      regions,
-      iam: this.bot.aws.iam
+      regions
     })
   }
 
-  public updateOwnStack = async ({ templateUrl, notificationTopics = [] }: {
-    templateUrl: string
-    notificationTopics?: string[]
-  }) => {
-    await this.bot.lambdaUtils.invoke({
-      name: 'updateStack',
-      arg: { templateUrl, notificationTopics },
-    })
-  }
+  // public updateOwnStack = async ({
+  //   templateUrl,
+  //   notificationTopics = []
+  // }: {
+  //   templateUrl: string
+  //   notificationTopics?: string[]
+  // }) => {
+  //   await this.bot.lambdaUtils.invoke({
+  //     name: 'updateStack',
+  //     arg: { templateUrl, notificationTopics }
+  //   })
+  // }
 
   // public requestUpdate = async () => {
   //   const parent = await this.getParentDeployment()
@@ -1221,14 +1312,21 @@ ${this.genUsageInstructions(links)}`
   //   })
   // }
 
-  public requestUpdateFromTradle = async ({ tag }: {
-    tag: string
-  }={ tag: 'latest' }) => {
+  public requestUpdateFromTradle = async (
+    {
+      tag
+    }: {
+      tag: string
+    } = { tag: 'latest' }
+  ) => {
     const provider = await getTradleBotStub()
     return this.requestUpdateFromProvider({ provider, tag })
   }
 
-  public requestUpdateFromProvider = async ({ provider, tag }: {
+  public requestUpdateFromProvider = async ({
+    provider,
+    tag
+  }: {
     provider: ResourceStub
     tag: string
   }) => {
@@ -1236,7 +1334,7 @@ ${this.genUsageInstructions(links)}`
     const updateReq = this.draftUpdateRequest({
       adminEmail,
       tag,
-      provider,
+      provider
     })
 
     await this.bot.send({
@@ -1245,7 +1343,7 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  public draftUpdateRequest = (opts) => {
+  public draftUpdateRequest = opts => {
     utils.requireOpts(opts, ['tag', 'provider'])
 
     // if (parent[TYPE] !== PARENT_DEPLOYMENT) {
@@ -1254,32 +1352,34 @@ ${this.genUsageInstructions(links)}`
 
     // const { parentIdentity } = parent
     const { env } = this.bot
-    return this.bot.draft({ type: UPDATE_REQUEST })
-      .set(utils.pickNonNull({
-        service: 'tradle',
-        stage: env.STACK_STAGE,
-        region: this._thisRegion,
-        stackId: this._thisStackArn,
-        blockchain: Deployment.encodeBlockchainEnumValue(this.bot.blockchain.toString()),
-        ...opts
-      }))
+    return this.bot
+      .draft({ type: UPDATE_REQUEST })
+      .set(
+        utils.pickNonNull({
+          service: 'tradle',
+          stage: env.STACK_STAGE,
+          region: this._thisRegion,
+          stackId: this._thisStackArn,
+          blockchain: Deployment.encodeBlockchainEnumValue(this.bot.blockchain.toString()),
+          ...opts
+        })
+      )
       .toJSON()
   }
 
-  public handleUpdateRequest = async ({ req, from }: {
-    req: ITradleObject
-    from: IPBUser
-  }) => {
+  public handleUpdateRequest = async ({ req, from }: { req: ITradleObject; from: IPBUser }) => {
     if (req._author !== from.id) {
-      throw new Errors.InvalidAuthor(`expected update request author to be the same identity as "from"`)
+      throw new Errors.InvalidAuthor(
+        `expected update request author to be the same identity as "from"`
+      )
     }
 
-    if (utils.compareTags(req.tag, '2.0.0') < 0) {
-      this.logger.debug('using deployment-v1 to generate template')
-      const { createDeployment } = require('./deployment-v1')
-      const v1 = createDeployment(this.opts)
-      return v1.handleUpdateRequest({ req, from })
-    }
+    // if (utils.compareTags(req.tag, '2.0.0') < 0) {
+    //   this.logger.debug('using deployment-v1 to generate template')
+    //   const { createDeployment } = require('./deployment-v1')
+    //   const v1 = createDeployment(this.opts)
+    //   return v1.handleUpdateRequest({ req, from })
+    // }
 
     utils.requireOpts(req, ['stackId', 'tag'])
 
@@ -1288,10 +1388,7 @@ ${this.genUsageInstructions(links)}`
     //   throw new Errors.Exists(`already up to date`)
     // }
 
-    const [
-      versionInfo,
-      myPermalink
-    ] = await Promise.all([
+    const [versionInfo, myPermalink] = await Promise.all([
       this.getVersionInfoByTag(req.tag),
       this.bot.getMyPermalink()
     ])
@@ -1299,19 +1396,22 @@ ${this.genUsageInstructions(links)}`
     const pkg = await this.genUpdatePackageForStack({
       stackOwner: req._org || req._author,
       stackId: req.stackId,
-      parentTemplateUrl: versionInfo.templateUrl,
+      parentTemplateUrl: versionInfo.templateUrl
     })
 
-    const { notificationTopics=[], templateUrl } = pkg
-    const resp = await this.bot.draft({ type: UPDATE_RESPONSE })
-      .set(utils.pickNonNull({
-        templateUrl,
-        notificationTopics: notificationTopics.length ? notificationTopics.join(',') : null,
-        request: req,
-        provider: from.identity,
-        tag: versionInfo.tag,
-        sortableTag: versionInfo.sortableTag,
-      }))
+    const { notificationTopics = [], templateUrl } = pkg
+    const resp = await this.bot
+      .draft({ type: UPDATE_RESPONSE })
+      .set(
+        utils.pickNonNull({
+          templateUrl,
+          notificationTopics: notificationTopics.length ? notificationTopics.join(',') : null,
+          request: req,
+          provider: from.identity,
+          tag: versionInfo.tag,
+          sortableTag: versionInfo.sortableTag
+        })
+      )
       .sign()
 
     await this.bot.send({
@@ -1322,7 +1422,7 @@ ${this.genUsageInstructions(links)}`
     return pkg
   }
 
-  public getVersionInfoByTag = async (tag: string):Promise<VersionInfo> => {
+  public getVersionInfoByTag = async (tag: string): Promise<VersionInfo> => {
     if (tag === 'latest') return this.getLatestVersionInfo()
 
     return await this.bot.db.findOne({
@@ -1330,29 +1430,23 @@ ${this.genUsageInstructions(links)}`
         EQ: {
           [TYPE]: VERSION_INFO,
           [ORG]: await this.bot.getMyPermalink(),
-          sortableTag: toSortableTag(tag),
+          sortableTag: toSortableTag(tag)
         }
       }
     })
   }
 
-  public getLatestDeployedVersionInfo = async ():Promise<VersionInfo> => {
+  public getLatestDeployedVersionInfo = async (): Promise<VersionInfo> => {
     const results = await this.listMyVersions({ limit: 1 })
     return results[0]
   }
 
-  public getLatestStableVersionInfo = async ():Promise<VersionInfo> => {
+  public getLatestStableVersionInfo = async (): Promise<VersionInfo> => {
     this.logger.debug('looking up latest stable version')
-    // try {
-      return await this._getLatestStableVersionInfoNew()
-    // } catch (err) {
-    //   // TODO: scrap _getLatestStableVersionInfoOld
-    //   Errors.ignoreNotFound(err)
-    //   return await this._getLatestStableVersionInfoOld()
-    // }
+    return await this._getLatestStableVersionInfoNew()
   }
 
-  public getLatestVersionInfo = async ():Promise<VersionInfo> => {
+  public getLatestVersionInfo = async (): Promise<VersionInfo> => {
     return await this.bot.db.findOne({
       orderBy: {
         property: 'sortableTag',
@@ -1361,27 +1455,32 @@ ${this.genUsageInstructions(links)}`
       filter: {
         EQ: {
           [TYPE]: VERSION_INFO,
-          [ORG]: await this.bot.getMyPermalink(),
+          [ORG]: await this.bot.getMyPermalink()
         }
       }
     })
   }
 
-  public listMyVersions = async (opts:Partial<FindOpts>={}):Promise<VersionInfo[]> => {
-    const { items } = await this.bot.db.find(_.merge({
-      // this is an expensive query as VersionInfo doesn't have a _org / _time index
-      allowScan: true,
-      orderBy: {
-        property: '_time',
-        desc: true
-      },
-      filter: {
-        EQ: {
-          [TYPE]: VERSION_INFO,
-          [ORG]: await this.bot.getMyPermalink(),
-        }
-      }
-    }, opts))
+  public listMyVersions = async (opts: Partial<FindOpts> = {}): Promise<VersionInfo[]> => {
+    const { items } = await this.bot.db.find(
+      _.merge(
+        {
+          // this is an expensive query as VersionInfo doesn't have a _org / _time index
+          allowScan: true,
+          orderBy: {
+            property: '_time',
+            desc: true
+          },
+          filter: {
+            EQ: {
+              [TYPE]: VERSION_INFO,
+              [ORG]: await this.bot.getMyPermalink()
+            }
+          }
+        },
+        opts
+      )
+    )
 
     return items
   }
@@ -1392,7 +1491,7 @@ ${this.genUsageInstructions(links)}`
         EQ: {
           [TYPE]: UPDATE,
           [ORG]: await this.bot.getMyPermalink(),
-          sortableTag: toSortableTag(tag),
+          sortableTag: toSortableTag(tag)
         }
       }
     })
@@ -1410,7 +1509,11 @@ ${this.genUsageInstructions(links)}`
     try {
       req = await this.lookupLatestUpdateRequest({ provider })
       if (req._link !== updateResponse.request._link) {
-        throw new Error(`expected update response for request ${req._link}, got for request ${updateResponse.request._link}`)
+        throw new Error(
+          `expected update response for request ${req._link}, got for request ${
+            updateResponse.request._link
+          }`
+        )
       }
     } catch (err) {
       Errors.ignoreNotFound(err)
@@ -1444,20 +1547,21 @@ ${this.genUsageInstructions(links)}`
       tag: updateResponse.tag
     })
 
-    return await this.bot.draft({ type: UPDATE })
-      .set(utils.pickNonNull({
-        templateUrl,
-        notificationTopics,
-        tag,
-        sortableTag: toSortableTag(updateResponse.tag),
-      }))
+    return await this.bot
+      .draft({ type: UPDATE })
+      .set(
+        utils.pickNonNull({
+          templateUrl,
+          notificationTopics,
+          tag,
+          sortableTag: toSortableTag(updateResponse.tag)
+        })
+      )
       .signAndSave()
       .then(r => r.toJSON())
   }
 
-  public lookupLatestUpdateRequest = async ({ provider }: {
-    provider: string
-  }) => {
+  public lookupLatestUpdateRequest = async ({ provider }: { provider: string }) => {
     if (!(typeof provider === 'string' && provider)) {
       throw new Errors.InvalidInput('expected string "provider" permalink')
     }
@@ -1471,7 +1575,7 @@ ${this.genUsageInstructions(links)}`
         EQ: {
           [TYPE]: UPDATE_REQUEST,
           [ORG]: await this.bot.getMyPermalink(),
-          'provider._permalink': provider,
+          'provider._permalink': provider
         }
       }
     })
@@ -1535,27 +1639,33 @@ ${this.genUsageInstructions(links)}`
     const friends = await bot.friends.list()
     logger.debug(`alerting ${friends.length} friends about MyCloud update`, versionInfo)
 
-    await Promise.mapSeries(friends, async (friend) => {
-      logger.debug(`notifying ${friend.name} about MyCloud update`)
-      await bot.send({
-        friend,
-        object: versionInfo
-      })
-    }, { concurrency: 3 })
+    await Promise.mapSeries(
+      friends,
+      async friend => {
+        logger.debug(`notifying ${friend.name} about MyCloud update`)
+        await bot.send({
+          friend,
+          object: versionInfo
+        })
+      },
+      { concurrency: 3 }
+    )
 
     return true
   }
 
-  public getCurrentAdminEmail = async ():Promise<string> => {
+  public getCurrentAdminEmail = async (): Promise<string> => {
     const { aws, stackUtils } = this.bot
     const resources = await stackUtils.getStackResources()
     const { PhysicalResourceId } = resources.find(r => {
       return r.ResourceType === 'AWS::SNS::Topic' && r.LogicalResourceId === 'AwsAlertsAlarm'
     })
 
-    const { Subscriptions } = await aws.sns.listSubscriptionsByTopic({
-      TopicArn: PhysicalResourceId
-    }).promise()
+    const { Subscriptions } = await aws.sns
+      .listSubscriptionsByTopic({
+        TopicArn: PhysicalResourceId
+      })
+      .promise()
 
     const emails = Subscriptions.filter(s => s.Protocol === 'email')
     if (emails.length) {
@@ -1566,7 +1676,7 @@ ${this.genUsageInstructions(links)}`
     return params.OrgAdminEmail
   }
 
-  private _getLatestStableVersionInfoNew = async ():Promise<VersionInfo> => {
+  private _getLatestStableVersionInfoNew = async (): Promise<VersionInfo> => {
     return await this.bot.db.findOne({
       orderBy: {
         property: 'sortableTag',
@@ -1578,41 +1688,11 @@ ${this.genUsageInstructions(links)}`
           [ORG]: await this.bot.getMyPermalink(),
           'releaseChannel.id': buildResource.enumValue({
             model: baseModels['tradle.cloud.ReleaseChannel'],
-            value: 'stable',
+            value: 'stable'
           }).id
         }
       }
     })
-  }
-
-  private _getLatestStableVersionInfoOld = async ():Promise<VersionInfo> => {
-    const botPermalink = await this.bot.getMyPermalink()
-    const params:FindOpts = {
-      limit: 10,
-      orderBy: {
-        property: 'sortableTag',
-        desc: true
-      },
-      filter: {
-        EQ: {
-          [TYPE]: VERSION_INFO,
-          [ORG]: botPermalink,
-        }
-      }
-    }
-
-    let pages = 0
-    while (pages++ < 10) {
-      let { items=[], endPosition } = await this.bot.db.find(params)
-      let stable = items.find(item => Deployment.isStableReleaseTag(item.tag))
-      if (stable) return stable
-
-      if (items.length < params.limit) {
-        throw new Errors.NotFound(`not found`)
-      }
-
-      params.checkpoint = endPosition
-    }
   }
 
   private _normalizeCallHomeOpts = async (opts: Partial<CallHomeOpts>) => {
@@ -1620,24 +1700,30 @@ ${this.genUsageInstructions(links)}`
       ...opts,
       org: opts.org || this.org,
       identity: opts.identity || this.bot.getMyIdentity(),
-      adminEmail: opts.adminEmail || this.getCurrentAdminEmail(),
+      adminEmail: opts.adminEmail || this.getCurrentAdminEmail()
     })
   }
 
   private _saveVersionInfoResource = async (versionInfo: VersionInfo) => {
     utils.requireOpts(versionInfo, VERSION_INFO_REQUIRED_PROPS)
     const { tag } = versionInfo
-    return this.bot.draft({ type: VERSION_INFO })
+    return this.bot
+      .draft({ type: VERSION_INFO })
       .set({
         ..._.pick(versionInfo, VERSION_INFO_REQUIRED_PROPS),
         sortableTag: toSortableTag(tag),
-        releaseChannel: getReleaseChannel(tag),
+        releaseChannel: getReleaseChannel(tag)
       })
       .signAndSave()
       .then(r => r.toJSON())
   }
 
-  private _createTopicForCrossAccountEvents = async ({ topic, stackId, allowRoles, deliveryPolicy }) => {
+  private _createTopicForCrossAccountEvents = async ({
+    topic,
+    stackId,
+    allowRoles,
+    deliveryPolicy
+  }) => {
     const arn = await this.snsUtils.createTopic({
       region: utils.parseArn(stackId).region,
       name: topic
@@ -1645,26 +1731,8 @@ ${this.genUsageInstructions(links)}`
 
     const limitReceiveRateParams = genSetDeliveryPolicyParams(arn, deliveryPolicy)
     await this.snsUtils.setTopicAttributes(limitReceiveRateParams)
-    await this._allowCrossAccountPublish(arn, allowRoles)
+    await this.snsUtils.allowCrossAccountPublish(arn, allowRoles)
     return arn
-  }
-
-  private _allowCrossAccountPublish = async (topic: string, accounts: string[]) => {
-    const { Attributes } = await this.snsUtils.getTopicAttributes(topic)
-    const policy = JSON.parse(Attributes.Policy)
-    // remove old statements
-    const statements = policy.Statement.filter(({ Sid }) => !Sid.startsWith('allowCrossAccountPublish'))
-    statements.push(genCrossAccountPublishPermission(topic, accounts))
-    const params:AWS.SNS.SetTopicAttributesInput = {
-      TopicArn: topic,
-      AttributeName: 'Policy',
-      AttributeValue: JSON.stringify({
-        ...policy,
-        Statement: statements
-      })
-    }
-
-    await this.snsUtils.setTopicAttributes(params)
   }
 
   private _createStackUpdateTopic = async ({ stackOwner, stackId }: ChildStackIdentifier) => {
@@ -1689,9 +1757,7 @@ ${this.genUsageInstructions(links)}`
     const arn = await this._createTopicForCrossAccountEvents({
       topic: topicName,
       stackId,
-      allowRoles: [
-        getCrossAccountLambdaRole({ stackId, lambdaName: LOG_PROCESSOR_LAMBDA_NAME })
-      ],
+      allowRoles: [getCrossAccountLambdaRole({ stackId, lambdaName: LOG_PROCESSOR_LAMBDA_NAME })],
       deliveryPolicy: LOGGING_TOPIC_DELIVERY_POLICY
     })
 
@@ -1704,31 +1770,31 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _subscribeToChildStackStatusAlerts = async (topic: string) => {
-    const lambda = this.bot.lambdaUtils.getLambdaArn(ON_CHILD_STACK_STATUS_CHANGED_LAMBDA_NAME)
+    const lambda = this.bot.env.getLambdaArn(ON_CHILD_STACK_STATUS_CHANGED_LAMBDA_NAME)
     const subscription = await this._subscribeLambdaToTopic({ topic, lambda })
     return {
       topic,
       lambda,
-      subscription,
+      subscription
     }
   }
 
   private _subscribeToChildStackLoggingAlerts = async (topic: string) => {
-    const lambda = this.bot.lambdaUtils.getLambdaArn(LOG_ALERTS_PROCESSOR_LAMBDA_NAME)
+    const lambda = this.bot.env.getLambdaArn(LOG_ALERTS_PROCESSOR_LAMBDA_NAME)
     const subscribe = this._subscribeLambdaToTopic({ topic, lambda })
     const allow = this._allowSNSToCallLambda({ topic, lambda })
     const [subscription] = await Promise.all([subscribe, allow])
     return {
       lambda,
       topic,
-      subscription,
+      subscription
     }
   }
 
   private _allowSNSToCallLambda = async ({ topic, lambda }) => {
     if (this.bot.isTesting) return
 
-    const exists = await this.bot.lambdaUtils.canSNSInvoke(lambda)
+    const exists = await this.bot.lambdaUtils.canSNSInvokeLambda(lambda)
     if (exists) {
       this.logger.debug('sns -> lambda permission already exists', { lambda })
       return
@@ -1741,7 +1807,7 @@ ${this.genUsageInstructions(links)}`
     return await this.snsUtils.subscribeIfNotSubscribed({
       topic,
       protocol: 'email',
-      endpoint: email
+      target: email
     })
   }
 
@@ -1749,7 +1815,7 @@ ${this.genUsageInstructions(links)}`
     return await this.snsUtils.subscribeIfNotSubscribed({
       topic,
       protocol: 'lambda',
-      endpoint: lambda
+      target: lambda
     })
   }
 
@@ -1763,7 +1829,7 @@ ${this.genUsageInstructions(links)}`
       limit: 1,
       filter: {
         EQ: {
-          topic,
+          topic
         }
       }
     })
@@ -1774,7 +1840,8 @@ ${this.genUsageInstructions(links)}`
         permalink: existing._permalink
       })
 
-      await this.bot.draft({ resource: existing })
+      await this.bot
+        .draft({ resource: existing })
         .set(props)
         .version()
         .signAndSave()
@@ -1834,7 +1901,7 @@ ${this.genUsageInstructions(links)}`
     if (bucket !== bot.buckets.ServerlessDeployment.id) {
       this.logger.error('expected template to be stored in serverless deployment bucket', {
         bucket,
-        key,
+        key
       })
 
       return
@@ -1852,21 +1919,12 @@ ${this.genUsageInstructions(links)}`
       return
     }
 
-    const { versionInfo, updated } = await this._saveMyDeploymentVersionInfo()
-    // const forced = this.bot.version.alert
-    // const should = updated && shouldSendVersionAlert(this.bot.version)
-    // if (forced || should) {
-    //   await this.alertChildrenAboutVersion(versionInfo)
-    // }
-
+    await this._saveMyDeploymentVersionInfo()
     await monitorSelf
   }
 
   private _handleStackUpdateNonTradle = async (opts: CallHomeOpts) => {
-    await Promise.all([
-      this._saveMyDeploymentVersionInfo(),
-      this.callHome(opts)
-    ])
+    await Promise.all([this._saveMyDeploymentVersionInfo(), this.callHome(opts)])
   }
 
   private get _thisStackArn() {
@@ -1883,79 +1941,27 @@ ${this.genUsageInstructions(links)}`
 
   private _bucket = (name: string) => {
     const { bot } = this
-    return new Bucket({
-      name,
-      env: bot.env,
-      s3: bot.aws.s3,
-      s3Utils: bot.s3Utils,
-      logger: bot.logger
+    return wrapBucket({
+      bucket: name,
+      client: bot.s3Utils
     })
   }
-
-  // private _setLambdaCodePointers = ({ template, bucket }: {
-  //   template: CFTemplate
-  //   bucket: string
-  // }) => {
-  //   _.forEach(template.Resources, resource => {
-  //     if (resource.Type === 'AWS::Lambda::Function') {
-  //       resource.Properties.Code.S3Bucket = bucket
-  //     }
-  //   })
-  // }
-
-  // private _refreshTmpSNSTopic = async (arn: string) => {
-  //   const existing = await this.bot.db.findOne({
-  //     filter: {
-  //       EQ: {
-  //         [TYPE]: TMP_SNS_TOPIC,
-  //         topic: arn
-  //       }
-  //     }
-  //   })
-
-  //   const updated = await this.bot.draft({ resource: existing })
-  //     .set({
-  //       dateExpires: getTmpTopicExpirationDate()
-  //     })
-  //     .version()
-  //     .signAndSave()
-
-  //   return updated.toJSON()
-  // }
 }
-
-// const UPDATE_STACK_LAMBDAS = [
-//   'updateStack'
-// ]
 
 const getArnRegion = (arn: string) => utils.parseArn(arn).region
 
-// export const getUpdateStackAssumedRoles = (stackId: string, lambdas=UPDATE_STACK_LAMBDAS) => {
-//   // maybe make a separate lambda for this (e.g. update-stack)
-//   const {
-//     accountId,
-//     name,
-//     region,
-//   } = StackUtils.parseStackArn(stackId)
-
-//   return lambdas.map(
-//     lambdaName => `arn:aws:sts::${accountId}:assumed-role/${name}-${region}-updateStackRole/${name}-${lambdaName}`
-//   )
-// }
-
-export const getCrossAccountLambdaRole = ({ stackId, lambdaName }: {
+export const getCrossAccountLambdaRole = ({
+  stackId,
+  lambdaName
+}: {
   stackId: string
   lambdaName: string
 }) => {
-  const {
-    accountId,
-    name,
-    region,
-  } = StackUtils.parseStackArn(stackId)
+  const { accountId, name, region } = StackUtils.parseStackArn(stackId)
   return `arn:aws:sts::${accountId}:assumed-role/${name}-${region}-lambdaRole/${name}-${lambdaName}`
 }
 
-export const createDeployment = (opts:DeploymentCtorOpts) => new Deployment(opts)
+export const createDeployment = (opts: DeploymentCtorOpts) => new Deployment(opts)
 
 const getStackUpdateTopicName = ({ stackOwner, stackId }: ChildStackIdentifier) => {
   const { name } = StackUtils.parseStackArn(stackId)
@@ -1965,23 +1971,6 @@ const getStackUpdateTopicName = ({ stackOwner, stackId }: ChildStackIdentifier) 
 // const getTmpTopicExpirationDate = () => Date.now() + TMP_SNS_TOPIC_TTL
 const getStackUpdateTopicExpirationDate = () => Date.now() + UPDATE_TOPIC_TTL
 const getLogAlertsTopicExpirationDate = () => Date.now() + LOG_TOPIC_TTL
-
-const assertNoNullProps = (obj: any, msg: string) => {
-  for (let p in obj) {
-    if (obj[p] == null) {
-      throw new Errors.InvalidInput(msg)
-    }
-  }
-}
-
-const shouldSendVersionAlert = (versionInfo: VersionInfo) => {
-  // force
-  if (versionInfo.alert) return true
-
-  if (versionInfo.commitsSinceTag !== 0) return false
-
-  return ALERT_BRANCHES.includes(versionInfo.branch)
-}
 
 const sortVersions = (items: any[], desc?: boolean) => {
   const sorted = _.sortBy(items, ['sortableTag', '_time'])

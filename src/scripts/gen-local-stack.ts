@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+// tslint:disable:no-console
+
 import { getStackName, getRegion, genLocalResources } from '../cli/utils'
 
 const stackName = getStackName()

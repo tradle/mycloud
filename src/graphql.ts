@@ -13,36 +13,29 @@ const { MESSAGE } = TYPES
 
 export const prettifyQuery = query => print(parse(query))
 
-export const createGraphqlAPI = (opts: {
-  bot: Bot
-  logger: Logger
-}):IGraphqlAPI => {
+export const createGraphqlAPI = (opts: { bot: Bot; logger: Logger }): IGraphqlAPI => {
   const { bot, logger } = opts
-  const {
-    objects,
-    modelStore,
-    db
-  } = bot
+  const { objects, embeds, modelStore, db } = bot
 
   let models
-  const postProcess = async (result, op, opts:any={}) => {
+  const postProcess = async (result, op, opts: any = {}) => {
     if (!result) return result
 
     if (Array.isArray(result) && !result.length) {
       return result
     }
 
-    const { select=[] } = opts
+    const { select = [] } = opts
     switch (op) {
-    case 'get':
-    case 'getByLink':
-      presignEmbeddedMediaLinks(result)
-      break
-    case 'list':
-      result.items = presignEmbeddedMediaLinks(result.items)
-      break
-    default:
-      break
+      case 'get':
+      case 'getByLink':
+        presignEmbeddedMediaLinks(result)
+        break
+      case 'list':
+        result.items = presignEmbeddedMediaLinks(result.items)
+        break
+      default:
+        break
     }
 
     return result
@@ -77,11 +70,10 @@ export const createGraphqlAPI = (opts: {
     return graphql(getSchema(), query, null, {}, variables)
   }
 
-  const presignEmbeddedMediaLinks = (items) => {
+  const presignEmbeddedMediaLinks = items => {
     if (!items) return items
-
     ;[].concat(items).forEach(object => {
-      objects.presignEmbeddedMediaLinks({
+      embeds.presignEmbeddedMedia({
         object,
         stripEmbedPrefix: true
       })
@@ -90,7 +82,7 @@ export const createGraphqlAPI = (opts: {
     return items
   }
 
-  const setModels = (_models) => {
+  const setModels = _models => {
     logger.debug('setting models, regenerating schema')
     models = _models
     schema = null
@@ -108,7 +100,7 @@ export const createGraphqlAPI = (opts: {
 
   return {
     graphiqlOptions: {},
-    get schema () {
+    get schema() {
       return getSchema()
     },
     exportSchema: () => schemaToJSON(getSchema()),
@@ -127,7 +119,7 @@ export const exportSchema = async ({ models }) => {
   return await schemaToJSON(schema)
 }
 
-export const schemaToJSON = async (schema) => {
+export const schemaToJSON = async schema => {
   const { data } = await graphql(schema, introspectionQuery)
   return data
 }

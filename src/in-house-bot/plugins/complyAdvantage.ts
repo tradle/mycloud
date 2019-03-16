@@ -130,6 +130,17 @@ class ComplyAdvantageAPI {
         await this.createCheck({application, rawData: {}, status, form: payload})
         return
       }
+      if (firstName.length === 1  &&  lastName.length === 1) {
+        this.logger.debug(`${PROVIDER}. Bad criteria: one letter first and last names`);
+        let status = {
+          status: 'fail',
+          message: 'Bad criteria: one letter first and last names'
+          // message: `Sanctions check for "${name}" failed.` + (!dateOfBirth  &&  ' No registration date was provided')
+        }
+        await this.createCheck({application, rawData: {}, status, form: payload})
+        return
+
+      }
       name = firstName + ' ' + lastName
     }
     else {
@@ -188,7 +199,8 @@ class ComplyAdvantageAPI {
           last_name: lastName,
         },
         filters: {
-          birth_year: new Date(dateOfBirth).getFullYear()
+          birth_year: new Date(dateOfBirth).getFullYear(),
+          remove_deceased: '1'
         }
       }
     }
@@ -244,6 +256,7 @@ class ComplyAdvantageAPI {
     //   // need to request again
     //   return {resource, rawData: json, hits: []} //, error: `Check failed for "${search_term}": ${json.status}: ${json.message}`}
     // }
+    // debugger
     let rawData = json  &&  json.content.data
     let entityType = criteria.entity_type
     if (!entityType)

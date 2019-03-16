@@ -1,13 +1,10 @@
 import { ICommand } from '../types'
 import Errors from '../../errors'
 
-export const command:ICommand = {
+export const command: ICommand = {
   name: 'setenvvar',
   description: `set an environment variable`,
-  examples: [
-    '/setenvvar --key a --value a',
-    '/setenvvar --key a --value a --functions a,b,c',
-  ],
+  examples: ['/setenvvar --key a --value a', '/setenvvar --key a --value a --functions a,b,c'],
   adminOnly: true,
   exec: async ({ commander, req, ctx, args }) => {
     const { bot } = commander
@@ -27,12 +24,16 @@ export const command:ICommand = {
 
     bot.logger.warn('setting environment variables', update)
     await bot.stackUtils.updateEnvironments(({ FunctionName }) => {
-      if (FunctionName === bot.lambdaUtils.thisFunctionName) return null
-      if (functions && !functions.includes(FunctionName.slice(bot.stackUtils.thisStack.resourcePrefix.length))) return null
+      if (FunctionName === bot.env.AWS_LAMBDA_FUNCTION_NAME) return null
+      if (
+        functions &&
+        !functions.includes(FunctionName.slice(bot.env.STACK_RESOURCE_PREFIX.length))
+      )
+        return null
 
       return update
     })
 
-    await bot.lambdaUtils.scheduleWarmUp()
+    await bot.lambdaInvoker.scheduleWarmUp()
   }
 }

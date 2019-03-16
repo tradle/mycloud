@@ -9,4 +9,4 @@ npm run fix:redis
 sleep 5
 npm run gen:localstack
 # npm run gen:localresources
-DEBUG=λ*,*tradle* ./node_modules/.bin/sls offline start
+npm run start:fast

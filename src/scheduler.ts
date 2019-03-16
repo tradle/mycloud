@@ -1,10 +1,6 @@
 import getValues from 'lodash/values'
 import Errors from './errors'
-import {
-  Bot,
-  Job,
-  Logger,
-} from './types'
+import { Bot, Job, Logger } from './types'
 
 const JOB = 'tradle.cloud.Job'
 const MIN_PERIOD = 60
@@ -56,7 +52,7 @@ export class Scheduler {
     return jobs.filter(j => Scheduler.isScheduled(j))
   }
 
-  public static isScheduled = (job: Job, time:number=Date.now()) => {
+  public static isScheduled = (job: Job, time: number = Date.now()) => {
     time = fixResolution(Math.floor(time / 1000))
     return time % job.period === 0
   }
@@ -71,7 +67,7 @@ export class Scheduler {
 
   public scheduleJobImmediately = async (job: Job) => {
     this.logger.debug(`scheduling job: ${job.name}`)
-    return await this.bot.lambdaUtils.invoke({
+    return await this.bot.lambdaInvoker.invoke({
       name: job.function,
       arg: job,
       sync: false

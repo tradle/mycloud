@@ -13,7 +13,7 @@
   "serverless-offline": {
     "host": "0.0.0.0",
     "port": 21012,
-    "skipCacheInvalidation": false
+    "skipCacheInvalidation": true
   },
   "serverless-iot-local": {
     "host": "0.0.0.0",

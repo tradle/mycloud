@@ -92,7 +92,7 @@ export default class Backlinks {
   private modelStore: ModelStore
   private logger: Logger
   private identity: Identity
-  constructor ({ storage, modelStore, logger, identity }: BacklinksOpts) {
+  constructor({ storage, modelStore, logger, identity }: BacklinksOpts) {
     this.storage = storage
     this.db = storage.db
     this.modelStore = modelStore
@@ -104,7 +104,7 @@ export default class Backlinks {
     return this.modelStore.models
   }
 
-  public getForwardLinks = (resource):IBacklinkItem[] => {
+  public getForwardLinks = (resource): IBacklinkItem[] => {
     const { logger, models } = this
     return getForwardLinks({ logger, models, resource })
   }
@@ -129,18 +129,18 @@ export default class Backlinks {
     type,
     permalink,
     properties,
-    orderBy=DEFAULT_BACKLINK_ORDER_BY
-  }: GetBacklinksOpts):Promise<ResourceBacklinks> => {
+    orderBy = DEFAULT_BACKLINK_ORDER_BY
+  }: GetBacklinksOpts): Promise<ResourceBacklinks> => {
     const { models } = this
     const allProps = models[type].properties
     if (!properties) {
-      properties = Object.keys(allProps).filter(p => {
-        const property = allProps[p]
-        return property.items && property.items.backlink
-      })
-      .filter(_.identity)
+      properties = Object.keys(allProps)
+        .filter(p => {
+          const property = allProps[p]
+          return property.items && property.items.backlink
+        })
+        .filter(_.identity)
     }
-
 
     const sources = properties.map(blProp => {
       const { ref, backlink } = allProps[blProp].items
@@ -151,7 +151,9 @@ export default class Backlinks {
       }
     })
 
-    const [sourceProps, intersections] = _.partition(sources, s => Backlinks.isBacklinkableModel(s.model))
+    const [sourceProps, intersections] = _.partition(sources, s =>
+      Backlinks.isBacklinkableModel(s.model)
+    )
     let viaBacklinkItems
     let viaIntersections
     if (sourceProps.length) {
@@ -169,18 +171,19 @@ export default class Backlinks {
     }
 
     if (intersections.length) {
-      viaIntersections = Promise.all(intersections.map(async ({ model, backlink, forwardLink }) => {
-        const filter = {
-          EQ: {
-            [TYPE]: model.id,
-            [`${forwardLink}._permalink`]: permalink
+      viaIntersections = Promise.all(
+        intersections.map(async ({ model, backlink, forwardLink }) => {
+          const filter = {
+            EQ: {
+              [TYPE]: model.id,
+              [`${forwardLink}._permalink`]: permalink
+            }
           }
-        }
 
-        const items = await runIntersectionQuery(this.db, { filter, orderBy })
-        return { backlink, items }
-      }))
-      .then(results => {
+          const items = await runIntersectionQuery(this.db, { filter, orderBy })
+          return { backlink, items }
+        })
+      ).then(results => {
         const backlinks = {}
         results.forEach(({ backlink, items }) => {
           backlinks[backlink] = items
@@ -209,8 +212,8 @@ export default class Backlinks {
     return _.extend(resource, backlinks)
   }
 
-  public static isBacklinkableModel = (model:Model) => !isWellBehavedIntersection(model)
-  public isBacklinkableModel = (model:Model) => Backlinks.isBacklinkableModel(model)
+  public static isBacklinkableModel = (model: Model) => !isWellBehavedIntersection(model)
+  public isBacklinkableModel = (model: Model) => Backlinks.isBacklinkableModel(model)
 
   public processMessages = async (messages: ITradleMessage[]) => {
     this.logger.silly(`processing ${messages.length} messages`)
@@ -226,60 +229,66 @@ export default class Backlinks {
     }, {})
 
     const submissions = messages.map(m => m.object)
-    const applicationSubmissions = submissions.map((submission, i) => {
-      const { context } = messages[i]
-      const application = appByContext[context]
-      if (!application) {
-        this.logger.debug('application with context not found', { context })
-        return
-      }
+    const applicationSubmissions = submissions
+      .map((submission, i) => {
+        const { context } = messages[i]
+        const application = appByContext[context]
+        if (!application) {
+          this.logger.debug('application with context not found', { context })
+          return
+        }
 
-      const appSub = new Resource({
-        models: this.models,
-        type: APPLICATION_SUBMISSION
+        const appSub = new Resource({
+          models: this.models,
+          type: APPLICATION_SUBMISSION
+        })
+
+        appSub.set({ application, submission, context })
+        if (submission._time) {
+          appSub.set({ _time: submission._time })
+        } else {
+          this.logger.warn('missing _time', submission)
+        }
+
+        return appSub.toJSON()
       })
-
-      appSub.set({ application, submission, context })
-      if (submission._time) {
-        appSub.set({ _time: submission._time })
-      } else {
-        this.logger.warn('missing _time', submission)
-      }
-
-      return appSub.toJSON()
-    })
-    .filter(_.identity)
+      .filter(_.identity)
 
     if (!applicationSubmissions.length) return []
 
-    const results = await Promise.all(applicationSubmissions.map(async (object) => {
-      object = await this.identity.sign({ object })
-      try {
-        object = await this.storage.save({ object })
-      } catch (error) {
-        this.logger.debug('failed to create application submission', {
-          error,
-          applicationSubmission: object
+    const results = await Promise.all(
+      applicationSubmissions.map(async object => {
+        object = await this.identity.sign({ object })
+        try {
+          object = await this.storage.save({ object })
+        } catch (error) {
+          this.logger.debug('failed to create application submission', {
+            error,
+            applicationSubmission: object
+          })
+
+          Errors.ignoreUnmetCondition(error)
+          return
+        }
+
+        this.logger.silly(`intersection created`, {
+          type: APPLICATION_SUBMISSION,
+          x: [APPLICATION, object.submission[TYPE]],
+          delay: Date.now() - object._time
         })
 
-        Errors.ignoreUnmetCondition(error)
-        return
-      }
-
-      this.logger.silly(`intersection created`, {
-        type: APPLICATION_SUBMISSION,
-        x: [APPLICATION, object.submission[TYPE]],
-        delay: Date.now() - object._time,
+        return object
       })
-
-      return object
-    }))
+    )
 
     return results.filter(_.identity)
   }
 
   public processChanges = async (resourceChanges: ISaveEventPayload[]) => {
-    this.logger.silly('processing resource changes', resourceChanges.map(r => _.pick(r.value, ['_t', '_permalink'])))
+    this.logger.silly(
+      'processing resource changes',
+      resourceChanges.map(r => _.pick(r.value, ['_t', '_permalink']))
+    )
 
     resourceChanges = resourceChanges.filter(r => {
       const resource = r.value || r.old
@@ -287,6 +296,14 @@ export default class Backlinks {
       if (type === BACKLINK_ITEM) return false
 
       const model = this.models[type]
+      if (!model) {
+        this.logger.error('missing model for type, skipping backlink', {
+          type,
+          permalink: resource._permalink
+        })
+        return false
+      }
+
       // well-behaved intersections can be queried directly
       // without backlink items
       return !isWellBehavedIntersection(model)
@@ -301,22 +318,25 @@ export default class Backlinks {
     if (!(add.length || del.length)) return backlinkChanges
 
     if (add.length) {
-      this.logger.debug(`creating ${add.length} backlink items`)// , printItems(add))
+      this.logger.debug(`creating ${add.length} backlink items`) // , printItems(add))
     }
 
     if (del.length) {
-      this.logger.debug(`deleting ${del.length} backlink items`)// , printItems(del))
+      this.logger.debug(`deleting ${del.length} backlink items`) // , printItems(del))
     }
 
     const promiseAdd = add.length ? this.db.batchPut(add.map(this.toDBFormat)) : RESOLVED_PROMISE
-    const promiseDel = del.length ? Promise.all(del.map(item => this.db.del(item))) : RESOLVED_PROMISE
+    const promiseDel = del.length
+      ? Promise.all(del.map(item => this.db.del(item)))
+      : RESOLVED_PROMISE
     await Promise.all([promiseAdd, promiseDel])
     return backlinkChanges
   }
 
-  private toDBFormat = (blItem:IBacklinkItem):any => _.omit(blItem, ['targetParsedStub', 'backlinkProp'])
+  private toDBFormat = (blItem: IBacklinkItem): any =>
+    _.omit(blItem, ['targetParsedStub', 'backlinkProp'])
 
-  public getBacklinksChanges = (rChanges: ISaveEventPayload[]):BacklinksChange => {
+  public getBacklinksChanges = (rChanges: ISaveEventPayload[]): BacklinksChange => {
     const { models, logger } = this
     return getBacklinkChangesForChanges({
       models,
@@ -325,17 +345,15 @@ export default class Backlinks {
     })
   }
 
-  private _getApplicationsWithContexts = async (contexts:string[]) => {
+  private _getApplicationsWithContexts = async (contexts: string[]) => {
     // context is indexed, so N queries by EQ (with hashKey) are more efficient
     // than an IN query that results in a scan
     this.logger.silly('searching for applications with contexts', contexts)
     const results = await allSettled(contexts.map(this._getApplicationWithContext))
-    return results
-      .filter(result => result.isFulfilled)
-      .map(result => result.value)
+    return results.filter(result => result.isFulfilled).map(result => result.value)
   }
 
-  private _getApplicationWithContext = async (context:string) => {
+  private _getApplicationWithContext = async (context: string) => {
     return await this.db.findOne({
       // select: ['_link', '_permalink', 'context'],
       filter: {
@@ -441,7 +459,11 @@ export default class Backlinks {
 //   return _.flatten(paths)
 // }
 
-export const getBacklinkChangesForChanges = ({ models, logger, changes }: {
+export const getBacklinkChangesForChanges = ({
+  models,
+  logger,
+  changes
+}: {
   models: Models
   changes: ISaveEventPayload[]
   logger?: Logger
@@ -470,11 +492,15 @@ export const getBacklinkChangesForChanges = ({ models, logger, changes }: {
 export { Backlinks }
 export const createBacklinks = (opts: BacklinksOpts) => new Backlinks(opts)
 
-const toUid = (fl:IBacklinkItem) => [fl.linkProp, fl.source._permalink, fl.target._permalink].join(':')
-const toResourceFormat = ({ models, backlinkItems }: {
+const toUid = (fl: IBacklinkItem) =>
+  [fl.linkProp, fl.source._permalink, fl.target._permalink].join(':')
+const toResourceFormat = ({
+  models,
+  backlinkItems
+}: {
   models: Models
   backlinkItems: IBacklinkItem[]
-}):ResourceBacklinks => {
+}): ResourceBacklinks => {
   const resolved = _.flatMap(backlinkItems, bl => {
     const { linkProp, source, target } = bl
     const sourceModel = models[source[TYPE]]
@@ -489,14 +515,17 @@ const toResourceFormat = ({ models, backlinkItems }: {
     return backlinkProps.map(backlinkProp => [backlinkProp, source])
   }) as KVPairArr
 
-  return resolved.reduce((backlinks, [backlinkProp, value]) => {
-    if (!backlinks[backlinkProp]) {
-      backlinks[backlinkProp] = []
-    }
+  return resolved.reduce(
+    (backlinks, [backlinkProp, value]) => {
+      if (!backlinks[backlinkProp]) {
+        backlinks[backlinkProp] = []
+      }
 
-    backlinks[backlinkProp].push(value)
-    return backlinks
-  }, {} as ResourceBacklinks)
+      backlinks[backlinkProp].push(value)
+      return backlinks
+    },
+    {} as ResourceBacklinks
+  )
 }
 
 // const printItems = blItems => JSON.stringify(blItems.map(item => _.pick(item, ['source', 'target']), null, 2))

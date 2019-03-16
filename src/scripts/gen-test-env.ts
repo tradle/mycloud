@@ -5,10 +5,12 @@ process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 import path from 'path'
 import promisify from 'pify'
 import _fs from 'fs'
+import AWS from 'aws-sdk'
+import { LambdaClient } from '@tradle/aws-lambda-client'
+import { createClientCache } from '@tradle/aws-client-factory'
 import { prettify } from '../string-utils'
-import { LambdaUtils } from '../lambda-utils'
 import { Env } from '../env'
-import { createAWSWrapper } from '../aws'
+// import { createAWSWrapper } from "../aws"
 import { Logger } from '../logger'
 import { createRemoteBot, createTestBot } from '../'
 import { loadCredentials, downloadDeploymentTemplate } from '../cli/utils'
@@ -26,10 +28,9 @@ const prefix = `${service}-${custom.stage}-`
 loadCredentials()
 process.env.AWS_REGION = serverlessYml.provider.region
 
-const env = new Env(process.env)
 const logger = new Logger('gen:testenv')
-const aws = createAWSWrapper({ logger, env })
-const lambdaUtils = new LambdaUtils({ env, aws, logger })
+const aws = createClientCache({ AWS })
+const lambdaUtils = new LambdaClient({ client: aws.lambda })
 const getEnv = async () => {
   const setEnvFnName = `${prefix}onmessage`
   const { Environment } = await lambdaUtils.getConfiguration(setEnvFnName)
@@ -67,7 +68,7 @@ const getECSDiscovery = async (bot: Bot) => {
 
     logger.error('failed to save ECS discovery info to local test bucket', {
       bucket: bucket.id,
-      error: err.stack,
+      error: err.stack
     })
 
     throw err
@@ -81,6 +82,7 @@ getEnv()
     await getECSDiscovery(bot)
   })
   .catch(err => {
+    // tslint:disable-next-line
     console.error(err)
     process.exit(1)
   })

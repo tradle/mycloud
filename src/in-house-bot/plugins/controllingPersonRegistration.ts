@@ -23,6 +23,8 @@ const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
 const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const AGENCY = 'tradle.Agency'
 const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
+const LEGAL_ENTITY_PRODUCT = 'tradle.legal.LegalEntityProduct'
+const CP_ONBOARDING = 'tradle.legal.ControllingPersonOnboarding'
 const SHORT_TO_LONG_URL_MAPPING = 'tradle.ShortToLongUrlMapping'
 
 const DEAR_CUSTOMER = 'Dear Customer'
@@ -70,13 +72,15 @@ export const genConfirmationEmail = ({
   host,
   name,
   orgName,
+  product,
   extraQueryParams={},
 }: GenConfirmationEmailOpts) => {
+
   const [mobileUrl, webUrl] = ['mobile', 'web'].map(platform => {
     return appLinks.getApplyForProductLink({
       provider,
       host,
-      product: EMPLOYEE_ONBOARDING,
+      product,
       platform,
       ...extraQueryParams,
     })
@@ -91,6 +95,7 @@ interface GenConfirmationEmailOpts {
   name: string
   orgName: string
   extraQueryParams?: any
+  product: string
 }
 
 interface ConfirmationEmailTemplateData {
@@ -120,14 +125,17 @@ class ControllingPersonRegistrationAPI {
   async sendConfirmationEmail({resource, application, legalEntity}) {
     let emailAddress = resource.emailAddress
 
-    this.logger.error('controlling person: preparing to send invite') // to ${emailAddress} from ${this.conf.senderEmail}`)
+    this.logger.debug('controlling person: preparing to send invite') // to ${emailAddress} from ${this.conf.senderEmail}`)
 
     const host = this.bot.apiBaseUrl
     const provider = await this.bot.getMyPermalink()
-    const extraQueryParams: any = { legalEntity: legalEntity._permalink, }
+
+    const extraQueryParams: any = { application: application._permalink }
     if (application.requestFor === AGENCY) {
       extraQueryParams.isAgent = true
+      extraQueryParams.legalEntity = legalEntity._permalink
     }
+    let product = application.requestFor === LEGAL_ENTITY_PRODUCT ? CP_ONBOARDING : EMPLOYEE_ONBOARDING
 
     const body = genConfirmationEmail({
       provider,
@@ -135,6 +143,7 @@ class ControllingPersonRegistrationAPI {
       name: DEAR_CUSTOMER,
       orgName: this.org.name,
       extraQueryParams,
+      product
     })
 
     try {
@@ -153,16 +162,17 @@ class ControllingPersonRegistrationAPI {
   async sendLinkViaSMS({resource, application, smsBasedVerifier, legalEntity}) {
     const host = this.bot.apiBaseUrl
     const provider = await this.bot.getMyPermalink()
-    const extraQueryParams: any = { legalEntity: legalEntity._permalink, }
+    const extraQueryParams: any = { application: application._permalink }
     if (application.requestFor === AGENCY) {
       extraQueryParams.isAgent = true
+      extraQueryParams.legalEntity = legalEntity._permalink
     }
-
+    let product = application.requestFor === LEGAL_ENTITY_PRODUCT ? CP_ONBOARDING : EMPLOYEE_ONBOARDING
     const [mobileUrl] = ['mobile'].map(platform => {
       return appLinks.getApplyForProductLink({
         provider,
         host,
-        product: EMPLOYEE_ONBOARDING,
+        product,
         platform,
         ...extraQueryParams,
       })
@@ -173,9 +183,8 @@ class ControllingPersonRegistrationAPI {
     else
       phoneNumber = resource.phone.number
     // link should be shortend
-    let baseUrl = mobileUrl.split('?')[0]
-    let idx = baseUrl.indexOf('/', 8)
-    let shortUrl = baseUrl.substring(0, idx + 1) + 'l/' + Math.random().toString(36).substring(2)
+    let shortUrl = host + '/l/' + Math.random().toString(36).substring(2)
+    debugger
     const r = await this.bot.draft({ type: SHORT_TO_LONG_URL_MAPPING })
         .set({
           longUrl: mobileUrl,
@@ -210,7 +219,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (!products  ||  !products[productId]  ||  products[productId].indexOf(ptype) === -1)
         return
 
-      if (!payload.emailAddress  &&  !payload.phone) {
+      if (!payload.emailAddress) { //  &&  !payload.phone) {
         logger.error(`controlling person: no email address and no phone provided`)
         return
       }
@@ -220,22 +229,22 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (!await hasPropertiesChanged({ resource: payload, bot, propertiesToCheck: ['emailAddress', 'phone'] }))
         return
 
-      logger.error('controlling person: processing started') // for ${payload.emailAddress}`)
+      logger.debug('controlling person: processing started') // for ${payload.emailAddress}`)
 debugger
-      if (payload.emailAddress) {
-        await cp.sendConfirmationEmail({resource: payload, application, legalEntity})
-        return
-      }
-      if (!smsBasedVerifier) {
-         const sms: ISMS = getSMSClient({ bot, gateway: conf.gateway })
-         smsBasedVerifier = new SMSBasedVerifier({
-          db: bot.db,
-          sms,
-          commands,
-          logger: conf.logger,
-        })
-      }
-      await cp.sendLinkViaSMS({resource: payload, application, smsBasedVerifier, legalEntity})
+      // if (payload.emailAddress) {
+      await cp.sendConfirmationEmail({resource: payload, application, legalEntity})
+      return
+      // }
+      // if (!smsBasedVerifier) {
+      //    const sms: ISMS = getSMSClient({ bot, gateway: conf.gateway })
+      //    smsBasedVerifier = new SMSBasedVerifier({
+      //     db: bot.db,
+      //     sms,
+      //     commands,
+      //     logger: conf.logger,
+      //   })
+      // }
+      // await cp.sendLinkViaSMS({resource: payload, application, smsBasedVerifier, legalEntity})
     }
 
 //       let personalInfo, legalEntity

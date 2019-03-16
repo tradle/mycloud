@@ -6,20 +6,12 @@ import buildResource from '@tradle/build-resource'
 import { TYPE, AUTHOR, TIMESTAMP, SIG, ORG, ORG_SIG } from './constants'
 import { addLinks } from './crypto'
 import { get, cachifyFunction, parseStub, omitVirtual } from './utils'
-import {
-  Identities,
-  Identity,
-  Logger,
-  ILoadFriendOpts,
-  Storage,
-  DB,
-  ITradleObject,
-} from './types'
+import { Identities, Identity, Logger, ILoadFriendOpts, Storage, DB, ITradleObject } from './types'
 
 import models from './models'
 import Errors from './errors'
 
-const FRIEND_TYPE = "tradle.MyCloudFriend"
+const FRIEND_TYPE = 'tradle.MyCloudFriend'
 const model = models[FRIEND_TYPE]
 const TEN_MINUTES = 10 * 60 * 60000
 const createCache = () => new Cache({ max: 100, maxAge: TEN_MINUTES })
@@ -36,8 +28,12 @@ export default class Friends {
   public cache: any
   public logger: Logger
   // lazy
-  private get identities() { return this.components.identities }
-  private get identity() { return this.components.identity }
+  private get identities() {
+    return this.components.identities
+  }
+  private get identity() {
+    return this.components.identity
+  }
   private storage: Storage
   private db: DB
   private components: FriendsOpts
@@ -62,13 +58,16 @@ export default class Friends {
     let { url } = opts
     if (!url) throw new Errors.InvalidInput(`expected "url" of friend's MyCloud`)
 
-    url = url.replace(/[/]+$/, "")
+    url = url.replace(/[/]+$/, '')
 
     this.logger.debug('loading friend', opts)
 
     const infoUrl = getInfoEndpoint(url)
     const info = await get(infoUrl)
-    const { bot: { pub }, org } = info
+    const {
+      bot: { pub },
+      org
+    } = info
 
     const { name, domain } = org
     if (opts.domain && domain !== opts.domain) {
@@ -95,8 +94,7 @@ export default class Friends {
     addLinks(identity)
 
     const myIdentity = await this.identity.getPublic()
-    if (myIdentity._permalink === identity._permalink ||
-      myIdentity._link === identity._link) {
+    if (myIdentity._permalink === identity._permalink || myIdentity._link === identity._link) {
       throw new Error('refusing to add self as friend')
     }
 
@@ -139,16 +137,13 @@ export default class Friends {
 
     const promiseAddContact = this.identities.addContact(identity)
     const signed = await this.identity.sign({ object })
-    await Promise.all([
-      promiseAddContact,
-      this.storage.save({ object: signed })
-    ])
+    await Promise.all([promiseAddContact, this.storage.save({ object: signed })])
 
     // console.log('ADDED FRIEND', console.log(JSON.stringify(signed, null, 2)))
     return signed
   }
 
-  public getByDomain = async (domain:string) => {
+  public getByDomain = async (domain: string) => {
     return await this.db.findOne({
       filter: {
         EQ: {
@@ -159,7 +154,7 @@ export default class Friends {
     })
   }
 
-  public getByIdentityPermalink = async (permalink:string) => {
+  public getByIdentityPermalink = async (permalink: string) => {
     return await this.db.findOne({
       filter: {
         EQ: {
@@ -168,12 +163,12 @@ export default class Friends {
         }
       }
     })
-  };
+  }
 
   public list = async () => {
     const { items } = await this.db.list(FRIEND_TYPE, {
       allowScan: true,
-      limit: Infinity,
+      limit: Infinity
     })
 
     return items
@@ -188,7 +183,7 @@ export default class Friends {
     })
   }
 
-  public removeByIdentityPermalink = async (permalink:string) => {
+  public removeByIdentityPermalink = async (permalink: string) => {
     try {
       const friend = await this.getByIdentityPermalink(permalink)
       await this.del(friend)
@@ -197,7 +192,7 @@ export default class Friends {
     }
   }
 
-  public removeByDomain = async (domain:string) => {
+  public removeByDomain = async (domain: string) => {
     try {
       const friend = await this.getByDomain(domain)
       await this.del(friend)
@@ -206,35 +201,7 @@ export default class Friends {
     }
   }
 
-  public verifyOrgAuthor = async (object: ITradleObject) => {
-    if (!object[ORG] || object[ORG] === object[AUTHOR]) return
-    if (!object[ORG_SIG]) throw new Errors.InvalidInput(`expected ${ORG_SIG}`)
-
-    this.logger.debug('verifying org sig')
-    const stripped = omitVirtual(object)
-    await this.identities.verifyAuthor({
-      ...stripped,
-      [SIG]: object[ORG_SIG],
-      [AUTHOR]: object[ORG]
-    })
-  }
-
-  // public verifyOrgAuthor = async (object: ITradleObject) => {
-  //   const witness = object[WITNESSES].map(w => protocol.unwrapWitnessSig(w))
-  //     .find(({ author }) => author === object[ORG])
-
-  //   if (!witness) {
-  //     throw new Errors.InvalidInput(`expected witness signature from org ${object[ORG]}`)
-  //   }
-
-  //   await this.identities.verifyAuthor({
-  //     ...object,
-  //     [SIG]: witness.sig,
-  //     [AUTHOR]: witness.author
-  //   })
-  // }
-
-  private del = async (friend) => {
+  private del = async friend => {
     this._clearCacheForPermalink(parseStub(friend.identity).permalink)
     // this.cache.del(parseStub(friend.identity).permalink)
     await this.db.del(friend)
@@ -244,8 +211,8 @@ export default class Friends {
 export { Friends }
 
 function getInfoEndpoint(url) {
-  if (!url.endsWith("/info")) {
-    url += "/info"
+  if (!url.endsWith('/info')) {
+    url += '/info'
   }
 
   return url

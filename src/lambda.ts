@@ -1,4 +1,6 @@
 // adapted from: https://github.com/Movement-2016/bellman
+
+// tslint:disable:no-console
 const dateOfBirth = Date.now()
 
 require('source-map-support').install()
@@ -10,8 +12,7 @@ import { EventEmitter } from 'events'
 import zlib from 'zlib'
 import _ from 'lodash'
 
-// @ts-ignore
-import Promise from 'bluebird'
+import AWS from 'aws-sdk'
 import compose from 'koa-compose'
 import * as Koa from 'koa'
 import caseless from 'caseless'
@@ -22,8 +23,6 @@ import { TaskManager } from './task-manager'
 import { randomString } from './crypto'
 import * as CFNResponse from './cfn-response'
 import { Env, createEnv } from './env'
-import { createLogger } from './logger'
-import { createAWSWrapper } from './aws'
 import { createBot } from './bot'
 import {
   Logger,
@@ -36,6 +35,7 @@ import {
   LambdaHandler,
   ILambdaOpts,
   AwsApis,
+  ClientCache
 } from './types'
 
 import Errors from './errors'
@@ -48,23 +48,18 @@ import {
   isXrayOn,
   getCurrentCallStack,
   runWithTimeout,
-  plainify,
+  plainify
 } from './utils'
 
-import {
-  ILambdaAWSExecutionContext
-} from './types'
+import { ILambdaAWSExecutionContext } from './types'
 
 import { warmup } from './middleware/warmup'
 import { requestInterceptor, RequestInfo } from './request-interceptor'
-
-const NOT_FOUND = new Error('nothing here')
+import { createConfig, createClientCache } from './aws/config';
 
 // 10 mins
 const CF_EVENT_TIMEOUT = 10 * 60000
 const { commit } = require('./version')
-
-type Contextualized<T> = (ctx: T, next: Function) => any|void
 
 interface PendingCallsSummary {
   start?: number
@@ -76,16 +71,16 @@ interface PendingCallsSummary {
 }
 
 export enum EventSource {
-  HTTP='http',
-  LAMBDA='lambda',
-  DYNAMODB='dynamodb',
-  IOT='iot',
-  CLOUDFORMATION='cloudformation',
-  SCHEDULE='schedule',
-  S3='s3',
-  SNS='sns',
-  CLI='cli',
-  CLOUDWATCH_LOGS='cloudwatchlogs',
+  HTTP = 'http',
+  LAMBDA = 'lambda',
+  DYNAMODB = 'dynamodb',
+  IOT = 'iot',
+  CLOUDFORMATION = 'cloudformation',
+  SCHEDULE = 'schedule',
+  S3 = 's3',
+  SNS = 'sns',
+  CLI = 'cli',
+  CLOUDWATCH_LOGS = 'cloudwatchlogs'
 }
 
 export type Lambda = BaseLambda<ILambdaExecutionContext>
@@ -101,7 +96,8 @@ type PartialOpts = Partial<BaseLambdaOpts>
 const normalizeOpts = (partial: PartialOpts):BaseLambdaOpts => {
   const env = partial.env || (partial.bot && partial.bot.env) || createEnv()
   const logger = partial.logger || env.logger
-  const aws = partial.aws || (partial.bot && partial.bot.aws) || createAWSWrapper({ env, logger })
+  const aws = partial.aws || (partial.bot && partial.bot.aws) || createClientCache(env)
+
   let bot
   if (partial.createBot) {
     bot = createBot({
@@ -176,7 +172,6 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
       aws,
       logger,
       middleware,
-      source,
     } = opts
 
     this.opts = opts
@@ -184,13 +179,15 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     this.aws = aws
     this.logger = logger
 
-    aws.on('new', ({ name, recordable }) => this._recordService(recordable, name))
+    aws.events.on('new', ({ recordable }) => this._recordService(recordable))
 
     this.tasks = new TaskManager({ logger: this.logger.sub('tasks') })
     this.source = opts.source
     this.middleware = []
     this.isCold = true
-    this.containerId = `${randomName.first()} ${randomName.middle()} ${randomName.last()} ${randomString(6)}`
+    this.containerId = `${randomName.first()} ${randomName.middle()} ${randomName.last()} ${randomString(
+      6
+    )}`
 
     if (opts.source === EventSource.HTTP) {
       this._initHttp()
@@ -223,10 +220,12 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     })
   }
 
-  public use = (middleware:Middleware<Ctx>) => {
+  public use = (middleware: Middleware<Ctx>) => {
     if (this._gotHandler) {
-      console.warn('adding middleware after exporting the lambda handler ' +
-        'can result in unexpected behavior')
+      console.warn(
+        'adding middleware after exporting the lambda handler ' +
+          'can result in unexpected behavior'
+      )
     }
 
     if (isPromise(middleware)) {
@@ -247,35 +246,35 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     return this
   }
 
-  get name():string {
+  get name(): string {
     return this.env.AWS_LAMBDA_FUNCTION_NAME
   }
 
-  get shortName():string {
+  get shortName(): string {
     return this.env.FUNCTION_NAME
   }
 
-  get stage():string {
+  get stage(): string {
     return this.env.STACK_STAGE
   }
 
-  get requestId():string {
+  get requestId(): string {
     return this.reqCtx && this.reqCtx.requestId
   }
 
-  get correlationId():string {
+  get correlationId(): string {
     return this.reqCtx && this.reqCtx.correlationId
   }
 
-  get dateOfBirth():number {
+  get dateOfBirth(): number {
     return dateOfBirth
   }
 
-  get containerAge():number {
+  get containerAge(): number {
     return Date.now() - dateOfBirth
   }
 
-  get executionTime():number {
+  get executionTime(): number {
     return this.reqCtx ? Date.now() - this.reqCtx.start : 0
   }
 
@@ -298,19 +297,19 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     return 0
   }
 
-  get isTesting():boolean {
+  get isTesting(): boolean {
     return this.env.IS_TESTING
   }
 
-  get isEmulated():boolean {
+  get isEmulated(): boolean {
     return this.env.IS_EMULATED
   }
 
-  get isLocal():boolean {
+  get isLocal(): boolean {
     return this.env.IS_LOCAL
   }
 
-  get isProd():boolean {
+  get isProd(): boolean {
     return this.stage === 'prod'
   }
 
@@ -341,7 +340,9 @@ Previous exit stack: ${this.lastExitStack}`)
         millis: Math.max(this.timeLeft - 1000, 0),
         error: () => {
           const time = Date.now() - start
-          return new Errors.ExecutionTimeout(`lambda ${shortName} timed out after ${time}ms waiting for async tasks to complete`)
+          return new Errors.ExecutionTimeout(
+            `lambda ${shortName} timed out after ${time}ms waiting for async tasks to complete`
+          )
         }
       })
     } catch (err) {
@@ -349,7 +350,7 @@ Previous exit stack: ${this.lastExitStack}`)
         this.logger.error(`seems we're already on a different request`, {
           error: err,
           originalRequestId: requestId,
-          requestId: this.requestId,
+          requestId: this.requestId
         })
 
         return
@@ -391,7 +392,7 @@ Previous exit stack: ${this.lastExitStack}`)
     if (err) {
       this.logger.error('lambda execution hit an error', {
         error: err,
-        serviceCalls: this._dumpServiceCalls(),
+        serviceCalls: this._dumpServiceCalls()
       })
 
       if (this.source !== EventSource.HTTP) {
@@ -460,9 +461,7 @@ Previous exit stack: ${this.lastExitStack}`)
 
     context.callbackWaitsForEmptyEventLoop = false
 
-    if (this.source === EventSource.LAMBDA &&
-      event.requestContext &&
-      event.payload) {
+    if (this.source === EventSource.LAMBDA && event.requestContext && event.payload) {
       // some lambda invocations come wrapped
       // to propagate request context
       this.reqCtx = event.requestContext
@@ -506,7 +505,7 @@ Previous exit stack: ${this.lastExitStack}`)
     }
   }
 
-  private reset () {
+  private reset() {
     this.reqCtx = null
     this.execCtx = null
     this.lastExitStack = null
@@ -521,7 +520,10 @@ Previous exit stack: ${this.lastExitStack}`)
       this.execCtx = ctx
       const overwritten = _.pick(execCtx, Object.keys(ctx))
       if (Object.keys(overwritten).length) {
-        this.logger.warn('overwriting these properties on execution context', Object.keys(overwritten))
+        this.logger.warn(
+          'overwriting these properties on execution context',
+          Object.keys(overwritten)
+        )
       }
 
       Object.assign(this.execCtx, execCtx)
@@ -540,7 +542,8 @@ Previous exit stack: ${this.lastExitStack}`)
           if (typeof err.status === 'number') {
             ctx.status = err.status
             ctx.body = { message: err.message }
-          } else if (!ctx.body && ctx.status === 404) { // koa defaults to 404
+          } else if (!ctx.body && ctx.status === 404) {
+            // koa defaults to 404
             this.logger.debug('defaulting to status code 500')
             ctx.status = 500
             ctx.body = this._exportError(err)
@@ -569,7 +572,7 @@ Previous exit stack: ${this.lastExitStack}`)
     }
 
     defineGetter(this, 'body', () => {
-      const { body={} } = this.execCtx.event
+      const { body = {} } = this.execCtx.event
       return typeof body === 'string' ? JSON.parse(body) : body
     })
 
@@ -599,7 +602,10 @@ Previous exit stack: ${this.lastExitStack}`)
       try {
         await runWithTimeout(next, {
           millis: CF_EVENT_TIMEOUT,
-          error: () => new Errors.ExecutionTimeout(`lambda ${this.shortName} timed out after ${CF_EVENT_TIMEOUT}ms`),
+          error: () =>
+            new Errors.ExecutionTimeout(
+              `lambda ${this.shortName} timed out after ${CF_EVENT_TIMEOUT}ms`
+            )
         })
       } catch (e) {
         err = e
@@ -655,9 +661,9 @@ Previous exit stack: ${this.lastExitStack}`)
     })
   }
 
-  public invoke = async (event) => {
+  public invoke = async event => {
     const context = createLambdaContext({
-      name: this.shortName,
+      name: this.shortName
     })
 
     return await this.handler(event, context)
@@ -666,20 +672,19 @@ Previous exit stack: ${this.lastExitStack}`)
   // important that this is lazy
   // because otherwise handlers attached after initialization
   // will not get composed properly
-  public get handler():LambdaHandler {
+  public get handler(): LambdaHandler {
     this._gotHandler = true
     if (this.source === EventSource.HTTP) {
       const { createHandler } = require('./http-request-handler')
       return createHandler({
         lambda: this,
         preProcess: (request, event, context) => this.preProcess({ request, event, context }),
-        postProcess: (response, event, context) => {}
+        postProcess: (response, event, context) => {} // tslint:disable-line:no-empty
       })
     }
 
     return (event, context) => {
-      const promise = this.preProcess({ event, context })
-        .then(() => this.run())
+      const promise = this.preProcess({ event, context }).then(() => this.run())
 
       if (context && context.done) {
         // until issue is resolved, avoid returning a promise:
@@ -692,8 +697,8 @@ Previous exit stack: ${this.lastExitStack}`)
   }
 
   private setExecutionContext = ({ event, context, ...opts }) => {
-    const awsExecCtx:ILambdaAWSExecutionContext = {
-      ...context,
+    const awsExecCtx: ILambdaAWSExecutionContext = {
+      ...context
     }
 
     // don't understand the error...
@@ -702,7 +707,7 @@ Previous exit stack: ${this.lastExitStack}`)
       ...opts,
       done: false,
       event,
-      context: awsExecCtx,
+      context: awsExecCtx
     }
 
     return this.execCtx
@@ -722,14 +727,14 @@ Previous exit stack: ${this.lastExitStack}`)
     forEachInstantiatedRecordableService(this.aws, this._recordService)
   }
 
-  private _recordService = (service, name) => {
+  private _recordService = service => {
     if (!service.$startRecording) return
 
     service.$stopRecording()
     service.$startRecording()
   }
 
-  private _dumpPendingServiceCalls = ():PendingCallsSummary => {
+  private _dumpPendingServiceCalls = (): PendingCallsSummary => {
     try {
       // should never fail cause of this
       return this.__dumpPendingServiceCalls()
@@ -742,7 +747,7 @@ Previous exit stack: ${this.lastExitStack}`)
     }
   }
 
-  private _dumpPendingHTTPRequests = ():RequestInfo[] => {
+  private _dumpPendingHTTPRequests = (): RequestInfo[] => {
     try {
       return requestInterceptor.getPending()
     } catch (err) {
@@ -754,7 +759,7 @@ Previous exit stack: ${this.lastExitStack}`)
     }
   }
 
-  private _dumpServiceCalls = ():PendingCallsSummary => {
+  private _dumpServiceCalls = (): PendingCallsSummary => {
     try {
       // should never fail cause of this
       return this.__dumpServiceCalls()
@@ -772,7 +777,7 @@ Previous exit stack: ${this.lastExitStack}`)
       start: Infinity,
       duration: 0,
       services: {},
-      httpRequests: requestInterceptor.getPending(),
+      httpRequests: requestInterceptor.getPending()
     }
 
     forEachInstantiatedRecordableService(this.aws, (service, name) => {
@@ -796,11 +801,11 @@ Previous exit stack: ${this.lastExitStack}`)
     return summary
   }
 
-  private __dumpServiceCalls = ():PendingCallsSummary => {
-    const summary:PendingCallsSummary = {
+  private __dumpServiceCalls = (): PendingCallsSummary => {
+    const summary: PendingCallsSummary = {
       start: Infinity,
       duration: 0,
-      services: {},
+      services: {}
     }
 
     forEachInstantiatedRecordableService(this.aws, (service, name) => {
@@ -829,16 +834,16 @@ Previous exit stack: ${this.lastExitStack}`)
       execCtx: this.execCtx,
       reqCtx: this.reqCtx,
       tasks: this.tasks.describe(),
-      reason,
+      reason
     })
 
     process.exit(1)
   }
 }
 
-const forEachInstantiatedRecordableService = (aws: AwsApis, fn) => {
-  const instantiated = aws.getInstantiated()
-  for (const name of instantiated) {
+const forEachInstantiatedRecordableService = (aws: ClientCache, fn) => {
+  const { instantiated } = aws
+  for (const name in instantiated) {
     const service = aws[name]
     if (service && service.$stopRecording) {
       fn(service, name)
@@ -846,16 +851,18 @@ const forEachInstantiatedRecordableService = (aws: AwsApis, fn) => {
   }
 }
 
-export const createLambda = <T extends ILambdaExecutionContext>(opts: ILambdaOpts<T>) => new BaseLambda(opts)
+export const createLambda = <T extends ILambdaExecutionContext>(opts: ILambdaOpts<T>) =>
+  new BaseLambda(opts)
 
-const getRequestContext = <T extends ILambdaExecutionContext>(lambda:BaseLambda<T>):IRequestContext => {
+const getRequestContext = <T extends ILambdaExecutionContext>(
+  lambda: BaseLambda<T>
+): IRequestContext => {
   const { execCtx } = lambda
   const { event, context } = execCtx
-  const correlationId = lambda.source === EventSource.HTTP
-    ? event.requestContext.requestId
-    : context.awsRequestId
+  const correlationId =
+    lambda.source === EventSource.HTTP ? event.requestContext.requestId : context.awsRequestId
 
-  const ctx:IRequestContext = {
+  const ctx: IRequestContext = {
     ...(lambda.reqCtx || {}),
     seq: lambda.requestCounter++,
     requestId: context.awsRequestId,
@@ -866,11 +873,11 @@ const getRequestContext = <T extends ILambdaExecutionContext>(lambda:BaseLambda<
   }
 
   if (lambda.env._X_AMZN_TRACE_ID) {
-    ctx['trace-id'] = lambda.env._X_AMZN_TRACE_ID
+    ctx['trace-id'] = lambda.env._X_AMZN_TRACE_ID // tslint:disable-line:no-string-literal
   }
 
   if (lambda.isEmulated) {
-    ctx['function'] = lambda.env.FUNCTION_NAME
+    ctx['function'] = lambda.env.FUNCTION_NAME // tslint:disable-line:no-string-literal
   }
 
   if (lambda.isCold) {

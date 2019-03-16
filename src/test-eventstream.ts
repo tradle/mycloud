@@ -1,8 +1,6 @@
 import { TYPE } from '@tradle/constants'
 import { Bot, IStreamRecord } from './types'
-import {
-  wait
-} from './utils'
+import { wait } from './utils'
 
 import { EventTopic, topics as EventTopics } from './events'
 import { processRecords, batchSeals } from './lambda/onresourcestream'
@@ -18,7 +16,7 @@ export const simulateEventStream = (bot: Bot) => {
       return
     }
 
-    const value = result || await bot.db.get(args[0])
+    const value = result || (await bot.db.get(args[0]))
     await bot.fire(EventTopics.resource.save, { value })
   }
 
@@ -63,6 +61,7 @@ export const simulateEventStream = (bot: Bot) => {
     await next()
     const parsed = bot.events.parseTopic(event)
     if (parsed.batch) {
+      // tslint:disable-next-line no-console
       console.warn(`batch events not re-emitted async at this time`, event)
       return
     }
@@ -83,13 +82,14 @@ export const simulateEventStream = (bot: Bot) => {
       name: 'simulate:stream:batchseals',
       promise: batchSeals({
         bot,
-        records: [ctx.event] as IStreamRecord[],
+        records: [ctx.event] as IStreamRecord[]
       })
     })
 
     bot.tasks.add({
       name: `simulate:stream:${event}`,
       promise: fireAsync(event, ctx.event).catch(err => {
+        // tslint:disable-next-line no-console
         console.error(err.stack)
         throw err
       })

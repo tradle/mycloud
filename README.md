@@ -14,8 +14,8 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [Tools](#tools)
     - [Git](#git)
     - [Node.js](#nodejs)
-    - [Docker & Docker Compose](#docker--docker-compose)
-    - [AWS cli & credentials](#aws-cli--credentials)
+    - [Docker & Docker Compose](#docker-&-docker-compose)
+    - [AWS cli & credentials](#aws-cli-&-credentials)
     - [JQ](#jq)
     - [Typescript](#typescript)
   - [Development Tools](#development-tools)
@@ -23,6 +23,7 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [Install dependencies](#install-dependencies)
   - [Set AWS profile](#set-aws-profile)
 - [Local Playground](#local-playground)
+  - [Set TMPDIR env var](#set-tmpdir-env-var)
   - [Start docker](#start-docker)
   - [Start the Playground](#start-the-playground)
   - [Explore the API](#explore-the-api)
@@ -117,7 +118,7 @@ Make sure you can run docker as non-root. On Linux, you can do this by adding yo
 
 [typescript](typescriptlang.org): This project uses TypeScript, which needs to be compiled to JavaScript prior to use.
 
-Install: `npm i -g --save-exact typescript@2.8.4`
+Install: `npm i -g --save-exact typescript@3.3.3333`
 
 *Note: Depending on your local setup you may need install with `sudo`*
 
@@ -127,6 +128,7 @@ Install: `npm i -g --save-exact typescript@2.8.4`
 
 - [awslocal](https://github.com/localstack/awscli-local). aws-cli wrapper for querying localstack. (On OS X, install with `[sudo] pip install awscli-local`)
 - [Serverless Framework](https://github.com/serverless/serverless) - this is already installed as part of `devDependencies`, but you may also want it installed globally so you can use the serverless cli (`npm i -g serverless`)
+- [nodemon]([https:](https://github.com/remy/nodemon)) - detects changes in code and restarts your local server
 
 ### Clone this project
 
@@ -182,9 +184,9 @@ Now open your browser to [http://localhost:55555](http://localhost:55555). If 55
 
 If you don't see your local provider, click the red menu button on the Conversations screen, choose "Add Server Url" and add `http://localhost:21012`
 
-Profile                                    | Conversations                             | Chat
-:-----------------------------------------:|:-----------------------------------------:|:-----------------------------------------:
-![](./docs/images/profile-guided-w250.png) | ![](./docs/images/conversations-guided-w250.png) | ![](./docs/images/chat1-w250.png)
+|                  Profile                   |                  Conversations                   |               Chat                |
+| :----------------------------------------: | :----------------------------------------------: | :-------------------------------: |
+| ![](./docs/images/profile-guided-w250.png) | ![](./docs/images/conversations-guided-w250.png) | ![](./docs/images/chat1-w250.png) |
 
 ### Explore the API
 

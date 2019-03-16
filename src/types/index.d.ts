@@ -1,52 +1,56 @@
-import { EventEmitter } from 'events'
-import { Middleware as ComposeMiddleware } from 'koa-compose'
-import { Context as KoaContext } from 'koa'
-import { GraphQLSchema, ExecutionResult as GraphqlExecutionResult } from 'graphql'
-import { Table, DB, Models, Model, Diff, FindOpts } from '@tradle/dynamodb'
-import { AppLinks } from '@tradle/qr-schema'
-import { Logger } from '../logger'
-import { BaseLambda, LambdaHttp, Lambda, EventSource } from '../lambda'
-import { Bot } from '../bot'
-import { Users } from '../users'
-import { Env } from '../env'
-import { Identities } from '../identities'
-import { Identity } from '../identity'
-import { Secrets } from '../secrets'
-import { Storage } from '../storage'
-import { Messages } from '../messages'
-import { Messaging } from '../messaging'
-import { Objects } from '../objects'
-import { Auth } from '../auth'
-import { Init } from '../init'
-import { AwsApis } from '../aws'
-import { Bucket } from '../bucket'
-import { Seals, Seal, SealPendingResult, CreateSealOpts } from '../seals'
-import { SealBatcher } from '../batch-seals'
-import { Blockchain } from '../blockchain'
-import { ModelStore } from '../model-store'
-import { Task, TaskManager } from '../task-manager'
+import http from 'http'
+import { EventEmitter } from "events"
+import { Middleware as ComposeMiddleware } from "koa-compose"
+import { Context as KoaContext } from "koa"
+import { GraphQLSchema, ExecutionResult as GraphqlExecutionResult } from "graphql"
+import { Table, DB, Models, Model, Diff, FindOpts } from "@tradle/dynamodb"
+import { AppLinks } from "@tradle/qr-schema"
+import { KeyValueStore, KeyValueStoreExtended } from "@tradle/aws-common-utils"
+import { ClientCache } from "@tradle/aws-client-factory"
+import { Bucket, MemoizedBucket, S3Client } from "@tradle/aws-s3-client"
+import { LambdaClient } from "@tradle/aws-lambda-client"
+import { SNSClient } from "@tradle/aws-sns-client"
+import { IAMClient } from "@tradle/aws-iam-client"
+import { CloudFormationClient } from "@tradle/aws-cloudformation-client"
+import { CloudWatchClient } from "@tradle/aws-cloudwatch-client"
+import { ResourceStub } from "@tradle/validate-resource"
+import { Logger } from "../logger"
+import { BaseLambda, LambdaHttp, Lambda, EventSource } from "../lambda"
+import { LambdaInvoker } from "../aws/lambda-invoker"
+import { Bot } from "../bot"
+import { Users } from "../users"
+import { Env } from "../env"
+import { Identities } from "../identities"
+import { Identity } from "../identity"
+import { Secrets } from "../secrets"
+import { Storage } from "../storage"
+import { Messages } from "../messages"
+import { Messaging } from "../messaging"
+import { Objects } from "../objects"
+import { Auth } from "../auth"
+import { Init } from "../init"
+import { Seals, Seal, SealPendingResult, CreateSealOpts } from "../seals"
+import { SealBatcher } from "../batch-seals"
+import { Blockchain } from "../blockchain"
+import { ModelStore } from "../model-store"
+import { Task, TaskManager } from "../task-manager"
 // import { ModelStore } from '../model-store'
-import { Delivery } from '../delivery'
-import { ContentAddressedStore } from '../content-addressed-store'
-import { KeyValueTable } from '../key-value-table'
-import { KV } from '../kv'
-import { CacheableBucketItem } from '../cacheable-bucket-item'
-import { Friends } from '../friends'
-import { Push } from '../push'
-import { User } from '../user'
-import { Discovery } from '../discovery'
-import { Backlinks } from '../backlinks'
-import { StackUtils } from '../stack-utils'
-import { LambdaUtils } from '../lambda-utils'
-import { S3Utils } from '../s3-utils'
-import { SNSUtils } from '../sns-utils'
-import { Iot, IIotEndpointInfo } from '../iot-utils'
-import { Events, EventTopic } from '../events'
-import { Mailer } from '../mailer'
-import { MiddlewareContainer } from '../middleware-container'
-import { ResourceStub } from '@tradle/validate-resource'
+import { Delivery } from "../delivery"
+import { ContentAddressedStore } from "../content-addressed-store"
+// import { KeyValueTable } from "../key-value-table"
+import { KV } from "../kv"
+import { CacheableBucketItem } from "../cacheable-bucket-item"
+import { Friends } from "../friends"
+import { User } from "../user"
+// import { Discovery } from "../discovery"
+import { Backlinks } from "../backlinks"
+import { StackUtils } from "../aws/stack-utils"
+import { Iot } from "../aws/iot-utils"
+import { Events, EventTopic } from "../events"
+import { Mailer } from "../mailer"
+import { MiddlewareContainer } from "../middleware-container"
 
-type Folder = Bucket
+export { KeyValueStore, KeyValueStoreExtended, ClientCache, ClientCache as AwsApis }
 
 export {
   ResourceStub,
@@ -54,12 +58,12 @@ export {
   EnumStub,
   GetResourceIdentifierInput,
   GetResourceIdentifierOutput,
-  ValidateResourceOpts,
-} from '@tradle/validate-resource'
+  ValidateResourceOpts
+} from "@tradle/validate-resource"
 
 export type Constructor<T = {}> = new (...args: any[]) => T
 
-export * from '../retryable-task'
+export * from "../retryable-task"
 // export { ECKey } from '../crypto'
 
 export {
@@ -83,9 +87,8 @@ export {
   Objects,
   Auth,
   Init,
-  AwsApis,
   Bucket,
-  Folder,
+  Bucket as Folder,
   Seal,
   Seals,
   SealBatcher,
@@ -97,23 +100,33 @@ export {
   TaskManager,
   Delivery,
   ContentAddressedStore,
-  KeyValueTable,
+  // KeyValueTable,
   KV,
   Logger,
   CacheableBucketItem,
   Friends,
-  Push,
+  // Push,
   User,
-  Discovery,
+  // Discovery,
   Lambda,
   LambdaHttp,
   BaseLambda,
   EventSource,
   Backlinks,
   StackUtils,
-  LambdaUtils,
-  S3Utils,
-  SNSUtils,
+  LambdaClient,
+  // backwards compat
+  LambdaClient as LambdaUtils,
+  LambdaInvoker,
+  S3Client,
+  // backwards compat
+  S3Client as S3Utils,
+  SNSClient,
+  // backwards compat
+  SNSClient as SNSUtils,
+  IAMClient,
+  CloudFormationClient,
+  CloudWatchClient,
   Iot,
   Events,
   Mailer,
@@ -168,16 +181,16 @@ export interface IAuthResponse extends IRoleCredentials {
 
 export interface ILambdaAWSExecutionContext {
   callbackWaitsForEmptyEventLoop: boolean
-  logGroupName:                   string
-  logStreamName:                  string
-  functionName:                   string
-  memoryLimitInMB:                string
-  functionVersion:                string
-  invokeid:                       string
-  awsRequestId:                   string
-  invokedFunctionArn:             string
-  getRemainingTimeInMillis:       () => number
-  done:                           GenericCallback
+  logGroupName: string
+  logStreamName: string
+  functionName: string
+  memoryLimitInMB: string
+  functionVersion: string
+  invokeid: string
+  awsRequestId: string
+  invokedFunctionArn: string
+  getRemainingTimeInMillis: () => number
+  done: GenericCallback
   // succeed:                        (result: any) => void
   // fail:                           (error: Error) => void
 }
@@ -208,8 +221,7 @@ export interface ILambdaExecutionContext {
   [x: string]: any
 }
 
-export interface ILambdaHttpExecutionContext extends ILambdaExecutionContext, KoaContext {
-}
+export interface ILambdaHttpExecutionContext extends ILambdaExecutionContext, KoaContext {}
 
 export interface ILambdaCloudWatchLogsExecutionContext extends ILambdaExecutionContext {
   event: CloudWatchLogsEvent
@@ -221,16 +233,17 @@ export interface ISNSExecutionContext extends ILambdaExecutionContext {
 
 export type GenericCallback = (err?: Error, result?: any) => void
 
-export type LambdaHandler = (event:any, context:ILambdaAWSExecutionContext, callback?: GenericCallback)
-  => Promise<any>|void
+export type LambdaHandler = (
+  event: any,
+  context: ILambdaAWSExecutionContext,
+  callback?: GenericCallback
+) => Promise<any> | void
 
 export interface ILambdaOpts<T> {
   env: Env
-  aws: AwsApis
+  aws: ClientCache
   logger: Logger
-  bot?: Bot
   source?: EventSource
-  // bot?: Bot
   middleware?: Middleware<T>
   createBot?: boolean
   [x:string]: any
@@ -322,14 +335,12 @@ export interface ILiveDeliveryOpts {
   recipient: string
   messages: ITradleMessage[]
   timeout?: number
-  session?: ISession,
+  session?: ISession
   friend?: any
 }
 
 export interface IDelivery {
-  deliverBatch: (
-    opts: ILiveDeliveryOpts
-  ) => Promise<any>
+  deliverBatch: (opts: ILiveDeliveryOpts) => Promise<any>
   ack: (opts: any) => Promise<any>
   reject: (opts: any) => Promise<any>
 }
@@ -350,7 +361,7 @@ export interface IDeliveryRequest {
   batchSize?: number
   session?: ISession
   friend?: any
-  onProgress?: (messages:ITradleMessage[]) => Promise<any|void>
+  onProgress?: (messages: ITradleMessage[]) => Promise<any | void>
 }
 
 export interface IOutboundMessagePointer {
@@ -372,7 +383,7 @@ export interface IHasLogger {
 export type CacheContainer = {
   cache: any
   logger: Logger
-  [x:string]: any
+  [x: string]: any
 }
 
 export type DatedValue = {
@@ -380,37 +391,46 @@ export type DatedValue = {
   value: any
 }
 
+export interface AWSHttpOptions {
+  agent?: http.Agent
+}
+  
 export interface IAWSServiceConfig {
+  httpOptions?: AWSHttpOptions
   maxRetries?: number
   region: string
-  s3: any
-  dynamodb: any
-  iot: any
-  iotdata: any
-  sts: any
-  sns: any
-  kms: any
-  lambda: any
-  cloudformation: any
-  xray: any
+  s3?: any
+  dynamodb?: any
+  iot?: any
+  iotdata?: any
+  sts?: any
+  sns?: any
+  kms?: any
+  lambda?: any
+  cloudformation?: any
+  xray?: any
 }
 
-export interface IEndpointInfo extends IIotEndpointInfo {
+
+
+export interface IEndpointInfo {
   aws: boolean
+  parentTopic: string
+  clientIdPrefix: string
   endpoint: string
   version: VersionInfo
 }
 
-export type TopicOrString = string|EventTopic
-export type HooksHookFn = (event:TopicOrString, handler:Function) => Function
-export type HooksFireFn = (event:TopicOrString, ...args:any[]) => any|void
+export type TopicOrString = string | EventTopic
+export type HooksHookFn = (event: TopicOrString, handler: Function) => Function
+export type HooksFireFn = (event: TopicOrString, ...args: any[]) => any | void
 
 export interface IHooks {
   hook: HooksHookFn
   fire: HooksFireFn
 }
 
-export type LambdaCreator = (opts?:any) => Lambda
+export type LambdaCreator = (opts?: any) => Lambda
 
 export interface ILambdaImpl {
   createLambda: LambdaCreator
@@ -418,10 +438,10 @@ export interface ILambdaImpl {
 }
 
 export type Lambdas = {
-  [name:string]: ILambdaImpl
+  [name: string]: ILambdaImpl
 }
 
-export type BotStrategyInstallFn = (bot:Bot, opts?:any) => any|void
+export type BotStrategyInstallFn = (bot: Bot, opts?: any) => any | void
 
 export type ModelsPack = {
   models?: Model[]
@@ -437,7 +457,7 @@ export interface ISettledPromise<T> {
 }
 
 export interface IBucketInfo {
-  length?: (obj:any) => number
+  length?: (obj: any) => number
   max: number
   maxAge: number
 }
@@ -453,9 +473,7 @@ export interface IBucketsInfo {
   ServerlessDeployment: IBucketInfo
 }
 
-export type Buckets = {
-  [P in keyof IBucketsInfo]: Bucket
-}
+export type Buckets = { [P in keyof IBucketsInfo]: Bucket }
 
 export interface ITable {
   // placeholder
@@ -484,9 +502,7 @@ type AttrMap = {
 // TODO: generate this from serverless.yml
 export type IServiceMap = {
   Table: Tables
-  Bucket: {
-    [P in keyof IBucketsInfo]: string
-  }
+  Bucket: { [P in keyof IBucketsInfo]: string }
   RestApi: {
     [name: string]: {
       url: string
@@ -528,12 +544,12 @@ export interface UpdateResourceOpts {
   props: any
 }
 
-export type CloudName = 'aws'
+export type CloudName = "aws"
 
 export interface IDeepLink {
   provider: string
   host: string
-  platform: 'mobile' | 'web'
+  platform: "mobile" | "web"
 }
 
 export interface IMailerSendEmailResult {
@@ -552,13 +568,13 @@ export interface IMailer {
 
 export interface IMailerSendEmailOpts {
   from: string
-  to?: string|string[]
-  cc?: string|string[]
-  bcc?: string|string[]
+  to?: string | string[]
+  cc?: string | string[]
+  bcc?: string | string[]
   subject: string
   body: string
-  format?: 'text' | 'html'
-  replyTo?: string|string[]
+  format?: "text" | "html"
+  replyTo?: string | string[]
 }
 
 export interface ISendSMSOpts {
@@ -569,14 +585,14 @@ export interface ISendSMSOpts {
 }
 
 export interface ISMS {
-  sendSMS: (opts: ISendSMSOpts) => Promise<any|void>
+  sendSMS: (opts: ISendSMSOpts) => Promise<any | void>
 }
 
 type ErrorCreator = () => Error
 
 export interface ITimeoutOpts {
   millis?: number
-  error?: Error|ErrorCreator
+  error?: Error | ErrorCreator
   unref?: boolean
 }
 
@@ -585,11 +601,11 @@ export interface ILoadFriendOpts {
   domain?: string
 }
 
-export interface IBotOpts {
+export interface IBotOpts extends Partial<IIdentityAndKeys> {
   env: Env
-  aws: AwsApis
   logger: Logger
   blockchain: IBlockchainIdentifier
+  aws?: ClientCache
   tasks?: TaskManager
   serviceMap?: IServiceMap
   users?: any
@@ -609,7 +625,7 @@ export interface IGraphiqlOptions {
   bookmarks?: {
     title: string
     items: IGraphiqlBookmark[]
-  },
+  }
   logo?: {
     src: string
     width: number
@@ -633,7 +649,7 @@ export interface IBlockchainIdentifier {
 
 export interface BlockchainNetworkInfo extends IBlockchainIdentifier {
   confirmations?: number
-  minBalance?: number|string
+  minBalance?: number | string
 }
 
 export interface BlockchainNetwork extends BlockchainNetworkInfo {
@@ -644,10 +660,10 @@ export interface BlockchainNetwork extends BlockchainNetworkInfo {
   // select: (obj: any) => any
 }
 
-export type SealingMode = 'single'|'batch'
+export type SealingMode = "single" | "batch"
 
-export type StreamRecordType = 'create'|'update'|'delete'|string
-export type StreamService = 'dynamodb'
+export type StreamRecordType = "create" | "update" | "delete" | string
+export type StreamService = "dynamodb"
 
 export interface IStreamRecord {
   id: string
@@ -692,21 +708,26 @@ export interface IBackoffOptions {
   maxDelay?: number
   factor?: number
   logger?: Logger
-  shouldTryAgain?: (err?:Error) => boolean
+  shouldTryAgain?: (err?: Error) => boolean
 }
 
-export interface IKeyValueStore {
-  exists: (key: string) => Promise<boolean>
-  get: (key: string, opts?:any) => Promise<any>
-  put: (key: string, value:any) => Promise<void|any>
-  del: (key: string, opts?:any) => Promise<void>
-  update?: (key: string, opts?:any) => Promise<void|any>
-  sub?: (prefix: string) => IKeyValueStore
+export interface UpdateableKeyValueStore extends KeyValueStoreExtended {
+  update: (key: string, opts?: any) => Promise<void | any>
+  sub: (prefix: string) => UpdateableKeyValueStore
 }
+
+// export interface KeyValueStore {
+//   exists: (key: string) => Promise<boolean>
+//   get: (key: string, opts?: any) => Promise<any>
+//   put: (key: string, value: any, opts?: any) => Promise<void | any>
+//   del: (key: string, opts?: any) => Promise<void>
+//   update?: (key: string, opts?: any) => Promise<void | any>
+//   sub?: (prefix: string) => KeyValueStore
+// }
 
 export interface IUser {
   id: string
-  [key:string]: any
+  [key: string]: any
 }
 
 export interface IBotMessageEvent {
@@ -722,7 +743,7 @@ export interface IBotMessageEvent {
 
 export interface ISaveEventPayload {
   value: any // should really be ITradleObject
-  old?: any  // should really be ITradleObject
+  old?: any // should really be ITradleObject
 }
 
 export interface IModelsMixinTarget {
@@ -731,7 +752,7 @@ export interface IModelsMixinTarget {
 }
 
 export interface IHasModels {
-  buildResource: (model: string|Model) => any
+  buildResource: (model: string | Model) => any
   buildStub: (resource: ITradleObject) => ResourceStub
   validateResource: (resource: ITradleObject) => void
   validatePartialResource: (resource: ITradleObject) => void
@@ -764,15 +785,15 @@ export type BucketCopyOpts = {
 }
 
 export type BucketPutOpts = {
-  key:string
-  value:any
-  bucket:string
-  headers?:any
+  key: string
+  value: any
+  bucket: string
+  headers?: any
   acl?: AWS.S3.ObjectCannedACL
 }
 
-export type PresignEmbeddedMediaOpts = {
-  object: ITradleObject
+export type PresignEmbeddedMediaOpts<T> = {
+  object: T
   stripEmbedPrefix?: boolean
 }
 
@@ -812,8 +833,8 @@ export type VersionInfo = {
 }
 
 export interface Registry<T> {
-  get: (name:string) => T
-  set: (name:string, T) => void
+  get: (name: string) => T
+  set: (name: string, T) => void
   keys: () => string[]
 }
 
@@ -825,7 +846,7 @@ export type CloudWatchLogsEntry = {
 }
 
 export type CloudWatchLogsEvent = {
-  messageType: 'DATA_MESSAGE'|'CONTROL_MESSAGE'
+  messageType: "DATA_MESSAGE" | "CONTROL_MESSAGE"
   owner: string // accountId
   logGroup: string
   logStream: string
@@ -844,7 +865,7 @@ export type SNSEventRecord = {
     SigningCertUrl: string
     MessageId: string
     Message: string
-    MessageAttributes: any,
+    MessageAttributes: any
     Type: string
     UnsubscribeUrl: string
     TopicArn: string
@@ -879,8 +900,8 @@ export interface LowFundsInput extends BlockchainAddressIdentifier {
   blockchain: string
   networkName: string
   address: string
-  balance?: string|number
-  minBalance?: string|number
+  balance?: string | number
+  minBalance?: string | number
 }
 
 export interface CFTemplateParameter {
@@ -894,7 +915,7 @@ export interface CFTemplateResource {
   Type: string
   Description?: string
   Properties?: any
-  DeletionPolicy?: 'Delete'|'Replace'|'Retain'
+  DeletionPolicy?: "Delete" | "Replace" | "Retain"
 }
 
 export interface CFTemplate {
@@ -910,15 +931,11 @@ export interface CFTemplate {
 }
 
 export interface MyCloudUpdateTemplate extends CFTemplate {
-  Parameters: {
-    [p in keyof StackLaunchParameters]: CFTemplateParameter
-  },
+  Parameters: { [p in keyof StackLaunchParameters]: CFTemplateParameter }
 }
 
 export interface MyCloudLaunchTemplate extends CFTemplate {
-  Parameters: {
-    [p in keyof StackUpdateParameters]: CFTemplateParameter
-  },
+  Parameters: { [p in keyof StackUpdateParameters]: CFTemplateParameter }
   Mappings: {
     deployment: {
       init: {
@@ -927,7 +944,7 @@ export interface MyCloudLaunchTemplate extends CFTemplate {
         deploymentUUID: string
       }
     }
-  },
+  }
   Resources: {
     Initialize: {
       Type: string
@@ -945,7 +962,7 @@ export interface MyCloudLaunchTemplate extends CFTemplate {
           EncryptTables: string
         }
       }
-    },
+    }
     [key: string]: CFTemplateResource
   }
 }
@@ -962,3 +979,51 @@ export interface StackLaunchParameters extends StackUpdateParameters {
   OrgLogo: string
   OrgAdminEmail: string
 }
+
+export interface ParsedMediaEmbed {
+  dataUrl: string
+  hash: string
+  body: string
+  host: string
+  mimetype: string
+  path: string
+  [x: string]: any
+}
+
+export interface ParsedRelocatedEmbedUrl {
+  // property path
+  path: string
+  value: string
+  url: string
+  host: string
+  query: any
+  presigned?: boolean
+}
+
+export interface EmbedResolver {
+  // dataUrls => embedUrls
+  replaceDataUrls: <T>(object: T) => ParsedMediaEmbed[]
+  // extract dataUrls to embed storage
+  replaceEmbeddedMedia: <T>(object: T) => Promise<void>
+  presignEmbeddedMedia: <T>(opts: PresignEmbeddedMediaOpts<T>) => T
+  // resolve embeds to media
+  resolveOne: <T>(object: ParsedRelocatedEmbedUrl) => Promise<Buffer>
+  resolveAll: <T>(object: T) => Promise<T>
+  getEmbeds: <T>(object: T) => ParsedRelocatedEmbedUrl[]
+}
+
+export interface RegisterPushNotifierOpts {
+  region: string
+  permalink: string
+  accountId: string
+}
+
+export interface GetPNSTopicOpts extends RegisterPushNotifierOpts {
+  notifierAccountId: string
+}
+
+export interface SendPushNotificationOpts {
+  recipient: string
+}
+
+export type SendPushNotification = (opts: SendPushNotificationOpts) => Promise<void>

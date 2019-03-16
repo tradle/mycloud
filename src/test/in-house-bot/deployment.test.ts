@@ -10,7 +10,6 @@ import fake from '@tradle/build-resource/fake'
 import buildResource from '@tradle/build-resource'
 import { Deployment } from '../../in-house-bot/deployment'
 import * as utils from '../../utils'
-import { StackUtils } from '../../stack-utils'
 import Errors from '../../errors'
 import { createTestBot } from '../../'
 import models from '../../models'
@@ -107,10 +106,7 @@ test('deployment by referral', loudAsync(async (t) => {
   //   throw new Errors.NotFound(key)
   // })
 
-  const regionalBucket = parent.s3Utils.getRegionalBucketName({
-    bucket: parentDeployment.getDeploymentBucketLogicalName(),
-    region
-  })
+  const regionalBucket = parentDeployment.getRegionalBucketName(region)
 
   let deploymentConf: IMyDeploymentConf
   let expectedLaunchReport

@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import fetch from 'node-fetch'
-import FormData from 'form-data';
+import FormData from 'form-data'
 import buildResource from '@tradle/build-resource'
 import constants from '@tradle/constants'
 import {
@@ -10,7 +10,7 @@ import {
   Applications,
   IPBApp,
   IPluginLifecycleMethods,
-  ValidatePluginConf,
+  ValidatePluginConf
 } from '../types'
 import { getLatestForms, getStatusMessageForCheck } from '../utils'
 import Errors from '../../errors'
@@ -39,8 +39,8 @@ type FacialRecognitionConf = {
 }
 
 export class FacialRecognitionAPI {
-  private bot:Bot
-  private logger:Logger
+  private bot: Bot
+  private logger: Logger
   private applications: Applications
   private conf: FacialRecognitionConf
   constructor({ bot, applications, logger, conf }) {
@@ -63,20 +63,19 @@ export class FacialRecognitionAPI {
         EQ: {
           [TYPE]: FACIAL_RECOGNITION,
           'application._permalink': application._permalink,
-          'provider': PROVIDER,
+          provider: PROVIDER,
           'selfie._link': selfieStub.link,
-          'photoID._link': photoIDStub.link,
+          'photoID._link': photoIDStub.link
         }
       }
     })
-// debugger
-    if (items.length)
-      return
+    // debugger
+    if (items.length) return
 
-    this.logger.debug('Face recognition both selfie and photoId ready');
+    this.logger.debug('Face recognition both selfie and photoId ready')
     const tasks = [photoIDStub, selfieStub].map(async stub => {
       const object = await this.bot.getResource(stub)
-      return this.bot.objects.presignEmbeddedMediaLinks({
+      return this.bot.embeds.presignEmbeddedMedia({
         object,
         stripEmbedPrefix: true
       })
@@ -109,7 +108,11 @@ export class FacialRecognitionAPI {
     return { selfie, photoID }
   }
 
-  public matchSelfieAndPhotoID = async ({ selfie, photoID, application }: {
+  public matchSelfieAndPhotoID = async ({
+    selfie,
+    photoID,
+    application
+  }: {
     selfie: string
     photoID: string
     application: IPBApp
@@ -117,25 +120,28 @@ export class FacialRecognitionAPI {
     let rawData
     let error
     const models = this.bot.models
-// debugger
+    // debugger
     // call whatever API with whatever params
-    const form = new FormData();
-    form.append('photo1', selfie);
-    form.append('photo2', photoID);
-    form.append('threshold', this.conf.threshold);
+    const form = new FormData()
+    form.append('photo1', selfie)
+    form.append('photo2', photoID)
+    form.append('threshold', this.conf.threshold)
     try {
       const res = await post(this.conf.url + '/v1/verify', form, {
         headers: {
           Authorization: 'Token ' + this.conf.token
         },
-        timeout: REQUEST_TIMEOUT,
+        timeout: REQUEST_TIMEOUT
       })
 
       rawData = await res.json() // whatever is returned may be not JSON
       this.logger.debug('Face recognition check, match:', rawData)
     } catch (err) {
       debugger
-      error = `Check was not completed for "${buildResource.title({models, resource: photoID})}": ${err.message}`
+      error = `Check was not completed for "${buildResource.title({
+        models,
+        resource: photoID
+      })}": ${err.message}`
       this.logger.error('Face recognition check error', err)
       return { status: false, rawData: {}, error }
     }
@@ -180,7 +186,6 @@ export class FacialRecognitionAPI {
   }
   */
 
-
     if (rawData.code) {
       this.logger.error('Face recognition check failed', {
         param: rawData.param,
@@ -188,10 +193,12 @@ export class FacialRecognitionAPI {
       })
 
       // error happens
-      error = `Check was not completed for "${buildResource.title({models, resource: photoID})}": ${rawData.code}`
+      error = `Check was not completed for "${buildResource.title({
+        models,
+        resource: photoID
+      })}": ${rawData.code}`
       return { status: false, rawData, error }
     }
-
 
     return { status: rawData.verified, rawData, error }
   }
@@ -199,14 +206,11 @@ export class FacialRecognitionAPI {
   public createCheck = async ({ status, selfie, photoID, rawData, application, error }) => {
     let models = this.bot.models
     let checkStatus, message
-    let photoID_displayName = buildResource.title({models, resource: photoID})
-    if (error)
-      checkStatus = 'error'
-    else if (status !== true)
-      checkStatus = 'fail'
-    else
-      checkStatus = 'pass'
-    let checkR:any = {
+    let photoID_displayName = buildResource.title({ models, resource: photoID })
+    if (error) checkStatus = 'error'
+    else if (status !== true) checkStatus = 'fail'
+    else checkStatus = 'pass'
+    let checkR: any = {
       status: checkStatus,
       provider: PROVIDER,
       aspects: 'facial similarity',
@@ -217,12 +221,12 @@ export class FacialRecognitionAPI {
       dateChecked: new Date().getTime()
     }
     // debugger
-    checkR.message = getStatusMessageForCheck({models: this.bot.models, check: checkR})
+    checkR.message = getStatusMessageForCheck({ models: this.bot.models, check: checkR })
     // if (error)
-    if (rawData.code)
-      checkR.resultDetails = rawData.code
+    if (rawData.code) checkR.resultDetails = rawData.code
 
-    const check = await this.bot.draft({ type: FACIAL_RECOGNITION })
+    const check = await this.bot
+      .draft({ type: FACIAL_RECOGNITION })
       .set(checkR)
       .signAndSave()
 
@@ -230,49 +234,56 @@ export class FacialRecognitionAPI {
   }
 
   public createVerification = async ({ user, application, photoID }) => {
-    const method:any = {
+    const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: _.clone(NTECH_API_RESOURCE),
       aspect: DISPLAY_NAME,
       reference: [{ queryId: 'n/a' }]
     }
 
-    const verification = this.bot.draft({ type: VERIFICATION })
-       .set({
-         document: photoID,
-         method
-       })
-       .toJSON()
+    const verification = this.bot
+      .draft({ type: VERIFICATION })
+      .set({
+        document: photoID,
+        method
+      })
+      .toJSON()
 
     await this.applications.createVerification({ application, verification })
     if (application.checks)
-      await this.applications.deactivateChecks({ application, type: FACIAL_RECOGNITION, form: photoID })
+      await this.applications.deactivateChecks({
+        application,
+        type: FACIAL_RECOGNITION,
+        form: photoID
+      })
   }
 }
 
 const DEFAULT_CONF = {
-  url : 'http://ec2-18-217-36-56.us-east-2.compute.amazonaws.com:8000',
+  url: 'http://ec2-18-217-36-56.us-east-2.compute.amazonaws.com:8000',
   threshold: 'strict'
 }
 
 export const createPlugin: CreatePlugin<FacialRecognitionAPI> = (components, pluginOpts) => {
   const { bot, applications } = components
-  let { logger, conf={} } = pluginOpts
+  let { logger, conf = {} } = pluginOpts
   _.defaults(conf, DEFAULT_CONF)
 
-  if (bot.isLocal && !bot.s3Utils.publicFacingHost) {
-    throw new Errors.InvalidEnvironment(`expected S3_PUBLIC_FACING_HOST environment variable to be set`)
+  if (bot.isLocal && !bot.env.S3_PUBLIC_FACING_HOST) {
+    throw new Errors.InvalidEnvironment(
+      `expected S3_PUBLIC_FACING_HOST environment variable to be set`
+    )
   }
 
   const facialRecognition = new FacialRecognitionAPI({ bot, applications, logger, conf })
-  const plugin:IPluginLifecycleMethods = {
+  const plugin: IPluginLifecycleMethods = {
     onFormsCollected: async ({ req, user, application }) => {
-// debugger
+      // debugger
       if (req.skipChecks) return
       if (!application) return
       let productId = application.requestFor
-      //let { products } = conf
-      //if (!products  ||  !products[productId])
+      // let { products } = conf
+      // if (!products  ||  !products[productId])
       //  return
 
       const result = await facialRecognition.getSelfieAndPhotoID(application)
@@ -284,10 +295,21 @@ export const createPlugin: CreatePlugin<FacialRecognitionAPI> = (components, plu
         application
       })
 
-      const promiseCheck = facialRecognition.createCheck({status, selfie, photoID, rawData, error, application})
+      const promiseCheck = facialRecognition.createCheck({
+        status,
+        selfie,
+        photoID,
+        rawData,
+        error,
+        application
+      })
       const pchecks = [promiseCheck]
       if (status === true) {
-        const promiseVerification = facialRecognition.createVerification({user, application, photoID})
+        const promiseVerification = facialRecognition.createVerification({
+          user,
+          application,
+          photoID
+        })
         pchecks.push(promiseVerification)
       }
 
@@ -301,7 +323,7 @@ export const createPlugin: CreatePlugin<FacialRecognitionAPI> = (components, plu
   }
 }
 
-export const validateConf:ValidatePluginConf = async opts => {
+export const validateConf: ValidatePluginConf = async opts => {
   const pluginConf = opts.pluginConf as FacialRecognitionConf
   if (typeof pluginConf.token !== 'string') throw new Error('expected "string" token')
   if (typeof pluginConf.url !== 'string') throw new Error('expected "string" url')

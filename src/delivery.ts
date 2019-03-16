@@ -25,7 +25,7 @@ import { ClientUnreachable } from './errors'
 const MIN_BATCH_DELIVERY_TIME = 2000
 const MAX_BATCH_SIZE = 5
 
-function normalizeOpts (opts) {
+function normalizeOpts(opts) {
   if (!opts.recipient && opts.message) {
     opts.recipient = opts.message._author
   }
@@ -33,8 +33,8 @@ function normalizeOpts (opts) {
   return opts
 }
 
-function withTransport (method: string) {
-  return async function (opts: any) {
+function withTransport(method: string) {
+  return async function(opts: any) {
     opts = normalizeOpts({ ...opts, method })
     const transport = await this.getTransport(opts)
     return transport[method](opts)
@@ -58,15 +58,23 @@ export default class Delivery extends EventEmitter implements IDelivery {
   public reject = withTransport('reject')
   public mqtt: any
   public http: DeliveryHTTP
-  private get friends () { return this.components.friends }
-  private get messages () { return this.components.messages }
-  private get objects () { return this.components.objects }
-  private get env () { return this.components.env }
+  private get friends() {
+    return this.components.friends
+  }
+  private get messages() {
+    return this.components.messages
+  }
+  private get objects() {
+    return this.components.objects
+  }
+  private get env() {
+    return this.components.env
+  }
   private components: DeliveryOpts
   private logger: Logger
   private _deliverBatch = withTransport('deliverBatch')
 
-  constructor (components: DeliveryOpts) {
+  constructor(components: DeliveryOpts) {
     super()
 
     this.components = components
@@ -75,7 +83,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
     this.logger = components.logger
   }
 
-  public deliverBatch = async (opts:ILiveDeliveryOpts) => {
+  public deliverBatch = async (opts: ILiveDeliveryOpts) => {
     const messages = opts.messages.map(message => {
       message = validateResource.utils.omitVirtualDeep({
         models: this.components.modelStore.models,
@@ -94,14 +102,14 @@ export default class Delivery extends EventEmitter implements IDelivery {
     session,
     friend,
     range,
-    batchSize=MAX_BATCH_SIZE,
+    batchSize = MAX_BATCH_SIZE,
     onProgress
-  }:IDeliveryRequest):Promise<IDeliveryResult> => {
+  }: IDeliveryRequest): Promise<IDeliveryResult> => {
     range = _.clone(range)
     let { before, after } = range
 
     this.logger.debug(`looking up messages for ${recipient} > ${after}`)
-    const result:IDeliveryResult = {
+    const result: IDeliveryResult = {
       finished: false,
       range
     }
@@ -113,7 +121,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
         // lt: before,
         // afterMessage,
         limit: batchSize,
-        body: true,
+        body: true
       })
 
       this.logger.debug(`found ${messages.length} messages for ${recipient}`)
@@ -139,12 +147,12 @@ export default class Delivery extends EventEmitter implements IDelivery {
   }
 
   public getTransport = async (opts: {
-    method: string,
-    recipient: string,
-    clientId?: string,
-    session?: ISession,
+    method: string
+    recipient: string
+    clientId?: string
+    session?: ISession
     friend?: any
-  }):Promise<IDelivery> => {
+  }): Promise<IDelivery> => {
     const { method, recipient, clientId, session, friend } = opts
     if (clientId || session || !(method in this.http)) {
       return this.mqtt

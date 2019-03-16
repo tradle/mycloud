@@ -307,7 +307,7 @@ test(`onmessage`, loudAsync(async (t) => {
     payload: [message]
   })
 
-  sandbox.stub(bot.aws.iotData, 'publish').callsFake(() => ({
+  sandbox.stub(bot.aws.iotdata, 'publish').callsFake(() => ({
     promise: async () => {}
   }))
 

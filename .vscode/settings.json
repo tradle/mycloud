@@ -1,0 +1,32 @@
+{
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "code-runner.runInTerminal": true,
+  "code-runner.executorMap": {
+    "javascript": "node",
+    "typescript": "ts-node",
+  },
+  "search.exclude": {
+    "**/node_modules": false
+  },
+  "search.useIgnoreFiles": false,
+  "javascript.preferences.quoteStyle": "single",
+  "javascript.referencesCodeLens.enabled": true,
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.tsdk": "./node_modules/typescript/lib",
+  "typescript.referencesCodeLens.enabled": true,
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "debug.node.autoAttach": "on",
+  "prettier.tslintIntegration": true,
+  "prettier.singleQuote": true,
+  "prettier.eslintIntegration": true,
+  "prettier.semi": false,
+  "prettier.printWidth": 120,
+  "prettier.trailingComma": "none",
+  "prettier.useTabs": false,
+  "markdown.extension.toc.updateOnSave": true,
+  "markdown.extension.toc.levels": "2..6",
+  "markdown.extension.toc.githubCompatibility": true,
+  "markdown.extension.preview.autoShowPreviewToSide": true
+}

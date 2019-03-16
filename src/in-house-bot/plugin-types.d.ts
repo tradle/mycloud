@@ -10,24 +10,30 @@ import {
   ITradleObject,
   Registry,
   Logger,
-  Bot,
+  Bot
 } from './types'
 
 declare namespace PluginLifecycle {
   // synchronous, attach conditioned on handleMessages
-  export type onmessage = (req:IPBReq) => boolean|void | Promise<boolean|void>
-  export type willSend = (opts:IWillSendArg) => void | Promise<void>
-  export type willRequestForm = (opts:IWillRequestFormArg) => void | Promise<void>
-  export type willApproveApplication = (opts:IWillJudgeAppArg) => void | Promise<void>
-  export type willDenyApplication = (opts:IWillJudgeAppArg) => void | Promise<void>
-  export type onFormsCollected = (opts:IOnFormsCollectedArg) => void | Promise<void>
-  export type onPendingApplicationCollision = (opts:IOnPendingApplicationCollisionArg) => void | Promise<void>
-  export type onRequestForExistingProduct = (req:IPBReq) => void | Promise<void>
+  export type onmessage = (req: IPBReq) => boolean | void | Promise<boolean | void>
+  export type willSend = (opts: IWillSendArg) => void | Promise<void>
+  export type willRequestForm = (opts: IWillRequestFormArg) => void | Promise<void>
+  export type willApproveApplication = (opts: IWillJudgeAppArg) => void | Promise<void>
+  export type didApproveApplication = (
+    opts: IWillJudgeAppArg,
+    signedObject: ITradleObject
+  ) => void | Promise<void>
+  export type willDenyApplication = (opts: IWillJudgeAppArg) => void | Promise<void>
+  export type onFormsCollected = (opts: IOnFormsCollectedArg) => void | Promise<void>
+  export type onPendingApplicationCollision = (
+    opts: IOnPendingApplicationCollisionArg
+  ) => void | Promise<void>
+  export type onRequestForExistingProduct = (req: IPBReq) => void | Promise<void>
   export type onCommand = ({ req: IPBReq, command: string }) => void | Promise<void>
-  export type getRequiredForms = (opts: IGetRequiredFormsArg) => Promise<void|string[]>
-  export type validateForm = (opts: IValidateFormArg) => Promise<void|IValidateFormOutput>
+  export type getRequiredForms = (opts: IGetRequiredFormsArg) => Promise<void | string[]>
+  export type validateForm = (opts: IValidateFormArg) => Promise<void | IValidateFormOutput>
 
-  // asynchronous, attach conditioned on handleMessages
+  // asynchronous, attach conditioned on runAsyncHandlers
   export type onCheckStatusChanged = (check: ITradleCheck) => Promise<void>
   export type onResourceChanged = (opts: OnResourceChangedArg) => Promise<void>
   export type onResourceCreated = (obj: ITradleObject) => Promise<void>
@@ -38,6 +44,7 @@ declare namespace PluginLifecycle {
     willSend?: willSend
     willRequestForm?: willRequestForm
     willApproveApplication?: willApproveApplication
+    didApproveApplication?: didApproveApplication
     willDenyApplication?: willDenyApplication
     onFormsCollected?: onFormsCollected
     onPendingApplicationCollision?: onPendingApplicationCollision
@@ -63,7 +70,7 @@ interface MayHaveReqAndApp extends MayHaveReq {
 }
 
 export interface IWillSendArg extends MayHaveReqAndApp {
-  to: string|IPBUser
+  to: string | IPBUser
   object?: ITradleObject
   link?: string
 }
@@ -129,19 +136,22 @@ export interface IPluginOpts {
   conf?: any
 }
 
-export type CreatePlugin<BotComponent> = (components:IBotComponents, opts:IPluginOpts) => IPluginExports<BotComponent>
+export type CreatePlugin<BotComponent> = (
+  components: IBotComponents,
+  opts: IPluginOpts
+) => IPluginExports<BotComponent>
 
 export type ValidatePluginConfOpts = {
   bot: Bot
   conf: IConfComponents
   pluginConf: any
-  [other:string]: any
+  [other: string]: any
 }
 
 export type UpdatePluginConfOpts = ValidatePluginConfOpts
 
-export type ValidatePluginConf = (opts:ValidatePluginConfOpts) => Promise<void>
-export type UpdatePluginConf = (opts:UpdatePluginConfOpts) => Promise<void>
+export type ValidatePluginConf = (opts: ValidatePluginConfOpts) => Promise<void>
+export type UpdatePluginConf = (opts: UpdatePluginConfOpts) => Promise<void>
 export interface IPlugin<BotComponent> {
   name?: string
   createPlugin: CreatePlugin<BotComponent>

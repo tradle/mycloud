@@ -9,36 +9,17 @@ import validateModels from '@tradle/validate-model'
 
 import Errors from './errors'
 import { noopLogger } from './logger'
-import {
-  Model,
-  Models,
-  IBacklinkItem,
-  Diff,
-  Logger
-} from './types'
+import { Model, Models, IBacklinkItem, Diff, Logger } from './types'
 
-import {
-  pickBacklinks,
-  omitBacklinks,
-  isPlainObject,
-  getPrimaryKeySchema,
-  maybeStripProtocolVersion,
-} from './utils'
+import { pickBacklinks, omitBacklinks, isPlainObject, getPrimaryKeySchema } from './utils'
 
-const {
-  isInlinedProperty,
-  isEnumProperty,
-  isDescendantOf,
-  getAncestors
-} = validateModels.utils
+const { isInlinedProperty, isEnumProperty, isDescendantOf, getAncestors } = validateModels.utils
 
-const {
-  omitVirtualDeep
-} = validateResource.utils
+const { omitVirtualDeep } = validateResource.utils
 
 export interface IResourcePersister {
   models: Models
-  save: (resource: Resource) => Promise<any|void>
+  save: (resource: Resource) => Promise<any | void>
   sign: <T>(resource: T) => Promise<T>
   logger?: Logger
 }
@@ -96,14 +77,16 @@ export class Resource extends EventEmitter {
   private originalResource: any
   private _dirty: boolean
 
-  constructor({ models, model, type, resource={}, store, logger }: ResourceInput) {
+  constructor({ models, model, type, resource = {}, store, logger }: ResourceInput) {
     super()
 
     this.logger = logger || (store && store.logger) || noopLogger
 
     if (store) {
       Object.defineProperty(this, 'models', {
-        get() { return store.models }
+        get() {
+          return store.models
+        }
       })
     } else {
       this.models = models
@@ -254,7 +237,7 @@ export class Resource extends EventEmitter {
   public get = key => this.resource[key]
   public getOriginal = key => this.originalResource[key]
 
-  public unset = (keys:string|string[]) => {
+  public unset = (keys: string | string[]) => {
     keys = [].concat(keys)
     for (const key of keys) {
       delete this.resource[key]
@@ -264,7 +247,7 @@ export class Resource extends EventEmitter {
     return this
   }
 
-  public set = (...args:any[]) => {
+  public set = (...args: any[]) => {
     const { models, model } = this
     // don't validate because we might still have a partial resource
     args.forEach(arg => {
@@ -276,7 +259,6 @@ export class Resource extends EventEmitter {
       .toJSON(SET_OPTS)
 
     _.extend(this.resource, updated)
-    maybeStripProtocolVersion(this.resource)
 
     if (!updated[SIG]) {
       // any modifications invalidate the current sig
@@ -287,7 +269,7 @@ export class Resource extends EventEmitter {
     return this
   }
 
-  public setVirtual = (...args:any[]) => {
+  public setVirtual = (...args: any[]) => {
     const updated = buildResource(this)
       .setVirtual(...args)
       .toJSON(SET_OPTS)
@@ -296,7 +278,7 @@ export class Resource extends EventEmitter {
     return this
   }
 
-  public toJSON = (opts:ExportResourceInput={}) => {
+  public toJSON = (opts: ExportResourceInput = {}) => {
     const { virtual, validate } = opts
     const { models, model, resource } = this
     const exported = virtual ? _.cloneDeep(resource) : omitVirtualDeep({ models, resource })
@@ -307,10 +289,11 @@ export class Resource extends EventEmitter {
     return exported
   }
 
-  public validate = () => validateResource.resource({
-    models: this.models,
-    resource: this.resource
-  })
+  public validate = () =>
+    validateResource.resource({
+      models: this.models,
+      resource: this.resource
+    })
 
   // public getForwardLinks = (backlinks?: Backlinks) => {
   //   if (!backlinks) backlinks = this.bot.backlinks
@@ -318,15 +301,13 @@ export class Resource extends EventEmitter {
   //   return backlinks.getForwardLinks(this.resource)
   // }
 
-  public getBacklinks = (resource=this.resource) => pickBacklinks({
-    model: this.model,
-    resource
-  })
+  public getBacklinks = (resource = this.resource) =>
+    pickBacklinks({
+      model: this.model,
+      resource
+    })
 
-  public updateBacklink = ({ backlink, stub }: {
-    backlink: string
-    stub: any
-  }) => {
+  public updateBacklink = ({ backlink, stub }: { backlink: string; stub: any }) => {
     const stable = toStableStub(stub)
     const arr = this.get(backlink) || []
     let idx = arr.findIndex(stub => _.isEqual(toStableStub(stub), stable))
@@ -337,12 +318,13 @@ export class Resource extends EventEmitter {
     return this
   }
 
-  public getBacklinkProperties = (opts: GetBacklinkPropertiesMinInput) => getBacklinkProperties({
-    models: this.models,
-    ...opts
-  })
+  public getBacklinkProperties = (opts: GetBacklinkPropertiesMinInput) =>
+    getBacklinkProperties({
+      models: this.models,
+      ...opts
+    })
 
-  public getForwardLinks = ():IBacklinkItem[] => {
+  public getForwardLinks = (): IBacklinkItem[] => {
     const { type, model, models, resource } = this
     const time = resource._time || resource.time
     if (!time) {
@@ -357,46 +339,47 @@ export class Resource extends EventEmitter {
 
     const sourceStub = this.key
     const { properties } = model
-    return Object.keys(resource).map(linkProp => {
-      const property = properties[linkProp]
-      if (!property || isInlinedProperty({ models, property })) {
-        return
-      }
+    return Object.keys(resource)
+      .map(linkProp => {
+        const property = properties[linkProp]
+        if (!property || isInlinedProperty({ models, property })) {
+          return
+        }
 
-      const { ref } = property
-      if (!ref) return
+        const { ref } = property
+        if (!ref) return
 
-      if (isEnumProperty({ models, property })) return
+        if (isEnumProperty({ models, property })) return
 
-      const targetStub = resource[linkProp]
-      if (!targetStub) return
+        const targetStub = resource[linkProp]
+        if (!targetStub) return
 
-      const targetModel = models[targetStub[TYPE]]
-      const backlinkProps = this.getBacklinkProperties({
-        sourceModel: model,
-        targetModel,
-        linkProp
+        const targetModel = models[targetStub[TYPE]]
+        const backlinkProps = this.getBacklinkProperties({
+          sourceModel: model,
+          targetModel,
+          linkProp
+        })
+
+        if (!backlinkProps.length) return
+
+        // const sourceParsedStub = parseStub(sourceStub)
+        // const targetParsedStub = parseStub(targetStub)
+        const blItem: IBacklinkItem = {
+          [TYPE]: 'tradle.BacklinkItem',
+          source: this.stub,
+          target: targetStub,
+          linkProp,
+          backlinkProps
+        }
+
+        if (time) {
+          blItem._time = time
+        }
+
+        return blItem
       })
-
-      if (!backlinkProps.length) return
-
-      // const sourceParsedStub = parseStub(sourceStub)
-      // const targetParsedStub = parseStub(targetStub)
-      const blItem:IBacklinkItem = {
-        [TYPE]: 'tradle.BacklinkItem',
-        source: this.stub,
-        target: targetStub,
-        linkProp,
-        backlinkProps
-      }
-
-      if (time) {
-        blItem._time = time
-      }
-
-      return blItem
-    })
-    .filter(_.identity)
+      .filter(_.identity)
     // .reduce((byProp, value) => {
     //   byProp[value.forward] = value
     //   return byProp
@@ -409,10 +392,12 @@ export class Resource extends EventEmitter {
   public static getPrimary
 
   public version = () => {
-    return this.set(buildResource.version({
-      [SIG]: this.get(SIG) || this.originalResource[SIG],
-      ...this.resource
-    }))
+    return this.set(
+      buildResource.version({
+        [SIG]: this.get(SIG) || this.originalResource[SIG],
+        ...this.resource
+      })
+    )
   }
 
   private _assertDiff = () => {
@@ -424,14 +409,17 @@ export class Resource extends EventEmitter {
 
   private _ensureHaveStore = () => {
     if (!this.store) {
-      throw new Errors.InvalidInput(`provide "store" in constructor if you want to run this operation'`)
+      throw new Errors.InvalidInput(
+        `provide "store" in constructor if you want to run this operation'`
+      )
     }
   }
 
-  private omitBacklinks = (resource=this.resource) => omitBacklinks({
-    model: this.model,
-    resource
-  })
+  private omitBacklinks = (resource = this.resource) =>
+    omitBacklinks({
+      model: this.model,
+      resource
+    })
 
   private _resetDiff = () => {
     this.originalResource = _.cloneDeep(this.omitBacklinks())
@@ -439,7 +427,11 @@ export class Resource extends EventEmitter {
   }
 }
 
-export const getPrimaryKeys = ({ models, model, resource }: {
+export const getPrimaryKeys = ({
+  models,
+  model,
+  resource
+}: {
   models?: Models
   model?: Model
   resource: any
@@ -466,7 +458,7 @@ export const getKey = (resource: any, schema: IDBKey) => {
   return _.pick(resource, getKeyProps(schema))
 }
 
-export const serializePrimaryKeyWithSchema = (resource: any, schema: IDBKey):string => {
+export const serializePrimaryKeyWithSchema = (resource: any, schema: IDBKey): string => {
   const keys = getKeyProps(schema)
   const values = keys.map(prop => {
     const v = _.get(resource, prop)
@@ -478,7 +470,7 @@ export const serializePrimaryKeyWithSchema = (resource: any, schema: IDBKey):str
   return values.join(QUOTE)
 }
 
-export const unserializePrimaryKey = (key: string):string[] => {
+export const unserializePrimaryKey = (key: string): string[] => {
   // const keys = getKeyProps(schema)
   // add start end quotes, to get markers for start, end
   key = `"${key}"`
@@ -502,7 +494,12 @@ export const unserializePrimaryKey = (key: string):string[] => {
   return values.map(v => JSON.parse(`${QUOTE}${v}${QUOTE}`))
 }
 
-export const parseKeyString = ({ key, schema, models, model }: {
+export const parseKeyString = ({
+  key,
+  schema,
+  models,
+  model
+}: {
   key: string
   schema?: IDBKey
   model?: Model
@@ -518,7 +515,11 @@ export const parseKeyString = ({ key, schema, models, model }: {
 
 export const toStableStub = stub => _.omit(stub, ['title', 'id', '_link'])
 
-export const serializeKey = ({ key, model, models }: {
+export const serializeKey = ({
+  key,
+  model,
+  models
+}: {
   key: any
   model?: Model
   models?: Models
@@ -536,7 +537,7 @@ export const getBacklinkProperties = ({
   sourceModel,
   targetModel,
   linkProp
-}: GetBacklinkPropertiesInput):string[] => {
+}: GetBacklinkPropertiesInput): string[] => {
   const targetAncestors = getAncestors({ models, model: targetModel })
   const targetModels = [targetModel].concat(targetAncestors)
   return _.chain(targetModels)
@@ -570,13 +571,14 @@ const ensurePlainObject = obj => {
   }
 }
 
-const getSoftDiff = (diff: Diff) => diff.filter(diffItem => {
-  if (_.isEqual(diffItem.path, ['_time'])) {
-    return false
-  }
+const getSoftDiff = (diff: Diff) =>
+  diff.filter(diffItem => {
+    if (_.isEqual(diffItem.path, ['_time'])) {
+      return false
+    }
 
-  return true
-})
+    return true
+  })
 
 const hasVersionIncreased = (resource: Resource) => {
   const originalVersion = resource.getOriginal(VERSION) || 0

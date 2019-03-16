@@ -3,9 +3,12 @@ import cors from 'kcors'
 import once from 'lodash/once'
 import { bodyParser } from '../middleware/body-parser'
 import { route } from '../middleware/noop-route'
-import { Lambda, Bot, ILambdaExecutionContext, MiddlewareHttp } from '../types'
-import { fromHTTP } from '../lambda'
-import { onMessage as onMessageInInbox, createSuccessHandler, createErrorHandler } from '../middleware/inbox'
+import { Bot, ILambdaExecutionContext } from '../types'
+import {
+  onMessage as onMessageInInbox,
+  createSuccessHandler,
+  createErrorHandler
+} from '../middleware/inbox'
 import { onMessage } from '../middleware/onmessage'
 import { onMessagesSaved } from '../middleware/onmessagessaved'
 import { topics as EventTopics } from '../events'
@@ -34,7 +37,7 @@ export const createMiddleware = () => {
             validateAuthor: true,
             // unfortunately we have to be more forgiving of other myclouds
             // than of ourselves, and allow them to remove models (for now)
-            allowRemoveModels: true,
+            allowRemoveModels: true
           })
         } catch (err) {
           logger.error(err.message, { modelsPack: payload })
@@ -47,7 +50,7 @@ export const createMiddleware = () => {
   })
 
   return compose([
-    (ctx:ILambdaExecutionContext, next) => hookUp(ctx.components.bot).then(next),
+    (ctx: ILambdaExecutionContext, next) => hookUp(ctx.components.bot).then(next),
     route(['post', 'put']),
     cors(),
     bodyParser({ jsonLimit: '10mb' }),

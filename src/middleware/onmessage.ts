@@ -22,7 +22,9 @@ export const onMessage = ({ onSuccess, onError }) => {
     })
 
     const [failures, successes] = _.partition(results, 'error')
-    const handleErrors = Promise.mapSeries(failures, failure => onError(ctx, { ...failure, clientId }))
+    const handleErrors = Promise.mapSeries(failures, failure =>
+      onError(ctx, { ...failure, clientId })
+    )
     event.messages = successes.map(s => s.message)
     const count = event.messages.length
     if (!count) return
@@ -30,7 +32,7 @@ export const onMessage = ({ onSuccess, onError }) => {
     logger.debug(`preprocessed ${count} messages`)
     await next()
     await Promise.mapSeries(successes, success => onSuccess(ctx, { ...success, clientId }))
-    // await Promise.mapSeries(successes, success => onSuccess({ ...success, clientId }))
+    await handleErrors
     logger.debug(`postprocessed ${count} messages`)
   }
 }

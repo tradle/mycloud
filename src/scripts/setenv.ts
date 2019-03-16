@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+// tslint:disable:no-console
+
 process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
 import path from 'path'
@@ -27,10 +29,9 @@ if (!(env && Object.keys(env).length)) {
 }
 
 console.log('setting env', JSON.stringify(env, null, 2))
-
 ;(async () => {
   const functions = argv.functions && argv.functions.split(',').map(f => f.trim())
-  await stackUtils.updateEnvironments(function ({ FunctionName }) {
+  await stackUtils.updateEnvironments(({ FunctionName }) => {
     if (functions && !functions.includes(FunctionName.slice(custom.prefix.length))) {
       console.log('not updating', FunctionName)
       return null
@@ -39,13 +40,12 @@ console.log('setting env', JSON.stringify(env, null, 2))
     console.log('updating', FunctionName)
     return env
   })
-})()
-.catch(err => {
+})().catch(err => {
   console.error(err)
   process.exit(1)
 })
 
-function minusObjectValues (obj) {
+function minusObjectValues(obj) {
   const minus = {}
   for (let key in obj) {
     let val = obj[key]

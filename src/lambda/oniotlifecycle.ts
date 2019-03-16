@@ -1,33 +1,28 @@
-import {
-  Lambda,
-  MiddlewareBase,
-} from '../types'
+import { MiddlewareBase } from '../types'
 
-import { fromIot } from '../lambda'
-
-export const createMiddleware = ():MiddlewareBase => {
+export const createMiddleware = (): MiddlewareBase => {
   const handleDisconnect = onDisconnected()
   const handleSubscribe = onSubscribed()
   return async (ctx, next) => {
     let { event, components } = ctx
     const { bot } = components
-    const { userSim, logger } = bot
+    const { logger } = bot
     if (Buffer.isBuffer(event)) {
       ctx.event = event = JSON.parse(event.toString())
     }
 
-    const { topic, data } = event
+    const { topic } = event
     logger.debug(`iot lifecycle event: ${topic}`)
 
     if (topic.startsWith('$aws/events/subscriptions/subscribed')) {
       await handleSubscribe(ctx, next)
-    } else if (topic.startsWith('$aws/events/subscriptions/unsubscribed')) {
+    } else if (topic.startsWith('$aws/events/presence/disconnected')) {
       await handleDisconnect(ctx, next)
     }
   }
 }
 
-export const onDisconnected = ():MiddlewareBase => async (ctx, next) => {
+export const onDisconnected = (): MiddlewareBase => async (ctx, next) => {
   const { bot } = ctx.components
   const { logger, userSim, auth } = bot
   const { clientId } = ctx.event.data
@@ -42,7 +37,7 @@ export const onDisconnected = ():MiddlewareBase => async (ctx, next) => {
   await next()
 }
 
-export const onSubscribed = ():MiddlewareBase => async (ctx, next) => {
+export const onSubscribed = (): MiddlewareBase => async (ctx, next) => {
   const { bot } = ctx.components
   const { logger, userSim } = bot
   const { clientId, topics } = ctx.event.data

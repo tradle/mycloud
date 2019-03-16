@@ -1,15 +1,12 @@
 import transform from 'lodash/transform'
 import format from 'string-format'
+import getLocalIP from 'localip'
 import { getStackName, getLocalResourceName } from '../cli/utils'
 import serverlessYml from '../cli/serverless-yml'
 import { parseEnvVarName } from '../service-map'
 import { getStackParameter } from '../cli/get-stack-parameter'
-const {
-  service,
-  custom,
-  provider,
-  resources
-} = serverlessYml
+import { getVar } from '../cli/get-template-var'
+const { service, custom, provider, resources } = serverlessYml
 
 const { prefix, blockchain } = custom
 const { region, stage, environment } = provider
@@ -36,6 +33,11 @@ Object.keys(environment).forEach(key => {
     return
   }
 
+  if (key === 'IOT_ENDPOINT') {
+    map[key] = `${getLocalIP()}:${getVar('serverless-iot-local.httpPort')}`
+    return
+  }
+
   if (key === 'SEALING_MODE' || key === 'SEAL_BATCHING_PERIOD') {
     map[key] = getStackParameter(val.Ref)
     return
@@ -49,16 +51,15 @@ Object.keys(environment).forEach(key => {
 
   const parsed = parseEnvVarName(key)
   if (!parsed) {
-    map[key] = val
-      .replace(/\$\{AWS::StackName\}/g, stackName)
-      .replace(/AWS::StackName/g, stackName)
+    map[key] = val.replace(/\$\{AWS::StackName\}/g, stackName).replace(/AWS::StackName/g, stackName)
 
     return
   }
 
   const { type, name } = parsed
   if (type === 'Stack') {
-    map[key] = `arn:aws:cloudformation:${region}:123456789012:stack/${(name || stackName)}/12345678-1234-1234-1234-123456789012`
+    map[key] = `arn:aws:cloudformation:${region}:123456789012:stack/${name ||
+      stackName}/12345678-1234-1234-1234-123456789012`
   } else {
     map[key] = getLocalResourceName({ stackName, name })
   }

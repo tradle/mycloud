@@ -1,6 +1,5 @@
-
 import Cache from 'lru-cache'
-import { Bucket } from './bucket'
+import { wrapBucketMemoized } from '@tradle/aws-s3-client'
 import { IBucketsInfo, Buckets } from './types'
 import { isPromise } from './utils'
 // const BUCKET_NAMES = ['Secrets', 'Objects', 'PublicConf']
@@ -16,7 +15,7 @@ const byteLengthFn = val => {
   return Buffer.byteLength(JSON.stringify(val))
 }
 
-const cacheConfig:IBucketsInfo = {
+const cacheConfig: IBucketsInfo = {
   Objects: {
     length: byteLengthFn,
     max: 50 * MEG,
@@ -57,23 +56,18 @@ const cacheConfig:IBucketsInfo = {
   }
 }
 
-export const getBuckets = ({ env, logger, aws, serviceMap, s3Utils }):Buckets => {
-
-  // const { MEMORY_SIZE } = env
-
-  function loadBucket (name) {
+export const getBuckets = ({ logger, serviceMap, s3Client }): Buckets => {
+  function loadBucket(name) {
     if (buckets[name]) return
 
     const physicalId = serviceMap.Bucket[name]
     if (!physicalId) throw new Error('bucket not found')
 
-    buckets[name] = new Bucket({
-      env,
-      name: physicalId,
-      s3: aws.s3,
+    buckets[name] = wrapBucketMemoized({
+      client: s3Client,
+      bucket: physicalId,
       cache: cacheConfig[name] && new Cache(cacheConfig[name]),
-      logger: logger.sub(`bucket:${name}`),
-      s3Utils
+      logger: logger.sub(`bucket:${name}`)
     })
   }
 

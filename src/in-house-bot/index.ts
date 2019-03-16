@@ -7,9 +7,9 @@ import validateResource from '@tradle/validate-resource'
 import buildResource from '@tradle/build-resource'
 import mergeModels from '@tradle/merge-models'
 import { TYPE, ORG } from '@tradle/constants'
+import { createClient as createS3Client } from '@tradle/aws-s3-client'
 import { getBuckets } from '../buckets'
 import { createServiceMap } from '../service-map'
-import { createUtils as createS3Utils } from '../s3-utils'
 import { Plugins } from './plugins'
 // import { models as onfidoModels } from '@tradle/plugin-onfido'
 import { createPlugin as setNamePlugin } from './plugins/set-name'
@@ -24,7 +24,7 @@ import { createBot } from '../'
 import {
   createPlugin as keepModelsFreshPlugin,
   sendModelsPackIfUpdated,
-  createModelsPackGetter,
+  createModelsPackGetter
 } from './plugins/keep-models-fresh'
 
 import {
@@ -34,14 +34,10 @@ import {
   getProductModelForCertificateModel,
   witness,
   didPropChange,
-  didPropChangeTo,
+  didPropChangeTo
 } from './utils'
 
-import {
-  runWithTimeout,
-  cachifyPromiser,
-  tryAsync,
-} from '../utils'
+import { runWithTimeout, cachifyPromiser, tryAsync } from '../utils'
 
 import { Applications } from './applications'
 import { Friends } from './friends'
@@ -59,7 +55,7 @@ import {
   VersionInfo,
   Conf,
   IChildDeployment,
-  Models,
+  Models
 } from './types'
 
 import Logger from '../logger'
@@ -90,6 +86,7 @@ const PRODUCT_LIST_MESSAGE = 'See our list of products'
 const PRODUCT_LIST_CHANGED_MESSAGE = 'Our products have changed'
 const PRODUCT_LIST_MENU_MESSAGE = 'Choose Apply for Product from the menu'
 const ALL_HIDDEN_PRODUCTS = [
+  // CONTROLLING_PERSON_ONBOARDING,
   // DEPLOYMENT,
   EMPLOYEE_ONBOARDING
 ]
@@ -118,7 +115,7 @@ type ConfigureLambdaOpts = {
   conf?: IConfComponents
 }
 
-export const configureLambda = (opts:ConfigureLambdaOpts) => {
+export const configureLambda = (opts: ConfigureLambdaOpts) => {
   const { lambda } = opts
   const load = cachifyPromiser(async () => {
     const components = await loadConfAndComponents(opts)
@@ -151,15 +148,9 @@ export const loadConfAndComponents = async (opts: ConfigureLambdaOpts):Promise<I
 
   const serviceMap = createServiceMap({ env })
   const buckets = getBuckets({
-    aws,
-    env,
     serviceMap,
     logger: logger.sub('buckets'),
-    s3Utils: createS3Utils({
-      env,
-      s3: aws.s3,
-      logger: logger.sub('s3-utils'),
-    })
+    s3Client: createS3Client({ client: aws.s3 })
   })
 
   const confStore = createConf({ buckets, logger })
@@ -170,10 +161,10 @@ export const loadConfAndComponents = async (opts: ConfigureLambdaOpts):Promise<I
     kycServiceDiscovery,
     modelsPack,
     style,
-    termsAndConditions,
+    termsAndConditions
   } = await runWithTimeout(() => confStore.load(conf), {
-    error: () => new Errors.Timeout(`timed out loading conf after ${(Date.now() - start)}ms`),
-    millis: LOAD_CONF_TIMEOUT,
+    error: () => new Errors.Timeout(`timed out loading conf after ${Date.now() - start}ms`),
+    millis: LOAD_CONF_TIMEOUT
   })
 
   logger.debug('loaded in-house bot conf components')
@@ -225,9 +216,9 @@ export const loadComponentsAndPlugins = ({
   conf,
   event = ''
 }: {
-  bot: Bot,
-  logger: Logger,
-  conf: IConfComponents,
+  bot: Bot
+  logger: Logger
+  conf: IConfComponents
   event?: string
 }): IBotComponents => {
   const {
@@ -236,7 +227,7 @@ export const loadComponentsAndPlugins = ({
     plugins = {},
     autoApprove,
     // autoVerify,
-    approveAllEmployees,
+    approveAllEmployees
     // queueSends,
     // graphqlRequiresAuth
   } = conf.bot.products
@@ -247,7 +238,8 @@ export const loadComponentsAndPlugins = ({
   // then some handlers can migrate to 'messagestream'
   const isLocalAsync = bot.isLocal && event === LambdaEvents.RESOURCE_ASYNC
   const handleMessages = event === LambdaEvents.MESSAGE || isLocalAsync
-  const runAsyncHandlers = event === LambdaEvents.RESOURCE_ASYNC || (bot.isLocal && event === LambdaEvents.MESSAGE)
+  const runAsyncHandlers =
+    event === LambdaEvents.RESOURCE_ASYNC || (bot.isLocal && event === LambdaEvents.MESSAGE)
   const mergeModelsOpts = { validate: bot.isLocal }
   const visibleProducts = _.uniq(enabled)
   const productsList = _.uniq(enabled.concat(ALL_HIDDEN_PRODUCTS))
@@ -257,7 +249,7 @@ export const loadComponentsAndPlugins = ({
     models: {
       all: mergeModels()
         .add(baseModels, { validate: false })
-        .add(conf.modelsPack && conf.modelsPack.models || {}, mergeModelsOpts)
+        .add((conf.modelsPack && conf.modelsPack.models) || {}, mergeModelsOpts)
         .get()
     },
     products: productsList,
@@ -275,21 +267,26 @@ export const loadComponentsAndPlugins = ({
   productsAPI.removeDefaultHandler('shouldSealSent')
   productsAPI.plugins.use({
     shouldSealSent: () => false,
-    shouldSealReceived: () => false,
+    shouldSealReceived: () => false
     // ({ object }) => {
 
-      // const type = object[TYPE]
-      // if (type === PRODUCT_REQUEST) return false
+    // const type = object[TYPE]
+    // if (type === PRODUCT_REQUEST) return false
 
-      // const model = bot.models[type]
-      // if (model && model.subClassOf === 'tradle.Form') return true
+    // const model = bot.models[type]
+    // if (model && model.subClassOf === 'tradle.Form') return true
     // }
   })
 
   const getPluginConf = name => plugins[name] || defaultConfs[name]
   const usedPlugins = []
   const ignoredPlugins = []
-  const attachPlugin = ({ name, componentName, requiresConf=true, prepend }: {
+  const attachPlugin = ({
+    name,
+    componentName,
+    requiresConf = true,
+    prepend
+  }: {
     name: string
     componentName?: string
     requiresConf?: boolean
@@ -309,14 +306,14 @@ export const loadComponentsAndPlugins = ({
     let api
     let plugin
     try {
-      ({ api, plugin } = Plugins.get(name).createPlugin(components, {
+      ;({ api, plugin } = Plugins.get(name).createPlugin(components, {
         conf: pConf,
         logger: logger.sub(`plugin-${name}`)
       }))
     } catch (err) {
       logger.error('failed to load plugin', {
         name,
-        error: Errors.export(err),
+        error: Errors.export(err)
       })
 
       return
@@ -329,15 +326,14 @@ export const loadComponentsAndPlugins = ({
     productsAPI.plugins.use(plugin, prepend)
   }
 
-  const send = (opts) => productsAPI.send(opts)
+  const send = opts => productsAPI.send(opts)
   const employeeManager = createEmployeeManager({
     logger: logger.sub('employees'),
     bot,
     productsAPI,
     approveAll: approveAllEmployees,
     wrapForEmployee: true,
-    shouldForwardFromEmployee: ({ req }) =>
-      !DONT_FORWARD_FROM_EMPLOYEE.includes(req.type),
+    shouldForwardFromEmployee: ({ req }) => !DONT_FORWARD_FROM_EMPLOYEE.includes(req.type),
     handleMessages
   })
 
@@ -395,8 +391,10 @@ export const loadComponentsAndPlugins = ({
       await productsAPI._exec('onResourceChanged', { old, value })
 
       // TODO: factor this out to a plugin
-      if (type === APPLICATION &&
-        didPropChangeTo({ old, value, prop: 'status', propValue: 'approved' })) {
+      if (
+        type === APPLICATION &&
+        didPropChangeTo({ old, value, prop: 'status', propValue: 'approved' })
+      ) {
         value.submissions = await bot.backlinks.getBacklink({
           type: APPLICATION,
           permalink: value._permalink,
@@ -415,7 +413,7 @@ export const loadComponentsAndPlugins = ({
       await productsAPI._exec('onResourceCreated', resource)
     }
 
-    const handleResourceChange = async (change:ISaveEventPayload) => {
+    const handleResourceChange = async (change: ISaveEventPayload) => {
       const { old, value } = change
       if (old && value) {
         await processChange(change)
@@ -427,14 +425,22 @@ export const loadComponentsAndPlugins = ({
 
       const type = value[TYPE]
       const model = bot.models[type]
-      if (value && model && model.subClassOf === 'tradle.Check' && didPropChange({ old, value, prop: 'status' })) {
+      if (
+        value &&
+        model &&
+        model.subClassOf === 'tradle.Check' &&
+        didPropChange({ old, value, prop: 'status' })
+      ) {
         await productsAPI._exec(`onCheckStatusChanged`, value)
       }
     }
 
-    bot.hookSimple(bot.events.topics.resource.save.async, tryAsync(handleResourceChange, err => {
-      logger.error('resource change handler failed', err)
-    }))
+    bot.hookSimple(
+      bot.events.topics.resource.save.async,
+      tryAsync(handleResourceChange, err => {
+        logger.error('resource change handler failed', err)
+      })
+    )
 
     const handleResourceDelete = async ({ value }) => {
       const type = value[TYPE]
@@ -446,16 +452,19 @@ export const loadComponentsAndPlugins = ({
       }
     }
 
-    bot.hookSimple(bot.events.topics.resource.delete, tryAsync(handleResourceDelete, err => {
-      logger.error('resource delete handler failed', err)
-    }))
+    bot.hookSimple(
+      bot.events.topics.resource.delete,
+      tryAsync(handleResourceDelete, err => {
+        logger.error('resource delete handler failed', err)
+      })
+    )
   }
 
   const promiseMyPermalink = bot.getMyPermalink()
   const alerts = new Alerts({
     bot,
     org: conf.org,
-    logger: logger.sub('alerts'),
+    logger: logger.sub('alerts')
   })
 
   const components: IBotComponents = {
@@ -466,7 +475,7 @@ export const loadComponentsAndPlugins = ({
     friends: new Friends({ bot }),
     applications,
     alerts,
-    logger,
+    logger
   }
 
   if (handleMessages) {
@@ -480,17 +489,24 @@ export const loadComponentsAndPlugins = ({
     })
 
     const bizPlugins = require('@tradle/biz-plugins')
-    bizPlugins.forEach(plugin => productsAPI.plugins.use(plugin({
-      bot,
-      get models() {
-        return bot.modelStore.models
-      },
-      productsAPI
-    }), true)) // prepend
+    bizPlugins.forEach(plugin =>
+      productsAPI.plugins.use(
+        plugin({
+          bot,
+          get models() {
+            return bot.modelStore.models
+          },
+          productsAPI
+        }),
+        true
+      )
+    ) // prepend
 
-    if (plugins.termsAndConditions &&
+    if (
+      plugins.termsAndConditions &&
       plugins.termsAndConditions.enabled &&
-      conf.termsAndConditions) {
+      conf.termsAndConditions
+    ) {
       const tcPlugin = createTsAndCsPlugin({
         termsAndConditions: conf.termsAndConditions,
         productsAPI,
@@ -566,8 +582,11 @@ export const loadComponentsAndPlugins = ({
         const { form } = formRequest
         const model = models[form]
         if (model && model.subClassOf === 'tradle.MyProduct') {
-          const productModel = getProductModelForCertificateModel({ models, certificateModel: model })
-          const { title } = (productModel || model)
+          const productModel = getProductModelForCertificateModel({
+            models,
+            certificateModel: model
+          })
+          const { title } = productModel || model
           formRequest.message = `Please get a "${title}" first!`
         }
       },
@@ -591,44 +610,52 @@ export const loadComponentsAndPlugins = ({
     // the goal: allow employees to create multiple pending applications for the same product
     // as they are actually drafts of customer applications
     // however, for non-employees, possibly restrict to one pending app for the same product (default behavior of bot-products)
-    const defaultHandlers = [].concat(productsAPI.removeDefaultHandler('onPendingApplicationCollision'))
-    productsAPI.plugins.use({
-      onmessage: async (req) => {
-        let { user, payload } = req
-        if (!payload[ORG]) return
+    const defaultHandlers = [].concat(
+      productsAPI.removeDefaultHandler('onPendingApplicationCollision')
+    )
+    productsAPI.plugins.use(
+      {
+        onmessage: async req => {
+          let { user, payload } = req
+          if (!payload[ORG]) return
 
-        const isEmployee = employeeManager.isEmployee(user)
-        if (!isEmployee) return
+          const isEmployee = employeeManager.isEmployee(user)
+          if (!isEmployee) return
 
-        const myPermalink = await promiseMyPermalink
-        if (myPermalink !== payload[ORG]) {
-          logger.debug('not witnessing item from a diff _org', buildResource.stub({
-            models: bot.models,
-            resource: payload
-          }))
+          const myPermalink = await promiseMyPermalink
+          if (myPermalink !== payload[ORG]) {
+            logger.debug(
+              'not witnessing item from a diff _org',
+              buildResource.stub({
+                models: bot.models,
+                resource: payload
+              })
+            )
 
-          return
+            return
+          }
+
+          payload = await witness(bot, payload)
+          req.payload = req.object = req.message.object = payload
+        },
+        onPendingApplicationCollision: async input => {
+          const { req, pending } = input
+          if (employeeManager.isEmployee(req.user)) {
+            // allow it
+            await productsAPI.addApplication({ req })
+            return
+          }
+
+          await Promise.each(defaultHandlers, handler => handler(input))
+        },
+        willCreateApplication: async ({ user, application }) => {
+          if (employeeManager.isEmployee(user)) {
+            application.draft = true
+          }
         }
-
-        payload = await witness(bot, payload)
-        req.payload = req.object = req.message.object = payload
-      },
-      onPendingApplicationCollision: async (input) => {
-        const { req, pending } = input
-        if (employeeManager.isEmployee(req.user)) {
-          // allow it
-          await productsAPI.addApplication({ req })
-          return
-        }
-
-        await Promise.each(defaultHandlers, handler => handler(input))
-      },
-      willCreateApplication: async ({ user, application }) => {
-        if (employeeManager.isEmployee(user)) {
-          application.draft = true
-        }
-      }
-    } as PluginLifecycle.Methods, true) // prepend
+      } as PluginLifecycle.Methods,
+      true
+    ) // prepend
   }
 
   if (ONFIDO_RELATED_EVENTS.includes(event) && plugins.onfido && plugins.onfido.apiKey) {
@@ -639,15 +666,16 @@ export const loadComponentsAndPlugins = ({
   if (customizeMessageOpts) {
     logger.debug('using plugin: customize-message')
     const customizeMessage = require('@tradle/plugin-customize-message')
-    productsAPI.plugins.use(customizeMessage({
-      get models() {
-        return bot.modelStore.models
-      },
-      conf: customizeMessageOpts,
-      logger
-    }))
+    productsAPI.plugins.use(
+      customizeMessage({
+        get models() {
+          return bot.modelStore.models
+        },
+        conf: customizeMessageOpts,
+        logger
+      })
+    )
   }
-
   if (handleMessages) {
     ;[
       'prefill-form',
@@ -663,14 +691,17 @@ export const loadComponentsAndPlugins = ({
       'trueface',
       'jenIdChecker',
       'cibiChecker',
-      'gdcChecker'
+      'gdcChecker',
+      'sme-auto-approve',
+      'facetecZoom'
     ].forEach(name => attachPlugin({ name }))
 
     ;[
       'hand-sig',
-      'documentValidity'
+      'documentValidity',
+      'fill-myproduct'
     ].forEach(name => attachPlugin({ name, requiresConf: false }))
-
+    
     // used for some demo
     // ;[
     //   'plugin1',
@@ -678,21 +709,22 @@ export const loadComponentsAndPlugins = ({
     // ].forEach(name => attachPlugin({ name, prepend: true }))
   }
 
-  if (handleMessages ||
+  if (
+    handleMessages ||
     runAsyncHandlers ||
     event.startsWith('deployment:') ||
     event === LambdaEvents.COMMAND ||
     event === LambdaEvents.SCHEDULER
   ) {
     attachPlugin({ name: 'deployment', requiresConf: false })
+    if (components.deployment.isTradle) {
+      attachPlugin({ name: 'tradleServicesStack' })
+    }
   }
-  if (runAsyncHandlers) {
-    attachPlugin({ name: 'conditional-auto-approve' })
-  }
-  if (handleMessages ||
-    event.startsWith('documentChecker:') ||
-    event === LambdaEvents.SCHEDULER
-  ) {
+  // if (runAsyncHandlers) {
+  //   attachPlugin({ name: 'conditional-auto-approve' })
+  // }
+  if (handleMessages || event.startsWith('documentChecker:') || event === LambdaEvents.SCHEDULER) {
     attachPlugin({ name: 'documentChecker' })
   }
 
@@ -701,20 +733,25 @@ export const loadComponentsAndPlugins = ({
     attachPlugin({ name: 'prefill-from-draft', requiresConf: false })
   }
 
-  if ((bot.isLocal && handleMessages) ||
+  if (
+    (bot.isLocal && handleMessages) ||
     event === LambdaEvents.RESOURCE_ASYNC ||
-    event === LambdaEvents.COMMAND) {
+    event === LambdaEvents.COMMAND
+  ) {
     attachPlugin({ name: 'webhooks' })
   }
 
   attachPlugin({ name: 'commands', requiresConf: false })
-  if (handleMessages ||
+  if (
+    handleMessages ||
     event === LambdaEvents.CONFIRMATION ||
-    event === LambdaEvents.RESOURCE_ASYNC) {
+    event === LambdaEvents.RESOURCE_ASYNC
+  ) {
     attachPlugin({ name: 'email-based-verification', componentName: 'emailBasedVerifier' })
     attachPlugin({ name: 'verify-phone-number', componentName: 'smsBasedVerifier' })
     attachPlugin({ name: 'controllingPersonRegistration', componentName: 'smsBasedVerifier' })
   }
+  attachPlugin({ name: 'conditional-auto-approve' })
 
   logger.debug('using plugins', usedPlugins)
   logger.debug('ignoring plugins', ignoredPlugins)
@@ -727,7 +764,7 @@ export default configureLambda
 
 const limitApplications = (components: IBotComponents) => {
   const { bot, conf, productsAPI, employeeManager } = components
-  const { maximumApplications={} } = conf.bot.products
+  const { maximumApplications = {} } = conf.bot.products
   if (_.isEmpty(maximumApplications)) return
 
   productsAPI.removeDefaultHandler('onRequestForExistingProduct')
@@ -735,8 +772,7 @@ const limitApplications = (components: IBotComponents) => {
     const { user, payload } = req
     const type = payload.requestFor
     const max = maximumApplications[type] || 1
-    const existing = getNonPendingApplications(user)
-      .filter(({ requestFor }) => requestFor === type)
+    const existing = getNonPendingApplications(user).filter(({ requestFor }) => requestFor === type)
 
     if (existing.length < max) {
       await productsAPI.addApplication({ req })
@@ -758,15 +794,15 @@ const limitApplications = (components: IBotComponents) => {
 
 const tweakProductListPerRecipient = (components: IBotComponents) => {
   const { bot, conf, productsAPI, employeeManager } = components
-  const {
-    enabled
-  } = conf.bot.products
+  const { enabled } = conf.bot.products
 
   const willRequestForm = ({ user, formRequest }) => {
     if (bot.isLocal) return
     if (formRequest.form !== PRODUCT_REQUEST) return
 
-    const hidden = employeeManager.isEmployee(user) ? HIDDEN_PRODUCTS.employee : HIDDEN_PRODUCTS.customer
+    const hidden = employeeManager.isEmployee(user)
+      ? HIDDEN_PRODUCTS.employee
+      : HIDDEN_PRODUCTS.customer
 
     formRequest.chooser.oneOf = formRequest.chooser.oneOf.filter(product => {
       // allow showing hidden products explicitly by listing them in conf
@@ -780,7 +816,7 @@ const tweakProductListPerRecipient = (components: IBotComponents) => {
   } as PluginLifecycle.Methods)
 }
 
-const approveWhenTheTimeComes = (components:IBotComponents):PluginLifecycle.Methods => {
+const approveWhenTheTimeComes = (components: IBotComponents): PluginLifecycle.Methods => {
   const { bot, logger, conf, productsAPI, employeeManager, applications } = components
   const { autoApprove, approveAllEmployees } = conf.bot.products
   const onFormsCollected = async ({ req, user, application }) => {
@@ -839,14 +875,13 @@ const approveWhenTheTimeComes = (components:IBotComponents):PluginLifecycle.Meth
 
 const banter = (components: IBotComponents) => {
   const { bot, productsAPI } = components
-  const handleSimpleMessage = async (req) => {
+  const handleSimpleMessage = async req => {
     const { user, application, object } = req
     const { message } = object
     bot.debug(`processing simple message: ${message}`)
     if (message[0] === '/') return
-    if (application &&
-      application.relationshipManagers &&
-      application.relationshipManagers.length) return
+    if (application && application.relationshipManagers && application.relationshipManagers.length)
+      return
 
     if (/^(?:hey|hi|hello)$/i.test(message)) {
       await productsAPI.send({
@@ -873,7 +908,7 @@ const banter = (components: IBotComponents) => {
 
 If you start a product application, I'll see if I can get someone to help you.
 
-${PRODUCT_LIST_MENU_MESSAGE}`,
+${PRODUCT_LIST_MENU_MESSAGE}`
       }
     })
   }
@@ -902,7 +937,7 @@ const offerAssistance = async (opts: OfferAssistanceOpts) => {
         message: `Sorry, I'm not that smart! Would you like me to get someone to help you?`,
         chooser: {
           property: 'requestFor',
-          oneOf: ['Yes please!', 'No, I\'m good']
+          oneOf: ['Yes please!', "No, I'm good"]
         },
         prefill: {
           application: req.application
@@ -919,7 +954,7 @@ const offerAssistance = async (opts: OfferAssistanceOpts) => {
     object: {
       [TYPE]: 'tradle.SimpleMessage',
       form: HELP_REQUEST,
-      message: `Sorry, I'm not that smart! If you start a product application, I can get someone to help you. ${PRODUCT_LIST_MESSAGE}`,
+      message: `Sorry, I'm not that smart! If you start a product application, I can get someone to help you. ${PRODUCT_LIST_MESSAGE}`
     }
   })
 }

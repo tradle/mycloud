@@ -1,12 +1,7 @@
 import clone from 'lodash/clone'
 import cloneDeep from 'lodash/cloneDeep'
 import protocol from '@tradle/protocol'
-import {
-  cachifyPromiser,
-  omitVirtualDeep,
-  summarizeObject,
-  maybeStripProtocolVersion,
-} from './utils'
+import { cachifyPromiser, omitVirtualDeep, summarizeObject } from './utils'
 
 import { AUTHOR, ORG, ORG_SIG, SIG, PROTOCOL_VERSION } from './constants'
 
@@ -20,7 +15,7 @@ import {
   ModelStore,
   Objects,
   Logger,
-  BlockchainNetworkInfo,
+  BlockchainNetworkInfo
 } from './types'
 
 import { getPermalink, getSigningKey, getChainKey, sign } from './crypto'
@@ -31,8 +26,8 @@ type IdentityOpts = {
   modelStore: ModelStore
   objects: Objects
   logger: Logger
-  getIdentity():Promise<IIdentity>
-  getIdentityAndKeys():Promise<IIdentityAndKeys>
+  getIdentity(): Promise<IIdentity>
+  getIdentityAndKeys(): Promise<IIdentityAndKeys>
 }
 
 export default class Identity {
@@ -69,7 +64,7 @@ export default class Identity {
 
   // TODO: how to invalidate cache on identity updates?
   // maybe ETag on bucket item? But then we still need to request every time..
-  public getKeys = async ():Promise<any> => {
+  public getKeys = async (): Promise<any> => {
     const { keys } = await this.getPrivate()
     return keys
   }
@@ -95,9 +90,11 @@ export default class Identity {
     const { network } = this
     const identity = await this.getPublic()
     const key = identity.pubkeys.find(pub => {
-      return pub.type === network.blockchain &&
+      return (
+        pub.type === network.blockchain &&
         pub.networkName === network.networkName &&
         pub.purpose === 'messaging'
+      )
     })
 
     if (!key) {
@@ -107,25 +104,29 @@ export default class Identity {
     return key
   }
 
-  public draft = async (object) => {
+  public draft = async object => {
     object = protocol.object({ object })
     object[AUTHOR] = await this.getPermalink()
     return object
   }
 
-  public sign = async ({ object, author }: {
+  public sign = async ({
+    object,
+    author
+  }: {
     object: any
     author?: any
-  }):Promise<ITradleObject> => {
+  }): Promise<ITradleObject> => {
     object = cloneDeep(object)
     const resolveEmbeds = this.objects.resolveEmbeds(object)
     if (!author) author = await this.getPrivate()
 
     object[AUTHOR] = getPermalink(author.identity)
-    object[ORG] = object[AUTHOR]
-    object = protocol.object({ object })
+    if (!object[ORG]) {
+      object[ORG] = object[AUTHOR]
+    }
 
-    maybeStripProtocolVersion(object)
+    object = protocol.object({ object })
 
     await resolveEmbeds
     const key = getSigningKey(author.keys)
@@ -142,9 +143,7 @@ export default class Identity {
     return signed
   }
 
-  public witness = async <T extends ITradleObject> ({ object }: {
-    object: T
-  }):Promise<T> => {
+  public witness = async <T extends ITradleObject>({ object }: { object: T }): Promise<T> => {
     object = clone(object)
     const [signed, permalink] = await Promise.all([
       this.sign({
@@ -159,17 +158,9 @@ export default class Identity {
 
     object[ORG_SIG] = signed[SIG]
     return object
-
-    // const witnesses = object[WITNESSES] || []
-    // const w = protocol.wrapWitnessSig({
-    //   author: permalink,
-    //   sig: signed[SIG]
-    // })
-
-    // return extend({}, object, {
-    //   [WITNESSES]: witnesses.concat(w)
-    // })
   }
 }
+
+export const createIdentity = (opts: IdentityOpts) => new Identity(opts)
 
 export { Identity }

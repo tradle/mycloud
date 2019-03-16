@@ -5,14 +5,9 @@ import { post } from '../middleware/noop-route'
 import { bodyParser } from '../middleware/body-parser'
 import { MiddlewareHttp } from '../types'
 
-export const createMiddleware = () => compose([
-  post(),
-  cors(),
-  bodyParser(),
-  auth()
-])
+export const createMiddleware = () => compose([post(), cors(), bodyParser(), auth()])
 
-export const auth = ():MiddlewareHttp => async (ctx, next) => {
+export const auth = (): MiddlewareHttp => async (ctx, next) => {
   const { bot } = ctx.components
   const { env, logger, serviceMap, auth } = bot
   const time = Date.now()
@@ -39,14 +34,11 @@ export const auth = ():MiddlewareHttp => async (ctx, next) => {
   await bot.fire('user:authenticated', ctx.userId)
   await next()
   if (ctx.body) {
-     // allow full customization of authentication
+    // allow full customization of authentication
     return
   }
 
-  let {
-    session,
-    role=serviceMap.Role.IotClient,
-  } = ctx
+  let { session, role = serviceMap.Role.IotClient } = ctx
 
   if (!role.startsWith('arn:')) {
     role = `arn:aws:iam::${env.AWS_ACCOUNT_ID}:role/${role}`

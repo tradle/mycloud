@@ -1,16 +1,16 @@
 version: '2.1'
 
 services:
-  dynamo:
-    image: tradle/dynamodb-admin
-    restart: always
-    # dummy credentials
-    ports:
-      - ${DYNAMO_ADMIN_PORT}:8001
-    environment:
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - DYNAMO_ENDPOINT=http://localstack:4569
+  # dynamo:
+  #   image: tradle/dynamodb-admin
+  #   restart: always
+  #   # dummy credentials
+  #   ports:
+  #     - ${DYNAMO_ADMIN_PORT}:8001
+  #   environment:
+  #     - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+  #     - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+  #     - DYNAMO_ENDPOINT=http://localstack:4569
 
   # needed for mosca (local MQTT server)
   redis:
@@ -22,10 +22,10 @@ services:
       - /data
 
   localstack:
-    image: tradle/localstack:0.8.7
+    image: localstack/localstack:0.9.0
     restart: always
     ports:
-      - "4567-4583:4567-4583"
+      - "4567-4584:4567-4584"
       - "8080:8080"
     environment:
       - SERVICES=${SERVICES- }
@@ -35,7 +35,7 @@ services:
       - KINESIS_ERROR_PROBABILITY=${KINESIS_ERROR_PROBABILITY- }
       - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
-      - "$TMPDIR/${TRADLE_LOCALSTACK_TMP_SUBDIR}:/tmp/localstack"
+      - "$LOCALSTACK_DATA_DIR:/tmp/localstack/data"
       - "/var/run/docker.sock:/var/run/docker.sock"
   tradle_web:
     image: tradle/web-app:localstack

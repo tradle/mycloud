@@ -1,9 +1,10 @@
+// tslint:disable:no-console
+
 import 'nock'
 import { parse as parseURL } from 'url'
 import http from 'http'
 import crypto from 'crypto'
-import getLocalIP from 'localip'
-import once from 'lodash/once'
+import _AWS from 'aws-sdk'
 import '../globals'
 import Env from '../env'
 // console.warn('make sure localstack is running (npm run localstack:start)')
@@ -12,18 +13,18 @@ require('source-map-support').install()
 
 import * as AWS from 'aws-sdk-mock'
 import * as serviceMap from './service-map'
+import { targetLocalstack } from '@tradle/aws-common-utils'
 
 const debug = require('debug')('tradle:sls:test:env')
-const localIP = getLocalIP()
 const props = {
   AWS_REGION: 'us-east-1',
   NODE_ENV: 'test',
   ...process.env,
   ...serviceMap,
-  IS_LOCAL: true,
+  IS_LOCAL: true
 }
 
-export const createTestEnv = (overrides={}):Env => {
+export const createTestEnv = (overrides = {}): Env => {
   // important to import lazily
   const Env = require('../env').default
   return new Env({ ...props, ...overrides })
@@ -43,7 +44,8 @@ const httpRequestInterceptor = (...args) => {
   return originalHttpRequest(...args)
 }
 
-export const install = once((target=process.env):void => {
+export const install = (target = process.env): void => {
+  targetLocalstack(_AWS)
   if (http.request !== httpRequestInterceptor) {
     http.request = httpRequestInterceptor
   }
@@ -114,11 +116,11 @@ export const install = once((target=process.env):void => {
 
   if (!target.IS_OFFLINE) {
     AWS.mock('Iot', 'describeEndpoint', (params, callback) => {
-      (callback || params)(null, {})
+      ;(callback || params)(null, {})
     })
   }
-})
+}
 
 export const get = () => ({ ...props })
 
-const randomBase64 = (bytes:number):string => crypto.randomBytes(bytes).toString('base64')
+const randomBase64 = (bytes: number): string => crypto.randomBytes(bytes).toString('base64')

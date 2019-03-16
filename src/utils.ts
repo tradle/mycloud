@@ -35,8 +35,7 @@ import {
   LAUNCH_STACK_BASE_URL,
   DATE_ZERO,
   UNSIGNED_TYPES,
-  PROTOCOL_VERSION,
-  STRIP_PROTOCOL_VERSION_BEFORE_SIGN,
+  PROTOCOL_VERSION
 } from './constants'
 
 import Errors from './errors'
@@ -54,6 +53,7 @@ import {
   Bot,
   Seal,
   StackStatusEvent,
+  GetPNSTopicOpts
 } from './types'
 
 import * as types from './typeforce-types'
@@ -61,23 +61,16 @@ import Logger, { consoleLogger } from './logger'
 import Env from './env'
 import baseModels from './models'
 
-export {
-  clone,
-  extend,
-  isEqual as deepEqual,
-  isEqual,
-} from 'lodash'
+export { clone, extend, isEqual as deepEqual, isEqual } from 'lodash'
 
-export {
-  toSortableTag,
-  compareTags,
-} from 'lexicographic-semver'
+export { toSortableTag, compareTags } from 'lexicographic-semver'
 
 const BaseObjectModel = baseModels['tradle.Object']
 const debug = require('debug')('tradle:sls:utils')
 const notNull = obj => obj != null
 const isPromise = obj => obj && typeof obj.then === 'function'
-const toPromise = <T>(obj:T|Promise<T>):Promise<T> => isPromise(obj) ? obj : Promise.resolve(obj)
+const toPromise = <T>(obj: T | Promise<T>): Promise<T> =>
+  isPromise(obj) ? obj : Promise.resolve(obj)
 const {
   // parseId,
   parseStub,
@@ -96,9 +89,10 @@ const {
 } = validateResource.utils
 
 const { MESSAGE, SIMPLE_MESSAGE } = TYPES
-const noop = (...args:any[]) => {}
+// tslint:disable-next-line:no-empty
+const noop = (...args: any[]) => {}
 
-export const pluck = <T>(arr:T[], key:keyof T) => arr.map(item => item[key])
+export const pluck = <T>(arr: T[], key: keyof T) => arr.map(item => item[key])
 
 const unrefdTimeout = (callback, ms, ...args) => {
   const handle = setTimeout(callback, ms, ...args)
@@ -118,27 +112,31 @@ export const waitImmediate = () => {
   return new Promise(resolve => setImmediate(resolve))
 }
 
-export const wait = (millis=0, unref?) => {
+export const wait = (millis = 0, unref?) => {
   return new Promise(resolve => {
     createTimeout(resolve, millis, unref)
   })
 }
 
-export const timeoutIn = ({ millis=0, error, unref }: ITimeoutOpts) => {
+export const timeoutIn = ({ millis = 0, error, unref }: ITimeoutOpts) => {
   let timeout
   const promise = new Promise((resolve, reject) => {
-    timeout = createTimeout(() => {
-      const actualErr = typeof error === 'function' ? error() : error
+    timeout = createTimeout(
+      () => {
+        const actualErr = typeof error === 'function' ? error() : error
 
-      reject(actualErr || new Errors.Timeout(`timed out after ${millis}ms`))
-    }, millis, unref)
+        reject(actualErr || new Errors.Timeout(`timed out after ${millis}ms`))
+      },
+      millis,
+      unref
+    )
   })
 
   promise.cancel = () => clearTimeout(timeout)
   return promise
 }
 
-export const runWithTimeout = async <T>(fn:() => Promise<T>, opts: ITimeoutOpts):Promise<T> => {
+export const runWithTimeout = async <T>(fn: () => Promise<T>, opts: ITimeoutOpts): Promise<T> => {
   const promise = fn()
   if (opts.millis >= Infinity) return promise
 
@@ -150,20 +148,21 @@ export const runWithTimeout = async <T>(fn:() => Promise<T>, opts: ITimeoutOpts)
   }
 }
 
-export const settle = <T>(promise:Promise<T>):ISettledPromise<T> => {
-  return promise.then(value => ({
-    isFulfilled: true,
-    isRejected: false,
-    value
-  }))
-  .catch(reason => ({
-    isFulfilled: false,
-    isRejected: true,
-    reason
-  }))
+export const settle = <T>(promise: Promise<T>): ISettledPromise<T> => {
+  return promise
+    .then(value => ({
+      isFulfilled: true,
+      isRejected: false,
+      value
+    }))
+    .catch(reason => ({
+      isFulfilled: false,
+      isRejected: true,
+      reason
+    }))
 }
 
-export const allSettled = <T>(promises:Promise<T>[]):Promise<ISettledPromise<T>[]> => {
+export const allSettled = <T>(promises: Promise<T>[]): Promise<ISettledPromise<T>[]> => {
   return Promise.all(promises.map(promise => settle(promise)))
 }
 
@@ -179,72 +178,62 @@ export const toPathValuePairs = obj => {
 }
 
 export {
- format,
- fetch,
- bindAll,
- traverse,
- dotProp,
- co,
- typeforce,
- isGenerator,
- uuid,
- promisify,
- isPromise,
- toPromise,
- setVirtual,
- omitVirtual,
- pickVirtual,
- stripVirtual,
- omitVirtualDeep,
- hasVirtualDeep,
- getResourceIdentifier,
- getPermId,
- parsePermId,
- omitBacklinks,
- pickBacklinks,
- // parseId,
- parseStub,
- encodeDataURI,
- decodeDataURI,
- noop,
- stableStringify,
- safeStringify
+  format,
+  fetch,
+  bindAll,
+  traverse,
+  dotProp,
+  co,
+  typeforce,
+  isGenerator,
+  uuid,
+  promisify,
+  isPromise,
+  toPromise,
+  setVirtual,
+  omitVirtual,
+  pickVirtual,
+  stripVirtual,
+  omitVirtualDeep,
+  hasVirtualDeep,
+  getResourceIdentifier,
+  getPermId,
+  parsePermId,
+  omitBacklinks,
+  pickBacklinks,
+  // parseId,
+  parseStub,
+  encodeDataURI,
+  decodeDataURI,
+  noop,
+  stableStringify,
+  safeStringify
 }
 
 export const pzlib = promisify(zlib)
-export const gzip = (data):Promise<Buffer> => pzlib.gzip(data)
-export const gunzip = (data):Promise<Buffer> => pzlib.gunzip(data)
+export const gzip = (data): Promise<Buffer> => pzlib.gzip(data)
+export const gunzip = (data): Promise<Buffer> => pzlib.gunzip(data)
 
-export function loudCo (gen) {
-  return co(function* (...args) {
-    try {
-      return yield co(gen).apply(this, args)
-    } catch (err) {
-      console.error(err)
-      throw err
-    }
-  })
-}
-
-export function loudAsync (asyncFn) {
+export function loudAsync(asyncFn) {
   return async (...args) => {
     try {
       return await asyncFn(...args)
     } catch (err) {
+      // tslint:disable-next-line:no-console
       console.error(err)
       throw err
     }
   }
 }
 
-export function toBuffer (data) {
+export function toBuffer(data) {
   if (typeof data === 'string') return new Buffer(data)
   if (Buffer.isBuffer(data)) return data
 
   return new Buffer(stableStringify(data))
 }
 
-export function now () {
+export function now() {
   return Date.now()
 }
 
@@ -264,11 +253,13 @@ export function now () {
  * - failures are retried on subsequent calls
  * - once the function succeeds, its response is cached forever
  */
-export function cachifyPromiser (fn, opts={}) {
+export function cachifyPromiser(fn, opts = {}) {
   let promise
-  const cachified = function (...args) {
+  const cachified = function(...args) {
     if (args.length) {
-      throw new Errors.InvalidInput('functions cachified with cachifyPromiser do not accept arguments')
+      throw new Errors.InvalidInput(
+        'functions cachified with cachifyPromiser do not accept arguments'
+      )
     }
 
     if (!promise) {
@@ -293,20 +284,22 @@ class FirstSuccessWrapper extends Error {
 }
 
 // trick from: https://stackoverflow.com/questions/37234191/resolve-es6-promise-with-first-success
-export function firstSuccess (promises) {
-  return Promise.all(promises.map(p => {
-    // If a request fails, count that as a resolution so it will keep
-    // waiting for other possible successes. If a request succeeds,
-    // treat it as a rejection so Promise.all immediately bails out.
-    return p.then(
-      val => {
-        const wrapper = new FirstSuccessWrapper('wrapper for success')
-        wrapper.firstSuccessResult = val
-        return Promise.reject(wrapper)
-      },
-      err => Promise.resolve(err)
-    )
-  })).then(
+export function firstSuccess(promises) {
+  return Promise.all(
+    promises.map(p => {
+      // If a request fails, count that as a resolution so it will keep
+      // waiting for other possible successes. If a request succeeds,
+      // treat it as a rejection so Promise.all immediately bails out.
+      return p.then(
+        val => {
+          const wrapper = new FirstSuccessWrapper('wrapper for success')
+          wrapper.firstSuccessResult = val
+          return Promise.reject(wrapper)
+        },
+        err => Promise.resolve(err)
+      )
+    })
+  ).then(
     // If '.all' resolved, we've just got an array of errors.
     errors => {
       const wrapper = new MultiErrorWrapper('wrapper for errors')
@@ -318,24 +311,29 @@ export function firstSuccess (promises) {
   )
 }
 
-export function uppercaseFirst (str) {
+export function uppercaseFirst(str) {
   return str[0].toUpperCase() + str.slice(1)
 }
 
 const getErrorIdentifier = (err: any) => String(err.code || err.type || err.name)
 
-export const logifyFunction = ({ fn, name, logger, level='silly', logInputOutput=false, printError=getErrorIdentifier }: {
+export const logifyFunction = ({
+  fn,
+  name,
+  logger,
+  level = 'silly',
+  logInputOutput = false,
+  printError = getErrorIdentifier
+}: {
   fn: Function
-  name: string|Function
+  name: string | Function
   logger: Logger
   level?: string
   logInputOutput?: boolean
   printError?: (err: any, args: any[]) => string
 }) => {
-  return async function (...args) {
-    const taskName = typeof name === 'function'
-      ? name.apply(this, args)
-      : name
+  return async function(...args) {
+    const taskName = typeof name === 'function' ? name.apply(this, args) : name
 
     const start = Date.now()
     let duration
@@ -377,11 +375,10 @@ type LogifyOpts = {
   logInputOutput?: boolean
 }
 
-export const logify = <T>(component: T, opts:LogifyOpts, methods?:string[]):T => {
+export const logify = <T>(component: T, opts: LogifyOpts, methods?: string[]): T => {
   const { logger, level, logInputOutput } = opts
   if (!methods) {
-    methods = Object.keys(component)
-      .filter(k => typeof component[k] === 'function')
+    methods = Object.keys(component).filter(k => typeof component[k] === 'function')
   }
 
   const { name } = component.constructor
@@ -446,17 +443,24 @@ export const logify = <T>(component: T, opts:LogifyOpts, methods?:string[]):T =>
 //   return timed
 // }
 
-export function cachify ({ get, put, del, logger, cache, cloneOnGet }: {
-  get:(key:any) => Promise<any>
-  put:(key:any, value:any, ...opts:any[]) => Promise<any|void>
-  del:(key:any) => Promise<any|void>
+export function cachify({
+  get,
+  put,
+  del,
+  logger,
+  cache,
+  cloneOnGet
+}: {
+  get: (key: any) => Promise<any>
+  put: (key: any, value: any, ...opts: any[]) => Promise<any | void>
+  del: (key: any) => Promise<any | void>
   cache: any
   logger?: Logger
   cloneOnGet?: boolean
 }) {
   const pending = {}
   const maybeClone = cloneOnGet ? _.cloneDeep : obj => obj
-  const cachifiedGet = async (key) => {
+  const cachifiedGet = async key => {
     const keyStr = stableStringify(key)
     let val = cache.get(keyStr)
     if (val != null) {
@@ -476,7 +480,7 @@ export function cachify ({ get, put, del, logger, cache, cloneOnGet }: {
       return maybeClone(val)
     }
 
-    if (logger) logger.silly(`cache miss`, { key })
+    if (logger) logger.silly(`cache miss`, { key })
     const promise = get(key)
     promise.catch(err => cache.del(keyStr))
     cache.set(keyStr, promise)
@@ -503,7 +507,7 @@ export function cachify ({ get, put, del, logger, cache, cloneOnGet }: {
       await put(key, value, ...rest)
       cache.set(keyStr, value)
     },
-    del: async (key) => {
+    del: async key => {
       const keyStr = stableStringify(key)
       if (logger) logger.silly('cache unset', { key })
       cache.del(keyStr)
@@ -512,11 +516,11 @@ export function cachify ({ get, put, del, logger, cache, cloneOnGet }: {
   }
 }
 
-export function timestamp () {
+export function timestamp() {
   return microtime.now()
 }
 
-export function executeSuperagentRequest (req) {
+export function executeSuperagentRequest(req) {
   return req.then(res => {
     if (!res.ok) {
       throw new Error(res.text || `request to ${req.url} failed`)
@@ -524,7 +528,7 @@ export function executeSuperagentRequest (req) {
   })
 }
 
-export function promiseCall (fn, ...args) {
+export function promiseCall(fn, ...args) {
   return new Promise((resolve, reject) => {
     args.push((err, result) => {
       if (err) return reject(err)
@@ -576,11 +580,11 @@ export const waterfall = async (fns, ...args) => {
   return result
 }
 
-export const getTodayISO = (utc?:boolean) => {
+export const getTodayISO = (utc?: boolean) => {
   return toISODateString(new Date(), utc)
 }
 
-export const getDateParts = (date:Date, utc=true) => {
+export const getDateParts = (date: Date, utc = true) => {
   return {
     year: utc ? date.getUTCFullYear() : date.getFullYear(),
     month: (utc ? date.getUTCMonth() : date.getMonth()) + 1,
@@ -588,7 +592,7 @@ export const getDateParts = (date:Date, utc=true) => {
   }
 }
 
-export const toISODateString = (dateObj:Date, utc?:boolean) => {
+export const toISODateString = (dateObj: Date, utc?: boolean) => {
   const { year, month, date } = getDateParts(dateObj, utc)
   return `${year}-${zeroPad(month, 2)}-${zeroPad(date, 2)}`
 }
@@ -600,10 +604,10 @@ const zeroPad = (n, digits) => {
 }
 
 export const getLaunchStackUrl = ({
-  region=process.env.AWS_REGION,
+  region = process.env.AWS_REGION,
   stackName,
   templateUrl,
-  quickLink=true
+  quickLink = true
 }: ILaunchStackUrlOpts) => {
   const qs = querystring.stringify(pickNonNull({ stackName, templateURL: templateUrl }))
   const path = quickLink ? 'stacks/create/review' : 'stacks/new'
@@ -617,16 +621,13 @@ export const parseLaunchStackUrl = (url: string) => {
   return { ...q1, ...q2 }
 }
 
-export const getUpdateStackUrl = ({
-  stackId,
-  templateUrl
-}: IUpdateStackUrlOpts) => {
+export const getUpdateStackUrl = ({ stackId, templateUrl }: IUpdateStackUrlOpts) => {
   const qs = querystring.stringify(pickNonNull({ stackId, templateURL: templateUrl }))
   const path = 'stack/update'
   return `${LAUNCH_STACK_BASE_URL}#/${path}?${qs}`
 }
 
-export function domainToUrl (domain) {
+export function domainToUrl(domain) {
   if (domain.startsWith('//')) {
     return 'https:' + domain
   }
@@ -640,17 +641,17 @@ export function domainToUrl (domain) {
 
 export const batchProcess = async ({
   data,
-  batchSize=1,
+  batchSize = 1,
   processOne,
   processBatch,
   settle
 }: {
-  data:any[]
-  batchSize:number
-  processOne?:(item:any, index: number) => Promise<any>
-  processBatch?:(batch:any[], index: number) => Promise<any>
+  data: any[]
+  batchSize: number
+  processOne?: (item: any, index: number) => Promise<any>
+  processBatch?: (batch: any[], index: number) => Promise<any>
   settle?: boolean
-}):Promise<any[]> => {
+}): Promise<any[]> => {
   const batches = _.chunk(data, batchSize)
   const batchResolver = settle ? settleMap : Promise.map
   const results = await Promise.mapSeries(batches, (batch, i) => {
@@ -664,25 +665,28 @@ export const batchProcess = async ({
   return _.flatten(results)
 }
 
-export const settleMap = (data, fn):Promise => {
+export const settleMap = (data, fn): Promise => {
   return RESOLVED_PROMISE.then(() => allSettled(data.map(item => fn(item))))
 }
 
-export const settleSeries = <T>(data, fn:(item:any)=>T|Promise<T>):ISettledPromise<T> => {
-  return Promise.mapSeries(data, (item:any) => {
+export const settleSeries = <T>(data, fn: (item: any) => T | Promise<T>): ISettledPromise<T> => {
+  return Promise.mapSeries(data, (item: any) => {
     return settle(RESOLVED_PROMISE.then(() => fn(item)))
   })
 }
 
-export const runWithBackoffWhile = async (fn, {
-  initialDelay=1000,
-  maxAttempts=10,
-  maxTime=60000,
-  factor=2,
-  shouldTryAgain=_.stubTrue,
-  maxDelay,
-  logger
-}: IBackoffOptions) => {
+export const runWithBackoffWhile = async (
+  fn,
+  {
+    initialDelay = 1000,
+    maxAttempts = 10,
+    maxTime = 60000,
+    factor = 2,
+    shouldTryAgain = _.stubTrue,
+    maxDelay,
+    logger
+  }: IBackoffOptions
+) => {
   if (typeof maxDelay !== 'number') maxDelay = maxTime / 2
 
   const start = Date.now()
@@ -699,11 +703,7 @@ export const runWithBackoffWhile = async (fn, {
       if (logger) logger.debug(`backing off ${millisToWait}`)
 
       await wait(millisToWait)
-      millisToWait = Math.min(
-        maxDelay,
-        millisToWait * factor,
-        maxTime - (Date.now() - start)
-      )
+      millisToWait = Math.min(maxDelay, millisToWait * factor, maxTime - (Date.now() - start))
 
       if (millisToWait < 0) {
         if (logger) logger.debug('giving up')
@@ -718,17 +718,13 @@ export const runWithBackoffWhile = async (fn, {
 const GIVE_UP_TIME = 2000
 const GIVE_UP_RETRY_TIME = 5000
 interface RetryOpts {
-  attemptTimeout: number,
-  onError?: (err: any) => void,
+  attemptTimeout: number
+  onError?: (err: any) => void
   env: Env
 }
 
-export const tryUntilTimeRunsOut = async (fn:()=>Promise, opts:RetryOpts) => {
-  const {
-    attemptTimeout,
-    onError=noop,
-    env
-  } = opts
+export const tryUntilTimeRunsOut = async (fn: () => Promise, opts: RetryOpts) => {
+  const { attemptTimeout, onError = noop, env } = opts
 
   let err
   let timeout
@@ -738,7 +734,7 @@ export const tryUntilTimeRunsOut = async (fn:()=>Promise, opts:RetryOpts) => {
     timeout = Math.min(attemptTimeout, timeLeft / 2)
     try {
       await runWithTimeout(fn, {
-        millis: timeout,
+        millis: timeout
       })
     } catch (e) {
       err = e
@@ -761,7 +757,7 @@ export const tryUntilTimeRunsOut = async (fn:()=>Promise, opts:RetryOpts) => {
 }
 
 export const seriesMap = async (arr, fn) => {
-  const results:any[] = []
+  const results: any[] = []
   for (const item of arr) {
     const result = await fn(item)
     results.push(result)
@@ -770,7 +766,7 @@ export const seriesMap = async (arr, fn) => {
   return results
 }
 
-export const get = async (url:string, opts:any={}) => {
+export const get = async (url: string, opts: any = {}) => {
   // debug(`GET ${url}`)
   const res = await fetch(url, {
     method: 'GET',
@@ -780,7 +776,7 @@ export const get = async (url:string, opts:any={}) => {
   return processResponse(res)
 }
 
-export const post = async (url:string, data:any, opts:any={}) => {
+export const post = async (url: string, data: any, opts: any = {}) => {
   // debug(`POST to ${url}`)
   let body
   const headers = {}
@@ -793,17 +789,23 @@ export const post = async (url:string, data:any, opts:any={}) => {
     body = JSON.stringify(data)
   }
 
-  const res = await fetch(url, _.merge({
-    method: 'POST',
-    headers,
-    body,
-  }, opts))
+  const res = await fetch(
+    url,
+    _.merge(
+      {
+        method: 'POST',
+        headers,
+        body
+      },
+      opts
+    )
+  )
 
   // debug(`processing response from POST to ${url}`)
   return processResponse(res)
 }
 
-export const download = async ({ url }: { url:string }) => {
+export const download = async ({ url }: { url: string }) => {
   // debug(`downloading from ${url}`)
   const res = await fetch(url)
   if (res.status > 300) {
@@ -815,7 +817,7 @@ export const download = async ({ url }: { url:string }) => {
   return buf
 }
 
-export const processResponse = async (res) => {
+export const processResponse = async res => {
   if (!res.ok || res.status > 300) {
     let message: string
     try {
@@ -845,7 +847,7 @@ export const processResponse = async (res) => {
   return text
 }
 
-export const doesHttpEndpointExist = async (url) => {
+export const doesHttpEndpointExist = async url => {
   try {
     const res = await fetch(url, { method: 'HEAD' })
     return res.status === 200
@@ -855,7 +857,7 @@ export const doesHttpEndpointExist = async (url) => {
   }
 }
 
-export function batchByByteLength (arr:(string|Buffer)[], max) {
+export function batchByByteLength(arr: (string | Buffer)[], max) {
   arr = arr.filter(s => s.length)
 
   const batches = []
@@ -889,10 +891,10 @@ export function batchByByteLength (arr:(string|Buffer)[], max) {
 }
 
 export const RESOLVED_PROMISE = Promise.resolve()
-export const promiseNoop = (...args:any[]) => RESOLVED_PROMISE
-export const identityPromise:<T>(val:T) => Promise<T> = val => Promise.resolve(val)
+export const promiseNoop = (...args: any[]) => RESOLVED_PROMISE
+export const identityPromise: <T>(val: T) => Promise<T> = val => Promise.resolve(val)
 
-export function defineGetter (obj, property, getter) {
+export function defineGetter(obj, property, getter) {
   Object.defineProperty(obj, property, {
     get: getter,
     enumerable: true
@@ -901,7 +903,7 @@ export function defineGetter (obj, property, getter) {
 
 export const race = Promise.race
 
-export function parseArn (arn) {
+export function parseArn(arn) {
   // e.g. arn:aws:lambda:us-east-1:0123456789:function:tradle-dev-http_catchall
   const parts = arn.split(':')
   const relativeId = parts.slice(5).join(':')
@@ -930,8 +932,8 @@ export const applyFunction = (fn, context, args) => {
  * @param  {Function} fn function that expects a callback parameter
  * @return {Function} function that returns a promise
  */
-export const wrap = (fn) => {
-  return async function (...args) {
+export const wrap = fn => {
+  return async function(...args) {
     const callback = args.pop()
     let ret
     try {
@@ -964,7 +966,7 @@ export const getSealBasePubKey = (seal: Seal) => {
   if (typeof pub === 'string') pub = Buffer.from(pub, 'hex')
 
   const fingerprint = network.pubKeyToAddress(pub)
-  return  {
+  return {
     [TYPE]: 'tradle.PubKey',
     type: seal.blockchain,
     networkName: seal.network,
@@ -994,7 +996,7 @@ export const summarizeObject = object => {
 
 export const uniqueStrict = arr => {
   const map = new Map()
-  const uniq:any[] = []
+  const uniq: any[] = []
   for (const item of arr) {
     if (!map.has(item)) {
       map.set(item, true)
@@ -1005,12 +1007,8 @@ export const uniqueStrict = arr => {
   return uniq
 }
 
-export const getRequestIps = (req) => {
-  return [
-    req.ip,
-    req.get('x-forwarded-for'),
-    req.get('x-real-ip')
-  ].filter(notNull)
+export const getRequestIps = req => {
+  return [req.ip, req.get('x-forwarded-for'), req.get('x-real-ip')].filter(notNull)
 }
 
 /*
@@ -1020,44 +1018,46 @@ export const getRequestIps = (req) => {
 export const createLambdaContext = (fun, cb?) => {
   const functionName = fun.name
   const endTime = new Date().getTime() + (fun.timeout ? fun.timeout * 1000 : 6000)
-  const done = typeof cb === 'function' ? cb : ((x, y) => x || y) // eslint-disable-line no-extra-parens
+  const done = typeof cb === 'function' ? cb : (x, y) => x || y // eslint-disable-line no-extra-parens
 
   return {
     /* Methods */
     done,
     succeed: res => done(null, res),
-    fail:    err => done(err, null),
+    fail: err => done(err, null),
     getRemainingTimeInMillis: () => endTime - new Date().getTime(),
 
     /* Properties */
     functionName,
-    memoryLimitInMB:    fun.memorySize,
-    functionVersion:    `offline_functionVersion_for_${functionName}`,
+    memoryLimitInMB: fun.memorySize,
+    functionVersion: `offline_functionVersion_for_${functionName}`,
     invokedFunctionArn: `offline_invokedFunctionArn_for_${functionName}`,
-    invokeid:           `offline_invokeid_for_${functionName}`,
-    awsRequestId:       `offline_awsRequestId_${Math.random().toString(10).slice(2)}`,
-    logGroupName:       `offline_logGroupName_for_${functionName}`,
-    logStreamName:      `offline_logStreamName_for_${functionName}`,
-    identity:           {},
-    clientContext:      {},
+    invokeid: `offline_invokeid_for_${functionName}`,
+    awsRequestId: `offline_awsRequestId_${Math.random()
+      .toString(10)
+      .slice(2)}`,
+    logGroupName: `offline_logGroupName_for_${functionName}`,
+    logStreamName: `offline_logStreamName_for_${functionName}`,
+    identity: {},
+    clientContext: {},
     callbackWaitsForEmptyEventLoop: true
   }
 }
 
-export const logResponseBody = (logger:Logger) => (req, res, next) => {
+export const logResponseBody = (logger: Logger) => (req, res, next) => {
   const oldWrite = res.write
   const oldEnd = res.end
-  const chunks = []
+  const chunks: Buffer[] = []
 
-  res.write = (chunk) => {
+  res.write = chunk => {
     chunks.push(chunk)
 
+    // @ts-ignore
     oldWrite.apply(res, arguments)
   }
 
-  res.end = (chunk) => {
-    if (chunk)
-      chunks.push(chunk)
+  res.end = chunk => {
+    if (chunk) chunks.push(chunk)
 
     const body = Buffer.concat(chunks).toString('utf8')
     logger.silly('RESPONSE BODY', {
@@ -1065,17 +1065,18 @@ export const logResponseBody = (logger:Logger) => (req, res, next) => {
       body
     })
 
+    // @ts-ignore
     oldEnd.apply(res, arguments)
   }
 
   next()
 }
 
-export const updateTimestamp = (resource:any, time:number=Date.now()) => {
+export const updateTimestamp = (resource: any, time: number = Date.now()) => {
   resource._time = time
 }
 
-export const ensureTimestamped = (resource) => {
+export const ensureTimestamped = resource => {
   if (!resource._time) {
     if (resource[SIG]) throw new Errors.InvalidInput(`expected unsigned resource`)
 
@@ -1093,10 +1094,7 @@ export const ensureTimestamped = (resource) => {
 //   return cachifyFunction({ fn, cache, logger }, 'fn')
 // }
 
-export const cachifyFunction = (
-  container:CacheContainer,
-  method: string
-) => {
+export const cachifyFunction = (container: CacheContainer, method: string) => {
   const original = container[method]
   const { cache, logger } = container
   const getKey = args => stableStringify(args)
@@ -1124,13 +1122,13 @@ export const cachifyFunction = (
   }
 
   return {
-    set: (args:any[], value) => cache.set(getKey(args), value),
+    set: (args: any[], value) => cache.set(getKey(args), value),
     del: (...args) => cache.del(getKey(args)),
     call
   }
 }
 
-export const timeMethods = <T>(obj:T, logger:Logger):T => {
+export const timeMethods = <T>(obj: T, logger: Logger): T => {
   logger = logger.sub('timer')
   Object.keys(obj).forEach(key => {
     const val = obj[key]
@@ -1159,7 +1157,7 @@ export const timeMethods = <T>(obj:T, logger:Logger):T => {
   return obj
 }
 
-export const syncClock = async (bot:Bot) => {
+export const syncClock = async (bot: Bot) => {
   const { aws, buckets } = bot
   const { PrivateConf } = buckets
   // a cheap request that will trigger clock sync
@@ -1171,22 +1169,22 @@ export const syncClock = async (bot:Bot) => {
   })
 }
 
-export const summarize = (payload:any):string => {
+export const summarize = (payload: any): string => {
   switch (payload[TYPE]) {
-  case SIMPLE_MESSAGE:
-    return payload.message
-  case 'tradle.ProductRequest':
-    return `for ${payload.requestFor}`
-  case 'tradle.Verification':
-    return `for ${payload.document.id}`
-  case 'tradle.FormRequest':
-    return `for ${payload.form}`
-  default:
-    return JSON.stringify(payload).slice(0, 200) + '...'
+    case SIMPLE_MESSAGE:
+      return payload.message
+    case 'tradle.ProductRequest':
+      return `for ${payload.requestFor}`
+    case 'tradle.Verification':
+      return `for ${payload.document.id}`
+    case 'tradle.FormRequest':
+      return `for ${payload.form}`
+    default:
+      return JSON.stringify(payload).slice(0, 200) + '...'
   }
 }
 
-export const getMessageGist = (message):any => {
+export const getMessageGist = (message): any => {
   const base = _.pick(message, ['context', 'forward', 'originalSender'])
   const payload = message.object
   return {
@@ -1197,13 +1195,20 @@ export const getMessageGist = (message):any => {
   }
 }
 
-export const toModelsMap = models => _.transform(models, (result, model:any) => {
-  result[model.id] = model
-}, {})
+export const toModelsMap = models =>
+  _.transform(
+    models,
+    (result, model: any) => {
+      result[model.id] = model
+    },
+    {}
+  )
 
 export const ensureNoVirtualProps = ({ models, resource }) => {
   if (hasVirtualDeep({ models, resource })) {
-    throw new Errors.InvalidObjectFormat(`virtual properties not allowed: ${safeStringify(resource)}`)
+    throw new Errors.InvalidObjectFormat(
+      `virtual properties not allowed: ${safeStringify(resource)}`
+    )
   }
 }
 
@@ -1212,12 +1217,12 @@ export const copyVirtual = (target, source) => {
   return _.extend(target, pickVirtual(source))
 }
 
-export const isLocalUrl = (url:string) => {
+export const isLocalUrl = (url: string) => {
   const { hostname } = parseURL(url)
   return isLocalHost(hostname)
 }
 
-export const isLocalHost = (host:string) => {
+export const isLocalHost = (host: string) => {
   host = host.split(':')[0]
   if (host === 'localhost') return true
 
@@ -1225,8 +1230,8 @@ export const isLocalHost = (host:string) => {
   return isIP && IP.isPrivate(host)
 }
 
-export const pickNonNull = <T>(obj:T):T => _.pickBy(obj as any, val => val != null) as T
-export const toUnsigned = (obj:ITradleObject) => _.omit(omitVirtual(obj), [SIG])
+export const pickNonNull = <T>(obj: T): T => _.pickBy(obj as any, val => val != null) as T
+export const toUnsigned = (obj: ITradleObject) => _.omit(omitVirtual(obj), [SIG])
 export const parseEnumValue = validateResource.utils.parseEnumValue
 export const getEnumValueId = opts => parseEnumValue(opts).id
 
@@ -1249,19 +1254,19 @@ const TIME_BLOCK_SIZE = {
   QUAD_WEEK: 2419200000
 }
 
-export const getHourNumber = (time) => {
+export const getHourNumber = time => {
   return getTimeblockNumber(TIME_BLOCK_SIZE.HOUR, time)
 }
 
-export const getDayNumber = (time) => {
+export const getDayNumber = time => {
   return getTimeblockNumber(TIME_BLOCK_SIZE.DAY, time)
 }
 
-export const getWeekNumber = (time) => {
+export const getWeekNumber = time => {
   return getTimeblockNumber(TIME_BLOCK_SIZE.WEEK, time)
 }
 
-export const getQuadWeekNumber = (time) => {
+export const getQuadWeekNumber = time => {
   return getTimeblockNumber(TIME_BLOCK_SIZE.QUAD_WEEK, time)
 }
 
@@ -1277,10 +1282,8 @@ export const extendTradleObject = (a, b) => {
   return a
 }
 
-export const getStubsByType = (stubs: ResourceStub[], type: string):ParsedResourceStub[] => {
-  return stubs
-    .map(parseStub)
-    .filter(parsed => parsed.type === type)
+export const getStubsByType = (stubs: ResourceStub[], type: string): ParsedResourceStub[] => {
+  return stubs.map(parseStub).filter(parsed => parsed.type === type)
 }
 
 export const isUnsignedType = modelId => UNSIGNED_TYPES.includes(modelId)
@@ -1289,20 +1292,21 @@ type IsPlainObjectOpts = {
   allowBuffers?: boolean
 }
 
-export const isPlainObject = (obj, opts:IsPlainObjectOpts={}) => traverse(obj).reduce(function (isPlain, val) {
-  if (isPlain === false) {
-    this.update(val, true) // stop here
-    return false
-  }
+export const isPlainObject = (obj, opts: IsPlainObjectOpts = {}) =>
+  traverse(obj).reduce(function(isPlain, val) {
+    if (isPlain === false) {
+      this.update(val, true) // stop here
+      return false
+    }
 
-  if (val && typeof val === 'object' && !Array.isArray(val)) {
-    isPlain = _.isPlainObject(val) || (opts.allowBuffers && Buffer.isBuffer(val))
-  }
+    if (val && typeof val === 'object' && !Array.isArray(val)) {
+      isPlain = _.isPlainObject(val) || (opts.allowBuffers && Buffer.isBuffer(val))
+    }
 
-  if (!isPlain) debugger
+    if (!isPlain) debugger
 
-  return isPlain
-}, true)
+    return isPlain
+  }, true)
 
 export const defaultPrimaryKeysSchema = { hashKey: '_permalink' }
 
@@ -1332,25 +1336,29 @@ export const instrumentWithXray = (Component: any, withXrays: any) => {
   Object.keys(withXrays).forEach(method => {
     const orig = Component.prototype[method]
     const instrument = withXrays[method]
-    Component.prototype[method] = async function (...args) {
+    Component.prototype[method] = async function(...args) {
       if (!this.env) throw new Errors.InvalidInput('expected component to have "env"')
 
-      const { logger=consoleLogger } = this
+      const { logger = consoleLogger } = this
       const { xraySegment } = this.env
       if (!xraySegment) {
         logger.warn(`no XRay segment!`)
         return orig.call(this, ...args)
       }
 
-      return AWSXray.captureAsyncFunc(`${name}.${method}`, async (subsegment) => {
-        instrument(args, subsegment)
-        try {
-          return await orig.call(this, ...args)
-        } finally {
-          logger.info(`closing subsegment: ${name}.${method}`)
-          subsegment.close()
-        }
-      }, xraySegment)
+      return AWSXray.captureAsyncFunc(
+        `${name}.${method}`,
+        async subsegment => {
+          instrument(args, subsegment)
+          try {
+            return await orig.call(this, ...args)
+          } finally {
+            logger.info(`closing subsegment: ${name}.${method}`)
+            subsegment.close()
+          }
+        },
+        xraySegment
+      )
     }
   })
 }
@@ -1381,12 +1389,18 @@ const normalizeSendOpts = async (bot: Bot, opts) => {
       typeforce(types.createObjectInput, object)
     }
 
-    typeforce({
-      to: typeforce.oneOf(typeforce.String, typeforce.Object),
-      other: typeforce.maybe(typeforce.Object)
-    }, opts)
+    typeforce(
+      {
+        to: typeforce.oneOf(typeforce.String, typeforce.Object),
+        other: typeforce.maybe(typeforce.Object)
+      },
+      opts
+    )
   } catch (err) {
-    Errors.rethrowAs(err, new Errors.InvalidInput(`invalid params to send: ${prettify(opts)}, err: ${err.message}`))
+    Errors.rethrowAs(
+      err,
+      new Errors.InvalidInput(`invalid params to send: ${prettify(opts)}, err: ${err.message}`)
+    )
   }
 
   opts = _.omit(opts, 'to')
@@ -1420,12 +1434,9 @@ const normalizeSendOpts = async (bot: Bot, opts) => {
 
 const normalizeRecipient = to => to.id || to
 
-export {
-  normalizeSendOpts,
-  normalizeRecipient
-}
+export { normalizeSendOpts, normalizeRecipient }
 
-export const toBotMessageEvent = ({ bot, user, message }):IBotMessageEvent => {
+export const toBotMessageEvent = ({ bot, user, message }): IBotMessageEvent => {
   // identity permalink serves as user id
   const { object } = message
   const type = object[TYPE]
@@ -1437,12 +1448,14 @@ export const toBotMessageEvent = ({ bot, user, message }):IBotMessageEvent => {
     object,
     type,
     link: object._link,
-    permalink: object._permalink,
+    permalink: object._permalink
   }
 }
 
 export const getResourceModuleStore = (bot: Bot) => ({
-  get models() { return bot.models },
+  get models() {
+    return bot.models
+  },
   sign: resource => bot.sign(resource),
   save: resource => {
     // not supported yet
@@ -1455,7 +1468,7 @@ export const getResourceModuleStore = (bot: Bot) => ({
   logger: bot.logger
 })
 
-export const isIntersection = ({ interfaces=[] }) => interfaces.includes('tradle.Intersection')
+export const isIntersection = ({ interfaces = [] }) => interfaces.includes('tradle.Intersection')
 
 export const isWellBehavedIntersection = model => {
   if (!(isIntersection(model) && isInstantiable(model))) return
@@ -1494,7 +1507,7 @@ export const parseStackStatusEvent = (event: any): StackStatusEvent => {
     ResourceStatus,
     ResourceType,
     LogicalResourceId,
-    PhysicalResourceId,
+    PhysicalResourceId
   } = props
 
   const subscriptionArn = event.Records[0].EventSubscriptionArn
@@ -1509,14 +1522,14 @@ export const parseStackStatusEvent = (event: any): StackStatusEvent => {
     resourceType: ResourceType,
     resourceId: PhysicalResourceId,
     resourceName: LogicalResourceId,
-    subscriptionArn,
+    subscriptionArn
   }
 }
 
 export const listIamRoles = async (iam: AWS.IAM) => {
-  const params:AWS.IAM.ListRolesRequest = {}
-  let roles:AWS.IAM.Role[] = []
-  let batch:AWS.IAM.ListRolesResponse
+  const params: AWS.IAM.ListRolesRequest = {}
+  let roles: AWS.IAM.Role[] = []
+  let batch: AWS.IAM.ListRolesResponse
   while (true) {
     batch = await iam.listRoles(params).promise()
     roles = roles.concat(batch.Roles)
@@ -1528,8 +1541,11 @@ export const listIamRoles = async (iam: AWS.IAM) => {
   return roles
 }
 
-export const requireOpts = (opts:any, props:string|string[]) => {
-  const missing = [].concat(props).filter(required => _.get(opts, required) == null).map(prop => `"${prop}"`)
+export const requireOpts = (opts: any, props: string | string[]) => {
+  const missing = []
+    .concat(props)
+    .filter(required => _.get(opts, required) == null)
+    .map(prop => `"${prop}"`)
   if (missing.length) throw new Errors.InvalidInput(`expected ${missing.join(', ')}`)
 }
 
@@ -1537,7 +1553,7 @@ export const isValidDomain = domain => {
   return domain.includes('.') && /^(?:[a-zA-Z0-9-_.]+)$/.test(domain)
 }
 
-export const normalizeDomain = (domain:string) => {
+export const normalizeDomain = (domain: string) => {
   domain = domain.replace(/^(?:https?:\/\/)?(?:www\.)?/, '')
   if (!isValidDomain(domain)) {
     throw new Errors.InvalidInput('invalid domain')
@@ -1551,20 +1567,22 @@ export const genStatementId = (base: string) => `${base}${crypto.randomBytes(6).
 export const selectModelProps = ({ object, models }) => {
   const model = models[object[TYPE]]
   const objModel = models['tradle.Object']
-  const props = Object.keys(model.properties)
-    .filter(prop => prop === TYPE || !objModel.properties[prop])
+  const props = Object.keys(model.properties).filter(
+    prop => prop === TYPE || !objModel.properties[prop]
+  )
 
   const selected = _.pick(object, props)
   selected[TYPE] = object[TYPE]
   return selected
 }
 
-export const getCurrentCallStack = (lineOffset: number = 2) => new Error().stack
-  .split('\n')
-  .slice(lineOffset)
-  .join('\n')
+export const getCurrentCallStack = (lineOffset: number = 2) =>
+  new Error().stack
+    .split('\n')
+    .slice(lineOffset)
+    .join('\n')
 
-export const handleAbandonedPromise = (promise: Promise, logger:Logger = consoleLogger) => {
+export const handleAbandonedPromise = (promise: Promise, logger: Logger = consoleLogger) => {
   // prevent unhandled rejection
   promise.catch(err => {
     logger.warn('abandoned task eventually failed', {
@@ -1575,44 +1593,46 @@ export const handleAbandonedPromise = (promise: Promise, logger:Logger = console
 
 export const isPrimitiveType = val => typeof val !== 'object'
 
-export const plainify = obj => traverse(obj).map(function (value) {
-  if (this.circular) this.remove()
-  if (value == null) return
-  if (isPrimitiveType(value)) return
-  if (Buffer.isBuffer(value)) {
-    let copy
-    try {
-      copy = Buffer.from(value)
-    } catch (err) {
-      copy = '[Buffer uncloneable]'
+export const plainify = obj =>
+  traverse(obj).map(function(value) {
+    if (this.circular) this.remove()
+    if (value == null) return
+    if (isPrimitiveType(value)) return
+    if (Buffer.isBuffer(value)) {
+      let copy
+      try {
+        copy = Buffer.from(value)
+      } catch (err) {
+        copy = '[Buffer uncloneable]'
+      }
+
+      this.update(copy)
     }
 
-    this.update(copy)
-  }
+    if (Array.isArray(value)) return
+    if (!_.isPlainObject(value)) {
+      const name = value.constructor && value.constructor.name
+      this.update(name || 'SomeComplexObject')
+    }
+  })
 
-  if (Array.isArray(value)) return
-  if (!_.isPlainObject(value)) {
-    const name = value.constructor && value.constructor.name
-    this.update(name || 'SomeComplexObject')
-  }
-})
-
-export const wrapSlowPoke = ({ fn, time, onSlow }) => async function (...args) {
-  const start = Date.now()
-  const { stack } = new Error('slow poke')
-  try {
-    return await fn.apply(this, args)
-  } finally {
-    const timePassed = Date.now() - start
-    if (timePassed > time) {
-      try {
-        onSlow({ time: timePassed, args, stack })
-      } catch (err) {
-        Errors.ignoreAll(err)
+export const wrapSlowPoke = ({ fn, time, onSlow }) =>
+  async function(...args) {
+    const start = Date.now()
+    const { stack } = new Error('slow poke')
+    try {
+      return await fn.apply(this, args)
+    } finally {
+      const timePassed = Date.now() - start
+      if (timePassed > time) {
+        try {
+          onSlow({ time: timePassed, args, stack })
+        } catch (err) {
+          Errors.ignoreAll(err)
+        }
       }
     }
   }
-}
 
 export const replaceDeep = (obj: any, match: any, replacement: any) => {
   traverse(obj).forEach(function(value) {
@@ -1622,17 +1642,13 @@ export const replaceDeep = (obj: any, match: any, replacement: any) => {
   })
 }
 
-export const maybeStripProtocolVersion = obj => {
-  if (STRIP_PROTOCOL_VERSION_BEFORE_SIGN) {
-    // TODO: delete this when all have upgraded to mycloud >= 2.2.0
-    delete obj[PROTOCOL_VERSION]
-  }
-}
-
-type Promiser<Input, Output> = (input:Input) => Promise<Output>
+type Promiser<Input, Output> = (input: Input) => Promise<Output>
 type ErrorHandler = (err: any) => void
 
-export const tryAsync = <A, B>(fn:Promiser<A, B|void>, onError:ErrorHandler=noop) => async (input) => {
+export const tryAsync = <A, B>(
+  fn: Promiser<A, B | void>,
+  onError: ErrorHandler = noop
+) => async input => {
   try {
     return await fn(input)
   } catch (err) {
@@ -1643,3 +1659,14 @@ export const tryAsync = <A, B>(fn:Promiser<A, B|void>, onError:ErrorHandler=noop
     }
   }
 }
+
+export const assertNoNullProps = (obj: any, msg: string) => {
+  for (let p in obj) {
+    if (obj[p] == null) {
+      throw new Errors.InvalidInput(msg)
+    }
+  }
+}
+
+export const getPNSTopic = (opts: GetPNSTopicOpts) =>
+  `arn:aws:sns:${opts.region}:${opts.notifierAccountId}:${opts.accountId}-${opts.permalink}`

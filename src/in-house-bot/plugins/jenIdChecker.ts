@@ -123,8 +123,7 @@ export class JenIdCheckerAPI {
                 'clientID' : CLIENT_ID,
                 'description' : '',
                 'inputImages' : jsonInputImages,
-                'captureDeviceType' : 5,
-                'faceImage' : {},
+                'captureDeviceType' : 5
            }
         }
       
@@ -164,15 +163,14 @@ export class JenIdCheckerAPI {
                 this.logger.debug(`Deleting data from ${PROVIDER} for ${ASPECTS}: ${JSON.stringify(removed.data)}`);
             }
             
-            // removing dublicate information
-            delete result.data.outputData.resultString
+            // preserve as raw data only documentresult
+            result.data = result.data.outputData.resultJson.documentresult
+          
+            result.data = sanitize(result.data).sanitized
 
-            let securitystatus = result.data.outputData.resultJson.documentresult.securitystatus
-            let processingstatus = result.data.outputData.resultJson.documentresult.processingstatus 
+            let securitystatus = result.data.securitystatus
+            let processingstatus = result.data.processingstatus 
             this.logger.debug(`Received data from ${PROVIDER} with security status: ${JSON.stringify(securitystatus)}`);
-            
-            if (result.data)
-                result.data = sanitize(result.data).sanitized   
             
             if (processingstatus.code !== '0') {
                 return { 
@@ -181,12 +179,13 @@ export class JenIdCheckerAPI {
                     rawData : result.data
                 }
             }        
-            else if (+securitystatus.overallriskvalue >= this.conf.threshold) 
+            else if (+securitystatus.overallriskvalue >= this.conf.threshold) {
                 return { 
                    status: 'fail', 
                    message: `Check failed: ${securitystatus.statusdescription}`,
                    rawData : result.data
                 }
+            }    
             return  { 
                 status: 'pass', 
                 message: `Check passed: ${securitystatus.statusdescription}`,

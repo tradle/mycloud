@@ -1,33 +1,24 @@
-import once from 'lodash/once'
 import { EventSource } from '../lambda'
 import { createLambda as createBaseLambda } from '../lambda'
 import { configureLambda } from './'
 import { safeStringify } from '../string-utils'
 import Errors from '../errors'
-import { createAWSWrapper } from '../aws'
-import { createLogger } from '../logger'
-import { Env, createEnv } from '../env'
+import { createEnv } from '../env'
 import { syncClock } from '../utils'
 import {
   IPBotLambdaOpts,
   IPBLambda as Lambda,
   IPBLambdaHttp as LambdaHttp,
-  IPBLambdaSNS as LambdaSNS,
+  IPBLambdaSNS as LambdaSNS
 } from './types'
+import { createClientCache } from '../aws/config'
 
-export {
-  Lambda,
-  EventSource
-}
+export { Lambda, EventSource }
 
 type IPBPartialOpts = Partial<IPBotLambdaOpts>
 
-export const createLambda = (_opts: Partial<IPBotLambdaOpts>):Lambda => {
-  const {
-    event,
-    preware,
-    ...lambdaOpts
-  } = normalizeOpts(_opts)
+export const createLambda = (_opts: Partial<IPBotLambdaOpts>): Lambda => {
+  const { event, preware, ...lambdaOpts } = normalizeOpts(_opts)
 
   const lambda = createBaseLambda(lambdaOpts) as Lambda
   const { source } = lambdaOpts
@@ -61,7 +52,7 @@ export const createLambda = (_opts: Partial<IPBotLambdaOpts>):Lambda => {
         execCtx: lambda.execCtx,
         reqCtx: lambda.reqCtx,
         tasks: lambda.tasks.describe(),
-        reason: 'bot is not ready',
+        reason: 'bot is not ready'
       })
 
       ensureNotBroken()
@@ -74,7 +65,7 @@ export const createLambda = (_opts: Partial<IPBotLambdaOpts>):Lambda => {
     bot = components.bot
     lambda.tasks.add({
       name: 'system:syncclock',
-      promiser: () => syncClock(bot),
+      promiser: () => syncClock(bot)
     })
 
     // no point in warming up as these events
@@ -105,28 +96,37 @@ const normalizeOpts = (opts: IPBPartialOpts): IPBotLambdaOpts => {
     env = createEnv()
   }
 
-  const logger = env.logger.sub(`lambda:${env.FUNCTION_NAME}`)
-
   if (!aws) {
-    aws = createAWSWrapper({ env, logger })
+    aws = createClientCache(env)
   }
 
+  const logger = env.logger.sub(`lambda:${env.FUNCTION_NAME}`)
   return {
     ...opts,
     event,
     env,
-    aws,
     logger,
+    aws
   }
 }
 
-export const fromHTTP = (opts: IPBPartialOpts):LambdaHttp => createLambda({ ...opts, source: EventSource.HTTP }) as LambdaHttp
-export const fromDynamoDB = (opts: IPBPartialOpts):Lambda => createLambda({ ...opts, source: EventSource.DYNAMODB })
-export const fromIot = (opts: IPBPartialOpts):Lambda => createLambda({ ...opts, source: EventSource.IOT })
-export const fromSchedule = (opts: IPBPartialOpts):Lambda => createLambda({ ...opts, source: EventSource.SCHEDULE })
-export const fromCloudFormation = (opts: IPBPartialOpts):Lambda => createLambda({ ...opts, source: EventSource.CLOUDFORMATION })
-export const fromLambda = (opts: IPBPartialOpts):Lambda => createLambda({ ...opts, source: EventSource.LAMBDA })
-export const fromS3 = (opts: IPBPartialOpts):Lambda => createLambda({ ...opts, source: EventSource.S3 })
-export const fromSNS = (opts: IPBPartialOpts):LambdaSNS => createLambda({ ...opts, source: EventSource.SNS })
-export const fromCli = (opts: IPBPartialOpts):Lambda => createLambda({ ...opts, source: EventSource.CLI })
-export const fromCloudwatchLogs = (opts: IPBPartialOpts):Lambda => createLambda({ ...opts, source: EventSource.CLOUDWATCH_LOGS })
+export const fromHTTP = (opts: IPBPartialOpts): LambdaHttp =>
+  createLambda({ ...opts, source: EventSource.HTTP }) as LambdaHttp
+export const fromDynamoDB = (opts: IPBPartialOpts): Lambda =>
+  createLambda({ ...opts, source: EventSource.DYNAMODB })
+export const fromIot = (opts: IPBPartialOpts): Lambda =>
+  createLambda({ ...opts, source: EventSource.IOT })
+export const fromSchedule = (opts: IPBPartialOpts): Lambda =>
+  createLambda({ ...opts, source: EventSource.SCHEDULE })
+export const fromCloudFormation = (opts: IPBPartialOpts): Lambda =>
+  createLambda({ ...opts, source: EventSource.CLOUDFORMATION })
+export const fromLambda = (opts: IPBPartialOpts): Lambda =>
+  createLambda({ ...opts, source: EventSource.LAMBDA })
+export const fromS3 = (opts: IPBPartialOpts): Lambda =>
+  createLambda({ ...opts, source: EventSource.S3 })
+export const fromSNS = (opts: IPBPartialOpts): LambdaSNS =>
+  createLambda({ ...opts, source: EventSource.SNS })
+export const fromCli = (opts: IPBPartialOpts): Lambda =>
+  createLambda({ ...opts, source: EventSource.CLI })
+export const fromCloudwatchLogs = (opts: IPBPartialOpts): Lambda =>
+  createLambda({ ...opts, source: EventSource.CLOUDWATCH_LOGS })

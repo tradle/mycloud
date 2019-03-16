@@ -1,3 +1,5 @@
+Error.stackTraceLimit = Infinity
+
 import { install as installSourceMapSupport } from 'source-map-support'
 
 installSourceMapSupport()
@@ -14,8 +16,11 @@ import AWS from 'aws-sdk'
 AWS.config.setPromisesDependency(Promise)
 
 import AWSXRay from 'aws-xray-sdk-core'
+import yn from 'yn'
 
-const xrayIsOn = process.env.TRADLE_BUILD !== '1' && process.env._X_AMZN_TRACE_ID
+const xrayIsOn =
+  yn(process.env.ENABLE_XRAY) && !yn(process.env.TRADLE_BUILD) && process.env._X_AMZN_TRACE_ID
+
 process.env.XRAY_IS_ON = xrayIsOn ? '1' : ''
 
 import mockery from 'mockery'
@@ -25,7 +30,6 @@ import { requestInterceptor } from './request-interceptor'
 
 const warn = (...args) => {
   // no need to pollute with this anymore
-
   // if (!process.env.IS_OFFLINE) {
   //   console.warn(...args)
   // }

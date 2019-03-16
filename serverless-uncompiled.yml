@@ -276,7 +276,7 @@ custom:
   #     SecretsBucket:
   #       SSEAlgorithm: AES256
 
-  logRetentionInDays: 3
+  logRetentionInDays: 1
   # daysBeforeLogsGoToGlacier: 7
 
   # issue2233WorkaroundKey: issue2233WorkaroundKey
@@ -335,6 +335,8 @@ provider:
     STACK_STAGE:
       Ref: Stage
     NO_TIME_TRAVEL: false # allow time-travel messages for now
+    ENABLE_XRAY:
+      Ref: EnableTracing
     R_STACK:
       Ref: AWS::StackId
     R_BUCKET_Objects:
@@ -364,6 +366,8 @@ provider:
       Fn::GetAtt: IAM.Outputs.AutoScalingDynamoDBRole
     R_TOPIC_AdminAlerts:
       Ref: AwsAlertsAlarm
+    IOT_ENDPOINT:
+      Fn::GetAtt: Discovery.Outputs.IotEndpoint
 
   apiKeys:
     - Fn::Sub: 'issue2233WorkaroundKey1-${AWS::StackName}'
@@ -1177,13 +1181,13 @@ functions:
     handler: lib/in-house-bot/lambda/log-alert-processor.handler
     # events added at runtime
 
-  shortToLongUrlMapping:
-    handler: lib/in-house-bot/lambda/http/short-to-long-url-mapping.handler
-    events:
-      - http:
-          path: l/{any+}
-          method: get
-          cors: ${{self:custom.cors}}
+  # shortToLongUrlMapping:
+  #   handler: lib/in-house-bot/lambda/http/short-to-long-url-mapping.handler
+  #   events:
+  #     - http:
+  #         path: l/{any+}
+  #         method: get
+  #         cors: ${{self:custom.cors}}
 
 resources:
   Parameters:
@@ -1307,9 +1311,17 @@ resources:
         - "true"
         - "false"
 
+    # default to deleting logs
+    # by setting transition days > TTL days
     LogsDaysBeforeTransitionToGlacier:
       Type: Number
-      Default: 7
+      Description: days before logs are transitioned to Amazon Glacier
+      Default: 3
+
+    LogsTTL:
+      Type: Number
+      Description: days before logs are deleted from Amazon Glacier
+      Default: 1
 
     EncryptBuckets:
       Type: String
@@ -1325,12 +1337,12 @@ resources:
         - "true"
         - "false"
 
-    # EnableTracing:
-    #   Type: String
-    #   Default: "false"
-    #   AllowedValues:
-    #     - "true"
-    #     - "false"
+    EnableTracing:
+      Type: String
+      Default: "true"
+      AllowedValues:
+        - "true"
+        - "false"
 
     # Stack Info group
 
@@ -1360,9 +1372,10 @@ resources:
             - PointInTimeRecoveryEnabledBucket0Table
             - ProvisionDynamoDBScaling
             - LogsDaysBeforeTransitionToGlacier
+            - LogsTTL
             - EncryptBuckets
             - EncryptTables
-            # - EnableTracing
+            - EnableTracing
 
         - Label:
             default: "Stack Info"
@@ -1445,12 +1458,14 @@ resources:
           default: Use DynamoDB provisioned auto-scaling policy
         LogsDaysBeforeTransitionToGlacier:
           default: days before logs are transitioned from to Glacier
+        LogsTTL:
+          default: days before logs are deleted forever (from Glacier)
         EncryptBuckets:
-          default: "Encrypt Buckets"
+          default: encrypt buckets
         EncryptTables:
-          default: "Encrypt Tables"
-        # EnableTracing:
-        #   default: "Enable AWS X-Ray Tracing for Lambda Functions"
+          default: encrypt tables
+        EnableTracing:
+          default: enable AWS X-Ray tracing for lambda functions
 
         # Stack Info
         Stage:
@@ -1544,6 +1559,12 @@ resources:
         VersioningConfiguration:
           Status: Enabled
 
+    Discovery:
+      Type: AWS::CloudFormation::Stack
+      Properties:
+        TemplateURL:
+          Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/discovery.json'
+
     Keys:
       Type: AWS::CloudFormation::Stack
       Properties:
@@ -1605,6 +1626,8 @@ resources:
               - Ref: ExistingDeploymentBucket # ServerlessDeploymentBucket
           LogsDaysBeforeTransitionToGlacier:
             Ref: LogsDaysBeforeTransitionToGlacier
+          LogsTTL:
+            Ref: LogsTTL
           EncryptionKey:
             Fn::If:
               - DoEncryptBuckets
@@ -1691,6 +1714,7 @@ resources:
     Initialize:
       Type: Custom::InitializeDeployment
       DependsOn:
+        - Discovery
         - Buckets
         - Keys
         - Tables

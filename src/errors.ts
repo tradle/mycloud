@@ -4,9 +4,10 @@ import _ from 'lodash'
 import ex from 'error-ex'
 import { AssertionError } from 'assert'
 import { TfTypeError, TfPropertyTypeError } from 'typeforce'
+import { Errors as DBErrors } from '@tradle/dynamodb'
 import { LowFundsInput } from './types'
 
-function createError (name: string): ErrorConstructor {
+function createError(name: string): ErrorConstructor {
   return ex(name)
 }
 
@@ -36,9 +37,10 @@ const types = {
   ]
 }
 
-const isSystemError = err => types.system.some(ErrorCtor => {
-  return err instanceof ErrorCtor
-})
+const isSystemError = err =>
+  types.system.some(ErrorCtor => {
+    return err instanceof ErrorCtor
+  })
 
 const matches = (err, type) => {
   if (!(err && type)) {
@@ -86,7 +88,13 @@ const rethrow = (err, type) => {
 }
 
 const copyStackFrom = (source, target) => {
-  target.stack = target.stack.split('\n').slice(0,2).join('\n') + '\n' + source.stack
+  target.stack =
+    target.stack
+      .split('\n')
+      .slice(0, 2)
+      .join('\n') +
+    '\n' +
+    source.stack
 }
 
 const rethrowAs = (original, errToThrow) => {
@@ -124,12 +132,7 @@ class ErrorWithLink extends ExportableError {
 class CloudServiceError extends Error {
   public service: string
   public retryable: boolean
-  constructor (opts: {
-    message:string,
-    service:string,
-    retryable: boolean,
-    [x:string]: any
-  }) {
+  constructor(opts: { message: string; service: string; retryable: boolean; [x: string]: any }) {
     super(opts.message)
     _.extend(this, opts)
   }
@@ -143,14 +146,14 @@ class TimeTravel extends ErrorWithLink {
   public name = 'TimeTravelError'
 }
 
-type StringOrNum = string|number
+type StringOrNum = string | number
 
 const getLowFundsMessage = ({
   blockchain,
   networkName,
   address,
   balance,
-  minBalance,
+  minBalance
 }: LowFundsInput) => {
   const prefix = `blockchain ${blockchain} network ${networkName} address ${address} balance is`
   if (_.isUndefined(balance) || _.isUndefined(minBalance)) {
@@ -168,13 +171,7 @@ class LowFunds extends Error implements LowFundsInput {
   public minBalance?: StringOrNum
   constructor(opts: LowFundsInput) {
     super(getLowFundsMessage(opts))
-    const {
-      blockchain,
-      networkName,
-      address,
-      balance,
-      minBalance,
-    } = opts
+    const { blockchain, networkName, address, balance, minBalance } = opts
 
     this.address = address
     this.blockchain = blockchain
@@ -184,30 +181,67 @@ class LowFunds extends Error implements LowFundsInput {
   }
 }
 
-const exportError = (err:Error) => {
-  const obj:any = _.pick(err, ['message', 'stack', 'name', 'type'])
+const EXPORTABLE_PROPS = [
+  'message',
+  'stack',
+  'name',
+  'type',
+  'retryable',
+  'itemPermalink',
+  'permalink'
+]
+
+const exportError = (err: Error) => {
+  const obj: any = _.pick(err, EXPORTABLE_PROPS)
+  const name = obj.name || obj.type
   if (obj.type && obj.message && !obj.message.startsWith(obj.type)) {
     obj.message = `${obj.type}: ${obj.message}`
   }
 
+  obj.name = obj.type = name
   return obj
+}
+
+class NotFound extends Error {}
+class UnknownAuthor extends NotFound {
+  public name = 'UnknownAuthor'
+  public itemPermalink?: string
+}
+
+class UnknownPayloadAuthor extends UnknownAuthor {
+  public name = 'UnknownPayloadAuthor'
+}
+class UnknownMessageAuthor extends UnknownAuthor {
+  public name = 'UnknownMessageAuthor'
 }
 
 const NOT_FOUND_MATCH = [
   { name: 'NotFound' },
+  { code: 'NotFound' },
   { code: 'ResourceNotFoundException' },
   { code: 'NoSuchKey' },
   { code: 'NoSuchBucketPolicy' },
+  DBErrors.NotFound,
+  NotFound
 ]
+
+const rethrower = (sourceErrCl, targetErrCl, copyProps = []) => err => {
+  ignore(err, sourceErrCl)
+  const toThrow = new targetErrCl(err.message)
+  _.extend(toThrow, _.pick(err, copyProps))
+  rethrowAs(err, toThrow)
+}
 
 const errors = {
   ClientUnreachable: createError('ClientUnreachable'),
-  NotFound: createError('NotFound'),
+  NotFound,
   Forbidden: createError('Forbidden'),
   Expired: createError('Expired'),
   InvalidSignature: createError('InvalidSignature'),
   InvalidAuthor: createError('InvalidAuthor'),
-  UnknownAuthor: createError('UnknownAuthor'),
+  UnknownAuthor,
+  UnknownMessageAuthor,
+  UnknownPayloadAuthor,
   InvalidVersion: createError('InvalidVersion'),
   InvalidMessageFormat: createError('InvalidMessageFormat'),
   InvalidObjectFormat: createError('InvalidObjectFormat'),
@@ -231,21 +265,20 @@ const errors = {
   DevStageOnly: createError('DevStageOnly'),
   Unsupported: createError('Unsupported'),
   GaveUp: createError('GaveUp'),
-  export: (err:Error):any => {
+  export: (err: Error): any => {
     if (err instanceof ExportableError) {
       return (err as ExportableError).toJSON()
-
     }
     return exportError(err)
   },
   exportMini: (err: any) => ({
     name: err.name || err.type,
-    message: err.message,
+    message: err.message
   }),
-  isDeveloperError: (err:Error): boolean => {
+  isDeveloperError: (err: Error): boolean => {
     return matches(err, 'developer')
   },
-  isCustomError: (err:Error): boolean => {
+  isCustomError: (err: Error): boolean => {
     return err.name in errors
   },
   isNotFound: err => {
@@ -258,6 +291,7 @@ const errors = {
     ignore(err, { code: 'ConditionalCheckFailedException' })
   },
   // @ts-ignore
+  // tslint:disable-next-line:no-empty
   ignoreAll: err => {},
   /**
    * check if error is of a certain type
@@ -265,11 +299,11 @@ const errors = {
    * @param  {String}  type
    * @return {Boolean}
    */
-  is: (err:Error, errType:any): boolean => {
+  is: (err: Error, errType: any): boolean => {
     const { type } = errType
     if (!type) return false
 
-    const { name='' } = err
+    const { name = '' } = err
     return name.toLowerCase() === type.toLowerCase()
   },
   ignore,
@@ -278,6 +312,7 @@ const errors = {
   createClass: createError,
   copyStackFrom,
   rethrowAs,
+  rethrower
 }
 
 export = errors

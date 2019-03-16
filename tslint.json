@@ -17,12 +17,15 @@
     "no-shadowed-variable": false,
     "interface-over-type-literal": false,
     "array-type": [true, "array"],
-    "no-unused-variable": true,
     "prefer-const": false,
     "no-require-imports": false,
     "forin": false,
     "max-classes-per-file": false,
     "no-namespace": false,
-    "no-empty-interface": false
+    "no-empty-interface": false,
+    "ban-types": true,
+    "no-var-requires": false,
+    "comment-format": false,
+    "trailing-comma": false
   }
 }

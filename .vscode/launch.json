@@ -1,0 +1,79 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "MyCloud Local (Debug)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run-script",
+        "debug"
+      ],
+      "skipFiles": [
+        "<node_internals>/**/*.js",
+        "**/node_modules/pify/**/*.js",
+        "**/node_modules/bluebird/**/*.js",
+        "**/node_modules/p-map/**/*.js",
+        "**/node_modules/p-props/**/*.js",
+        "**/node_modules/p-try/**/*.js",
+        "**/node_modules/sinon/**/*.js",
+        "**/node_modules/tape/**/*.js",
+        "**/node_modules/blue-tape/**/*.js",
+        "**/node_modules/lodash/**/*.js"
+      ],
+      "port": 9229
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "MyCloud Local",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run-script",
+        "start:fast"
+      ],
+      "port": 9229
+    },
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach",
+      "port": 9229,
+      "skipFiles": [
+        "<node_internals>/**/*.js",
+        "**/node_modules/pify/**/*.js",
+        "**/node_modules/bluebird/**/*.js",
+        "**/node_modules/p-map/**/*.js",
+        "**/node_modules/p-props/**/*.js",
+        "**/node_modules/p-try/**/*.js",
+        "**/node_modules/sinon/**/*.js",
+        "**/node_modules/tape/**/*.js",
+        "**/node_modules/blue-tape/**/*.js",
+        "**/node_modules/lodash/**/*.js"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Remote Cli",
+      "program": "${workspaceFolder}/lib/scripts/remote-cli.js",
+      "skipFiles": [
+        "<node_internals>/**/*.js",
+        "**/node_modules/pify/**/*.js",
+        "**/node_modules/bluebird/**/*.js",
+        "**/node_modules/p-map/**/*.js",
+        "**/node_modules/p-props/**/*.js",
+        "**/node_modules/p-try/**/*.js",
+        "**/node_modules/sinon/**/*.js",
+        "**/node_modules/tape/**/*.js",
+        "**/node_modules/blue-tape/**/*.js",
+        "**/node_modules/lodash/**/*.js"
+      ],
+      "runtimeArgs": ["--inspect-brk", "--preserve-symlinks"]
+    }
+  ]
+}

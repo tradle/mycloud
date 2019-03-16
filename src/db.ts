@@ -1,9 +1,9 @@
 import _ from 'lodash'
 import dynogels from 'dynogels'
-import { createTable, DB, Table, utils, Search } from '@tradle/dynamodb'
+import { createTable, DB, Table, utils, Search, ITableOpts } from '@tradle/dynamodb'
 import AWS from 'aws-sdk'
 // import { createMessagesTable } from './messages-table'
-import { Logger, Objects, Messages, ITradleObject, Model, ModelStore, AwsApis } from './types'
+import { Logger, Objects, Messages, ITradleObject, Model, ModelStore, ClientCache } from './types'
 import {
   extendTradleObject,
   pluck,
@@ -12,10 +12,10 @@ import {
   getPrimaryKeySchema,
   toSortableTag,
   wrapSlowPoke,
-  isUnsignedType,
+  isUnsignedType
 } from './utils'
 
-import { TYPE, SIG, ORG, AUTHOR, TYPES } from './constants'
+import { TYPE, SIG, ORG, AUTHOR, TYPES, MAX_DB_ITEM_SIZE } from './constants'
 import Errors from './errors'
 
 const { MESSAGE, SEAL_STATE, DELIVERY_ERROR } = TYPES
@@ -26,15 +26,9 @@ const UPDATE = 'tradle.cloud.Update'
 const UPDATE_REQUEST = 'tradle.cloud.UpdateRequest'
 const UPDATE_RESPONSE = 'tradle.cloud.UpdateResponse'
 
-const ALLOW_SCAN = [
-  DELIVERY_ERROR
-]
+const ALLOW_SCAN = [DELIVERY_ERROR]
 
-const ALLOW_SCAN_QUERY = [
-  SEAL_STATE,
-  'tradle.ApplicationSubmission'
-].concat(ALLOW_SCAN)
-
+const ALLOW_SCAN_QUERY = [SEAL_STATE, 'tradle.ApplicationSubmission'].concat(ALLOW_SCAN)
 
 // TODO:
 // add whether list should be allowed with additional filter conditions
@@ -43,7 +37,7 @@ const ALLOW_LIST_TYPE = [
   { type: DELIVERY_ERROR },
   { type: 'tradle.Application' },
   { type: 'tradle.ProductRequest' },
-  { type: 'tradle.documentChecker.Check', sortedByDB: true },
+  { type: 'tradle.documentChecker.Check', sortedByDB: true }
 ]
 
 const isListable = ({ type, sortedByDB }) => {
@@ -64,7 +58,7 @@ const defaultIndexes = [
   }
 ]
 
-const deriveProps = (opts) => {
+const deriveProps = opts => {
   let { item } = opts
   item = _.clone(item)
   if (item[ORG] || item[AUTHOR]) {
@@ -110,7 +104,12 @@ const shouldMinify = item => item[TYPE] !== 'tradle.Message' && !isUnsignedType(
 
 // const REQUIRED_INDEXES = [TYPE_INDEX]
 
-const getControlLatestOptions = ({ table, method, model, resource }: {
+const getControlLatestOptions = ({
+  table,
+  method,
+  model,
+  resource
+}: {
   table: Table
   method: string
   model: Model
@@ -135,11 +134,10 @@ const getControlLatestOptions = ({ table, method, model, resource }: {
     ConditionExpression: Object.keys(table.primaryKeys)
       .map(keyType => `attribute_not_exists(#${keyType})`)
       .join(' and '),
-    ExpressionAttributeNames: Object.keys(table.primaryKeys)
-      .reduce((names, keyType) => {
-        names[`#${keyType}`] = table.primaryKeys[keyType]
-        return names
-      }, {}),
+    ExpressionAttributeNames: Object.keys(table.primaryKeys).reduce((names, keyType) => {
+      names[`#${keyType}`] = table.primaryKeys[keyType]
+      return names
+    }, {}),
     ExpressionAttributeValues: {
       ':link': resource._link
     }
@@ -160,20 +158,14 @@ type DBOpts = {
   modelStore: ModelStore
   objects: Objects
   messages: Messages
-  aws: AwsApis
+  clients: ClientCache
   dbUtils: any
   logger: Logger
 }
 
-export = function createDB ({
-  modelStore,
-  objects,
-  aws,
-  dbUtils,
-  messages,
-  logger
-}: DBOpts) {
-  const { docClient, dynamodb } = aws
+export = function createDB({ modelStore, objects, clients, dbUtils, messages, logger }: DBOpts) {
+  const docClient = clients.documentclient
+  const dynamodb = clients.dynamodb
   dynogels.dynamoDriverAndDocClient(dynamodb, docClient)
 
   const tableBuckets = dbUtils.getTableBuckets()
@@ -204,28 +196,35 @@ export = function createDB ({
     const idx = table.indexes.findIndex(i => i === index)
     const modelIdx = getIndexesForModel({ table, model })[idx]
     if (!modelIdx) {
-      console.warn('expected corresponding model index', { index, model })
+      logger.warn('expected corresponding model index', { index, model })
       return
     }
 
-    if (modelIdx.hashKey === TYPE &&
+    if (
+      modelIdx.hashKey === TYPE &&
       // !search.sortedByDB &&
-      !isListable(search)) {
+      !isListable(search)
+    ) {
       debugger
       logger.error('will soon forbid expensive query', summarizeSearch(search))
       // throw new Errors.InvalidInput(`your filter/orderBy is too broad, please narrow down your query`)
     }
   }
 
-  const commonOpts = {
+  const commonOpts: Partial<ITableOpts> = {
     docClient,
-    get models() { return modelStore.models },
+    get models() {
+      return modelStore.models
+    },
     // all models in one table in our case
-    get modelsStored() { return modelStore.models },
+    get modelsStored() {
+      return modelStore.models
+    },
     objects,
     allowScan: isScanAllowed,
     shouldMinify,
     deriveProps,
+    maxItemSize: MAX_DB_ITEM_SIZE
   }
 
   const getIndexesForModel = ({ table, model }) => {
@@ -252,20 +251,21 @@ export = function createDB ({
   }
 
   const tableNames = tableBuckets.map(({ TableName }) => TableName)
-  // @ts-ignore
   const db = new DB({
-    // logger,
+    // modelStore needs to become an interface
+    // @ts-ignore
     modelStore,
     tableNames,
     defineTable: name => {
-      const cloudformation:AWS.DynamoDB.CreateTableInput = tableBuckets[tableNames.indexOf(name)].Properties
+      const cloudformation: AWS.DynamoDB.CreateTableInput =
+        tableBuckets[tableNames.indexOf(name)].Properties
       const table = createTable({
         ...commonOpts,
         tableDefinition: cloudformation,
         // all key props are derived
         derivedProps: pluck(cloudformation.AttributeDefinitions, 'AttributeName'),
         getIndexesForModel
-      })
+      } as ITableOpts)
 
       table.find = wrapSlowPoke({
         fn: table.find.bind(table),
@@ -286,7 +286,6 @@ export = function createDB ({
           })
         }
       }
-
       ;['put', 'update'].forEach(method => {
         table.hook(`${method}:pre`, controlLatestHooks(method))
       })
@@ -323,7 +322,7 @@ export = function createDB ({
   }
 
   const fixVersionInfoFilter = ({ GT, LT }) => {
-    [GT, LT].forEach(conditions => {
+    ;[GT, LT].forEach(conditions => {
       if (!conditions) return
 
       if (conditions.tag && !conditions.sortableTag) {
@@ -335,12 +334,12 @@ export = function createDB ({
 
   // const stripArtificialProps = items => items.map(item => _.omit(item, ARTIFICIAL_PROPS))
 
-  const postProcessSearchResult = async ({ args=[], result }) => {
+  const postProcessSearchResult = async ({ args = [], result }) => {
     const { items } = result
     if (!(items && items.length)) return
 
     const opts = args[0] || {}
-    const { EQ={} } = opts.filter
+    const { EQ = {} } = opts.filter
 
     // if (!opts.keepDerivedProps) {
     //   result.items = items = stripArtificialProps(items)
@@ -351,7 +350,9 @@ export = function createDB ({
     const msgs = items.map(messages.formatForDelivery)
     const { select } = opts
     if (!select || select.includes('object')) {
-      const payloads:ITradleObject[] = await Promise.all(msgs.map(msg => objects.get(msg.object._link)))
+      const payloads: ITradleObject[] = await Promise.all(
+        msgs.map(msg => objects.get(msg.object._link))
+      )
       payloads.forEach((payload, i) => extendTradleObject(msgs[i].object, payload))
     }
 
@@ -364,14 +365,15 @@ export = function createDB ({
   //   })
   // }
 
-  const preProcessSearch = async (opts) => {
+  const preProcessSearch = async opts => {
     const { args } = opts
     const { filter } = args[0]
     if (!(filter && filter.EQ)) return
 
     const type = filter.EQ[TYPE]
     if (type === MESSAGE) fixMessageFilter(filter)
-    if (type === VERSION_INFO ||
+    if (
+      type === VERSION_INFO ||
       type === UPDATE ||
       type === UPDATE_REQUEST ||
       type === UPDATE_RESPONSE
@@ -386,7 +388,7 @@ export = function createDB ({
     }
 
     // if (typeof resource[TIMESTAMP] !== 'number') {
-      // throw new Errors.InvalidInput(`expected "${TIMESTAMP}"`)
+    // throw new Errors.InvalidInput(`expected "${TIMESTAMP}"`)
     // }
   }
 
@@ -399,7 +401,7 @@ const logifyDB = (db: DB, logger: Logger) => {
     logger,
     fn: db.find.bind(db),
     level: 'silly',
-    name: opts => `DB.find ${opts.filter.EQ[TYPE]}`,
+    name: opts => `DB.find ${opts.filter.EQ[TYPE]}`
     // printError: verbosePrint
   })
 
@@ -407,16 +409,15 @@ const logifyDB = (db: DB, logger: Logger) => {
     logger,
     fn: db.batchPut.bind(db),
     level: 'silly',
-    name: 'DB.batchPut',
+    name: 'DB.batchPut'
     // printError: verbosePrint
   })
-
   ;['get', 'put', 'del', 'update', 'merge'].forEach(method => {
     db[method] = logifyFunction({
       logger,
       fn: db[method].bind(db),
       level: 'silly',
-      name: opts => opts[TYPE] ? `DB.${method} ${opts[TYPE]}` : method,
+      name: opts => (opts[TYPE] ? `DB.${method} ${opts[TYPE]}` : method)
       // printError: verbosePrint
     })
   })
