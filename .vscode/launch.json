@@ -73,7 +73,7 @@
         "**/node_modules/blue-tape/**/*.js",
         "**/node_modules/lodash/**/*.js"
       ],
-      "runtimeArgs": ["--inspect-brk"]
+      "runtimeArgs": ["--inspect-brk", "--preserve-symlinks"]
     }
   ]
 }
