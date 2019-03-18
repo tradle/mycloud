@@ -3,8 +3,6 @@
 // tslint:disable:no-console
 const dateOfBirth = Date.now()
 
-require('source-map-support').install()
-
 // require('time-require')
 import './globals'
 
