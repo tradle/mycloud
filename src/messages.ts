@@ -2,31 +2,13 @@ import _ from 'lodash'
 import { TYPE, SIG } from '@tradle/constants'
 import { FindOpts } from '@tradle/dynamodb'
 import { utils as tradleUtils } from '@tradle/engine'
-import {
-  ITradleMessage,
-  IECMiniPubKey,
-  Env,
-  Identities,
-  Objects,
-  Logger,
-  DB
-} from './types'
+import { ITradleMessage, IECMiniPubKey, Env, Identities, Objects, Logger, DB } from './types'
 
 import Errors from './errors'
-import {
-  typeforce,
-  pickVirtual,
-  setVirtual,
-  logify
-} from './utils'
+import { typeforce, pickVirtual, setVirtual, logify } from './utils'
 import { getLink } from './crypto'
 import * as types from './typeforce-types'
-import {
-  TYPES,
-  SEQ,
-  PREV_TO_RECIPIENT,
-  TIMESTAMP
-} from './constants'
+import { TYPES, SEQ, PREV_TO_RECIPIENT, TIMESTAMP } from './constants'
 
 const { MESSAGE } = TYPES
 
@@ -39,7 +21,7 @@ const MESSAGE_PROPS = _.uniq(
 )
 
 const MESSAGE_PROPS_MINUS_PAYLOAD = MESSAGE_PROPS.slice().filter(p => p !== 'object')
-const getSelect = (body?: boolean) => body ? MESSAGE_PROPS : MESSAGE_PROPS_MINUS_PAYLOAD
+const getSelect = (body?: boolean) => (body ? MESSAGE_PROPS : MESSAGE_PROPS_MINUS_PAYLOAD)
 
 const unserializeMessage = message => {
   if (Buffer.isBuffer(message)) {
@@ -83,15 +65,15 @@ type MessagesOpts = {
 }
 
 export default class Messages {
-  constructor (private components: MessagesOpts) {
-    logify(this, {
-      logger: components.logger,
-      level: 'silly',
-    }, [
-      'getMessagesTo',
-      'getLastMessageFrom',
-      'getLastSeqAndLink'
-    ])
+  constructor(private components: MessagesOpts) {
+    logify(
+      this,
+      {
+        logger: components.logger,
+        level: 'silly'
+      },
+      ['getMessagesTo', 'getLastMessageFrom', 'getLastSeqAndLink']
+    )
   }
 
   // lazy load
@@ -117,7 +99,7 @@ export default class Messages {
 
   public validateInbound = validateInbound
 
-  public getPropsDerivedFromLast = (last) => {
+  public getPropsDerivedFromLast = last => {
     const seq = last ? last.seq + 1 : 0
     const props = { [SEQ]: seq }
     if (last) {
@@ -133,13 +115,13 @@ export default class Messages {
 
   public formatForDelivery = _.identity
 
-  public serializePubKey = (key:IECMiniPubKey):string => {
+  public serializePubKey = (key: IECMiniPubKey): string => {
     if (typeof key === 'string') return key
 
     return `${key.curve}:${key.pub.toString('hex')}`
   }
 
-  public unserializePubKey = (key:string):IECMiniPubKey => {
+  public unserializePubKey = (key: string): IECMiniPubKey => {
     if (typeof key !== 'string') return key
 
     const [curve, pub] = key.split(':')
@@ -149,10 +131,7 @@ export default class Messages {
     }
   }
 
-  public getMessageStub = (opts: {
-    message: ITradleMessage,
-    error?: any
-  }):IMessageStub => {
+  public getMessageStub = (opts: { message: ITradleMessage; error?: any }): IMessageStub => {
     const { message, error } = opts
     const stub = {
       link: (error && error.link) || getLink(message),
@@ -197,17 +176,11 @@ export default class Messages {
     // ])
   }
 
-  public putOutboundMessage = async (opts: {
-    message: ITradleMessage,
-    item
-  }):Promise<void> => {
+  public putOutboundMessage = async (opts: { message: ITradleMessage; item }): Promise<void> => {
     await this.db.put(opts.item)
   }
 
-  public putInboundMessage = async (opts: {
-    message: ITradleMessage,
-    item
-  }):Promise<void> => {
+  public putInboundMessage = async (opts: { message: ITradleMessage; item }): Promise<void> => {
     const { item, message } = opts
     try {
       await this.db.put(item, {
@@ -226,22 +199,26 @@ export default class Messages {
     }
   }
 
-  public loadMessage = async (message: ITradleMessage):Promise<ITradleMessage> => {
+  public loadMessage = async (message: ITradleMessage): Promise<ITradleMessage> => {
     const body = await this.objects.get(getLink(message.object))
     message.object = _.extend(message.object || {}, body)
     return message
   }
 
-  public getLastMessageFrom = async ({ author, body }: {
-    author: string,
+  public getLastMessageFrom = async ({
+    author,
+    body
+  }: {
+    author: string
     body: boolean
-  }):Promise<ITradleMessage> => {
+  }): Promise<ITradleMessage> => {
     const opts = getBaseFindOpts({
       select: getSelect(body),
       match: {
         _counterparty: author,
         _inbound: true
       },
+      // don't omit "limit"
       limit: 1,
       orderBy: TIMESTAMP,
       reverse: true
@@ -250,9 +227,11 @@ export default class Messages {
     return await this.db.findOne(opts)
   }
 
-  public getLastSeqAndLink = async ({ recipient }: {
+  public getLastSeqAndLink = async ({
+    recipient
+  }: {
     recipient: string
-  }):Promise<ISeqAndLink|null> => {
+  }): Promise<ISeqAndLink | null> => {
     this.logger.debug(`looking up last message to ${recipient}`)
 
     const opts = getBaseFindOpts({
@@ -263,6 +242,7 @@ export default class Messages {
       orderBy: TIMESTAMP,
       reverse: true,
       select: [SEQ, '_link'],
+      // don't omit "limit"
       limit: 1
     })
 
@@ -291,12 +271,17 @@ export default class Messages {
   //   return last + 1
   // })
 
-  public getMessagesTo = async ({ recipient, gt=0, limit, body=true }: {
-    recipient: string,
-    gt?: number,
-    limit?:number,
-    body?:boolean
-  }):Promise<ITradleMessage[]> => {
+  public getMessagesTo = async ({
+    recipient,
+    gt = 0,
+    limit,
+    body = true
+  }: {
+    recipient: string
+    gt?: number
+    limit?: number
+    body?: boolean
+  }): Promise<ITradleMessage[]> => {
     const opts = getBaseFindOpts({
       limit,
       match: {
@@ -316,15 +301,20 @@ export default class Messages {
     return body ? Promise.all(messages.map(this.loadMessage)) : messages
   }
 
-  public getLastMessageTo = async ({ recipient, body = true }: {
-    recipient: string,
+  public getLastMessageTo = async ({
+    recipient,
+    body = true
+  }: {
+    recipient: string
     body?: boolean
-  }):Promise<ITradleMessage> => {
-    const opts:any = getBaseFindOpts({
+  }): Promise<ITradleMessage> => {
+    const opts: any = getBaseFindOpts({
       match: {
         _counterparty: recipient,
         _inbound: false
       },
+      // don't omit "limit"
+      limit: 1,
       orderBy: TIMESTAMP,
       reverse: true,
       select: getSelect(body)
@@ -333,28 +323,35 @@ export default class Messages {
     return await this.db.findOne(opts)
   }
 
-  public getLastMessageByContext = async ({ inbound, context } : {
+  public getLastMessageByContext = async ({
+    inbound,
+    context
+  }: {
     context: string
     inbound: boolean
   }) => {
     return this.getMessagesByContext({ inbound, context, limit: 1, reverse: true })
   }
 
-  public getMessagesByContext = async ({ inbound, context, limit, reverse=true } : {
+  public getMessagesByContext = async ({
+    inbound,
+    context,
+    limit,
+    reverse = true
+  }: {
     context: string
     inbound: boolean
     limit: number
     reverse?: boolean
   }) => {
-
-    const filter:any = {
+    const filter: any = {
       EQ: {
         [TYPE]: MESSAGE,
         context
       }
     }
 
-    const opts:FindOpts = {
+    const opts: FindOpts = {
       limit,
       filter,
       orderBy: {
@@ -398,7 +395,7 @@ export default class Messages {
   //   }
   // })
 
-  public assertTimestampIncreased = async (message) => {
+  public assertTimestampIncreased = async message => {
     const link = getLink(message)
     const time = message[TIMESTAMP] || 0
     try {
@@ -412,7 +409,9 @@ export default class Messages {
       }
 
       if (prev[TIMESTAMP] >= time) {
-        const msg = `TimeTravel: timestamp for message ${link} is <= the previous messages's (${prev._link})`
+        const msg = `TimeTravel: timestamp for message ${link} is <= the previous messages's (${
+          prev._link
+        })`
         this.logger.debug(msg)
         throw new Errors.TimeTravel(msg, link)
       }
@@ -420,7 +419,6 @@ export default class Messages {
       Errors.ignoreNotFound(err)
     }
   }
-
 
   public getMessagePayload = async ({ bot, message }) => {
     if (message.object[SIG]) {
@@ -430,7 +428,10 @@ export default class Messages {
     return await this.objects.get(getLink(message.object))
   }
 
-  public static getDCounterpartyKey = ({ _counterparty, _inbound }: {
+  public static getDCounterpartyKey = ({
+    _counterparty,
+    _inbound
+  }: {
     _counterparty: string
     _inbound?: boolean
   }) => {
@@ -440,21 +441,19 @@ export default class Messages {
 
   public getDCounterpartyKey = Messages.getDCounterpartyKey
 
-// private assertNoDrift = (message) => {
-//   const drift = message[TIMESTAMP] - Date.now()
-//   const side = drift > 0 ? 'ahead' : 'behind'
-//   if (Math.abs(drift) > MAX_CLOCK_DRIFT) {
-//     this.debug(`message is more than ${MAX_CLOCK_DRIFT}ms ${side} server clock`)
-//     throw new Errors.ClockDrift(`message is more than ${MAX_CLOCK_DRIFT}ms ${side} server clock`)
-//   }
-// }
-
+  // private assertNoDrift = (message) => {
+  //   const drift = message[TIMESTAMP] - Date.now()
+  //   const side = drift > 0 ? 'ahead' : 'behind'
+  //   if (Math.abs(drift) > MAX_CLOCK_DRIFT) {
+  //     this.debug(`message is more than ${MAX_CLOCK_DRIFT}ms ${side} server clock`)
+  //     throw new Errors.ClockDrift(`message is more than ${MAX_CLOCK_DRIFT}ms ${side} server clock`)
+  //   }
+  // }
 }
 
 export { Messages }
 
 // private static methods
-
 
 // for this to work, need a Global Secondary Index on `time`
 //
@@ -476,7 +475,7 @@ export { Messages }
 //   return await Promise.all(messages.map(loadMessage))
 // })
 
-const validateInbound = (message) => {
+const validateInbound = message => {
   try {
     typeforce(types.message, message)
   } catch (err) {
@@ -484,13 +483,19 @@ const validateInbound = (message) => {
   }
 }
 
-const getBaseFindOpts = ({ match={}, limit, orderBy, reverse, select }: {
+const getBaseFindOpts = ({
+  match = {},
+  limit,
+  orderBy,
+  reverse,
+  select
+}: {
   match?: Partial<ITradleMessage>
   limit?: number
   orderBy?: string
   reverse?: boolean
   select?: string[]
-}):FindOpts => {
+}): FindOpts => {
   const { _counterparty, _inbound } = match
   if (_counterparty) {
     match._dcounterparty = Messages.getDCounterpartyKey({ _counterparty, _inbound })
@@ -498,7 +503,7 @@ const getBaseFindOpts = ({ match={}, limit, orderBy, reverse, select }: {
     delete match._inbound
   }
 
-  const opts:any = {
+  const opts: any = {
     limit,
     filter: {
       EQ: {
