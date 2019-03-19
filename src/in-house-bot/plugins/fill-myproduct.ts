@@ -13,11 +13,7 @@ export class FillMyProductPlugin {
   private bot: Bot
   private conf: any
   private logger: Logger
-  constructor({ bot, conf, logger }: {
-    bot: Bot
-    conf: any
-    logger: Logger
-  }) {
+  constructor({ bot, conf, logger }: { bot: Bot; conf: any; logger: Logger }) {
     this.bot = bot
     this.conf = conf
     this.logger = logger
@@ -39,7 +35,8 @@ export class FillMyProductPlugin {
     const modelToProps = {}
     const stubsNeeded = stubs.filter(({ type }) => {
       const { id, properties } = models[type]
-      return propsToFill.some(prop => {
+
+      let propsFound = propsToFill.filter(prop => {
         if (propToModel[prop]) return
         if (!(prop in properties)) return
 
@@ -51,17 +48,34 @@ export class FillMyProductPlugin {
         modelToProps[id].push(prop)
         return true
       })
+      return propsFound.length
     })
+    // const stubsNeeded = stubs.filter(({ type }) => {
+    //   const { id, properties } = models[type]
+    //   return propsToFill.some(prop => {
+    //     if (propToModel[prop]) return
+    //     if (!(prop in properties)) return
+
+    //     propToModel[prop] = model
+    //     if (!modelToProps[id]) {
+    //       modelToProps[id] = []
+    //     }
+
+    //     modelToProps[id].push(prop)
+    //     return true
+    //   })
+    // })
 
     const forms = await Promise.all(stubsNeeded.map(stub => this.bot.objects.get(stub.link)))
     for (const form of forms) {
       const props = modelToProps[form[TYPE]]
       _.extend(certificate, _.pick(form, props))
     }
+    debugger
   }
 }
 
-export const createPlugin:CreatePlugin<void> = ({ bot }, { conf, logger }) => ({
+export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => ({
   plugin: new FillMyProductPlugin({ bot, conf, logger })
 })
 
