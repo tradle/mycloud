@@ -193,11 +193,11 @@ export const loadComponentsAndPlugins = ({
   conf,
   event = ''
 }: {
-  bot: Bot
-  logger: Logger
-  conf: IConfComponents
-  event?: string
-}): IBotComponents => {
+    bot: Bot
+    logger: Logger
+    conf: IConfComponents
+    event?: string
+  }): IBotComponents => {
   const {
     enabled,
     maximumApplications,
@@ -264,11 +264,11 @@ export const loadComponentsAndPlugins = ({
     requiresConf = true,
     prepend
   }: {
-    name: string
-    componentName?: string
-    requiresConf?: boolean
-    prepend?: boolean
-  }) => {
+      name: string
+      componentName?: string
+      requiresConf?: boolean
+      prepend?: boolean
+    }) => {
     const pConf = getPluginConf(name)
     if (requiresConf) {
       const hasConf = !!pConf
@@ -283,7 +283,7 @@ export const loadComponentsAndPlugins = ({
     let api
     let plugin
     try {
-      ;({ api, plugin } = Plugins.get(name).createPlugin(components, {
+      ; ({ api, plugin } = Plugins.get(name).createPlugin(components, {
         conf: pConf,
         logger: logger.sub(`plugin-${name}`)
       }))
@@ -670,15 +670,16 @@ export const loadComponentsAndPlugins = ({
       'cibiChecker',
       'gdcChecker',
       'sme-auto-approve',
-      'facetecZoom'
+      'facetecZoom',
+      'finastra'
     ].forEach(name => attachPlugin({ name }))
 
-    ;[
-      'hand-sig',
-      'documentValidity',
-      'fill-myproduct'
-    ].forEach(name => attachPlugin({ name, requiresConf: false }))
-    
+      ;[
+        'hand-sig',
+        'documentValidity',
+        'fill-myproduct'
+      ].forEach(name => attachPlugin({ name, requiresConf: false }))
+
     // used for some demo
     // ;[
     //   'plugin1',
