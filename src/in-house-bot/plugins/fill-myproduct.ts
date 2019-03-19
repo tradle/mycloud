@@ -50,6 +50,7 @@ export class FillMyProductPlugin {
       })
       return propsFound.length
     })
+
     // const stubsNeeded = stubs.filter(({ type }) => {
     //   const { id, properties } = models[type]
     //   return propsToFill.some(prop => {
