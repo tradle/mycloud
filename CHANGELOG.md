@@ -2,19 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0-rc.26](https://github.com/tradle/mycloud/compare/v2.4.0-rc.25...v2.4.0-rc.26) (2019-03-13)
+# [2.4.0-rc.27](https://github.com/tradle/mycloud/compare/v2.4.0-rc.26...v2.4.0-rc.27) (2019-03-19)
 
 
 ### Bug Fixes
 
-* detect missing model when processing backlinks ([e10206a](https://github.com/tradle/mycloud/commit/e10206a))
-* iot disconnected event handling ([9b6e8ad](https://github.com/tradle/mycloud/commit/9b6e8ad))
-* revert lost optimization for http agent reuse ([6405a84](https://github.com/tradle/mycloud/commit/6405a84))
-
-
-### Features
-
-* make facetec zoom verifier conditional ([ccf3311](https://github.com/tradle/mycloud/commit/ccf3311))
+* finastra plugin lifecycle ([35c78ca](https://github.com/tradle/mycloud/commit/35c78ca))
+* make errors to iot client more informative ([23387ae](https://github.com/tradle/mycloud/commit/23387ae))
+* not all props copied to MyProduct ([19e04c6](https://github.com/tradle/mycloud/commit/19e04c6))
+* optimize getLastMessageTo query ([8a82327](https://github.com/tradle/mycloud/commit/8a82327))
 
 
 
