@@ -26,7 +26,7 @@ import validateResource from '@tradle/validate-resource'
 const { sanitize } = validateResource.utils
 
 const PHOTOID = 'tradle.PhotoID'
-const TAXID = 'org.superawesome.TaxId'
+const TAXID = 'tradle.TaxId'
 const ADDRESS = 'tradle.Address'
 
 const PROVIDER = 'Finastra Inc.'
@@ -213,6 +213,7 @@ export const createPlugin: CreatePlugin<IFinastraAPI> = ({ bot, applications }, 
       //TODO accountNumber save in certificate = MyPersonalCheckingAccount  
 
     },
+    /*
     onFormsCollected: async ({ req }) => {
       if (req.skipChecks) return
       const { user, application, applicant, payload } = req
@@ -245,6 +246,7 @@ export const createPlugin: CreatePlugin<IFinastraAPI> = ({ bot, applications }, 
         return
       let accountNumber = await documentChecker.accountCreate(token, customerId)
     }
+    */
   }
 
   return {
