@@ -190,7 +190,9 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
         this.logger.info('I have been disabled :(')
         ctx.body = {}
       } else {
+        const start = Date.now()
         await next()
+        this.logger.debug(`execution time: ${(Date.now() - start)}ms`)
       }
     })
 
@@ -757,6 +759,9 @@ Previous exit stack: ${this.lastExitStack}`)
   }
 
   private _dumpPendingHTTPRequests = (): RequestInfo[] => {
+    // too noisy during dev/testing
+    if (this.isTesting) return []
+
     try {
       return requestInterceptor.getPending()
     } catch (err) {
@@ -788,6 +793,9 @@ Previous exit stack: ${this.lastExitStack}`)
       services: {},
       httpRequests: requestInterceptor.getPending()
     }
+
+    // too noisy during dev/testing
+    if (this.isTesting) return summary
 
     forEachInstantiatedRecordableService(this.aws, (service, name) => {
       if (name.toLowerCase() === 'iotdata') {

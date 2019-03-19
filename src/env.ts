@@ -104,9 +104,9 @@ export default class Env {
     //   : Number(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)
 
     this.logger = new Logger({
-      namespace: props.IS_TESTING ? '' : ROOT_LOGGING_NAMESPACE,
+      namespace: ROOT_LOGGING_NAMESPACE,
       // writer: global.console,
-      writer: props.IS_TESTING ? createTestingLogger(ROOT_LOGGING_NAMESPACE) : global.console,
+      writer: global.console,
       outputFormat: props.DEBUG_FORMAT || 'text',
       context: {},
       level: 'DEBUG_LEVEL' in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG

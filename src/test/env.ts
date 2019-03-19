@@ -16,18 +16,18 @@ import * as serviceMap from './service-map'
 import { targetLocalstack } from '@tradle/aws-common-utils'
 
 const debug = require('debug')('tradle:sls:test:env')
-const props = {
+const getDefaults = () => ({
   AWS_REGION: 'us-east-1',
   NODE_ENV: 'test',
   ...process.env,
   ...serviceMap,
   IS_LOCAL: true
-}
+})
 
 export const createTestEnv = (overrides = {}): Env => {
   // important to import lazily
   const Env = require('../env').default
-  return new Env({ ...props, ...overrides })
+  return new Env({ ...getDefaults(), ...overrides })
 }
 
 const originalHttpRequest = http.request.bind(http)
@@ -51,9 +51,9 @@ export const install = (target = process.env): void => {
   }
 
   if (target instanceof Env) {
-    target.set(props)
+    target.set(getDefaults())
   } else {
-    Object.assign(target, props)
+    Object.assign(target, getDefaults())
   }
 
   // THIS DOESN'T BELONG HERE
@@ -121,6 +121,6 @@ export const install = (target = process.env): void => {
   }
 }
 
-export const get = () => ({ ...props })
+export const get = getDefaults
 
 const randomBase64 = (bytes: number): string => crypto.randomBytes(bytes).toString('base64')
