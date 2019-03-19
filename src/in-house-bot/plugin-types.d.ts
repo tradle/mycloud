@@ -20,6 +20,7 @@ declare namespace PluginLifecycle {
   export type willRequestForm = (opts:IWillRequestFormArg) => void | Promise<void>
   export type willApproveApplication = (opts:IWillJudgeAppArg) => void | Promise<void>
   export type didApproveApplication = (opts:IWillJudgeAppArg, signedObject: ITradleObject) => void | Promise<void>
+  export type willIssueCertificate = (opts:WillIssueCertificateArg) => void | Promise<void>
   export type willDenyApplication = (opts:IWillJudgeAppArg) => void | Promise<void>
   export type onFormsCollected = (opts:IOnFormsCollectedArg) => void | Promise<void>
   export type onPendingApplicationCollision = (opts:IOnPendingApplicationCollisionArg) => void | Promise<void>
@@ -39,6 +40,7 @@ declare namespace PluginLifecycle {
     willSend?: willSend
     willRequestForm?: willRequestForm
     willApproveApplication?: willApproveApplication
+    willIssueCertificate?: willIssueCertificate
     didApproveApplication?: didApproveApplication
     willDenyApplication?: willDenyApplication
     onFormsCollected?: onFormsCollected
@@ -120,6 +122,12 @@ export interface IValidateFormOutput {
   errors?: ValidationError[]
 }
 
+export interface WillIssueCertificateArg { 
+  user: IPBUser
+  application: IPBApp
+  certificate: ITradleObject
+  judge: IPBUser
+}
 export interface IPluginExports<BotComponent> {
   plugin: PluginLifecycle.Methods
   api?: BotComponent

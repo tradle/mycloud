@@ -12,7 +12,8 @@ import {
   CreatePlugin,
   Applications,
   IPluginLifecycleMethods,
-  ValidatePluginConf
+  ValidatePluginConf,
+  WillIssueCertificateArg
 } from '../types'
 
 import {
@@ -180,8 +181,7 @@ export const name = 'finastra'
 export const createPlugin: CreatePlugin<IFinastraAPI> = ({ bot, applications }, { conf, logger }) => {
   const documentChecker = new IFinastraAPI({ bot, applications, conf, logger })
   const plugin: IPluginLifecycleMethods = {
-    didApproveApplication: async (opts: IWillJudgeAppArg, certificate: ITradleObject) => {
-      const { user, application } = opts
+    willIssueCertificate: async ({ user, certificate, application }: WillIssueCertificateArg) => {
       if (!application) return
 
       const photoIdFormStub = getParsedFormStubs(application).find(form => form.type === PHOTOID)
