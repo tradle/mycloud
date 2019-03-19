@@ -3,10 +3,11 @@ import fetch from 'node-fetch'
 import _ from 'lodash'
 import { buildResourceStub } from '@tradle/build-resource'
 import constants from '@tradle/constants'
-import buildResource from '@tradle/build-resource'
+let { TYPE } = constants
 import {
   Bot,
   Logger,
+  IPBApp,
   IWillJudgeAppArg,
   ITradleObject,
   CreatePlugin,
@@ -16,11 +17,9 @@ import {
   WillIssueCertificateArg
 } from '../types'
 
-import {
-  getParsedFormStubs,
-  toISODateString
-} from '../utils'
+import { getParsedFormStubs, getStatusMessageForCheck, toISODateString } from '../utils'
 
+import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
@@ -38,10 +37,21 @@ const FUSION_CREATE_CUSTOMER_URL = API_RETAIL_BASE + '/customers/v1/customers/pe
 const FUSION_CREATE_ACCOUNT_URL = API_RETAIL_BASE + '/accounts/v1/checking-accounts'
 
 const REQUEST_TIMEOUT = 10000
+const ACCOUNT_CREATION_CHECK = 'tradle.AccountCreatingCheck'
+const ASPECTS_CUSTOMER = 'creating an account'
+const ASPECTS_ACCOUNT = 'creating a customer'
 
 interface IFinastraConf {
-  client_id: string,
+  client_id: string
   client_secret: string
+}
+interface IAccountCheck {
+  application: IPBApp
+  accountNumber?: string
+  customerId?: string
+  status: any
+  message?: string
+  aspects: string
 }
 
 const DEFAULT_CONF = {
@@ -61,7 +71,7 @@ export class IFinastraAPI {
     this.logger = logger
   }
 
-  buildCustomer = (photoIdForm, addressForm, taxForm) => {
+  public buildCustomer = (photoIdForm, addressForm, taxForm) => {
     let firstName = photoIdForm.firstName
     let lastName = photoIdForm.lastName
     let dateOfBirth = photoIdForm.dateOfBirth
@@ -76,41 +86,41 @@ export class IFinastraAPI {
     let taxId = taxForm.taxId
     let taxIdType = taxForm.taxIdType.title
 
-
     let customer = {
-      'lastName': lastName,
-      'firstName': firstName,
-      'gender': sex,
-      'taxId': taxId,
-      'taxIdType': taxIdType,
-      'customerCategoryId': '210', // "categoryName": "Personal", "customerType": "Personal"
+      lastName,
+      firstName,
+      gender: sex,
+      taxId,
+      taxIdType,
+      customerCategoryId: '210', // "categoryName": "Personal", "customerType": "Personal"
 
-      'birthDate': toISODateString(dateOfBirth),
-      'addresses': [
+      birthDate: toISODateString(dateOfBirth),
+      addresses: [
         {
-          'addressLine1': streetAddress,
-          'addressLine2': '',
-          'city': city,
-          'state': state,
-          'zipCode': postalCode,
-          'addressTypeId': '1' // Primary
+          addressLine1: streetAddress,
+          addressLine2: '',
+          city,
+          state,
+          zipCode: postalCode,
+          addressTypeId: '1' // Primary
         }
       ]
     }
     return customer
   }
 
-  token = async () => {
-    let auth = 'Basic ' + (new Buffer(this.conf.client_id + ':' + this.conf.client_secret).toString('base64'))
+  public token = async () => {
+    let auth =
+      'Basic ' + new Buffer(this.conf.client_id + ':' + this.conf.client_secret).toString('base64')
 
     const res = await fetch(FUSION_OIDC_URL, {
       method: 'POST',
       headers: {
-        'Authorization': auth,
+        Authorization: auth,
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: 'scope=openid&grant_type=client_credentials',
-      timeout: REQUEST_TIMEOUT,
+      timeout: REQUEST_TIMEOUT
     })
 
     if (!res.ok) {
@@ -122,17 +132,17 @@ export class IFinastraAPI {
     return result.access_token
   }
 
-  customerCreate = async (token, customer) => {
+  public customerCreate = async (token, customer) => {
     let auth = 'Bearer ' + token
     console.log('customer=', JSON.stringify(customer, null, 2))
     const res = await fetch(FUSION_CREATE_CUSTOMER_URL, {
       method: 'POST',
       headers: {
-        'Authorization': auth,
+        Authorization: auth,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(customer),
-      timeout: REQUEST_TIMEOUT,
+      timeout: REQUEST_TIMEOUT
     })
 
     if (!res.ok) {
@@ -144,11 +154,11 @@ export class IFinastraAPI {
     return result.customerId
   }
 
-  accountCreate = async (token, customerId) => {
+  public accountCreate = async (token, customerId) => {
     let auth = 'Bearer ' + token
     const account = {
-      'customerId': customerId,
-      'depositProductCode': '105',
+      customerId,
+      depositProductCode: '105'
       //      'nickname': 'new checking account'
       //      "productId": "105",
       // "productName": "Direct Deposit Personal",
@@ -158,11 +168,11 @@ export class IFinastraAPI {
     const res = await fetch(FUSION_CREATE_ACCOUNT_URL, {
       method: 'POST',
       headers: {
-        'Authorization': auth,
+        Authorization: auth,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(account),
-      timeout: REQUEST_TIMEOUT,
+      timeout: REQUEST_TIMEOUT
     })
 
     if (!res.ok) {
@@ -174,27 +184,55 @@ export class IFinastraAPI {
     return result.accountNumber
   }
 
+  public createCheck = async ({ application, status, accountNumber, customerId, message, aspects }: IAccountCheck) => {
+    let date = new Date().getTime()
+    debugger
+    let resource: any = {
+      [TYPE]: ACCOUNT_CREATION_CHECK,
+      status: status.status,
+      provider: PROVIDER,
+      application: buildResourceStub({ resource: application, models: this.bot.models }),
+      dateChecked: date,
+      aspects,
+    }
+    if (accountNumber)
+      resource.accountNumber = accountNumber
+    if (customerId)
+      resource.customerId = customerId
+    if (message)
+      resource.resultDetails = message
+
+    resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
+
+    this.logger.debug(`${PROVIDER} Creating AccountCreatingCheck for: ${accountNumber}`)
+    const check = await this.bot
+      .draft({ type: ACCOUNT_CREATION_CHECK })
+      .set(resource)
+      .signAndSave()
+    // const check = await this.bot.signAndSave(resource)
+    this.logger.debug(`${PROVIDER} Created Check for: ${accountNumber}`)
+  }
 }
 
 export const name = 'finastra'
 
-export const createPlugin: CreatePlugin<IFinastraAPI> = ({ bot, applications }, { conf, logger }) => {
+export const createPlugin: CreatePlugin<IFinastraAPI> = (
+  { bot, applications },
+  { conf, logger }
+) => {
   const documentChecker = new IFinastraAPI({ bot, applications, conf, logger })
   const plugin: IPluginLifecycleMethods = {
     willIssueCertificate: async ({ user, certificate, application }: WillIssueCertificateArg) => {
       if (!application) return
 
       const photoIdFormStub = getParsedFormStubs(application).find(form => form.type === PHOTOID)
-      if (!photoIdFormStub)
-        return
+      if (!photoIdFormStub) return
 
       const taxFormStub = getParsedFormStubs(application).find(form => form.type === TAXID)
-      if (!taxFormStub)
-        return
+      if (!taxFormStub) return
 
       const addressFormStub = getParsedFormStubs(application).find(form => form.type === ADDRESS)
-      if (!addressFormStub)
-        return
+      if (!addressFormStub) return
 
       const photoIdForm = await bot.getResource(photoIdFormStub)
       const taxForm = await bot.getResource(taxFormStub)
@@ -203,16 +241,39 @@ export const createPlugin: CreatePlugin<IFinastraAPI> = ({ bot, applications }, 
       let customer = documentChecker.buildCustomer(photoIdForm, addressForm, taxForm)
 
       let token = await documentChecker.token()
-      if (!token)
-        return
+      if (!token) return
       let customerId = await documentChecker.customerCreate(token, customer)
-      if (!customerId)
+      if (!customerId) {
+        await documentChecker.createCheck({
+          application,
+          status: { status: 'fail' },
+          message: 'Failed to create a Customer',
+          aspects: ASPECTS_CUSTOMER
+        })
         return
+      }
+      debugger
       let accountNumber = await documentChecker.accountCreate(token, customerId)
+      if (!accountNumber) {
+        await documentChecker.createCheck({
+          application,
+          customerId,
+          status: { status: 'fail' },
+          message: 'Failed to open an account',
+          aspects: ASPECTS_ACCOUNT
+        })  
+        return
+      }
       certificate.accountNumber = accountNumber
-      //TODO accountNumber save in certificate = MyPersonalCheckingAccount  
-
-    },
+      await documentChecker.createCheck({
+        application,
+        customerId,
+        accountNumber,
+        status: { status: 'pass' },
+        aspects: ASPECTS_ACCOUNT
+      })
+      //TODO accountNumber save in certificate = MyPersonalCheckingAccount
+    }
     /*
     onFormsCollected: async ({ req }) => {
       if (req.skipChecks) return
@@ -253,22 +314,16 @@ export const createPlugin: CreatePlugin<IFinastraAPI> = ({ bot, applications }, 
     plugin,
     api: documentChecker
   }
-
 }
 
-export const validateConf: ValidatePluginConf = async (opts) => {
+export const validateConf: ValidatePluginConf = async opts => {
   const pluginConf = opts.pluginConf as IFinastraConf
   const { client_id, client_secret } = pluginConf
 
   let err = ''
-  if (!client_id)
-    err = '\nExpected "client_id".'
-  else if (typeof client_id !== 'string')
-    err += '\nExpected "client_id" to be a string.'
-  if (!client_secret)
-    err = '\nExpected "client_secret".'
-  else if (typeof client_secret !== 'string')
-    err += '\nExpected "client_secret" to be a string.'
-  if (err.length)
-    throw new Error(err)
+  if (!client_id) err = '\nExpected "client_id".'
+  else if (typeof client_id !== 'string') err += '\nExpected "client_id" to be a string.'
+  if (!client_secret) err = '\nExpected "client_secret".'
+  else if (typeof client_secret !== 'string') err += '\nExpected "client_secret" to be a string.'
+  if (err.length) throw new Error(err)
 }
