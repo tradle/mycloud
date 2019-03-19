@@ -25,18 +25,43 @@ services:
     image: localstack/localstack:0.9.0
     restart: always
     ports:
-      - "4567-4584:4567-4584"
+      - "4567:4567"
+      - "4568:4568"
+      # - "4569:4569" # use dynalite instead
+      - "4570:4570"
+      - "4571:4571"
+      - "4572:4572"
+      - "4573:4573"
+      - "4574:4574"
+      - "4575:4575"
+      - "4576:4576"
+      - "4577:4577"
+      - "4578:4578"
+      - "4579:4579"
+      - "4580:4580"
+      - "4581:4581"
+      - "4582:4582"
+      - "4583:4583"
+      - "4584:4584"
       - "8080:8080"
     environment:
       - SERVICES=${SERVICES- }
       - DEBUG=${DEBUG- }
-      - DATA_DIR=${DATA_DIR- }
+      # - DATA_DIR=${DATA_DIR- }
       - LAMBDA_EXECUTOR=${LAMBDA_EXECUTOR- }
       - KINESIS_ERROR_PROBABILITY=${KINESIS_ERROR_PROBABILITY- }
       - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
-      - "$LOCALSTACK_DATA_DIR:/tmp/localstack/data"
+      - "$LOCALSTACK_DATA_DIR/main:/tmp/localstack/data"
       - "/var/run/docker.sock:/var/run/docker.sock"
+  dynalite:
+    restart: always
+    image: tradle/dynalite:latest
+    ports:
+      - 4569:4569
+    volumes:
+      - "$LOCALSTACK_DATA_DIR/dynalite:/db"
+    command: dynalite --port 4569 --path /db
   tradle_web:
     image: tradle/web-app:localstack
     restart: always
