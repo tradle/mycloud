@@ -67,7 +67,6 @@ export class S3EmbedResolver implements EmbedResolver {
     const replacements = await this.replaceDataUrls(object)
     if (!replacements.length) return
 
-    this.opts.logger.debug(`replaced ${replacements.length} embedded media`)
     await Promise.all(
       replacements.map(replacement => {
         const { bucket, key, body, mimetype } = replacement
@@ -81,6 +80,8 @@ export class S3EmbedResolver implements EmbedResolver {
         })
       })
     )
+
+    this.opts.logger.debug(`replaced ${replacements.length} embedded media`)
   }
 
   public resolveOne = async (embed: ParsedS3EmbedUrl): Promise<any> => {

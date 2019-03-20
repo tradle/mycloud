@@ -35,8 +35,7 @@ export class FillMyProductPlugin {
     const modelToProps = {}
     const stubsNeeded = stubs.filter(({ type }) => {
       const { id, properties } = models[type]
-
-      let propsFound = propsToFill.filter(prop => {
+      const propsFound = propsToFill.filter(prop => {
         if (propToModel[prop]) return
         if (!(prop in properties)) return
 
@@ -48,31 +47,15 @@ export class FillMyProductPlugin {
         modelToProps[id].push(prop)
         return true
       })
+
       return propsFound.length
     })
-
-    // const stubsNeeded = stubs.filter(({ type }) => {
-    //   const { id, properties } = models[type]
-    //   return propsToFill.some(prop => {
-    //     if (propToModel[prop]) return
-    //     if (!(prop in properties)) return
-
-    //     propToModel[prop] = model
-    //     if (!modelToProps[id]) {
-    //       modelToProps[id] = []
-    //     }
-
-    //     modelToProps[id].push(prop)
-    //     return true
-    //   })
-    // })
 
     const forms = await Promise.all(stubsNeeded.map(stub => this.bot.objects.get(stub.link)))
     for (const form of forms) {
       const props = modelToProps[form[TYPE]]
       _.extend(certificate, _.pick(form, props))
     }
-    debugger
   }
 }
 
