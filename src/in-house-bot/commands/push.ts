@@ -8,7 +8,7 @@ export const command: ICommand = {
   exec: async ({ commander, args }) => {
     const { poke } = args
     if (poke) {
-      await commander.bot.sendPushNotification(poke)
+      await commander.bot.sendPushNotification({ recipient: poke })
     } else {
       throw new Error('invalid options')
     }
