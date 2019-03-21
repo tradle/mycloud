@@ -234,6 +234,7 @@ const rethrower = (sourceErrCl, targetErrCl, copyProps = []) => err => {
 
 const errors = {
   ClientUnreachable: createError('ClientUnreachable'),
+  AbortError: createError('AbortError'),
   NotFound,
   Forbidden: createError('Forbidden'),
   Expired: createError('Expired'),
