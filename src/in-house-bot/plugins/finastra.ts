@@ -17,16 +17,18 @@ import {
   WillIssueCertificateArg
 } from '../types'
 
-import { getParsedFormStubs, getStatusMessageForCheck, toISODateString } from '../utils'
+import { getParsedFormStubs, getStatusMessageForCheck, toISODateString, getChecks } from '../utils'
 
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
+import Errors from '../../errors'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
 const PHOTOID = 'tradle.PhotoID'
 const TAXID = 'tradle.TaxId'
 const ADDRESS = 'tradle.Address'
+const REQUEST_ERROR = 'tradle.RequestError'
 
 const PROVIDER = 'Finastra Inc.'
 
@@ -44,6 +46,7 @@ const ASPECTS_ACCOUNT = 'creating a customer'
 interface IFinastraConf {
   client_id: string
   client_secret: string
+  products: string[]
 }
 interface IAccountCheck {
   application: IPBApp
@@ -53,7 +56,12 @@ interface IAccountCheck {
   message?: string
   aspects: string
 }
-
+interface IFinastraError {
+  application: IPBApp
+  accountNumber?: string
+  customerId?: string
+  judge: any
+}
 const DEFAULT_CONF = {
   client_id: '',
   client_secret: ''
@@ -75,7 +83,7 @@ export class IFinastraAPI {
     let firstName = photoIdForm.firstName
     let lastName = photoIdForm.lastName
     let dateOfBirth = photoIdForm.dateOfBirth
-    let sex = photoIdForm.sex.title
+    let sex = photoIdForm.sex && photoIdForm.sex.title
 
     let streetAddress = addressForm.streetAddress
 
@@ -221,18 +229,64 @@ export const createPlugin: CreatePlugin<IFinastraAPI> = (
   { conf, logger }
 ) => {
   const documentChecker = new IFinastraAPI({ bot, applications, conf, logger })
+  const handleError = async ({ customerId, accountNumber, judge, application }: IFinastraError) => {
+    let message, aspects, errMessage
+    debugger
+    const title = bot.models[application.requestFor].title
+    if (!customerId) {
+      errMessage = `Failed to approve ${title} application \n\nCustomer id was not created`
+      aspects = ASPECTS_CUSTOMER
+      message = 'Failed to create a Customer'
+    } else {
+      errMessage = `Failed to approve ${title} application \n\nAccount was not created`
+      aspects = ASPECTS_ACCOUNT
+      message = 'Failed to open an account'
+    }
+    // await sendRequestError({
+    //   application,
+    //   bot,
+    //   judge,
+    //   message: errMessage
+    // })
+    let check = {
+      application,
+      status: { status: 'fail' },
+      resultDetails: message,
+      aspects,
+      provider: PROVIDER
+    }
+    if (await doesCheckNeedToBeCreated({ check, bot })) await documentChecker.createCheck(check)
+    throw new Errors.AbortError(`${PROVIDER}: ${errMessage}`)
+  }
   const plugin: IPluginLifecycleMethods = {
-    willIssueCertificate: async ({ user, certificate, application }: WillIssueCertificateArg) => {
+    willIssueCertificate: async ({
+      user,
+      certificate,
+      application,
+      judge
+    }: WillIssueCertificateArg) => {
       if (!application) return
 
+      const { products } = conf
+      if (products.indexOf(application.requestFor) === -1) return
       const photoIdFormStub = getParsedFormStubs(application).find(form => form.type === PHOTOID)
-      if (!photoIdFormStub) return
+      const title = bot.models[application.requestFor].title
+      if (!photoIdFormStub)
+        throw new Errors.AbortError(
+          `${PROVIDER} Failed to approve ${title} application. \n\nPhoto ID is missing`
+        )
 
       const taxFormStub = getParsedFormStubs(application).find(form => form.type === TAXID)
-      if (!taxFormStub) return
+      if (!taxFormStub)
+        throw new Errors.AbortError(
+          `${PROVIDER} Failed to approve ${title} application. \n\nTax ID is missing`
+        )
 
       const addressFormStub = getParsedFormStubs(application).find(form => form.type === ADDRESS)
-      if (!addressFormStub) return
+      if (!addressFormStub)
+        throw new Errors.AbortError(
+          `${PROVIDER}: Not enough information for creating an account \n Address is missing`
+        )
 
       const photoIdForm = await bot.getResource(photoIdFormStub)
       const taxForm = await bot.getResource(taxFormStub)
@@ -244,34 +298,25 @@ export const createPlugin: CreatePlugin<IFinastraAPI> = (
       if (!token) return
       let customerId = await documentChecker.customerCreate(token, customer)
       if (!customerId) {
-        await documentChecker.createCheck({
-          application,
-          status: { status: 'fail' },
-          message: 'Failed to create a Customer',
-          aspects: ASPECTS_CUSTOMER
-        })
+        await handleError({ customerId, judge, application })
         return
       }
       debugger
       let accountNumber = await documentChecker.accountCreate(token, customerId)
       if (!accountNumber) {
-        await documentChecker.createCheck({
-          application,
-          customerId,
-          status: { status: 'fail' },
-          message: 'Failed to open an account',
-          aspects: ASPECTS_ACCOUNT
-        })  
+        await handleError({ customerId, accountNumber, judge, application })
         return
       }
       certificate.accountNumber = accountNumber
-      await documentChecker.createCheck({
-        application,
-        customerId,
-        accountNumber,
-        status: { status: 'pass' },
-        aspects: ASPECTS_ACCOUNT
-      })
+      await documentChecker.createCheck(
+        {
+          application,
+          customerId,
+          accountNumber,
+          status: { status: 'pass' },
+          aspects: ASPECTS_ACCOUNT
+        }
+      )
       //TODO accountNumber save in certificate = MyPersonalCheckingAccount
     }
     /*
@@ -315,15 +360,26 @@ export const createPlugin: CreatePlugin<IFinastraAPI> = (
     api: documentChecker
   }
 }
+async function doesCheckNeedToBeCreated({ check, bot }) {
+  let { application, provider, resultDetails } = check
+  let items = await getChecks({ bot, type: ACCOUNT_CREATION_CHECK, application, provider })
+  if (!items.length) return true
+  else {
+    let checks = items.filter(r => r.resultDetails === resultDetails)
+    return !checks.length
+  }
+}
 
 export const validateConf: ValidatePluginConf = async opts => {
   const pluginConf = opts.pluginConf as IFinastraConf
-  const { client_id, client_secret } = pluginConf
+  const { client_id, client_secret, products } = pluginConf
 
   let err = ''
   if (!client_id) err = '\nExpected "client_id".'
   else if (typeof client_id !== 'string') err += '\nExpected "client_id" to be a string.'
   if (!client_secret) err = '\nExpected "client_secret".'
   else if (typeof client_secret !== 'string') err += '\nExpected "client_secret" to be a string.'
+  if (!products) err += '\nExpected "products" array'
+  else if (!Array.isArray(products)) err += '\n"products" should be an Array of string'
   if (err.length) throw new Error(err)
 }
