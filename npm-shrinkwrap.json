@@ -197,12 +197,12 @@
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
       "from": "tradle/bot-employee-manager",
-      "resolved": "git://github.com/tradle/bot-employee-manager.git#f793944338ba5ddf5fe650a0956056c1b33f8f84"
+      "resolved": "git://github.com/tradle/bot-employee-manager.git#ea89726af779473cc5262144dbb13bf0d015d06e"
     },
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products",
-      "resolved": "git://github.com/tradle/bot-products.git#7815b5229bfa0a26bedbb6cbf4420cb5c407d9ef",
+      "resolved": "git://github.com/tradle/bot-products.git#9c00c39ad7b4cfd640827136c9a6a6b89bd6e8be",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
@@ -390,7 +390,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#6404401bdf10cf1574f5ba48305e47363759e08d"
+      "resolved": "git://github.com/tradle/models.git#eacfe07026d7de316692eea7397cb101b4b6f817"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
