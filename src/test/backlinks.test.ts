@@ -1,116 +1,113 @@
 require('./env').install()
 
 import test from 'tape'
-import sinon from 'sinon'
 import buildResource from '@tradle/build-resource'
 import fakeResource from '@tradle/build-resource/fake'
 import {
-  getBacklinkChangesForChanges,
+  getBacklinkChangesForChanges
   // serializeSource,
   // getUpdateForBacklinkChange
 } from '../backlinks'
-import {
-  loudAsync,
-  parseStub
-} from '../utils'
+import { loudAsync, parseStub } from '../utils'
 import { createTestBot } from '../'
+import Errors from '../errors'
+import { wait } from '@tradle/dynamodb/lib/utils'
+import { recreateDB } from './utils'
 
-test('update backlinks', loudAsync(async (t) => {
-  const sandbox = sinon.createSandbox()
-  const { modelStore, db, backlinks } = createTestBot()
-  const models = modelStore.models
-  const model = {
-    ...models['tradle.Verification'],
-    required: ['document', 'organization']
-  }
+test(
+  'update backlinks',
+  loudAsync(async t => {
+    const { modelStore, db, backlinks } = createTestBot()
+    const models = modelStore.models
+    const model = {
+      ...models['tradle.Verification'],
+      required: ['document', 'organization']
+    }
 
-  const createFakeVerification = () => {
-    const v = fakeResource({
+    const createFakeVerification = () => {
+      const v = fakeResource({
+        models,
+        model,
+        signed: true
+      })
+
+      v._time = 12345
+      v.document._t = 'tradle.PhotoID'
+      return v
+    }
+
+    const v = createFakeVerification()
+    // const blItems = backlinks.getForwardLinks(v)
+    const vStub = buildResource.stub({ models, resource: v })
+    const old = {
+      ...createFakeVerification(),
+      _permalink: v._permalink,
+      _time: v._time - 1
+    }
+
+    const oldVStub = buildResource.stub({ models, resource: old })
+    const blChanges = getBacklinkChangesForChanges({
       models,
-      model,
-      signed: true
+      changes: [
+        {
+          value: v,
+          old
+        }
+      ]
     })
 
-    v._time = 12345
-    v.document._t = 'tradle.PhotoID'
-    return v
-  }
+    t.same(blChanges, {
+      add: [
+        {
+          _t: 'tradle.BacklinkItem',
+          source: vStub,
+          linkProp: 'document',
+          backlinkProps: ['verifications'],
+          target: v.document,
+          _time: v._time
+        }
+      ],
+      del: [
+        {
+          _t: 'tradle.BacklinkItem',
+          source: oldVStub,
+          linkProp: 'document',
+          backlinkProps: ['verifications'],
+          target: old.document,
+          _time: old._time
+        }
+      ]
+    })
 
-  const v = createFakeVerification()
-  const blItems = backlinks.getForwardLinks(v)
-  const vStub = buildResource.stub({ models, resource: v })
-  const old = {
-    ...createFakeVerification(),
-    _permalink: v._permalink,
-    _time: v._time - 1
-  }
-
-  const oldVStub = buildResource.stub({ models, resource: old })
-  const blChanges = getBacklinkChangesForChanges({
-    models,
-    changes: [
+    await recreateDB(db)
+    await backlinks.processChanges([
       {
         value: v,
         old
       }
-    ]
-  })
+    ])
 
-  t.same(blChanges, {
-    "add": [
-      {
-        "_t": "tradle.BacklinkItem",
-        "source": vStub,
-        "linkProp": "document",
-        "backlinkProps": ["verifications"],
-        "target": v.document,
-        "_time": v._time
-      }
-    ],
-    "del": [
-      {
-        "_t": "tradle.BacklinkItem",
-        "source": oldVStub,
-        "linkProp": "document",
-        "backlinkProps": ["verifications"],
-        "target": old.document,
-        "_time": old._time
-      }
-    ]
-  })
-
-  await db.destroyTables()
-  await db.createTables()
-
-  await backlinks.processChanges([
-    {
-      value: v,
-      old
+    const docStub = parseStub(v.document)
+    const bls = await backlinks.getBacklinks(docStub)
+    const vBls = {
+      verifications: [vStub]
     }
-  ])
 
-  const docStub = parseStub(v.document)
-  const bls = await backlinks.getBacklinks(docStub)
-  const vBls = {
-    verifications: [
-      vStub
-    ]
-  }
+    t.same(bls, vBls)
 
-  t.same(bls, vBls)
+    const bls1 = await backlinks.getBacklinks({
+      type: docStub.type,
+      permalink: docStub.permalink,
+      properties: ['verifications']
+    })
 
-  const bls1 = await backlinks.getBacklinks({
-    type: docStub.type,
-    permalink: docStub.permalink,
-    properties: ['verifications']
+    t.same(bls1, vBls)
+
+    const bls2 = await backlinks.getBacklinks(parseStub(old.document))
+    t.same(bls2, {})
+    t.end()
   })
-
-  t.same(bls1, vBls)
-
-  const bls2 = await backlinks.getBacklinks(parseStub(old.document))
-  t.same(bls2, {})
-  t.end()
-}))
+)
 
 // test('update backlink', loudAsync(async (t) => {
 //   const sandbox = sinon.createSandbox()

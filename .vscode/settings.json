@@ -1,6 +1,7 @@
 {
   "editor.formatOnSave": true,
   "editor.tabSize": 2,
+  "editor.detectIndentation": false,
   "code-runner.runInTerminal": true,
   "code-runner.executorMap": {
     "javascript": "node",
@@ -28,5 +29,6 @@
   "markdown.extension.toc.updateOnSave": true,
   "markdown.extension.toc.levels": "2..6",
   "markdown.extension.toc.githubCompatibility": true,
-  "markdown.extension.preview.autoShowPreviewToSide": true
+  "markdown.extension.preview.autoShowPreviewToSide": true,
+  "terminal.integrated.macOptionIsMeta": true
 }

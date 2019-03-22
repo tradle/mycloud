@@ -4,7 +4,6 @@ import _ from 'lodash'
 import ex from 'error-ex'
 import { AssertionError } from 'assert'
 import { TfTypeError, TfPropertyTypeError } from 'typeforce'
-import { Errors as DBErrors } from '@tradle/dynamodb'
 import { LowFundsInput } from './types'
 
 function createError(name: string): ErrorConstructor {
@@ -221,7 +220,6 @@ const NOT_FOUND_MATCH = [
   { code: 'ResourceNotFoundException' },
   { code: 'NoSuchKey' },
   { code: 'NoSuchBucketPolicy' },
-  DBErrors.NotFound,
   NotFound
 ]
 
