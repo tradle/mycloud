@@ -62,6 +62,7 @@ services:
     volumes:
       - "$LOCALSTACK_DATA_DIR/dynalite:/db"
     command: dynalite --port 4569 --path /db
+    user: root
   tradle_web:
     image: tradle/web-app:localstack
     restart: always
