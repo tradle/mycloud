@@ -1,5 +1,11 @@
 // tslint:disable:no-console
 
+import { getVar } from '../cli/get-template-var'
+
+if (!process.env.DEBUG) process.env.DEBUG = getVar('debug.filter')
+if (!process.env.DEBUG_FORMAT) process.env.DEBUG_FORMAT = getVar('debug.format')
+if (!process.env.DEBUG_LEVEL) process.env.DEBUG_LEVEL = getVar('debug.level')
+
 import 'nock'
 import { parse as parseURL } from 'url'
 import http from 'http'
@@ -7,6 +13,7 @@ import crypto from 'crypto'
 import _AWS from 'aws-sdk'
 import '../globals'
 import Env from '../env'
+
 // console.warn('make sure localstack is running (npm run localstack:start)')
 
 require('source-map-support').install()

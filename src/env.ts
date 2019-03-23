@@ -15,6 +15,7 @@ import {
 import { WARMUP_SOURCE_NAME, ROOT_LOGGING_NAMESPACE } from './constants'
 import Logger, { Level } from './logger'
 import { parseArn } from './utils'
+import createConsole from './console'
 
 export default class Env {
   public lambda: Lambda
@@ -105,8 +106,7 @@ export default class Env {
 
     this.logger = new Logger({
       namespace: ROOT_LOGGING_NAMESPACE,
-      // writer: global.console,
-      writer: global.console,
+      writer: createConsole(props.IS_TESTING),
       outputFormat: props.DEBUG_FORMAT || 'text',
       context: {},
       level: 'DEBUG_LEVEL' in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG

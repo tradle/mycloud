@@ -22,7 +22,8 @@
   },
   "debug": {
     "format": "json",
-    "level": 4
+    "level": 4,
+    "filter": "DEBUG=λ*,*tradle*,-@tradle/dynamodb"
   },
   "stackParameters": {
     "BlockchainNetwork": "ethereum:rinkeby",
