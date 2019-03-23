@@ -5,13 +5,16 @@ import buildResource from '@tradle/build-resource'
 
 import * as bizUtils from '../../in-house-bot/utils'
 import models from '../../models'
-import { ITradleCheck } from '../../in-house-bot/types'
+import { ITradleCheck, IConfComponents } from '../../in-house-bot/types'
+import { getThirdPartyServiceInfo } from '../../in-house-bot/utils'
 
-const getStatusMessageForCheck = (check: ITradleCheck) => bizUtils.getStatusMessageForCheck({ models, check })
-const buildStatus = value => buildResource.enumValue({
-  model: models['tradle.Status'],
-  value
-})
+const getStatusMessageForCheck = (check: ITradleCheck) =>
+  bizUtils.getStatusMessageForCheck({ models, check })
+const buildStatus = value =>
+  buildResource.enumValue({
+    model: models['tradle.Status'],
+    value
+  })
 
 test('check status message', t => {
   const expected = [
@@ -46,11 +49,54 @@ test('check status message', t => {
   ]
 
   for (const item of expected) {
-    t.equal(getStatusMessageForCheck({
-      aspects: item.in.aspects,
-      status: buildStatus(item.in.status)
-    }), item.out)
+    t.equal(
+      getStatusMessageForCheck({
+        aspects: item.in.aspects,
+        status: buildStatus(item.in.status)
+      }),
+      item.out
+    )
   }
+
+  t.end()
+})
+
+test('getThirdPartyServiceInfo', t => {
+  const shared = {
+    apiKey: 'xyz',
+    apiUrl: 'http://abc.com',
+    services: {
+      a: {
+        enabled: true,
+        path: 'a'
+      },
+      b: {
+        enabled: true,
+        path: 'b'
+      }
+    }
+  }
+
+  t.same(getThirdPartyServiceInfo({ kycServiceDiscovery: shared }, 'a'), {
+    apiKey: shared.apiKey,
+    apiUrl: `${shared.apiUrl}/${shared.services.a.path}`
+  })
+
+  const overrideForService = {
+    ...shared,
+    services: {
+      ...shared.services,
+      b: {
+        ...shared.services.b,
+        apiUrl: 'http://efg.com'
+      }
+    }
+  }
+
+  t.same(getThirdPartyServiceInfo({ kycServiceDiscovery: overrideForService }, 'b'), {
+    apiKey: overrideForService.apiKey,
+    apiUrl: overrideForService.services.b.apiUrl
+  })
 
   t.end()
 })

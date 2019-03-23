@@ -85,7 +85,9 @@ type StringToStringMap = {
 interface KYCServiceDiscoveryMap {
   [serviceName: string]: {
     enabled: boolean
-    path: string
+    path?: string
+    apiUrl?: string
+    apiKey?: string
   }
 }
 

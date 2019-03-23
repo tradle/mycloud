@@ -732,32 +732,42 @@ interface ThirdPartyServiceInfo {
 }
 
 export const getThirdPartyServiceInfo = (
-  conf: IConfComponents,
+  conf: Partial<IConfComponents>,
   name: string
 ): ThirdPartyServiceInfo => {
   const ret: ThirdPartyServiceInfo = {}
   const { kycServiceDiscovery } = conf
   if (!kycServiceDiscovery) return ret
 
-  let { apiKey, apiUrl, services } = kycServiceDiscovery
-  if (!(apiUrl && services)) return ret
+  let { apiKey, services } = kycServiceDiscovery
+  if (!services) return ret
 
   const service = services[name]
   if (!(service && service.enabled)) return ret
+
+  ret.apiKey = service.apiKey || apiKey
+  ret.apiUrl = getServiceApiUrl(conf, name)
+  return ret
+}
+
+const getServiceApiUrl = (conf: Partial<IConfComponents>, name: string): string => {
+  const { kycServiceDiscovery } = conf
+  const override = _.get(kycServiceDiscovery, ['services', name, 'apiUrl'])
+  if (override) return override
+
+  let { apiUrl } = kycServiceDiscovery
+  if (!apiUrl) return null
 
   if (!/https?:\/\//.test(apiUrl)) {
     apiUrl = `http://${apiUrl}`
   }
 
   apiUrl = trimTrailingSlashes(apiUrl)
-  const path = trimLeadingSlashes(service.path)
-
-  ret.apiKey = apiKey
-  ret.apiUrl = `${apiUrl}/${path}`
-  return ret
+  const path = trimLeadingSlashes(kycServiceDiscovery.services[name].path)
+  return `${apiUrl}/${path}`
 }
 
-export const isThirdPartyServiceConfigured = (conf: IConfComponents, name: string) => {
+export const isThirdPartyServiceConfigured = (conf: Partial<IConfComponents>, name: string) => {
   const { apiUrl } = getThirdPartyServiceInfo(conf, name)
   return !!apiUrl
 }
