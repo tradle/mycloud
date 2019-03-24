@@ -40,6 +40,7 @@ const FUSION_CREATE_ACCOUNT_URL = API_RETAIL_BASE + '/accounts/v1/checking-accou
 
 const REQUEST_TIMEOUT = 10000
 const ACCOUNT_CREATION_CHECK = 'tradle.AccountCreatingCheck'
+const ASPECTS_TOKEN = 'create access token'
 const ASPECTS_CUSTOMER = 'creating an account'
 const ASPECTS_ACCOUNT = 'creating a customer'
 
@@ -58,8 +59,9 @@ interface IAccountCheck {
 }
 interface IFinastraError {
   application: IPBApp
-  accountNumber?: string
-  customerId?: string
+  tokenError?: string
+  accountNumberError?: string
+  customerIdError?: string
   judge: any
 }
 const DEFAULT_CONF = {
@@ -132,12 +134,18 @@ export class IFinastraAPI {
     })
 
     if (!res.ok) {
-      console.error('Failed to get fusion API access token, error:', res.statusText)
-      return undefined
+      console.error('Failed to get fusion API access token, error:', res.status + ' ' + res.statusText)
+      let stat = +res.status
+      if (stat == 400) {
+        const result = await res.json()
+        console.log(JSON.stringify(result, null, 2))
+        return { status: false, token: null, error: result.error + ':' + result.error_description }
+      }
+      return { status: false, token: null, error: res.status + ' ' + res.statusText }
     }
     const result = await res.json()
     //console.log(JSON.stringify(result, null, 2))
-    return result.access_token
+    return { status: true, token: result.access_token, error: undefined }
   }
 
   public customerCreate = async (token, customer) => {
@@ -154,12 +162,23 @@ export class IFinastraAPI {
     })
 
     if (!res.ok) {
-      console.error('Failed to create customer, error:', res.statusText)
-      return undefined
+      console.error('Failed to create customer, error:', res.status, res.statusText)
+      let stat = +res.status
+      if (stat == 400 || stat == 500) {
+        const result = await res.json()
+        console.log(JSON.stringify(result, null, 2))
+        return { status: false, id: null, error: result.detail }
+      }
+      if (stat > 400 && stat < 500) {
+        const result = await res.json()
+        console.log(JSON.stringify(result, null, 2))
+        return { status: false, id: null, error: result.message }
+      }
+      return { status: false, id: undefined, error: res.status + ' ' + res.statusText }
     }
     const result = await res.json()
     console.log(JSON.stringify(result, null, 2))
-    return result.customerId
+    return { status: true, id: result.customerId, error: null }
   }
 
   public accountCreate = async (token, customerId) => {
@@ -184,12 +203,23 @@ export class IFinastraAPI {
     })
 
     if (!res.ok) {
-      console.error('Failed to create account, error:', res.statusText)
-      return
+      console.error('Failed to create account, error:', res.status, res.statusText)
+      let stat = +res.status
+      if (stat == 400 || stat == 500) {
+        const result = await res.json()
+        console.log(JSON.stringify(result, null, 2))
+        return { status: false, account: null, error: result.detail }
+      }
+      if (stat > 400 && stat < 500) {
+        const result = await res.json()
+        console.log(JSON.stringify(result, null, 2))
+        return { status: false, account: null, error: result.message }
+      }
+      return { status: false, account: null, error: res.status + ' ' + res.statusText }
     }
     const result = await res.json()
     console.log(JSON.stringify(result, null, 2))
-    return result.accountNumber
+    return { status: true, account: result.accountNumber, error: null }
   }
 
   public createCheck = async ({ application, status, accountNumber, customerId, message, aspects }: IAccountCheck) => {
@@ -229,18 +259,22 @@ export const createPlugin: CreatePlugin<IFinastraAPI> = (
   { conf, logger }
 ) => {
   const documentChecker = new IFinastraAPI({ bot, applications, conf, logger })
-  const handleError = async ({ customerId, accountNumber, judge, application }: IFinastraError) => {
+  const handleError = async ({ tokenError, customerIdError, accountNumberError, judge, application }: IFinastraError) => {
     let message, aspects, errMessage
     debugger
     const title = bot.models[application.requestFor].title
-    if (!customerId) {
+    if (tokenError) {
+      errMessage = `Failed to approve ${title} application \n\nAccess token was not created`
+      aspects = ASPECTS_TOKEN
+      message = tokenError
+    } else if (customerIdError) {
       errMessage = `Failed to approve ${title} application \n\nCustomer id was not created`
       aspects = ASPECTS_CUSTOMER
-      message = 'Failed to create a Customer'
+      message = customerIdError
     } else {
       errMessage = `Failed to approve ${title} application \n\nAccount was not created`
       aspects = ASPECTS_ACCOUNT
-      message = 'Failed to open an account'
+      message = accountNumberError
     }
     // await sendRequestError({
     //   application,
@@ -294,65 +328,33 @@ export const createPlugin: CreatePlugin<IFinastraAPI> = (
 
       let customer = documentChecker.buildCustomer(photoIdForm, addressForm, taxForm)
 
-      let token = await documentChecker.token()
-      if (!token) return
-      let customerId = await documentChecker.customerCreate(token, customer)
-      if (!customerId) {
-        await handleError({ customerId, judge, application })
+      let tokenResult = await documentChecker.token()
+      if (!tokenResult.status) {
+        await handleError({ tokenError: tokenResult.error, judge, application })
+        return
+      }
+      let customerResult = await documentChecker.customerCreate(tokenResult.token, customer)
+      if (!customerResult.status) {
+        await handleError({ customerIdError: customerResult.error, judge, application })
         return
       }
       debugger
-      let accountNumber = await documentChecker.accountCreate(token, customerId)
-      if (!accountNumber) {
-        await handleError({ customerId, accountNumber, judge, application })
+      let accountResult = await documentChecker.accountCreate(tokenResult.token, customerResult.id)
+      if (!accountResult.status) {
+        await handleError({ accountNumberError: accountResult.error, judge, application })
         return
       }
-      certificate.accountNumber = accountNumber
+      certificate.accountNumber = accountResult.account
       await documentChecker.createCheck(
         {
           application,
-          customerId,
-          accountNumber,
+          customerId: customerResult.id,
+          accountNumber: accountResult.account,
           status: { status: 'pass' },
           aspects: ASPECTS_ACCOUNT
         }
       )
-      //TODO accountNumber save in certificate = MyPersonalCheckingAccount
     }
-    /*
-    onFormsCollected: async ({ req }) => {
-      if (req.skipChecks) return
-      const { user, application, applicant, payload } = req
-
-      if (!application) return
-
-      const photoIdFormStub = getParsedFormStubs(application).find(form => form.type === PHOTOID)
-      if (!photoIdFormStub)
-        return
-
-      const taxFormStub = getParsedFormStubs(application).find(form => form.type === TAXID)
-      if (!taxFormStub)
-        return
-
-      const addressFormStub = getParsedFormStubs(application).find(form => form.type === ADDRESS)
-      if (!addressFormStub)
-        return
-
-      const photoIdForm = await bot.getResource(photoIdFormStub)
-      const taxForm = await bot.getResource(taxFormStub)
-      const addressForm = await bot.getResource(addressFormStub)
-
-      let customer = documentChecker.buildCustomer(photoIdForm, addressForm, taxForm)
-
-      let token = await documentChecker.token()
-      if (!token)
-        return
-      let customerId = await documentChecker.customerCreate(token, customer)
-      if (!customerId)
-        return
-      let accountNumber = await documentChecker.accountCreate(token, customerId)
-    }
-    */
   }
 
   return {
