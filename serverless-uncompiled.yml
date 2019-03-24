@@ -326,7 +326,7 @@ provider:
       Ref: SealBatchingPeriodInMinutes
     CORDA_API_URL: ${{self:custom.corda.apiUrl}}
     CORDA_API_KEY: ${{self:custom.corda.apiKey}}
-    DEBUG: '*lambda*,tradle*,-@tradle/dynamodb'
+    DEBUG: ${{self:custom.vars.debug.filter, self:custom.defaults.debug.filter}}
     DEBUG_LEVEL: ${{self:custom.vars.debug.level, self:custom.defaults.debug.level}}
     DEBUG_FORMAT: ${{self:custom.vars.debug.format, self:custom.defaults.debug.format}}
     # SERVERLESS_PREFIX: ${{self:custom.prefix}}
