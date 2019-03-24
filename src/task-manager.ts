@@ -4,9 +4,7 @@ import { omit, partition } from 'lodash'
 import { allSettled } from './utils'
 import Logger from './logger'
 import Errors from './errors'
-import {
-  ISettledPromise
-} from './types'
+import { ISettledPromise } from './types'
 
 export interface ITaskResult<T> extends ISettledPromise<T> {
   name: string
@@ -14,18 +12,18 @@ export interface ITaskResult<T> extends ISettledPromise<T> {
 
 export type Task = {
   name: string
-  promiser?: (...any) => Promise<void|any>
-  promise?: Promise<any|void>
+  promiser?: (...any) => Promise<void | any>
+  promise?: Promise<any | void>
   retryOnFail?: boolean
 }
 
 const RESOLVED = Promise.resolve()
 
 export default class TaskManager {
-  private tasks:Task[]
+  private tasks: Task[]
   private logger: Logger
 
-  constructor({ logger }: { logger?:Logger }={}) {
+  constructor({ logger }: { logger?: Logger } = {}) {
     this.logger = logger || new Logger('task-manager')
     this.tasks = []
   }
@@ -39,7 +37,7 @@ export default class TaskManager {
 
     const promise = task.promise || RESOLVED.then(() => task.promiser())
     task = { ...task, promise }
-    this.monitorTask(task)
+    this.monitorTask(task).catch(Errors.ignoreAll)
     this.tasks.push(task)
     return promise
   }
@@ -51,11 +49,11 @@ export default class TaskManager {
     return await Promise.all(this.tasks.map(task => task.promise))
   }
 
-  public describe = ():string[] => {
+  public describe = (): string[] => {
     return this.tasks.map(({ name }) => name)
   }
 
-  public awaitAllSettled = async ():Promise<ITaskResult<any>> => {
+  public awaitAllSettled = async (): Promise<ITaskResult<any>> => {
     if (!this.tasks.length) {
       this.logger.silly(`no async tasks!`)
       return []
@@ -63,9 +61,11 @@ export default class TaskManager {
 
     const names = this.tasks.map(task => task.name)
     this.logger.debug(`waiting for ${names.length} tasks to complete or fail`)
-    const results:ISettledPromise<any>[] = await allSettled(this.tasks.map(task => task.promise))
+    const results: ISettledPromise<any>[] = await allSettled(this.tasks.map(task => task.promise))
     const [succeeded, failed] = partition(results, r => r.isFulfilled)
-    this.logger.debug(`of ${names.length} tasks, ${succeeded.length} succeeded and ${failed.length} failed`)
+    this.logger.debug(
+      `of ${names.length} tasks, ${succeeded.length} succeeded and ${failed.length} failed`
+    )
     return results.map((result, i) => ({
       ...result,
       name: names[i]
@@ -74,7 +74,7 @@ export default class TaskManager {
 
   public length = () => this.tasks.length
 
-  private monitorTask = async (task) => {
+  private monitorTask = async task => {
     const start = Date.now()
     try {
       await task.promise

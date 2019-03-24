@@ -94,7 +94,8 @@ const models = extend(
   requireModels('@tradle/models-products-bot'),
   requireModels('@tradle/models-onfido'),
   requireModels('@tradle/models-nz'),
-  requireModels('@tradle/models-cloud')
+  requireModels('@tradle/models-cloud'),
+  requireModels('@tradle/models-cloud-services')
 )
 
 export = models as Models

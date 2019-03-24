@@ -107,11 +107,6 @@
           "from": "fast-safe-stringify@>=2.0.6 <3.0.0",
           "resolved": "https://registry.npmjs.org/fast-safe-stringify/-/fast-safe-stringify-2.0.6.tgz"
         },
-        "flatstr": {
-          "version": "1.0.9",
-          "from": "flatstr@>=1.0.9 <2.0.0",
-          "resolved": "https://registry.npmjs.org/flatstr/-/flatstr-1.0.9.tgz"
-        },
         "pino": {
           "version": "5.11.1",
           "from": "pino@>=5.11.1 <5.12.0",
@@ -197,12 +192,12 @@
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
       "from": "tradle/bot-employee-manager",
-      "resolved": "git://github.com/tradle/bot-employee-manager.git#ea89726af779473cc5262144dbb13bf0d015d06e"
+      "resolved": "git://github.com/tradle/bot-employee-manager.git#f793944338ba5ddf5fe650a0956056c1b33f8f84"
     },
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products",
-      "resolved": "git://github.com/tradle/bot-products.git#9c00c39ad7b4cfd640827136c9a6a6b89bd6e8be",
+      "resolved": "git://github.com/tradle/bot-products.git#7815b5229bfa0a26bedbb6cbf4420cb5c407d9ef",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
@@ -396,12 +391,17 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#eacfe07026d7de316692eea7397cb101b4b6f817"
+      "resolved": "git://github.com/tradle/models.git#f349a122286c9caca0f952c864194a5af63a94ad"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
       "from": "tradle/models-cloud",
       "resolved": "git://github.com/tradle/models-cloud.git#e8f9d965014fbc0059d67dbe26706fc21584b812"
+    },
+    "@tradle/models-cloud-services": {
+      "version": "1.0.0",
+      "from": "tradle/models-cloud-services",
+      "resolved": "git://github.com/tradle/models-cloud-services.git#debb87a1c119fdc2c6f4193737e7fc379f0a7330"
     },
     "@tradle/models-corporate-onboarding": {
       "version": "1.0.0",
@@ -2298,7 +2298,6 @@
       "version": "1.1.1",
       "from": "chownr@>=1.0.1 <2.0.0",
       "resolved": "https://registry.npmjs.org/chownr/-/chownr-1.1.1.tgz",
-      "dev": true,
       "optional": true
     },
     "ci-info": {
@@ -4408,8 +4407,7 @@
     "flatstr": {
       "version": "1.0.9",
       "from": "flatstr@>=1.0.4 <2.0.0",
-      "resolved": "https://registry.npmjs.org/flatstr/-/flatstr-1.0.9.tgz",
-      "dev": true
+      "resolved": "https://registry.npmjs.org/flatstr/-/flatstr-1.0.9.tgz"
     },
     "flatten": {
       "version": "1.0.2",
@@ -7831,12 +7829,6 @@
       "resolved": "http://registry.npmjs.org/node-pre-gyp/-/node-pre-gyp-0.10.3.tgz",
       "optional": true,
       "dependencies": {
-        "chownr": {
-          "version": "1.1.1",
-          "from": "chownr@>=1.1.1 <2.0.0",
-          "resolved": "https://registry.npmjs.org/chownr/-/chownr-1.1.1.tgz",
-          "optional": true
-        },
         "gauge": {
           "version": "2.7.4",
           "from": "gauge@>=2.7.3 <2.8.0",
@@ -9842,14 +9834,7 @@
     "sonic-boom": {
       "version": "0.7.3",
       "from": "sonic-boom@>=0.7.1 <0.8.0",
-      "resolved": "https://registry.npmjs.org/sonic-boom/-/sonic-boom-0.7.3.tgz",
-      "dependencies": {
-        "flatstr": {
-          "version": "1.0.9",
-          "from": "flatstr@^1.0.9",
-          "resolved": "https://registry.npmjs.org/flatstr/-/flatstr-1.0.9.tgz"
-        }
-      }
+      "resolved": "https://registry.npmjs.org/sonic-boom/-/sonic-boom-0.7.3.tgz"
     },
     "source-map": {
       "version": "0.6.1",
@@ -11689,19 +11674,17 @@
     "xml2js": {
       "version": "0.4.19",
       "from": "xml2js@latest",
-      "resolved": "https://registry.npmjs.org/xml2js/-/xml2js-0.4.19.tgz",
-      "dependencies": {
-        "xmlbuilder": {
-          "version": "9.0.7",
-          "from": "xmlbuilder@>=9.0.1 <9.1.0",
-          "resolved": "https://registry.npmjs.org/xmlbuilder/-/xmlbuilder-9.0.7.tgz"
-        }
-      }
+      "resolved": "https://registry.npmjs.org/xml2js/-/xml2js-0.4.19.tgz"
     },
     "xml2js-parser": {
       "version": "1.1.1",
       "from": "xml2js-parser@latest",
       "resolved": "https://registry.npmjs.org/xml2js-parser/-/xml2js-parser-1.1.1.tgz"
+    },
+    "xmlbuilder": {
+      "version": "9.0.7",
+      "from": "xmlbuilder@>=9.0.1 <9.1.0",
+      "resolved": "https://registry.npmjs.org/xmlbuilder/-/xmlbuilder-9.0.7.tgz"
     },
     "xmldom": {
       "version": "0.1.19",
