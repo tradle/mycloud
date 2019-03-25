@@ -518,19 +518,24 @@
       "resolved": "http://registry.npmjs.org/@tradle/validate-model/-/validate-model-7.1.1.tgz"
     },
     "@tradle/validate-resource": {
-      "version": "4.3.0",
-      "from": "@tradle/validate-resource@>=4.3.0 <5.0.0",
-      "resolved": "https://registry.npmjs.org/@tradle/validate-resource/-/validate-resource-4.3.0.tgz",
+      "version": "4.3.1",
+      "from": "@tradle/validate-resource@latest",
+      "resolved": "https://registry.npmjs.org/@tradle/validate-resource/-/validate-resource-4.3.1.tgz",
       "dependencies": {
+        "@tradle/errors": {
+          "version": "2.0.0",
+          "from": "@tradle/errors@>=2.0.0 <3.0.0",
+          "resolved": "https://registry.npmjs.org/@tradle/errors/-/errors-2.0.0.tgz"
+        },
         "debug": {
-          "version": "3.1.0",
+          "version": "3.2.6",
           "from": "debug@>=3.0.0 <4.0.0",
-          "resolved": "https://registry.npmjs.org/debug/-/debug-3.1.0.tgz"
+          "resolved": "https://registry.npmjs.org/debug/-/debug-3.2.6.tgz"
         },
         "ms": {
-          "version": "2.0.0",
-          "from": "ms@2.0.0",
-          "resolved": "https://registry.npmjs.org/ms/-/ms-2.0.0.tgz"
+          "version": "2.1.1",
+          "from": "ms@>=2.1.1 <3.0.0",
+          "resolved": "https://registry.npmjs.org/ms/-/ms-2.1.1.tgz"
         }
       }
     },
