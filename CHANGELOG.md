@@ -2,15 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0-rc.27](https://github.com/tradle/mycloud/compare/v2.4.0-rc.26...v2.4.0-rc.27) (2019-03-19)
+# [2.4.0-rc.28](https://github.com/tradle/mycloud/compare/v2.4.0-rc.27...v2.4.0-rc.28) (2019-03-25)
 
 
 ### Bug Fixes
 
-* finastra plugin lifecycle ([35c78ca](https://github.com/tradle/mycloud/commit/35c78ca))
-* make errors to iot client more informative ([23387ae](https://github.com/tradle/mycloud/commit/23387ae))
-* not all props copied to MyProduct ([19e04c6](https://github.com/tradle/mycloud/commit/19e04c6))
-* optimize getLastMessageTo query ([8a82327](https://github.com/tradle/mycloud/commit/8a82327))
+* push-notifications command ([2e1f9a2](https://github.com/tradle/mycloud/commit/2e1f9a2))
+
+
+### Features
+
+* added AbortError ([ca8a1bc](https://github.com/tradle/mycloud/commit/ca8a1bc))
+* added checks creation for success/fail ([5c57a99](https://github.com/tradle/mycloud/commit/5c57a99))
+* changedconf,  added checks and error handling ([af2a07f](https://github.com/tradle/mycloud/commit/af2a07f))
+* newer models ([b7039d6](https://github.com/tradle/mycloud/commit/b7039d6))
 
 
 
