@@ -1,54 +1,54 @@
 import http from 'http'
-import { EventEmitter } from "events"
-import { Middleware as ComposeMiddleware } from "koa-compose"
-import { Context as KoaContext } from "koa"
-import { GraphQLSchema, ExecutionResult as GraphqlExecutionResult } from "graphql"
-import { Table, DB, Models, Model, Diff, FindOpts } from "@tradle/dynamodb"
-import { AppLinks } from "@tradle/qr-schema"
-import { KeyValueStore, KeyValueStoreExtended } from "@tradle/aws-common-utils"
-import { ClientCache } from "@tradle/aws-client-factory"
-import { Bucket, MemoizedBucket, S3Client } from "@tradle/aws-s3-client"
-import { LambdaClient } from "@tradle/aws-lambda-client"
-import { SNSClient } from "@tradle/aws-sns-client"
-import { IAMClient } from "@tradle/aws-iam-client"
-import { CloudFormationClient } from "@tradle/aws-cloudformation-client"
-import { CloudWatchClient } from "@tradle/aws-cloudwatch-client"
-import { ResourceStub } from "@tradle/validate-resource"
-import { Logger } from "../logger"
-import { BaseLambda, LambdaHttp, Lambda, EventSource } from "../lambda"
-import { LambdaInvoker } from "../aws/lambda-invoker"
-import { Bot } from "../bot"
-import { Users } from "../users"
-import { Env } from "../env"
-import { Identities } from "../identities"
-import { Identity } from "../identity"
-import { Secrets } from "../secrets"
-import { Storage } from "../storage"
-import { Messages } from "../messages"
-import { Messaging } from "../messaging"
-import { Objects } from "../objects"
-import { Auth } from "../auth"
-import { Init } from "../init"
-import { Seals, Seal, SealPendingResult, CreateSealOpts } from "../seals"
-import { SealBatcher } from "../batch-seals"
-import { Blockchain } from "../blockchain"
-import { ModelStore } from "../model-store"
-import { Task, TaskManager } from "../task-manager"
+import { EventEmitter } from 'events'
+import { Middleware as ComposeMiddleware } from 'koa-compose'
+import { Context as KoaContext } from 'koa'
+import { GraphQLSchema, ExecutionResult as GraphqlExecutionResult } from 'graphql'
+import { Table, DB, Models, Model, Diff, FindOpts } from '@tradle/dynamodb'
+import { AppLinks } from '@tradle/qr-schema'
+import { KeyValueStore, KeyValueStoreExtended } from '@tradle/aws-common-utils'
+import { ClientCache } from '@tradle/aws-client-factory'
+import { Bucket, MemoizedBucket, S3Client } from '@tradle/aws-s3-client'
+import { LambdaClient } from '@tradle/aws-lambda-client'
+import { SNSClient } from '@tradle/aws-sns-client'
+import { IAMClient } from '@tradle/aws-iam-client'
+import { CloudFormationClient } from '@tradle/aws-cloudformation-client'
+import { CloudWatchClient } from '@tradle/aws-cloudwatch-client'
+import { ResourceStub } from '@tradle/validate-resource'
+import { Logger } from '../logger'
+import { BaseLambda, LambdaHttp, Lambda, EventSource } from '../lambda'
+import { LambdaInvoker } from '../aws/lambda-invoker'
+import { Bot } from '../bot'
+import { Users } from '../users'
+import { Env } from '../env'
+import { Identities } from '../identities'
+import { Identity } from '../identity'
+import { Secrets } from '../secrets'
+import { Storage } from '../storage'
+import { Messages } from '../messages'
+import { Messaging } from '../messaging'
+import { Objects } from '../objects'
+import { Auth } from '../auth'
+import { Init } from '../init'
+import { Seals, Seal, SealPendingResult, CreateSealOpts } from '../seals'
+import { SealBatcher } from '../batch-seals'
+import { Blockchain } from '../blockchain'
+import { ModelStore } from '../model-store'
+import { Task, TaskManager } from '../task-manager'
 // import { ModelStore } from '../model-store'
-import { Delivery } from "../delivery"
-import { ContentAddressedStore } from "../content-addressed-store"
+import { Delivery } from '../delivery'
+import { ContentAddressedStore } from '../content-addressed-store'
 // import { KeyValueTable } from "../key-value-table"
-import { KV } from "../kv"
-import { CacheableBucketItem } from "../cacheable-bucket-item"
-import { Friends } from "../friends"
-import { User } from "../user"
+import { KV } from '../kv'
+import { CacheableBucketItem } from '../cacheable-bucket-item'
+import { Friends } from '../friends'
+import { User } from '../user'
 // import { Discovery } from "../discovery"
-import { Backlinks } from "../backlinks"
-import { StackUtils } from "../aws/stack-utils"
-import { Iot } from "../aws/iot-utils"
-import { Events, EventTopic } from "../events"
-import { Mailer } from "../mailer"
-import { MiddlewareContainer } from "../middleware-container"
+import { Backlinks } from '../backlinks'
+import { StackUtils } from '../aws/stack-utils'
+import { Iot } from '../aws/iot-utils'
+import { Events, EventTopic } from '../events'
+import { Mailer } from '../mailer'
+import { MiddlewareContainer } from '../middleware-container'
 
 export { KeyValueStore, KeyValueStoreExtended, ClientCache, ClientCache as AwsApis }
 
@@ -59,11 +59,11 @@ export {
   GetResourceIdentifierInput,
   GetResourceIdentifierOutput,
   ValidateResourceOpts
-} from "@tradle/validate-resource"
+} from '@tradle/validate-resource'
 
 export type Constructor<T = {}> = new (...args: any[]) => T
 
-export * from "../retryable-task"
+export * from '../retryable-task'
 // export { ECKey } from '../crypto'
 
 export {
@@ -385,7 +385,7 @@ export type DatedValue = {
 export interface AWSHttpOptions {
   agent?: http.Agent
 }
-  
+
 export interface IAWSServiceConfig {
   httpOptions?: AWSHttpOptions
   maxRetries?: number
@@ -401,8 +401,6 @@ export interface IAWSServiceConfig {
   cloudformation?: any
   xray?: any
 }
-
-
 
 export interface IEndpointInfo {
   aws: boolean
@@ -535,12 +533,12 @@ export interface UpdateResourceOpts {
   props: any
 }
 
-export type CloudName = "aws"
+export type CloudName = 'aws'
 
 export interface IDeepLink {
   provider: string
   host: string
-  platform: "mobile" | "web"
+  platform: 'mobile' | 'web'
 }
 
 export interface IMailerSendEmailResult {
@@ -564,7 +562,7 @@ export interface IMailerSendEmailOpts {
   bcc?: string | string[]
   subject: string
   body: string
-  format?: "text" | "html"
+  format?: 'text' | 'html'
   replyTo?: string | string[]
 }
 
@@ -596,6 +594,7 @@ export interface IBotOpts extends Partial<IIdentityAndKeys> {
   env?: any
   users?: any
   ready?: boolean
+  version?: VersionInfo
 }
 
 export interface IGraphiqlBookmark {
@@ -643,10 +642,10 @@ export interface BlockchainNetwork extends BlockchainNetworkInfo {
   // select: (obj: any) => any
 }
 
-export type SealingMode = "single" | "batch"
+export type SealingMode = 'single' | 'batch'
 
-export type StreamRecordType = "create" | "update" | "delete" | string
-export type StreamService = "dynamodb"
+export type StreamRecordType = 'create' | 'update' | 'delete' | string
+export type StreamService = 'dynamodb'
 
 export interface IStreamRecord {
   id: string
@@ -803,7 +802,7 @@ export type Job = {
   [x: string]: any
 }
 
-export type VersionInfo = {
+export interface VersionInfo {
   tag: string
   sortableTag: string
   branch: string
@@ -829,7 +828,7 @@ export type CloudWatchLogsEntry = {
 }
 
 export type CloudWatchLogsEvent = {
-  messageType: "DATA_MESSAGE" | "CONTROL_MESSAGE"
+  messageType: 'DATA_MESSAGE' | 'CONTROL_MESSAGE'
   owner: string // accountId
   logGroup: string
   logStream: string
@@ -898,7 +897,7 @@ export interface CFTemplateResource {
   Type: string
   Description?: string
   Properties?: any
-  DeletionPolicy?: "Delete" | "Replace" | "Retain"
+  DeletionPolicy?: 'Delete' | 'Replace' | 'Retain'
 }
 
 export interface CFTemplate {

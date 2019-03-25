@@ -41,12 +41,11 @@ import constants, {
 import { createConfig } from './aws/config'
 import { createResolver as createS3EmbedResolver } from './aws/s3-embed-resolver'
 import { StackUtils } from './aws/stack-utils'
-const VERSION = require('./version')
+
 const {
   defineGetter,
   getResourceIdentifier,
   pickBacklinks,
-  omitBacklinks,
   pluck,
   normalizeSendOpts,
   normalizeRecipient,
@@ -252,7 +251,9 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   }
 
   public streamProcessor: StreamProcessor
-  public version: VersionInfo
+  public get version() {
+    return this.env.version
+  }
 
   public get isDev() {
     return this.env.STAGE === 'dev'
@@ -385,10 +386,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     }
 
     bot.env = env
-    bot.version = {
-      ...VERSION,
-      sortableTag: utils.toSortableTag(VERSION.tag)
-    }
 
     readyMixin(bot)
     modelsMixin(bot)
@@ -491,7 +488,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       lambdaPrefix: awsUtils.buildLambdaFunctionArn({
         region: env.AWS_REGION,
         accountId: env.AWS_ACCOUNT_ID,
-        name: env.STACK_RESOURCE_PREFIX,
+        name: env.STACK_RESOURCE_PREFIX
       })
     })
 

@@ -12,7 +12,6 @@ const {
   validateTemplatesAtPath,
   uploadTemplatesAtPath
 } = require('../lib/cli/utils')
-const versionInfo = require('../lib/version')
 const templatesDir = path.resolve(__dirname, '../cloudformation')
 const stackParameters = require('../vars').stackParameters || require('../default-vars').stackParameters
 
@@ -78,6 +77,7 @@ class SetVersion {
   }
 
   _dir() {
+    const versionInfo = require('../lib/version')
     return versionInfo.templatesPath
   }
 

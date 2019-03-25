@@ -59,7 +59,6 @@ const NOT_FOUND = new Error('nothing here')
 
 // 10 mins
 const CF_EVENT_TIMEOUT = 10 * 60000
-const { commit } = require('./version')
 
 type Contextualized<T> = (ctx: T, next: Function) => any | void
 
@@ -192,7 +191,7 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
       } else {
         const start = Date.now()
         await next()
-        this.logger.debug(`execution time: ${(Date.now() - start)}ms`)
+        this.logger.debug(`execution time: ${Date.now() - start}ms`)
       }
     })
 
@@ -885,7 +884,7 @@ const getRequestContext = <T extends ILambdaExecutionContext>(
     requestId: context.awsRequestId,
     correlationId,
     containerId: lambda.containerId,
-    commit,
+    commit: lambda.env.version.commit,
     start: Date.now()
   }
 

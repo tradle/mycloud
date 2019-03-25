@@ -10,7 +10,8 @@ import {
   IRequestContext,
   CloudName,
   IBlockchainIdentifier,
-  SealingMode
+  SealingMode,
+  VersionInfo
 } from './types'
 import { WARMUP_SOURCE_NAME, ROOT_LOGGING_NAMESPACE } from './constants'
 import Logger, { Level } from './logger'
@@ -72,6 +73,9 @@ export default class Env {
   public ABORT_REQUESTS_ON_FREEZE?: boolean
   public SEALING_MODE: SealingMode
   public SEAL_BATCHING_PERIOD: number
+  public get version(): VersionInfo {
+    return require('./version')
+  }
 
   constructor(props: any) {
     props = clone(props)
