@@ -4,7 +4,6 @@ import { Webhooks, IWebhooksConf, IWebhookEvent } from '../webhooks'
 import { randomString } from '../../crypto'
 import { topics as EventTopics } from '../../events'
 
-const DEFAULT_CONF = require('./form-prefills.json')
 const DEFAULT_BACKOFF_OPTS = {
   maxAttempts: 3
 }
@@ -14,7 +13,10 @@ export interface IWebhooksPluginOpts extends IPluginOpts {
 }
 
 export const name = 'webhooks'
-export const createPlugin: CreatePlugin<Webhooks> = ({ bot }, { conf, logger }: IWebhooksPluginOpts) => {
+export const createPlugin: CreatePlugin<Webhooks> = (
+  { bot },
+  { conf, logger }: IWebhooksPluginOpts
+) => {
   const webhooks = new Webhooks({ bot, logger, conf })
   const getFireOpts = () => ({
     backoff: {
@@ -29,7 +31,7 @@ export const createPlugin: CreatePlugin<Webhooks> = ({ bot }, { conf, logger }: 
     return object
   }
 
-  const messageEventHandler = async (event) => {
+  const messageEventHandler = async event => {
     bot.tasks.add({
       name: `webhook:msg`,
       promiser: () => plugin.deliverMessageEvent(event.message)
@@ -38,14 +40,14 @@ export const createPlugin: CreatePlugin<Webhooks> = ({ bot }, { conf, logger }: 
 
   bot.hookSimple(EventTopics.message.outbound.async, messageEventHandler)
   bot.hookSimple(EventTopics.message.inbound.async, messageEventHandler)
-  bot.hookSimple(EventTopics.resource.save.async, async (event) => {
+  bot.hookSimple(EventTopics.resource.save.async, async event => {
     bot.tasks.add({
       name: 'webhook:save',
       promiser: () => plugin.deliverSaveEvent(event.value)
     })
   })
 
-  const fireAll = async (events:IWebhookEvent|IWebhookEvent[], expand) => {
+  const fireAll = async (events: IWebhookEvent | IWebhookEvent[], expand) => {
     events = [].concat(events)
     if (expand) events = Webhooks.expandEvents(events)
 
@@ -57,28 +59,34 @@ export const createPlugin: CreatePlugin<Webhooks> = ({ bot }, { conf, logger }: 
     return await Promise.all(events.map(event => webhooks.fire(event, opts)))
   }
 
-  const deliverSaveEvent = async (resource) => {
-    await fireAll({
-      id: randomString(10),
-      time: Date.now(),
-      // it's actually async, but there's no need to force webhook subscriptions
-      // to specify async:save:...
-      topic: EventTopics.resource.save.sync,
-      data: prepareForDelivery(resource)
-    }, true)
+  const deliverSaveEvent = async resource => {
+    await fireAll(
+      {
+        id: randomString(10),
+        time: Date.now(),
+        // it's actually async, but there's no need to force webhook subscriptions
+        // to specify async:save:...
+        topic: EventTopics.resource.save.sync,
+        data: prepareForDelivery(resource)
+      },
+      true
+    )
   }
 
-  const deliverMessageEvent = async (message) => {
-    await fireAll({
-      id: randomString(10),
-      time: Date.now(),
-      // it's actually async, but there's no need to force webhook subscriptions
-      // to specify async:save:...
-      topic: message._inbound
-        ? EventTopics.message.inbound.sync
-        : EventTopics.message.outbound.sync,
-      data: prepareForDelivery(message)
-    }, true)
+  const deliverMessageEvent = async message => {
+    await fireAll(
+      {
+        id: randomString(10),
+        time: Date.now(),
+        // it's actually async, but there's no need to force webhook subscriptions
+        // to specify async:save:...
+        topic: message._inbound
+          ? EventTopics.message.inbound.sync
+          : EventTopics.message.outbound.sync,
+        data: prepareForDelivery(message)
+      },
+      true
+    )
   }
 
   const plugin = {
@@ -92,7 +100,7 @@ export const createPlugin: CreatePlugin<Webhooks> = ({ bot }, { conf, logger }: 
   }
 }
 
-export const validateConf:ValidatePluginConf = async ({ pluginConf }) => {
+export const validateConf: ValidatePluginConf = async ({ pluginConf }) => {
   // const webhooks = new Webhooks({
   //   bot: conf.bot,
   //   conf: pluginConf,

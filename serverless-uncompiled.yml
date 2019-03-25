@@ -34,6 +34,7 @@ package:
   # artifactDirectoryName: serverless/${{self:service}}/${{self:provider.stage}}/artifacts
   include:
     - conf
+    - data
     - serverless-interpolated.yml
   exclude:
     - src/**
