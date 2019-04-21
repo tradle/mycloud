@@ -1,7 +1,7 @@
 import _ from 'lodash'
 
 import fetch from 'node-fetch'
-import FormData from 'form-data';
+import FormData from 'form-data'
 import DataURI from 'strong-data-uri'
 
 import buildResource from '@tradle/build-resource'
@@ -14,7 +14,7 @@ import {
   ITradleObject,
   IPBApp,
   IPluginLifecycleMethods,
-  ValidatePluginConf,
+  ValidatePluginConf
 } from '../types'
 
 import {
@@ -24,12 +24,10 @@ import {
   hasPropertiesChanged,
   getStatusMessageForCheck,
   ensureThirdPartyServiceConfigured,
-  getThirdPartyServiceInfo,
+  getThirdPartyServiceInfo
 } from '../utils'
 
-import {
-  post,
-} from '../../utils'
+import { post } from '../../utils'
 
 import Errors from '../../errors'
 
@@ -57,8 +55,8 @@ type RankoneConf = {
 }
 
 export class RankOneCheckAPI {
-  private bot:Bot
-  private logger:Logger
+  private bot: Bot
+  private logger: Logger
   private applications: Applications
   private conf: RankoneConf
   constructor({ bot, applications, logger, conf }) {
@@ -78,37 +76,55 @@ export class RankOneCheckAPI {
     }
     // if (await doesCheckExist({bot: this.bot, type: FACIAL_RECOGNITION, eq: {selfie: selfieStub.link, photoID: photoIDStub.link}, application, provider: PROVIDER}))
     //   return
-    this.logger.debug('Face recognition both selfie and photoId ready');
+    this.logger.debug('Face recognition both selfie and photoId ready')
 
     // const [photoID, selfie] = await Promise.all([
     //     photoIDStub,
     //     selfieStub
     //   ].map(stub => this.bot.getResource(stub, { resolveEmbeds: true })))
 
-    const [photoID, selfie] = await Promise.all([
-        photoIDStub,
-        selfieStub
-      ].map(stub => this.bot.getResource(stub)))
+    const [photoID, selfie] = await Promise.all(
+      [photoIDStub, selfieStub].map(stub => this.bot.getResource(stub))
+    )
 
     let selfieLink = selfie._link
     let photoIdLink = photoID._link
-    let items = await getChecks({bot: this.bot, type: FACIAL_RECOGNITION, application, provider: PROVIDER})
+    let items = await getChecks({
+      bot: this.bot,
+      type: FACIAL_RECOGNITION,
+      application,
+      provider: PROVIDER
+    })
     if (items.length) {
-      let checks = items.filter(r => r.selfie._link === selfieLink || r.photoID._link === photoIdLink)
+      let checks = items.filter(
+        r => r.selfie._link === selfieLink || r.photoID._link === photoIdLink
+      )
       if (checks.length) {
         let r = checks[0]
         // debugger
         if (r.selfie._link === selfieLink && r.photoID._link === photoIdLink) {
-          this.logger.debug(`Rankone: check already exists for ${photoID.firstName} ${photoID.lastName} ${photoID.documentType.title}`)
+          this.logger.debug(
+            `Rankone: check already exists for ${photoID.firstName} ${photoID.lastName} ${
+              photoID.documentType.title
+            }`
+          )
           return
         }
-// debugger
+        // debugger
         // Check what changed photoID or Selfie.
         // If it was Selfie then create a new check since Selfi is not editable
         if (r.selfie._link === selfieLink) {
-          let changed = await hasPropertiesChanged({ resource: photoID, bot: this.bot, propertiesToCheck: ['scan'] })
+          let changed = await hasPropertiesChanged({
+            resource: photoID,
+            bot: this.bot,
+            propertiesToCheck: ['scan']
+          })
           if (!changed) {
-            this.logger.debug(`Rankone: nothing to check the 'scan' didn't change ${photoID.firstName} ${photoID.lastName} ${photoID.documentType.title}`)
+            this.logger.debug(
+              `Rankone: nothing to check the 'scan' didn't change ${photoID.firstName} ${
+                photoID.lastName
+              } ${photoID.documentType.title}`
+            )
             return
           }
         }
@@ -118,7 +134,11 @@ export class RankOneCheckAPI {
     return { selfie, photoID }
   }
 
-  public matchSelfieAndPhotoID = async ({ selfie, photoID, application }: {
+  public matchSelfieAndPhotoID = async ({
+    selfie,
+    photoID,
+    application
+  }: {
     selfie: ITradleObject
     photoID: ITradleObject
     application: IPBApp
@@ -137,56 +157,52 @@ export class RankOneCheckAPI {
       form,
       filename: 'image1',
       content: photoIdBuf,
-      contentType: photoIdBuf.mimetype,
+      contentType: photoIdBuf.mimetype
     })
 
     this.appendFileBuf({
       form,
       filename: 'image2',
       content: selfieBuf,
-      contentType: selfieBuf.mimetype,
+      contentType: selfieBuf.mimetype
     })
 
     const headers = {}
     if (apiKey) {
-      headers['Authorization'] = apiKey
+      _.extend(headers, { Authorization: apiKey })
     }
 
     try {
       rawData = await post(`${apiUrl}/verify`, form, {
         headers,
-        timeout: REQUEST_TIMEOUT,
+        timeout: REQUEST_TIMEOUT
       })
 
       this.logger.debug('Face recognition check, match:', rawData)
     } catch (err) {
       debugger
-      error = `check was not completed for "${buildResource.title({models, resource: photoID})}": ${err.message}`
+      error = `check was not completed for "${buildResource.title({
+        models,
+        resource: photoID
+      })}": ${err.message}`
       this.logger.error('Face recognition check error', err)
       return { status: 'error', rawData: {}, error }
     }
 
     let minThreshold = threshold ? threshold : DEFAULT_THRESHOLD
     let status
-    if (rawData.similarity < 0  && rawData.code)
-      status = 'error'
-    else if (rawData.similarity > minThreshold)
-      status = 'pass'
-    else
-      status = 'fail'
+    if (rawData.similarity < 0 && rawData.code) status = 'error'
+    else if (rawData.similarity > minThreshold) status = 'pass'
+    else status = 'fail'
     return { status, rawData }
   }
-  appendFileBuf = ({
-    form,
-    filename,
-    content,
-    contentType,
-  }) => form.append(filename, content, { filename, contentType })
+  public appendFileBuf = ({ form, filename, content, contentType }) =>
+    form.append(filename, content, { filename, contentType })
 
   public createCheck = async ({ status, selfie, photoID, rawData, application, error }) => {
     let models = this.bot.models
-    let photoID_displayName = buildResource.title({models, resource: photoID})
-    let checkR:any = {
+    let photoID_displayName = buildResource.title({ models, resource: photoID })
+    let checkR: any = {
       status,
       provider: PROVIDER,
       aspects: 'facial similarity',
@@ -196,43 +212,52 @@ export class RankOneCheckAPI {
       photoID,
       dateChecked: new Date().getTime()
     }
-    if (rawData.similarity)
-      checkR.score = rawData.similarity
+    if (rawData.similarity) checkR.score = rawData.similarity
     // debugger
-    checkR.message = getStatusMessageForCheck({models: this.bot.models, check: checkR})
+    checkR.message = getStatusMessageForCheck({ models: this.bot.models, check: checkR })
 
-    this.logger.debug(`Creating RankOne ${FACIAL_RECOGNITION} for: ${photoID.firstName} ${photoID.lastName}`);
-    const check = await this.bot.draft({ type: FACIAL_RECOGNITION })
+    this.logger.debug(
+      `Creating RankOne ${FACIAL_RECOGNITION} for: ${photoID.firstName} ${photoID.lastName}`
+    )
+    const check = await this.bot
+      .draft({ type: FACIAL_RECOGNITION })
       .set(checkR)
       .signAndSave()
 
-    this.logger.debug(`Created RankOne ${FACIAL_RECOGNITION} for: ${photoID.firstName} ${photoID.lastName}`);
+    this.logger.debug(
+      `Created RankOne ${FACIAL_RECOGNITION} for: ${photoID.firstName} ${photoID.lastName}`
+    )
     return check.toJSON()
   }
 
   public createVerification = async ({ user, application, photoID }) => {
-    const method:any = {
+    const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: _.clone(RANKONE_API_RESOURCE),
       aspect: ASPECTS
     }
 
-    const verification = this.bot.draft({ type: VERIFICATION })
-       .set({
-         document: photoID,
-         method
-       })
-       .toJSON()
+    const verification = this.bot
+      .draft({ type: VERIFICATION })
+      .set({
+        document: photoID,
+        method
+      })
+      .toJSON()
 
     await this.applications.createVerification({ application, verification })
     if (application.checks)
-      await this.applications.deactivateChecks({ application, type: FACIAL_RECOGNITION, form: photoID })
+      await this.applications.deactivateChecks({
+        application,
+        type: FACIAL_RECOGNITION,
+        form: photoID
+      })
   }
 }
 
 export const createPlugin: CreatePlugin<RankOneCheckAPI> = (components, pluginOpts) => {
   const { bot, applications } = components
-  let { logger, conf={} } = pluginOpts
+  let { logger, conf = {} } = pluginOpts
 
   // if (bot.isLocal && !bot.s3Utils.publicFacingHost) {
   //   throw new Errors.InvalidEnvironment(`expected S3_PUBLIC_FACING_HOST environment variable to be set`)
@@ -244,11 +269,11 @@ export const createPlugin: CreatePlugin<RankOneCheckAPI> = (components, pluginOp
     logger,
     conf: {
       ...getThirdPartyServiceInfo(components.conf, 'rankone'),
-      ...conf,
-    },
+      ...conf
+    }
   })
 
-  const plugin:IPluginLifecycleMethods = {
+  const plugin: IPluginLifecycleMethods = {
     onFormsCollected: async ({ req, user, application }) => {
       if (req.skipChecks) return
       if (!application) return
@@ -261,16 +286,23 @@ export const createPlugin: CreatePlugin<RankOneCheckAPI> = (components, pluginOp
       const { selfie, photoID } = result
 
       const { status, rawData, error } = await rankOne.matchSelfieAndPhotoID({
-        selfie: selfie,
-        photoID: photoID,
+        selfie,
+        photoID,
         application
       })
       // const { checkStatus, data, err} = await rankOne.checkForSpoof({image: selfie.url, application})
 
-      const promiseCheck = rankOne.createCheck({status, selfie, photoID, rawData, error, application})
+      const promiseCheck = rankOne.createCheck({
+        status,
+        selfie,
+        photoID,
+        rawData,
+        error,
+        application
+      })
       const pchecks = [promiseCheck]
       if (status === true) {
-        const promiseVerification = rankOne.createVerification({user, application, photoID})
+        const promiseVerification = rankOne.createVerification({ user, application, photoID })
         pchecks.push(promiseVerification)
       }
 
@@ -284,7 +316,7 @@ export const createPlugin: CreatePlugin<RankOneCheckAPI> = (components, pluginOp
   }
 }
 
-export const validateConf:ValidatePluginConf = async ({ conf }) => {
+export const validateConf: ValidatePluginConf = async ({ conf }) => {
   ensureThirdPartyServiceConfigured(conf, 'rankone')
 }
 

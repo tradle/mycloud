@@ -74,10 +74,10 @@ export class JenIdCheckerAPI {
 
     handleData = async (form, application) => {
         await this.bot.resolveEmbeds(form)
-        
+
         let buf = DataURI.decode(form.scan.url)
         const scanDimensions = sizeof(buf)
-      
+
         let jsonFrontInputImage = {
             'image'          : {
                 'mmHeight'   : 0,
@@ -86,20 +86,20 @@ export class JenIdCheckerAPI {
                 'pixelHeight': scanDimensions.height,
                 'pixelWidth' : scanDimensions.width,
                 'cropped'    : 1
-            },	
+            },
             'metaData'       : {
                 'description' : ''
             },
             'inputPageType'  : 'front',
-            'inputImageType' : 'visible',	
+            'inputImageType' : 'visible',
         }
 
         let jsonInputImages = [ jsonFrontInputImage ]
-      
+
         if (form.otherSideScan) {
             buf = DataURI.decode(form.otherSideScan.url)
             const backDimensions = sizeof(buf)
-    
+
             let jsonBackInputImage = {
                 'image'          : {
                     'mmHeight'   : 0,
@@ -108,14 +108,14 @@ export class JenIdCheckerAPI {
                     'pixelHeight': backDimensions.height,
                     'pixelWidth' : backDimensions.width,
                     'cropped'    : 1
-                },	
+                },
                 'metaData'       : {
                     'description' : ''
                 },
                 'inputPageType'  : 'back',
-                'inputImageType' : 'visible',	
+                'inputImageType' : 'visible',
             }
-            
+
             jsonInputImages = [ jsonFrontInputImage, jsonBackInputImage ]
         }
 
@@ -126,12 +126,12 @@ export class JenIdCheckerAPI {
                 'captureDeviceType' : 5
            }
         }
-      
-        const data = JSON.stringify(jsonData);
 
+        const data = JSON.stringify(jsonData);
+this.logger.debug('JenID: Start getting data')
         let response = await this.post(data, this.conf)
         if (!response.success) {
-           const status = {status: 'error', message: response.error, rawData: {}} 
+           const status = {status: 'error', message: response.error, rawData: {}}
            this.logger.debug(`Failed upload data to ${PROVIDER}, error : ${response.error}`);
            return status
         }
@@ -162,36 +162,36 @@ export class JenIdCheckerAPI {
                 let removed = await this.del(id, this.conf)
                 this.logger.debug(`Deleting data from ${PROVIDER} for ${ASPECTS}: ${JSON.stringify(removed.data)}`);
             }
-            
+
             // preserve as raw data only documentresult
             result.data = result.data.outputData.resultJson.documentresult
-          
+
             result.data = sanitize(result.data).sanitized
 
             let securitystatus = result.data.securitystatus
-            let processingstatus = result.data.processingstatus 
+            let processingstatus = result.data.processingstatus
             this.logger.debug(`Received data from ${PROVIDER} with security status: ${JSON.stringify(securitystatus)}`);
-            
+
             if (processingstatus.code !== '0') {
-                return { 
-                    status: 'fail', 
+                return {
+                    status: 'fail',
                     message: `Check failed: ${processingstatus.short}`,
                     rawData : result.data
                 }
-            }        
+            }
             else if (+securitystatus.overallriskvalue >= this.conf.threshold) {
-                return { 
-                   status: 'fail', 
+                return {
+                   status: 'fail',
                    message: `Check failed: ${securitystatus.statusdescription}`,
                    rawData : result.data
                 }
-            }    
-            return  { 
-                status: 'pass', 
+            }
+            return  {
+                status: 'pass',
                 message: `Check passed: ${securitystatus.statusdescription}`,
                 rawData : result.data
-            }   
-        } 
+            }
+        }
         else {
             const status = {status: 'error', message: response.error, rawData: {}}
             this.logger.debug(`Failed get data from ${PROVIDER}, error : ${response.error}`);
@@ -199,7 +199,7 @@ export class JenIdCheckerAPI {
         }
 
     }
-    
+
     createCheck = async ({ application, status, form }: IJenIdCheck) => {
         let resource:any = {
           [TYPE]: DOCUMENT_CHECKER_CHECK,
@@ -215,7 +215,7 @@ export class JenIdCheckerAPI {
           resource.resultDetails = status.message
         if (status.rawData)
           resource.rawData = status.rawData
-    
+
         this.logger.debug(`Creating ${PROVIDER} check for ${ASPECTS}`);
         const check = await this.bot.draft({ type: DOCUMENT_CHECKER_CHECK })
             .set(resource)
@@ -234,14 +234,14 @@ export class JenIdCheckerAPI {
           reference: [{ queryId: 'report:' + rawData._id }],
           rawData: rawData
         }
-    
+
         const verification = this.bot.draft({ type: VERIFICATION })
            .set({
              document: form,
              method
            })
            .toJSON()
-    
+
         await this.applications.createVerification({ application, verification })
         this.logger.debug(`Created ${PROVIDER} verification for ${ASPECTS}`);
         if (application.checks)
@@ -249,7 +249,7 @@ export class JenIdCheckerAPI {
     }
 
     post = async (data: string, conf: IJenIdCheckerConf) => {
-        let auth = new Buffer(conf.username + ':' + conf.password);  
+        let auth = new Buffer(conf.username + ':' + conf.password);
         let basicAuth = auth.toString('base64');
         try {
           const res = await fetch(API_URL+'create', {
@@ -262,8 +262,8 @@ export class JenIdCheckerAPI {
                'Accept' : 'application/json',
              }
           });
-     
-          if (res.ok) { 
+
+          if (res.ok) {
             const result = await res.json()
             return {
                success : true,
@@ -276,10 +276,10 @@ export class JenIdCheckerAPI {
           return {success: false, error: err.message}
         }
     }
-     
+
     get = async (id: string, conf: IJenIdCheckerConf) => {
-        let auth = new Buffer(conf.username + ':' + conf.password);  
-        let basicAuth = auth.toString('base64'); 
+        let auth = new Buffer(conf.username + ':' + conf.password);
+        let basicAuth = auth.toString('base64');
         try {
           const res = await fetch(API_URL+id, {
              method: 'GET',
@@ -288,8 +288,8 @@ export class JenIdCheckerAPI {
                'Accept' : 'application/json',
              }
           });
-     
-          if (res.ok) { 
+
+          if (res.ok) {
             const result = await res.json()
             return {
                success : true,
@@ -304,8 +304,8 @@ export class JenIdCheckerAPI {
     }
 
     del = async (id: string, conf: IJenIdCheckerConf) => {
-        let auth = new Buffer(conf.username + ':' + conf.password);  
-        let basicAuth = auth.toString('base64'); 
+        let auth = new Buffer(conf.username + ':' + conf.password);
+        let basicAuth = auth.toString('base64');
         try {
           const res = await fetch(API_URL+id, {
              method: 'DELETE',
@@ -314,8 +314,8 @@ export class JenIdCheckerAPI {
                'Accept' : 'application/json',
              }
           });
-     
-          if (res.ok) { 
+
+          if (res.ok) {
             const result = await res.json()
             return {
                success : true,
@@ -332,7 +332,7 @@ export class JenIdCheckerAPI {
     async sleep(ms: number) {
         await this._sleep(ms);
     }
-    
+
     _sleep(ms: number) {
         return new Promise((resolve) => setTimeout(resolve, ms));
     }
@@ -375,13 +375,13 @@ debugger
     api: documentChecker
   }
 
-   
+
 }
 
 export const validateConf:ValidatePluginConf = async (opts) => {
     const pluginConf = opts.pluginConf as IJenIdCheckerConf
     const { username, password, threshold, deleteAfter } = pluginConf
-  
+
     let err = ''
     if (!password)
       err = '\nExpected "password".'
@@ -392,15 +392,15 @@ export const validateConf:ValidatePluginConf = async (opts) => {
     else if (typeof username !== 'string')
       err += '\nExpected "username" to be a string'
     else if (typeof threshold !== 'undefined') {
-      if (typeof threshold !== 'number') 
+      if (typeof threshold !== 'number')
          err += '\nExpected threshold to be a number.'
       else if (threshold < 0 || threshold > 100)
          err += '\nExpected  0 <= threshold <= 100.'
     }
     else if (typeof deleteAfter !== 'undefined') {
-       if (typeof deleteAfter !== 'boolean') 
-         err += '\nExpected deleteAfter to be a boolean.' 
-    }  
+       if (typeof deleteAfter !== 'boolean')
+         err += '\nExpected deleteAfter to be a boolean.'
+    }
     if (err.length)
       throw new Error(err)
 }
