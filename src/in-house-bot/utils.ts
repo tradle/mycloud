@@ -655,17 +655,27 @@ export const getStatusMessageForCheck = ({
   if (hasManyAspects) prefix = 'One or more checks'
   else prefix = 'Check'
 
+  // switch (status) {
+  //   case 'pending':
+  //     return `${prefix} pending: ${aspects}`
+  //   case 'fail':
+  //     return `${prefix} failed: ${aspects}`
+  //   case 'error':
+  //     return `${prefix} hit an error: ${aspects}`
+  //   case 'pass':
+  //     return `${prefix} passed: ${aspects}`
+  //   case 'warning':
+  //     return `${prefix} has a warning: ${aspects}`
+  //   default:
+  //     throw new Errors.InvalidInput(`unsupported check status: ${safeStringify(check.status)}`)
+  // }
   switch (status) {
     case 'pending':
-      return `${prefix} pending: ${aspects}`
     case 'fail':
-      return `${prefix} failed: ${aspects}`
     case 'error':
-      return `${prefix} hit an error: ${aspects}`
     case 'pass':
-      return `${prefix} passed: ${aspects}`
     case 'warning':
-      return `${prefix} has a warning: ${aspects}`
+      return `${aspects}`
     default:
       throw new Errors.InvalidInput(`unsupported check status: ${safeStringify(check.status)}`)
   }
