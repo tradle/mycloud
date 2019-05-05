@@ -79,7 +79,7 @@ getEnv()
   .then(async () => {
     const bot = createRemoteBot()
     await getTemplate(bot)
-    await getECSDiscovery(bot)
+    // await getECSDiscovery(bot)
   })
   .catch(err => {
     // tslint:disable-next-line
