@@ -2,14 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0-rc.29](https://github.com/tradle/mycloud/compare/v2.4.0-rc.28...v2.4.0-rc.29) (2019-05-05)
-
-
-### Bug Fixes
-
-* changed check messages ([b9d7c41](https://github.com/tradle/mycloud/commit/b9d7c41))
-* logProcessor ([a966fa7](https://github.com/tradle/mycloud/commit/a966fa7))
-* postinstall not important exception ([e004884](https://github.com/tradle/mycloud/commit/e004884))
+# [2.4.0-rc.30](https://github.com/tradle/mycloud/compare/v2.4.0-rc.29...v2.4.0-rc.30) (2019-05-05)
 
 
 
