@@ -2,20 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0-rc.28](https://github.com/tradle/mycloud/compare/v2.4.0-rc.27...v2.4.0-rc.28) (2019-03-25)
+# [2.4.0-rc.29](https://github.com/tradle/mycloud/compare/v2.4.0-rc.28...v2.4.0-rc.29) (2019-05-05)
 
 
 ### Bug Fixes
 
-* push-notifications command ([2e1f9a2](https://github.com/tradle/mycloud/commit/2e1f9a2))
-
-
-### Features
-
-* added AbortError ([ca8a1bc](https://github.com/tradle/mycloud/commit/ca8a1bc))
-* added checks creation for success/fail ([5c57a99](https://github.com/tradle/mycloud/commit/5c57a99))
-* changedconf,  added checks and error handling ([af2a07f](https://github.com/tradle/mycloud/commit/af2a07f))
-* newer models ([b7039d6](https://github.com/tradle/mycloud/commit/b7039d6))
+* changed check messages ([b9d7c41](https://github.com/tradle/mycloud/commit/b9d7c41))
+* logProcessor ([a966fa7](https://github.com/tradle/mycloud/commit/a966fa7))
+* postinstall not important exception ([e004884](https://github.com/tradle/mycloud/commit/e004884))
 
 
 
