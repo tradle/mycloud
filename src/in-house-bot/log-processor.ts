@@ -2,6 +2,7 @@
 import Promise from 'bluebird'
 import json2yaml from 'json2yaml'
 import pick from 'lodash/pick'
+import notNull from 'lodash/identity'
 import truncate from 'lodash/truncate'
 import isEmpty from 'lodash/isEmpty'
 import Errors from '../errors'
@@ -335,7 +336,11 @@ export const fromLambda = ({
 }
 
 export const parseLogEntry = (entry: CloudWatchLogsEntry): ParsedEntry => {
+  if (!entry.message) return
+
   const parsed = parseLogEntryMessage(entry.message)
+  if (!parsed) return
+
   const { body, ...rest } = parsed
   return {
     id: entry.id,
@@ -449,16 +454,18 @@ export const parseLogEvent = (
   event: CloudWatchLogsEvent,
   logger: Logger = noopLogger
 ): ParsedLogEvent => {
-  const entries = event.logEvents.map(entry => {
-    try {
-      return parseLogEntry(entry)
-    } catch (err) {
-      logger.debug('failed to parse log entry', {
-        error: err.message,
-        entry
-      })
-    }
-  })
+  const entries = event.logEvents
+    .map(entry => {
+      try {
+        return parseLogEntry(entry)
+      } catch (err) {
+        logger.debug('failed to parse log entry', {
+          error: err.message,
+          entry
+        })
+      }
+    })
+    .filter(notNull)
 
   return {
     entries,
