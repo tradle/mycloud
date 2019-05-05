@@ -23,28 +23,28 @@ test('check status message', t => {
         status: 'pass',
         aspects: 'document authenticity'
       },
-      out: 'Check passed: document authenticity'
+      out: 'document authenticity'
     },
     {
       in: {
         status: 'fail',
         aspects: 'a'
       },
-      out: 'Check failed: a'
+      out: 'a'
     },
     {
       in: {
         status: 'error',
         aspects: 'a'
       },
-      out: 'Check hit an error: a'
+      out: 'a'
     },
     {
       in: {
         status: 'pending',
         aspects: ['a', 'b', 'c']
       },
-      out: 'One or more checks pending: a,b,c'
+      out: 'a,b,c'
     }
   ]
 
