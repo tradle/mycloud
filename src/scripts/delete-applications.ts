@@ -19,7 +19,7 @@ loadCredentials()
 
 // const toDelete = ['tradle.Application']
 import { createRemoteBot } from '../'
-import { configureLambda } from '../in-house-bot'
+import { configureLambda, loadConfAndComponents } from '../in-house-bot'
 
 const bot = createRemoteBot()
 const { db, dbUtils, env } = bot
@@ -27,7 +27,7 @@ const { STACK_RESOURCE_PREFIX } = env
 // const { clear } = dbUtils
 const readline = require('readline')
 
-const confirmDelete = async (types) => {
+const confirmDelete = async types => {
   console.log(`1. will delete the following types: ${JSON.stringify(types, null, 2)}`)
   console.log('2. will also clear users table')
   if (!argv.force) {
@@ -47,7 +47,7 @@ const confirmDelete = async (types) => {
 }
 
 const runclearApplications = async () => {
-  await configureLambda({ bot })
+  await loadConfAndComponents({ bot })
   await clearApplications({
     bot,
     confirm: confirmDelete
