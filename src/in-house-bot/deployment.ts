@@ -1731,7 +1731,19 @@ ${this.genUsageInstructions(links)}`
 
     const limitReceiveRateParams = genSetDeliveryPolicyParams(arn, deliveryPolicy)
     await this.snsUtils.setTopicAttributes(limitReceiveRateParams)
-    await this.snsUtils.allowCrossAccountPublish(arn, allowRoles)
+
+    try {
+      await this.snsUtils.allowCrossAccountPublish(arn, allowRoles)
+    } catch (err) {
+      this.logger.debug('failed to allow cross-account publish', {
+        arn,
+        allowRoles,
+        error: err.stack
+      })
+
+      throw err
+    }
+
     return arn
   }
 
