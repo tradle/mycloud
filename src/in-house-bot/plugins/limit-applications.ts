@@ -2,16 +2,9 @@ import _ from 'lodash'
 import validateResource from '@tradle/validate-resource'
 import { TYPE } from '@tradle/constants'
 import { Conf } from '../configure'
-import {
-  getNameFromForm,
-  getDateOfBirthFromForm,
-  getCountryFromForm,
-  getParsedFormStubs,
-  getNonPendingApplications
-} from '../utils'
+import { getNonPendingApplications } from '../utils'
 import { Bot, CreatePlugin, IPluginLifecycleMethods, ValidatePluginConf } from '../types'
 
-const FORM_REQUEST = 'tradle.FormRequest'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 
 interface LimitApplicationsConf {
@@ -24,7 +17,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI }, { conf, l
   const plugin: IPluginLifecycleMethods = {
     onRequestForExistingProduct: async req => {
       const { user, payload } = req
-      debugger
+      // debugger
       if (payload[TYPE] !== PRODUCT_REQUEST) return
 
       const type = payload.requestFor
@@ -44,7 +37,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI }, { conf, l
           })
         }
       } else {
-        debugger
+        // debugger
         const model = bot.models[type]
         await productsAPI.send({
           req,
