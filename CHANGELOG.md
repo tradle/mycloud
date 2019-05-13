@@ -2,7 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0-rc.30](https://github.com/tradle/mycloud/compare/v2.4.0-rc.29...v2.4.0-rc.30) (2019-05-05)
+# [2.4.0-rc.31](https://github.com/tradle/mycloud/compare/v2.4.0-rc.30...v2.4.0-rc.31) (2019-05-13)
+
+
+### Bug Fixes
+
+* delete-applications script ([acf5bd9](https://github.com/tradle/mycloud/commit/acf5bd9))
+
+
+### Features
+
+* imports and debugging code cleanup ([665b512](https://github.com/tradle/mycloud/commit/665b512))
+* plugin allows to create more then one application of the same type ([14ad0bc](https://github.com/tradle/mycloud/commit/14ad0bc))
 
 
 
