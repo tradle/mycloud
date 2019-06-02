@@ -302,8 +302,8 @@ provider:
   # https://github.com/serverless/serverless/issues/4312#issuecomment-331946882
   variableSyntax: "\\${{([ ~:a-zA-Z0-9._\\'\",\\-\\/\\(\\)]+?)}}"
   name: aws
-  runtime: nodejs8.10
-  nodeVersion: 'v8.10.0'
+  runtime: nodejs10.x
+  nodeVersion: 'v10.x.x'
   profile: ${{self:custom.profile}}
   stage: ${{self:custom.stage}}
   region: ${{self:custom.region}}
