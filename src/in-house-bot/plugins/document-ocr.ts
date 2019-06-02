@@ -86,18 +86,23 @@ export class DocumentOcrAPI {
       FeatureTypes: []
     };
 
-    // not idea how to
-    let promise = textract.analyzeDocument(params).promise();
-    let result = await promise;
+    try {
+      let apiResponse: AWS.Textract.AnalyzeDocumentResponse =
+        await textract.analyzeDocument(params).promise();
+      //  apiResponse has to be json object
+      let response = this.extractMap(apiResponse);
 
-    // apiResponse has to be json object
-    let response = undefined // this.extractMap(apiResponse);
-
-    // need to convert string date into ms -- hack
-    if (response['registrationDate']) {
-      response['registrationDate'] = Date.parse(response['registrationDate'])
+      // need to convert string date into ms -- hack
+      if (response['registrationDate']) {
+        response['registrationDate'] = Date.parse(response['registrationDate'])
+        return response // data
+      }
+      return response
+    } catch (err) {
+      debugger
+      this.logger.error('textract analyzeDocument failed', err)
     }
-    return response // data
+    return {}
   }
 
   lineBlocks = (blocks) => {
