@@ -671,7 +671,8 @@ export const loadComponentsAndPlugins = ({
       'gdcChecker',
       'sme-auto-approve',
       'facetecZoom',
-      'finastra'
+      'finastra',
+      'document-ocr'
     ].forEach(name => attachPlugin({ name }))
     ;['hand-sig', 'documentValidity', 'fill-myproduct'].forEach(name =>
       attachPlugin({ name, requiresConf: false })
