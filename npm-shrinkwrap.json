@@ -1223,9 +1223,9 @@
       }
     },
     "aws-sdk": {
-      "version": "2.290.0",
-      "from": "aws-sdk@2.290.0",
-      "resolved": "https://registry.npmjs.org/aws-sdk/-/aws-sdk-2.290.0.tgz",
+      "version": "2.437.0",
+      "from": "aws-sdk@2.437.0",
+      "resolved": "http://registry.npmjs.org/aws-sdk/-/aws-sdk-2.437.0.tgz",
       "dev": true,
       "dependencies": {
         "base64-js": {
@@ -1259,9 +1259,9 @@
           "dev": true
         },
         "uuid": {
-          "version": "3.1.0",
-          "from": "uuid@3.1.0",
-          "resolved": "https://registry.npmjs.org/uuid/-/uuid-3.1.0.tgz",
+          "version": "3.3.2",
+          "from": "uuid@3.3.2",
+          "resolved": "http://registry.npmjs.org/uuid/-/uuid-3.3.2.tgz",
           "dev": true
         }
       }
@@ -9853,7 +9853,7 @@
     },
     "source-map-support": {
       "version": "0.4.18",
-      "from": "source-map-support@>=0.4.18 <0.5.0",
+      "from": "source-map-support@0.4.18",
       "resolved": "https://registry.npmjs.org/source-map-support/-/source-map-support-0.4.18.tgz",
       "dependencies": {
         "source-map": {
