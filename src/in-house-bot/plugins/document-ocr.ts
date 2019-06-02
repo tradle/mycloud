@@ -131,7 +131,7 @@ export const validateConf: ValidatePluginConf = async ({
           `expected ${productModelId} to map to subclasses of tradle.Form or tradle.MyProduct`
         )
       }
-      const prop = forms[formModelId]
+      const prop = forms[formModelId].property
       if (!formModel.properties[prop]) {
         throw new Errors.InvalidInput(`property ${prop} was not found in ${formModelId}`)
       }
