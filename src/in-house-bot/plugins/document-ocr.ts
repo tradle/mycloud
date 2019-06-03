@@ -1,6 +1,10 @@
 import _ from 'lodash'
 // import validateResource from '@tradle/validate-resource'
 import { TYPE, PERMALINK, LINK } from '@tradle/constants'
+import DataURI from 'strong-data-uri'
+
+import AWS from 'aws-sdk'
+
 import {
   Bot,
   CreatePlugin,
@@ -11,6 +15,8 @@ import {
   Logger
 } from '../types'
 import Errors from '../../errors'
+
+import Diff from 'text-diff'
 
 const FORM_ID = 'tradle.Form'
 
@@ -35,6 +41,21 @@ const data = {
   //   title: 'United States'
   // }
 }
+
+const myconfig = {
+  "legalEntity_us_de": {
+    "map": {
+      "^": "companyName",
+      "^^": "streetAddress",
+      "^^^": "registrationNumber",
+      "^^^^": "registrationDate"
+    },
+    "templates": [
+      "Delaware\nPAGE 1\nThe First State\nI, JEFFREY W. BULLOCK, SECRETARY OF STATE OF THE STATE OF\nDELAWARE, DO HEREBY CERTIFY THE ATTACHED IS A TRUE AND CORRECT\nCOPY OF THE CERTIFICATE OF INCORPORATION OF \"^\",\nFILED IN THIS OFFICE ON THE TWENTY-NINTH DAY OF MAY, A. D.\n2014, AT 5:41 O'CLOCK P.M.\nA FILED COPY OF THIS CERTIFICATE HAS BEEN FORWARDED THE\nNEW CASTLE COUNTY RECORDER OF DEEDS.\nARYOF\nGE\nJeffrey W. Bullock, Secretary of State\n5524712 8100\nAUTHENTTCATION ^^^\nDATE: ^^^^\n140535318\nLAWA\nYou may verify this certificate online\nat corp. laware.gov/authver shtml\n\n",
+      "s\nSTATE OF NEW JERSEY\nBUSINESS REGISTRATION CERTIFICATE\nDEPARTMENT OF TREASURY/\nDIVISION OF REVENUE\nPO BOX 252\nTRENTON, N J 08646-0252\nTAXPAYER NAME:\nTRADE NAME:\n^\nADDRESS:\nSEQUENCE NUMBER:\n^^\n^^^\n^^\nISSUANCE DATE:\nEFFECTIVE DATE:\n^^^^\n^^^^^\nDirector\nNew Jersey Division ot Revenue\n\n"
+    ]
+  }
+}
 export class DocumentOcrAPI {
   private bot: Bot
   private conf: IDocumentOcrConf
@@ -47,17 +68,140 @@ export class DocumentOcrAPI {
     this.logger = logger
   }
   public async ocr(payload, prop) {
-    await this.bot.resolveEmbeds(payload)
+    //await this.bot.resolveEmbeds(payload)
 
     // Form now only 1 doc will be processed
     let base64
     if (Array.isArray(payload[prop])) base64 = payload[prop][0].url
     else base64 = payload[prop].url
 
-    // OCR magic
-    // prefill like in default jSON
-    return data
+    let buffer: Buffer = DataURI.decode(base64)
+
+    let accessKeyId = ''
+    let secretAccessKey = ''
+    let region = ''
+    let textract = new AWS.Textract({ apiVersion: '2018-06-27', accessKeyId, secretAccessKey, region })
+
+    var params = {
+      Document: { /* required */
+        Bytes: buffer
+      },
+      FeatureTypes: ['TABLES']
+    };
+
+    try {
+      let apiResponse: AWS.Textract.AnalyzeDocumentResponse =
+        await textract.analyzeDocument(params).promise();
+      //  apiResponse has to be json object
+      let response = this.extractMap(apiResponse);
+
+      // need to convert string date into ms -- hack
+      if (response['registrationDate']) {
+        response['registrationDate'] = Date.parse(response['registrationDate'])
+        return response // data
+      }
+      return response
+    } catch (err) {
+      debugger
+      this.logger.error('textract analyzeDocument failed', err)
+    }
+    return {}
   }
+
+  lineBlocks = (blocks) => {
+    let lineBlocks = []
+    let start = false
+    for (let block of blocks) {
+      if (block['BlockType'] == 'PAGE') {
+        if (start == false)
+          start = true
+        else
+          break
+      }
+      else if (block['BlockType'] == 'LINE') {
+        lineBlocks.push(block)
+      }
+    }
+    lineBlocks.sort(this.compare)
+    return lineBlocks
+  }
+  compare = (block1, block2) => {
+    if (block1.Geometry.BoundingBox.Top > block2.Geometry.BoundingBox.Top)
+      return 1;
+    return -1;
+  }
+
+  fullText = (lines) => {
+    let txt = ''
+    for (let block of lines) {
+      txt += block.Text + '\n'
+    }
+    return txt
+  }
+
+  firstPageTxt = (apiResponse) => {
+    let response = apiResponse //JSON.parse(rawdata); 
+    let blocks = response['Blocks']
+    let lines = this.lineBlocks(blocks)
+    let txt = this.fullText(lines)
+    return txt
+  }
+
+  extractMap = (apiResponse) => {
+
+    let input = this.firstPageTxt(apiResponse)
+
+    var diff = new Diff();
+
+    let min = 100000000
+    let textDiff
+    for (let one of myconfig.legalEntity_us_de.templates) {
+      var textArr = diff.main(one, input);
+      if (min > textArr.length) {
+        min = textArr.length
+        textDiff = textArr
+      }
+    }
+    //console.log(textDiff)
+    //console.log('number of diffs', min)
+    if (min > 50) {
+      this.logger.debug('in input ' + apiResponse + ' could not find anything')
+      this.logger.debug('no template matches, number of differences are too many: ' + min)
+      return {}
+    }
+
+    let found = false
+    let key
+    let map = {}
+    for (let part of textDiff) {
+      if (part[0] == -1 && part[1].includes('^')) {
+        found = true
+        key = part[1]
+      }
+      else if (found && part[0] == 1) {
+        found = false
+        let value = map[key]
+        if (value) {
+          map[key] = value + '\n' + part[1].trim()
+        }
+        else {
+          map[key] = part[1].trim()
+        }
+      }
+    }
+    let output = {}
+    for (const key in map) {
+      let value = map[key]
+      let newkey = myconfig.legalEntity_us_de.map[key]
+      if (newkey)
+        output[newkey] = value
+    }
+    this.logger.debug('in input ' + apiResponse + ' found')
+    this.logger.debug(JSON.stringify(output, null, 2))
+    return output
+  }
+
+
 }
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
@@ -105,10 +249,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-  bot: Bot
-  conf: IConfComponents
-  pluginConf: IDocumentOcrConf
-}) => {
+    bot: Bot
+    conf: IConfComponents
+    pluginConf: IDocumentOcrConf
+  }) => {
   const { models } = bot
   Object.keys(pluginConf).forEach(productModelId => {
     const productModel = models[productModelId]
