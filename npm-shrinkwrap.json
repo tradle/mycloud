@@ -518,9 +518,9 @@
       "resolved": "http://registry.npmjs.org/@tradle/validate-model/-/validate-model-7.1.1.tgz"
     },
     "@tradle/validate-resource": {
-      "version": "4.3.1",
+      "version": "4.3.2",
       "from": "@tradle/validate-resource@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/validate-resource/-/validate-resource-4.3.1.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/validate-resource/-/validate-resource-4.3.2.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
