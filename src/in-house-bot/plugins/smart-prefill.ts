@@ -106,7 +106,7 @@ export const transformers = {
           [TYPE]: source[TYPE],
           _link: source._link,
           _permalink: source._permalink,
-          _displayName: source.companyName
+          _displayName: source.companyName || source.country.title
         }
       }
     }
