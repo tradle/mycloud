@@ -29,11 +29,11 @@ const data = {
   companyName: 'The Walt Disney Company',
   registrationNumber: '2528877',
   registrationDate: 806904000000,
-  region: 'DE',
-  country: {
-    id: 'tradle.Country_US',
-    title: 'United States'
-  }
+  // region: 'DE',
+  // country: {
+  //   id: 'tradle.Country_US',
+  //   title: 'United States'
+  // }
 }
 export class DocumentOcrAPI {
   private bot: Bot
@@ -69,7 +69,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const { user, application, payload } = req
       if (!application) return
       const productId = application.requestFor
-      const prop = conf[productId] && conf[productId][payload[TYPE]]
+      const formConf = conf[productId] && conf[productId][payload[TYPE]]
+      if (!formConf) return
+      const prop = formConf.property
       if (!prop || !payload[prop]) return
 
       const prefill = await documentOcrAPI.ocr(payload, prop)
