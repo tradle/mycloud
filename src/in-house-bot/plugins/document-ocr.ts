@@ -75,15 +75,18 @@ export class DocumentOcrAPI {
     if (Array.isArray(payload[prop])) base64 = payload[prop][0].url
     else base64 = payload[prop].url
 
-    let buf = DataURI.decode(base64)
+    let buffer: Buffer = DataURI.decode(base64)
 
-    var textract = new AWS.Textract({ apiVersion: '2018-06-27' })
+    let accessKeyId = ''
+    let secretAccessKey = ''
+    let region = ''
+    let textract = new AWS.Textract({ apiVersion: '2018-06-27', accessKeyId, secretAccessKey, region })
 
     var params = {
       Document: { /* required */
-        Bytes: buf
+        Bytes: buffer
       },
-      FeatureTypes: []
+      FeatureTypes: ['TABLES']
     };
 
     try {
