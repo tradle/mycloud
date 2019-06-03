@@ -34,28 +34,23 @@ interface IDocumentOcrConf {
 const data = {
   companyName: 'The Walt Disney Company',
   registrationNumber: '2528877',
-  registrationDate: 806904000000,
-  // region: 'DE',
-  // country: {
-  //   id: 'tradle.Country_US',
-  //   title: 'United States'
-  // }
+  registrationDate: 806904000000
 }
 
-const myconfig = {
-  "legalEntity_us_de": {
-    "map": {
-      "^": "companyName",
-      "^^": "streetAddress",
-      "^^^": "registrationNumber",
-      "^^^^": "registrationDate"
-    },
-    "templates": [
-      "Delaware\nPAGE 1\nThe First State\nI, JEFFREY W. BULLOCK, SECRETARY OF STATE OF THE STATE OF\nDELAWARE, DO HEREBY CERTIFY THE ATTACHED IS A TRUE AND CORRECT\nCOPY OF THE CERTIFICATE OF INCORPORATION OF \"^\",\nFILED IN THIS OFFICE ON THE TWENTY-NINTH DAY OF MAY, A. D.\n2014, AT 5:41 O'CLOCK P.M.\nA FILED COPY OF THIS CERTIFICATE HAS BEEN FORWARDED THE\nNEW CASTLE COUNTY RECORDER OF DEEDS.\nARYOF\nGE\nJeffrey W. Bullock, Secretary of State\n5524712 8100\nAUTHENTTCATION ^^^\nDATE: ^^^^\n140535318\nLAWA\nYou may verify this certificate online\nat corp. laware.gov/authver shtml\n\n",
-      "s\nSTATE OF NEW JERSEY\nBUSINESS REGISTRATION CERTIFICATE\nDEPARTMENT OF TREASURY/\nDIVISION OF REVENUE\nPO BOX 252\nTRENTON, N J 08646-0252\nTAXPAYER NAME:\nTRADE NAME:\n^\nADDRESS:\nSEQUENCE NUMBER:\n^^\n^^^\n^^\nISSUANCE DATE:\nEFFECTIVE DATE:\n^^^^\n^^^^^\nDirector\nNew Jersey Division ot Revenue\n\n"
-    ]
-  }
-}
+// const myconfig = {
+//   "legalEntity_us_de": {
+//     "map": {
+//       "^": "companyName",
+//       "^^": "streetAddress",
+//       "^^^": "registrationNumber",
+//       "^^^^": "registrationDate"
+//     },
+//     "templates": [
+//       "Delaware\nPAGE 1\nThe First State\nI, JEFFREY W. BULLOCK, SECRETARY OF STATE OF THE STATE OF\nDELAWARE, DO HEREBY CERTIFY THE ATTACHED IS A TRUE AND CORRECT\nCOPY OF THE CERTIFICATE OF INCORPORATION OF \"^\",\nFILED IN THIS OFFICE ON THE TWENTY-NINTH DAY OF MAY, A. D.\n2014, AT 5:41 O'CLOCK P.M.\nA FILED COPY OF THIS CERTIFICATE HAS BEEN FORWARDED THE\nNEW CASTLE COUNTY RECORDER OF DEEDS.\nARYOF\nGE\nJeffrey W. Bullock, Secretary of State\n5524712 8100\nAUTHENTTCATION ^^^\nDATE: ^^^^\n140535318\nLAWA\nYou may verify this certificate online\nat corp. laware.gov/authver shtml\n\n",
+//       "s\nSTATE OF NEW JERSEY\nBUSINESS REGISTRATION CERTIFICATE\nDEPARTMENT OF TREASURY/\nDIVISION OF REVENUE\nPO BOX 252\nTRENTON, N J 08646-0252\nTAXPAYER NAME:\nTRADE NAME:\n^\nADDRESS:\nSEQUENCE NUMBER:\n^^\n^^^\n^^\nISSUANCE DATE:\nEFFECTIVE DATE:\n^^^^\n^^^^^\nDirector\nNew Jersey Division ot Revenue\n\n"
+//     ]
+//   }
+// }
 export class DocumentOcrAPI {
   private bot: Bot
   private conf: IDocumentOcrConf
@@ -67,8 +62,8 @@ export class DocumentOcrAPI {
     this.applications = applications
     this.logger = logger
   }
-  public async ocr(payload, prop) {
-    //await this.bot.resolveEmbeds(payload)
+  public async ocr(payload, prop, myConfig) {
+    await this.bot.resolveEmbeds(payload)
 
     // Form now only 1 doc will be processed
     let base64
@@ -77,27 +72,30 @@ export class DocumentOcrAPI {
 
     let buffer: Buffer = DataURI.decode(base64)
 
-    let accessKeyId = ''
-    let secretAccessKey = ''
-    let region = ''
-    let textract = new AWS.Textract({ apiVersion: '2018-06-27', accessKeyId, secretAccessKey, region })
+    // let accessKeyId = ''
+    // let secretAccessKey = ''
+    // let region = payload.region
+    let textract = new AWS.Textract({ apiVersion: '2018-06-27' }) //, accessKeyId, secretAccessKey, region })
 
-    var params = {
-      Document: { /* required */
+    let params = {
+      Document: {
+        /* required */
         Bytes: buffer
       },
       FeatureTypes: ['TABLES']
-    };
+    }
 
     try {
-      let apiResponse: AWS.Textract.AnalyzeDocumentResponse =
-        await textract.analyzeDocument(params).promise();
+      let apiResponse: AWS.Textract.AnalyzeDocumentResponse = await textract
+        .analyzeDocument(params)
+        .promise()
       //  apiResponse has to be json object
-      let response = this.extractMap(apiResponse);
+      let response: any = this.extractMap(apiResponse, myConfig)
 
       // need to convert string date into ms -- hack
-      if (response['registrationDate']) {
-        response['registrationDate'] = Date.parse(response['registrationDate'])
+      const registrationDate = response.registrationDate
+      if (registrationDate) {
+        response.registrationDate = Date.parse(registrationDate)
         return response // data
       }
       return response
@@ -108,30 +106,26 @@ export class DocumentOcrAPI {
     return {}
   }
 
-  lineBlocks = (blocks) => {
+  public lineBlocks = blocks => {
     let lineBlocks = []
     let start = false
     for (let block of blocks) {
-      if (block['BlockType'] == 'PAGE') {
-        if (start == false)
-          start = true
-        else
-          break
-      }
-      else if (block['BlockType'] == 'LINE') {
+      if (block.BlockType == 'PAGE') {
+        if (start == false) start = true
+        else break
+      } else if (block.BlockType == 'LINE') {
         lineBlocks.push(block)
       }
     }
     lineBlocks.sort(this.compare)
     return lineBlocks
   }
-  compare = (block1, block2) => {
-    if (block1.Geometry.BoundingBox.Top > block2.Geometry.BoundingBox.Top)
-      return 1;
-    return -1;
+  public compare = (block1, block2) => {
+    if (block1.Geometry.BoundingBox.Top > block2.Geometry.BoundingBox.Top) return 1
+    return -1
   }
 
-  fullText = (lines) => {
+  public fullText = lines => {
     let txt = ''
     for (let block of lines) {
       txt += block.Text + '\n'
@@ -139,24 +133,23 @@ export class DocumentOcrAPI {
     return txt
   }
 
-  firstPageTxt = (apiResponse) => {
-    let response = apiResponse //JSON.parse(rawdata); 
-    let blocks = response['Blocks']
+  public firstPageTxt = apiResponse => {
+    let response = apiResponse //JSON.parse(rawdata);
+    let blocks = response.Blocks
     let lines = this.lineBlocks(blocks)
     let txt = this.fullText(lines)
     return txt
   }
 
-  extractMap = (apiResponse) => {
-
+  public extractMap = (apiResponse, myconfig) => {
     let input = this.firstPageTxt(apiResponse)
 
-    var diff = new Diff();
+    let diff = new Diff()
 
     let min = 100000000
     let textDiff
-    for (let one of myconfig.legalEntity_us_de.templates) {
-      var textArr = diff.main(one, input);
+    for (let one of myconfig.templates) {
+      let textArr = diff.main(one, input)
       if (min > textArr.length) {
         min = textArr.length
         textDiff = textArr
@@ -177,14 +170,12 @@ export class DocumentOcrAPI {
       if (part[0] == -1 && part[1].includes('^')) {
         found = true
         key = part[1]
-      }
-      else if (found && part[0] == 1) {
+      } else if (found && part[0] == 1) {
         found = false
         let value = map[key]
         if (value) {
           map[key] = value + '\n' + part[1].trim()
-        }
-        else {
+        } else {
           map[key] = part[1].trim()
         }
       }
@@ -192,16 +183,13 @@ export class DocumentOcrAPI {
     let output = {}
     for (const key in map) {
       let value = map[key]
-      let newkey = myconfig.legalEntity_us_de.map[key]
-      if (newkey)
-        output[newkey] = value
+      let newkey = myconfig.map[key]
+      if (newkey) output[newkey] = value
     }
     this.logger.debug('in input ' + apiResponse + ' found')
     this.logger.debug(JSON.stringify(output, null, 2))
     return output
   }
-
-
 }
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
@@ -217,8 +205,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!formConf) return
       const prop = formConf.property
       if (!prop || !payload[prop]) return
-
-      const prefill = await documentOcrAPI.ocr(payload, prop)
+      debugger
+      let confId = `${payload.country.id
+        .split('_')[1]
+        .toLowerCase()}_${payload.region.toLowerCase()}`
+      const prefill = await documentOcrAPI.ocr(payload, prop, formConf[confId])
       const payloadClone = _.cloneDeep(payload)
       payloadClone[PERMALINK] = payloadClone._permalink
       payloadClone[LINK] = payloadClone._link
@@ -249,10 +240,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-    bot: Bot
-    conf: IConfComponents
-    pluginConf: IDocumentOcrConf
-  }) => {
+  bot: Bot
+  conf: IConfComponents
+  pluginConf: IDocumentOcrConf
+}) => {
   const { models } = bot
   Object.keys(pluginConf).forEach(productModelId => {
     const productModel = models[productModelId]
