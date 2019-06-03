@@ -52,14 +52,14 @@
       }
     },
     "@tradle/aws-client-factory": {
-      "version": "1.0.1-alpha.14",
+      "version": "1.0.1-alpha.17",
       "from": "@tradle/aws-client-factory@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-client-factory/-/aws-client-factory-1.0.1-alpha.14.tgz"
+      "resolved": "https://registry.npmjs.org/@tradle/aws-client-factory/-/aws-client-factory-1.0.1-alpha.17.tgz"
     },
     "@tradle/aws-cloudformation-client": {
-      "version": "1.0.1-alpha.15",
+      "version": "1.0.1-alpha.17",
       "from": "@tradle/aws-cloudformation-client@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-cloudformation-client/-/aws-cloudformation-client-1.0.1-alpha.15.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-cloudformation-client/-/aws-cloudformation-client-1.0.1-alpha.17.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -69,9 +69,9 @@
       }
     },
     "@tradle/aws-cloudwatch-client": {
-      "version": "1.0.1-alpha.15",
+      "version": "1.0.1-alpha.17",
       "from": "@tradle/aws-cloudwatch-client@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-cloudwatch-client/-/aws-cloudwatch-client-1.0.1-alpha.15.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-cloudwatch-client/-/aws-cloudwatch-client-1.0.1-alpha.17.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -81,9 +81,9 @@
       }
     },
     "@tradle/aws-combo": {
-      "version": "1.0.1-alpha.15",
+      "version": "1.0.1-alpha.17",
       "from": "@tradle/aws-combo@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-combo/-/aws-combo-1.0.1-alpha.15.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-combo/-/aws-combo-1.0.1-alpha.17.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -93,9 +93,9 @@
       }
     },
     "@tradle/aws-common-utils": {
-      "version": "1.0.1-alpha.15",
+      "version": "1.0.1-alpha.17",
       "from": "@tradle/aws-common-utils@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-common-utils/-/aws-common-utils-1.0.1-alpha.15.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-common-utils/-/aws-common-utils-1.0.1-alpha.17.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -108,9 +108,9 @@
           "resolved": "https://registry.npmjs.org/fast-safe-stringify/-/fast-safe-stringify-2.0.6.tgz"
         },
         "pino": {
-          "version": "5.11.1",
+          "version": "5.11.3",
           "from": "pino@>=5.11.1 <5.12.0",
-          "resolved": "https://registry.npmjs.org/pino/-/pino-5.11.1.tgz"
+          "resolved": "https://registry.npmjs.org/pino/-/pino-5.11.3.tgz"
         },
         "quick-format-unescaped": {
           "version": "3.0.2",
@@ -120,9 +120,9 @@
       }
     },
     "@tradle/aws-iam-client": {
-      "version": "1.0.1-alpha.15",
+      "version": "1.0.1-alpha.17",
       "from": "@tradle/aws-iam-client@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-iam-client/-/aws-iam-client-1.0.1-alpha.15.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-iam-client/-/aws-iam-client-1.0.1-alpha.17.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -132,9 +132,9 @@
       }
     },
     "@tradle/aws-lambda-client": {
-      "version": "1.0.1-alpha.15",
+      "version": "1.0.1-alpha.17",
       "from": "@tradle/aws-lambda-client@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-lambda-client/-/aws-lambda-client-1.0.1-alpha.15.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-lambda-client/-/aws-lambda-client-1.0.1-alpha.17.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -144,9 +144,9 @@
       }
     },
     "@tradle/aws-s3-client": {
-      "version": "1.0.1-alpha.15",
+      "version": "1.0.1-alpha.17",
       "from": "@tradle/aws-s3-client@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-s3-client/-/aws-s3-client-1.0.1-alpha.15.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-s3-client/-/aws-s3-client-1.0.1-alpha.17.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -156,9 +156,9 @@
       }
     },
     "@tradle/aws-sns-client": {
-      "version": "1.0.1-alpha.15",
+      "version": "1.0.1-alpha.17",
       "from": "@tradle/aws-sns-client@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-sns-client/-/aws-sns-client-1.0.1-alpha.15.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-sns-client/-/aws-sns-client-1.0.1-alpha.17.tgz",
       "dependencies": {
         "@tradle/errors": {
           "version": "2.0.0",
@@ -4182,9 +4182,9 @@
       "resolved": "https://registry.npmjs.org/fast-levenshtein/-/fast-levenshtein-2.0.6.tgz"
     },
     "fast-redact": {
-      "version": "1.4.4",
-      "from": "fast-redact@>=1.4.2 <2.0.0",
-      "resolved": "https://registry.npmjs.org/fast-redact/-/fast-redact-1.4.4.tgz"
+      "version": "1.5.0",
+      "from": "fast-redact@>=1.4.4 <2.0.0",
+      "resolved": "https://registry.npmjs.org/fast-redact/-/fast-redact-1.5.0.tgz"
     },
     "fast-safe-stringify": {
       "version": "1.2.3",
@@ -8478,9 +8478,9 @@
       "dev": true
     },
     "pino-std-serializers": {
-      "version": "2.3.0",
+      "version": "2.4.2",
       "from": "pino-std-serializers@>=2.3.0 <3.0.0",
-      "resolved": "https://registry.npmjs.org/pino-std-serializers/-/pino-std-serializers-2.3.0.tgz"
+      "resolved": "https://registry.npmjs.org/pino-std-serializers/-/pino-std-serializers-2.4.2.tgz"
     },
     "pkginfo": {
       "version": "0.4.1",
@@ -9828,9 +9828,9 @@
       }
     },
     "sonic-boom": {
-      "version": "0.7.3",
-      "from": "sonic-boom@>=0.7.1 <0.8.0",
-      "resolved": "https://registry.npmjs.org/sonic-boom/-/sonic-boom-0.7.3.tgz"
+      "version": "0.7.4",
+      "from": "sonic-boom@>=0.7.3 <0.8.0",
+      "resolved": "https://registry.npmjs.org/sonic-boom/-/sonic-boom-0.7.4.tgz"
     },
     "source-map": {
       "version": "0.6.1",
@@ -10587,6 +10587,11 @@
           "dev": true
         }
       }
+    },
+    "text-diff": {
+      "version": "1.0.1",
+      "from": "text-diff@latest",
+      "resolved": "https://registry.npmjs.org/text-diff/-/text-diff-1.0.1.tgz"
     },
     "text-encoding": {
       "version": "0.6.4",
