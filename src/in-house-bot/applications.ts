@@ -46,7 +46,7 @@ interface IPropertyInfo {
 }
 
 interface RequestItemOpts {
-  item: string
+  item: string|ITradleObject
   message?: string
   req?: IPBReq
   user?: IPBUser
