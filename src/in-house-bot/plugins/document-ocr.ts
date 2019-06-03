@@ -5,6 +5,10 @@ import DataURI from 'strong-data-uri'
 
 import AWS from 'aws-sdk'
 
+import validateResource from '@tradle/validate-resource'
+// @ts-ignore
+const { sanitize } = validateResource.utils
+
 import {
   Bot,
   CreatePlugin,
@@ -95,7 +99,9 @@ export class DocumentOcrAPI {
       // need to convert string date into ms -- hack
       const registrationDate = response.registrationDate
       if (registrationDate) {
-        response.registrationDate = Date.parse(registrationDate)
+        let d = Date.parse(registrationDate)
+        if (isNaN(d)) delete response.registrationDate
+        else response.registrationDate = Date.parse(registrationDate)
         return response // data
       }
       return response
@@ -209,27 +215,39 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let confId = `${payload.country.id
         .split('_')[1]
         .toLowerCase()}_${payload.region.toLowerCase()}`
-      const prefill = await documentOcrAPI.ocr(payload, prop, formConf[confId])
+      let prefill
+      try {
+        prefill = await documentOcrAPI.ocr(payload, prop, formConf[confId])
+        prefill = sanitize(prefill).sanitized
+      } catch (err) {}
       const payloadClone = _.cloneDeep(payload)
       payloadClone[PERMALINK] = payloadClone._permalink
       payloadClone[LINK] = payloadClone._link
 
       _.extend(payloadClone, prefill)
       debugger
+      let formError: any = {
+        req,
+        user,
+        application
+        // item: payload,
+      }
+      if (prefill) {
+        formError.details = {
+          prefill: payloadClone,
+          message: `Please review and correct the data below`
+        }
+      } else
+        formError.details = {
+          message: `Please fill out the form`
+        }
+      let requestConfirmationCode
       try {
-        const requestConfirmationCode = await applications.requestEdit({
-          req,
-          user,
-          application,
-          // item: payload,
-          details: {
-            prefill: payloadClone,
-            message: `Please review and correct the data below`
-          }
-        })
+        requestConfirmationCode = await applications.requestEdit(formError)
       } catch (err) {
         debugger
       }
+      debugger
     }
   }
 
