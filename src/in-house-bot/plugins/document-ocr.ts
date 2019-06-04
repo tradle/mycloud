@@ -43,10 +43,12 @@ const data = {
 //       "^": "companyName",
 //       "^^": "streetAddress",
 //       "^^^": "registrationNumber",
-//       "^^^^": "registrationDate"
+//       "^_^^^": "registrationDate_Year",
+//       "^^_^^": "registrationDate_Month",
+//       "^^^^": "registrationDate_Day" 
 //     },
 //     "templates": [
-//       "Delaware\nPAGE 1\nThe First State\nI, JEFFREY W. BULLOCK, SECRETARY OF STATE OF THE STATE OF\nDELAWARE, DO HEREBY CERTIFY THE ATTACHED IS A TRUE AND CORRECT\nCOPY OF THE CERTIFICATE OF INCORPORATION OF \"^\",\nFILED IN THIS OFFICE ON THE TWENTY-NINTH DAY OF MAY, A. D.\n2014, AT 5:41 O'CLOCK P.M.\nA FILED COPY OF THIS CERTIFICATE HAS BEEN FORWARDED THE\nNEW CASTLE COUNTY RECORDER OF DEEDS.\nARYOF\nGE\nJeffrey W. Bullock, Secretary of State\n5524712 8100\nAUTHENTTCATION ^^^\nDATE: ^^^^\n140535318\nLAWA\nYou may verify this certificate online\nat corp. laware.gov/authver shtml\n\n",
+//       "Delaware\nPAGE 1\nThe First State\nI, JEFFREY W. BULLOCK, SECRETARY OF STATE OF THE STATE OF\nDELAWARE, DO HEREBY CERTIFY THE ATTACHED IS A TRUE AND CORRECT\nCOPY OF THE CERTIFICATE OF INCORPORATION OF \"^\",\nFILED IN THIS OFFICE ON THE ^^^^ DAY OF ^^_^^,A. D.^_^^^, AT ^^^^^\nA FILED COPY OF THIS CERTIFICATE HAS BEEN FORWARDED THE\nNEW CASTLE COUNTY RECORDER OF DEEDS.\nARYOF\nGE\nJeffrey W. Bullock, Secretary of State\n^^^ ^^^^^^^\nAUTHENTTCATION ^^^^^^^\nDATE: ^^^^^^\n^^^\nLAWA\nYou may verify this certificate online\nat corp. laware.gov/authver shtml\n\n",    
 //       "s\nSTATE OF NEW JERSEY\nBUSINESS REGISTRATION CERTIFICATE\nDEPARTMENT OF TREASURY/\nDIVISION OF REVENUE\nPO BOX 252\nTRENTON, N J 08646-0252\nTAXPAYER NAME:\nTRADE NAME:\n^\nADDRESS:\nSEQUENCE NUMBER:\n^^\n^^^\n^^\nISSUANCE DATE:\nEFFECTIVE DATE:\n^^^^\n^^^^^\nDirector\nNew Jersey Division ot Revenue\n\n"
 //     ]
 //   }
@@ -81,13 +83,12 @@ export class DocumentOcrAPI {
       Document: {
         /* required */
         Bytes: buffer
-      },
-      FeatureTypes: ['TABLES']
+      }
     }
 
     try {
-      let apiResponse: AWS.Textract.AnalyzeDocumentResponse = await textract
-        .analyzeDocument(params)
+      let apiResponse: AWS.Textract.DetectDocumentTextResponse = await textract
+        .detectDocumentText(params)
         .promise()
       //  apiResponse has to be json object
       let response: any = this.extractMap(apiResponse, myConfig)
@@ -157,7 +158,7 @@ export class DocumentOcrAPI {
     }
     //console.log(textDiff)
     //console.log('number of diffs', min)
-    if (min > 50) {
+    if (min > 70) {
       this.logger.debug('in input ' + apiResponse + ' could not find anything')
       this.logger.debug('no template matches, number of differences are too many: ' + min)
       return {}
@@ -167,7 +168,10 @@ export class DocumentOcrAPI {
     let key
     let map = {}
     for (let part of textDiff) {
-      if (part[0] == -1 && part[1].includes('^')) {
+      if (part[0] == 0) {
+        found = false
+      }
+      else if (part[0] == -1 && part[1].includes('^')) {
         found = true
         key = part[1]
       } else if (found && part[0] == 1) {
@@ -240,10 +244,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-  bot: Bot
-  conf: IConfComponents
-  pluginConf: IDocumentOcrConf
-}) => {
+    bot: Bot
+    conf: IConfComponents
+    pluginConf: IDocumentOcrConf
+  }) => {
   const { models } = bot
   Object.keys(pluginConf).forEach(productModelId => {
     const productModel = models[productModelId]
