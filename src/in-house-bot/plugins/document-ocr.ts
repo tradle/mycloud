@@ -209,21 +209,20 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!formConf) return
       const prop = formConf.property
       if (!prop || !payload[prop]) return
-      debugger
+      // debugger
       // Check if this doc was already processed
-      if (payload._prevlink && payload.registrationDate  &&  payload.photos) {
+      if (payload._prevlink && payload.registrationDate && payload.photos) {
         let dbRes = await bot.objects.get(payload._prevlink)
-        if (dbRes  &&  dbRes.photos && dbRes.photos.length === payload.photos.length) {
+        if (dbRes && dbRes.photos && dbRes.photos.length === payload.photos.length) {
           let dbPhotos = Array.isArray(dbRes.photos) ? dbRes.photos : [dbRes.photos]
           let payloadPhotos = Array.isArray(payload.photos) ? payload.photos : [payload.photos]
           let same = true
-          for (let i=0; i<dbPhotos.length  &&  same; i++) {
+          for (let i = 0; i < dbPhotos.length && same; i++) {
             let url = dbPhotos[i].url
             let idx = payloadPhotos.findIndex(r => r.url === url)
             same = idx !== -1
           }
-          if (same)
-            return
+          if (same) return
         }
       }
       let confId = `${payload.country.id

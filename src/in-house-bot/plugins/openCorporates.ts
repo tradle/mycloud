@@ -76,7 +76,7 @@ class OpenCorporatesAPI {
     let { registrationNumber, registrationDate, region, country, companyName } = resource
     let url: string
     let hasAllInfo = registrationNumber && country
-    debugger
+    // debugger
     if (hasAllInfo) {
       debugger
       let cc = country.id.split('_')[1]
