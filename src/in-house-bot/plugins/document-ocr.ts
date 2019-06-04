@@ -49,10 +49,10 @@ const data = {
 //       "^^^": "registrationNumber",
 //       "^_^^^": "registrationDate_Year",
 //       "^^_^^": "registrationDate_Month",
-//       "^^^^": "registrationDate_Day" 
+//       "^^^^": "registrationDate_Day"
 //     },
 //     "templates": [
-//       "Delaware\nPAGE 1\nThe First State\nI, JEFFREY W. BULLOCK, SECRETARY OF STATE OF THE STATE OF\nDELAWARE, DO HEREBY CERTIFY THE ATTACHED IS A TRUE AND CORRECT\nCOPY OF THE CERTIFICATE OF INCORPORATION OF \"^\",\nFILED IN THIS OFFICE ON THE ^^^^ DAY OF ^^_^^,A. D.^_^^^, AT ^^^^^\nA FILED COPY OF THIS CERTIFICATE HAS BEEN FORWARDED THE\nNEW CASTLE COUNTY RECORDER OF DEEDS.\nARYOF\nGE\nJeffrey W. Bullock, Secretary of State\n^^^ ^^^^^^^\nAUTHENTTCATION ^^^^^^^\nDATE: ^^^^^^\n^^^\nLAWA\nYou may verify this certificate online\nat corp. laware.gov/authver shtml\n\n",    
+//       "Delaware\nPAGE 1\nThe First State\nI, JEFFREY W. BULLOCK, SECRETARY OF STATE OF THE STATE OF\nDELAWARE, DO HEREBY CERTIFY THE ATTACHED IS A TRUE AND CORRECT\nCOPY OF THE CERTIFICATE OF INCORPORATION OF \"^\",\nFILED IN THIS OFFICE ON THE ^^^^ DAY OF ^^_^^,A. D.^_^^^, AT ^^^^^\nA FILED COPY OF THIS CERTIFICATE HAS BEEN FORWARDED THE\nNEW CASTLE COUNTY RECORDER OF DEEDS.\nARYOF\nGE\nJeffrey W. Bullock, Secretary of State\n^^^ ^^^^^^^\nAUTHENTTCATION ^^^^^^^\nDATE: ^^^^^^\n^^^\nLAWA\nYou may verify this certificate online\nat corp. laware.gov/authver shtml\n\n",
 //       "s\nSTATE OF NEW JERSEY\nBUSINESS REGISTRATION CERTIFICATE\nDEPARTMENT OF TREASURY/\nDIVISION OF REVENUE\nPO BOX 252\nTRENTON, N J 08646-0252\nTAXPAYER NAME:\nTRADE NAME:\n^\nADDRESS:\nSEQUENCE NUMBER:\n^^\n^^^\n^^\nISSUANCE DATE:\nEFFECTIVE DATE:\n^^^^\n^^^^^\nDirector\nNew Jersey Division ot Revenue\n\n"
 //     ]
 //   }
@@ -98,13 +98,8 @@ export class DocumentOcrAPI {
       let response: any = this.extractMap(apiResponse, myConfig)
 
       // need to convert string date into ms -- hack
-      const registrationDate = response.registrationDate
-      if (registrationDate) {
-        let d = Date.parse(registrationDate)
-        if (isNaN(d)) delete response.registrationDate
-        else response.registrationDate = Date.parse(registrationDate)
-        return response // data
-      }
+
+      convertDateInWords(response) // response.registrationDate
       return response
     } catch (err) {
       debugger
@@ -176,8 +171,7 @@ export class DocumentOcrAPI {
     for (let part of textDiff) {
       if (part[0] == 0) {
         found = false
-      }
-      else if (part[0] == -1 && part[1].includes('^')) {
+      } else if (part[0] == -1 && part[1].includes('^')) {
         found = true
         key = part[1]
       } else if (found && part[0] == 1) {
@@ -216,6 +210,22 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const prop = formConf.property
       if (!prop || !payload[prop]) return
       debugger
+      // Check if this doc was already processed
+      if (payload._prevlink && payload.registrationDate  &&  payload.photos) {
+        let dbRes = await bot.objects.get(payload._prevlink)
+        if (dbRes  &&  dbRes.photos && dbRes.photos.length === payload.photos.length) {
+          let dbPhotos = Array.isArray(dbRes.photos) ? dbRes.photos : [dbRes.photos]
+          let payloadPhotos = Array.isArray(payload.photos) ? payload.photos : [payload.photos]
+          let same = true
+          for (let i=0; i<dbPhotos.length  &&  same; i++) {
+            let url = dbPhotos[i].url
+            let idx = payloadPhotos.findIndex(r => r.url === url)
+            same = idx !== -1
+          }
+          if (same)
+            return
+        }
+      }
       let confId = `${payload.country.id
         .split('_')[1]
         .toLowerCase()}_${payload.region.toLowerCase()}`
@@ -262,10 +272,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-    bot: Bot
-    conf: IConfComponents
-    pluginConf: IDocumentOcrConf
-  }) => {
+  bot: Bot
+  conf: IConfComponents
+  pluginConf: IDocumentOcrConf
+}) => {
   const { models } = bot
   Object.keys(pluginConf).forEach(productModelId => {
     const productModel = models[productModelId]
@@ -297,3 +307,83 @@ export const validateConf: ValidatePluginConf = async ({
     }
   })
 }
+// let input = {"companyName":"TRADLE, INC.",
+//              "registrationDate_DAY":"TWENTY-NINTH",
+// "registrationDate_MONTH":"APRIL",
+// "registrationDate_YEAR":"2014",
+// "registrationNumber":"5524712"}
+
+function daytonum(day) {
+  const daymap = {
+    first: '01',
+    second: '02',
+    third: '03',
+    fourth: '04',
+    fifth: '05',
+    sixth: '06',
+    seventh: '07',
+    eighth: '08',
+    ninth: '09',
+    tenth: '10',
+    eleventh: '11',
+    twelfth: '12',
+    thirteenth: '13',
+    fourteenth: '14',
+    fifteenth: '15',
+    sixteenth: '16',
+    seventeenth: '17',
+    eighteenth: '18',
+    nineteenth: '19',
+    twentieth: '20',
+    'twenty-first': '21',
+    'twenty-second': '22',
+    'twenty-third': '23',
+    'twenty-fourth': '24',
+    'twenty-fifth': '25',
+    'twenty-sixth': '26',
+    'twenty-seventh': '27',
+    'twenty-eighth': '28',
+    'twenty-ninth': '29',
+    thirtieth: '30',
+    'thirty-first': '31'
+  }
+  return daymap[day.toLowerCase()]
+}
+
+function monthtonum(month) {
+  const monthmap = {
+    january: '01',
+    february: '02',
+    march: '03',
+    april: '04',
+    may: '05',
+    june: '06',
+    july: '07',
+    august: '08',
+    september: '09',
+    october: '10',
+    november: '11',
+    december: '12'
+  }
+  return monthmap[month.toLowerCase()]
+}
+
+function convertDateInWords(input) {
+  if (input.registrationDate_Day && input.registrationDate_Month && input.registrationDate_Year) {
+    let d = Date.parse(
+      input.registrationDate_Year +
+        '-' +
+        monthtonum(input.registrationDate_Month) +
+        '-' +
+        daytonum(input.registrationDate_Day)
+    )
+
+    input.registrationDate = d
+    delete input.registrationDate_Year
+    delete input.registrationDate_Month
+    delete input.registrationDate_Day
+  }
+}
+
+// convertDateInWords(input)
+// console.log(input)
