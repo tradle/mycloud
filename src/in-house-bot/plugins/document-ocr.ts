@@ -238,7 +238,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       payloadClone[LINK] = payloadClone._link
 
       _.extend(payloadClone, prefill)
-      debugger
+      // debugger
       let formError: any = {
         req,
         user,
@@ -260,7 +260,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       } catch (err) {
         debugger
       }
-      debugger
     }
   }
 
