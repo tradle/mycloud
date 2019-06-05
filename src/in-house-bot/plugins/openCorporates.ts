@@ -78,7 +78,7 @@ class OpenCorporatesAPI {
     let hasAllInfo = registrationNumber && country
     // debugger
     if (hasAllInfo) {
-      debugger
+      // debugger
       let cc = country.id.split('_')[1]
       if (cc === 'US') {
         if (region) {
@@ -233,7 +233,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
   const openCorporates = new OpenCorporatesAPI({ bot, conf, applications, logger })
   const plugin = {
     async [`onmessage:${FORM_ID}`](req) {
-      debugger
+      // debugger
       if (req.skipChecks) return
       const { user, application, payload } = req
       if (!application) return
