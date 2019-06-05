@@ -678,6 +678,11 @@ provider:
           - Fn::GetAtt: Keys.Outputs.BucketEncryptionKeyArn
           - Ref: AWS::NoValue
 
+    - Effect: Allow
+      Action:
+        - textract:*
+      Resource: '*'
+
     # - Effect: Allow
     #   Action:
     #     - 'ssm:GetParameter*'
