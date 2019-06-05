@@ -2,25 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0-rc.32](https://github.com/tradle/mycloud/compare/v2.4.0-rc.31...v2.4.0-rc.32) (2019-06-04)
-
-
-### Bug Fixes
-
-* allow to pass string or resource to requestItem ([d4d3255](https://github.com/tradle/mycloud/commit/d4d3255))
-* cleanup debugger statements ([b8cadce](https://github.com/tradle/mycloud/commit/b8cadce))
-* conf validation changed ([31e3e99](https://github.com/tradle/mycloud/commit/31e3e99))
-* country, image and region needed for processing the doc ([1976744](https://github.com/tradle/mycloud/commit/1976744))
-* CP prefill when there is not yet all data known for LE ([5b0ddf0](https://github.com/tradle/mycloud/commit/5b0ddf0))
-* document OCR project ([15c76ba](https://github.com/tradle/mycloud/commit/15c76ba))
-* run this only if there are regNumber, companyName, country ([2c2369b](https://github.com/tradle/mycloud/commit/2c2369b))
-
-
-### Features
-
-* added document OCR plugin ([4854b5d](https://github.com/tradle/mycloud/commit/4854b5d))
-* doc OCR project; legalEntity model update ([d270767](https://github.com/tradle/mycloud/commit/d270767))
-* doc OCR using AWS Textract ([439898c](https://github.com/tradle/mycloud/commit/439898c))
+# [2.4.0-rc.33](https://github.com/tradle/mycloud/compare/v2.4.0-rc.32...v2.4.0-rc.33) (2019-06-05)
 
 
 
