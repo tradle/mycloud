@@ -208,6 +208,50 @@ export class DocumentOcrAPI {
     return -1
   }
 
+  match = (template, blocks) => {
+    let markerText = template.marker
+    let markerPolygon = template.Polygon
+
+    for (let block of blocks) {
+      let blockPolygon = block.Geometry.Polygon
+      if (blockPolygon[0].Y > markerPolygon[2].Y + 0.1)
+        return false
+      if (block.Text === markerText) {
+        if (this.inside(blockPolygon, markerPolygon)) {
+          return true
+        }
+      }
+    }
+  }
+
+  enlarge = (markerPolygon) => {
+    markerPolygon[0].X -= 0.1
+    markerPolygon[0].Y -= 0.1
+    markerPolygon[1].X += 0.1
+    markerPolygon[1].Y -= 0.1
+    markerPolygon[2].X += 0.1
+    markerPolygon[2].Y += 0.1
+    markerPolygon[3].X -= 0.1
+    markerPolygon[3].Y += 0.1
+  }
+
+  inside = (toFit, inBox) => {
+    if (
+      toFit[0].X >= inBox[0].X - 0.1 &&
+      toFit[0].Y >= inBox[0].Y - 0.1 &&
+      toFit[1].X <= inBox[1].X + 0.1 &&
+      toFit[1].Y >= inBox[1].Y - 0.1 &&
+      toFit[2].X <= inBox[2].X + 0.1 &&
+      toFit[2].Y <= inBox[2].Y + 0.1 &&
+      toFit[3].X >= inBox[3].X - 0.1 &&
+      toFit[3].Y <= inBox[3].Y + 0.1
+    ) {
+      return true
+    }
+    else
+      return false
+  }
+
   public fullText = lines => {
     let txt = ''
     for (let block of lines) {
@@ -225,6 +269,9 @@ export class DocumentOcrAPI {
   }
 
   public extractMap = (apiResponse, myconfig) => {
+
+
+
     let input = this.firstPageTxt(apiResponse)
 
     let diff = new Diff()
