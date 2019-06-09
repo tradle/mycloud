@@ -4,7 +4,7 @@ import { TYPE, PERMALINK, LINK } from '@tradle/constants'
 import DataURI from 'strong-data-uri'
 
 import AWS from 'aws-sdk'
-
+import Embed from '@tradle/embed'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
@@ -21,6 +21,7 @@ import {
 import Errors from '../../errors'
 
 import Diff from 'text-diff'
+import { String } from 'aws-sdk/clients/cognitosync';
 
 const FORM_ID = 'tradle.Form'
 
@@ -69,6 +70,18 @@ export class DocumentOcrAPI {
     this.logger = logger
   }
   public async ocr(payload, prop, myConfig) {
+    let object: any = Embed.getEmbeds(payload)
+    let bucket: string
+    let key: string
+    if (Array.isArray(object)) {
+      bucket = object[0].bucket
+      key = object[0].key
+    }
+    else {
+      bucket = object.bucket
+      key = object.key
+    }
+
     await this.bot.resolveEmbeds(payload)
 
     // Form now only 1 doc will be processed
@@ -76,24 +89,88 @@ export class DocumentOcrAPI {
     if (Array.isArray(payload[prop])) base64 = payload[prop][0].url
     else base64 = payload[prop].url
 
-    let buffer: Buffer = DataURI.decode(base64)
+    let buffer: any = DataURI.decode(base64)
+
+    let syncMode = true
+    if (buffer.mimetype === 'application/pdf') {
+      syncMode = false
+    }
 
     // let accessKeyId = ''
     // let secretAccessKey = ''
     // let region = payload.region
     let textract = new AWS.Textract({ apiVersion: '2018-06-27' }) //, accessKeyId, secretAccessKey, region })
 
-    let params = {
-      Document: {
-        /* required */
-        Bytes: buffer
+    if (syncMode) {
+      let params = {
+        Document: {
+          /* required */
+          Bytes: buffer
+        }
       }
-    }
+      try {
+        let apiResponse: AWS.Textract.DetectDocumentTextResponse = await textract
+          .detectDocumentText(params)
+          .promise()
+        //  apiResponse has to be json object
+        let response: any = this.extractMap(apiResponse, myConfig)
 
-    try {
-      let apiResponse: AWS.Textract.DetectDocumentTextResponse = await textract
-        .detectDocumentText(params)
-        .promise()
+        // need to convert string date into ms -- hack
+
+        convertDateInWords(response) // response.registrationDate
+        return response
+      } catch (err) {
+        debugger
+        this.logger.error('textract detectDocumentText failed', err)
+      }
+      return {}
+    }
+    else {
+      var params1 = {
+        DocumentLocation: { /* required */
+          S3Object: {
+            Bucket: bucket,
+            Name: key
+          }
+        },
+        ClientRequestToken: key.replace('.', '-')
+      }
+
+      let data
+      try {
+        data = await textract.startDocumentTextDetection(params1).promise()
+      } catch (err) {
+        debugger
+        this.logger.error('textract startDocumentTextDetection failed', err)
+        return {};
+      }
+
+      await this.sleep(15000)
+      var params2 = {
+        JobId: data.JobId /* required */
+      }
+
+      let time = 0
+      let apiResponse
+      while (true) {
+        try {
+          time++
+          apiResponse = await textract.getDocumentTextDetection(params2).promise()
+
+          if (apiResponse.JobStatus == 'SUCCEEDED') {
+            break;
+          }
+          else if (time >= 25) {
+            this.logger.error('textract documentTextDetection took too long')
+          }
+          else {
+            await this.sleep(4000)
+          }
+        } catch (err) {
+          this.logger.error('textract getDocumentTextDetection failed', err)
+          return {}
+        }
+      }
       //  apiResponse has to be json object
       let response: any = this.extractMap(apiResponse, myConfig)
 
@@ -101,11 +178,15 @@ export class DocumentOcrAPI {
 
       convertDateInWords(response) // response.registrationDate
       return response
-    } catch (err) {
-      debugger
-      this.logger.error('textract analyzeDocument failed', err)
     }
-    return {}
+  }
+
+  sleep = async (ms: number) => {
+    await this._sleep(ms);
+  }
+
+  _sleep = (ms: number) => {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   public lineBlocks = blocks => {
@@ -232,7 +313,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       try {
         prefill = await documentOcrAPI.ocr(payload, prop, formConf[confId])
         prefill = sanitize(prefill).sanitized
-      } catch (err) {}
+      } catch (err) { }
       const payloadClone = _.cloneDeep(payload)
       payloadClone[PERMALINK] = payloadClone._permalink
       payloadClone[LINK] = payloadClone._link
@@ -270,10 +351,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-  bot: Bot
-  conf: IConfComponents
-  pluginConf: IDocumentOcrConf
-}) => {
+    bot: Bot
+    conf: IConfComponents
+    pluginConf: IDocumentOcrConf
+  }) => {
   const { models } = bot
   Object.keys(pluginConf).forEach(productModelId => {
     const productModel = models[productModelId]
@@ -370,10 +451,10 @@ function convertDateInWords(input) {
   if (input.registrationDate_Day && input.registrationDate_Month && input.registrationDate_Year) {
     let d = Date.parse(
       input.registrationDate_Year +
-        '-' +
-        monthtonum(input.registrationDate_Month) +
-        '-' +
-        daytonum(input.registrationDate_Day)
+      '-' +
+      monthtonum(input.registrationDate_Month) +
+      '-' +
+      daytonum(input.registrationDate_Day)
     )
 
     input.registrationDate = d
