@@ -23,6 +23,7 @@ const PG_PERSONAL_DETAILS = 'tradle.pg.PersonalDetails'
 const ADDRESS = 'tradle.Address'
 const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
 const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
+const LEGAL_DOCUMENT = 'tradle.legal.LegalDocument'
 const AGENCY = 'tradle.Agency'
 // const PERSONAL_INFO = 'tradle.PersonalInfo'
 
@@ -106,7 +107,21 @@ export const transformers = {
           [TYPE]: source[TYPE],
           _link: source._link,
           _permalink: source._permalink,
-          _displayName: source.companyName || source.country.title
+          _displayName:
+            source.companyName || (source.country && source.country.title) || 'Legal Entity'
+        }
+      }
+    },
+    [LEGAL_DOCUMENT]: source => {
+      // const props:any = {}
+      // props.legalEntity = source
+      return {
+        legalEntity: {
+          [TYPE]: source[TYPE],
+          _link: source._link,
+          _permalink: source._permalink,
+          _displayName:
+            source.companyName || (source.country && source.country.title) || 'Legal Entity'
         }
       }
     }
