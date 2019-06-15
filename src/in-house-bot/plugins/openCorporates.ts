@@ -82,7 +82,8 @@ class OpenCorporatesAPI {
       let cc = country.id.split('_')[1]
       if (cc === 'US') {
         if (region) {
-          url = `${BASE_URL}companies/${cc.toLowerCase()}_${region.toLowerCase()}/${registrationNumber}`
+          let reg = (typeof region === 'string' && region) || region.id.split('_')[1]
+          url = `${BASE_URL}companies/${cc.toLowerCase()}_${reg.toLowerCase()}/${registrationNumber}`
         } else hasAllInfo = false
       } else url = `${BASE_URL}companies/${cc.toLowerCase()}/${registrationNumber}`
     }
