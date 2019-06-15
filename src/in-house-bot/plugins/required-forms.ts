@@ -1,6 +1,14 @@
 
 import { Bot, IConfComponents, CreatePlugin, ValidatePluginConf } from '../types'
 import Errors from '../../errors'
+import validateModel from '@tradle/validate-model'
+const { isSubClassOf } = validateModel.utils
+import constants from '@tradle/constants'
+const {
+  FORM,
+  FINANCIAL_PRODUCT
+} = constants.TYPES
+const MY_PRODUCT = 'tradle.MyProduct'
 
 type GetRequiredFormsConf = {
   [productModelId: string]: string[]
@@ -36,8 +44,7 @@ export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }
     if (!productModel) {
       throw new Errors.InvalidInput(`model not found: ${productModelId}`)
     }
-
-    if (productModel.subClassOf !== 'tradle.FinancialProduct') {
+    if (!isSubClassOf({models, model: productModel, subModel: models[FINANCIAL_PRODUCT]})) {
       throw new Errors.InvalidInput(`expected a product model: ${productModelId}`)
     }
 
@@ -52,7 +59,8 @@ export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }
         throw new Errors.InvalidInput(`model not found: ${formModelId}`)
       }
 
-      if (formModel.subClassOf !== 'tradle.Form' && formModel.subClassOf !== 'tradle.MyProduct') {
+      if (!isSubClassOf({models, model: formModel, subModel: models[FORM]}) &&
+          !isSubClassOf({models, model: formModel, subModel: models[MY_PRODUCT]})) {
         throw new Errors.InvalidInput(`expected ${productModelId} to map to subclasses of tradle.Form or tradle.MyProduct`)
       }
     })
