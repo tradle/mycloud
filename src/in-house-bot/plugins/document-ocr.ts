@@ -2,7 +2,7 @@ import _ from 'lodash'
 // import validateResource from '@tradle/validate-resource'
 import { TYPE, PERMALINK, LINK } from '@tradle/constants'
 import DataURI from 'strong-data-uri'
-
+import { getLatestForms } from '../utils'
 import AWS from 'aws-sdk'
 
 import validateResource from '@tradle/validate-resource'
@@ -23,7 +23,8 @@ import Errors from '../../errors'
 import Diff from 'text-diff'
 
 const FORM_ID = 'tradle.Form'
-
+const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
+const CERTIFICATE_OF_INC = 'tradle.legal.CertificateOfIncorporation'
 // export const name = 'document-ocr'
 
 type DocumentOcrOpts = {
@@ -35,11 +36,11 @@ type DocumentOcrOpts = {
 interface IDocumentOcrConf {
   [productModelId: string]: {}
 }
-const data = {
-  companyName: 'The Walt Disney Company',
-  registrationNumber: '2528877',
-  registrationDate: 806904000000
-}
+// const data = {
+//   companyName: 'The Walt Disney Company',
+//   registrationNumber: '2528877',
+//   registrationDate: 806904000000
+// }
 
 // const myconfig = {
 //   "legalEntity_us_de": {
@@ -89,7 +90,7 @@ export class DocumentOcrAPI {
         Bytes: buffer
       }
     }
-
+    // debugger
     try {
       let apiResponse: AWS.Textract.DetectDocumentTextResponse = await textract
         .detectDocumentText(params)
@@ -200,22 +201,87 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   const documentOcrAPI = new DocumentOcrAPI({ bot, conf, applications, logger })
   // debugger
   const plugin: IPluginLifecycleMethods = {
-    // check if auto-approve ifvapplication Legal entity product was submitted
-    async [`onmessage:${FORM_ID}`](req) {
+    async onFormsCollected({ req }) {
       const { user, application, payload } = req
+      if (!application) return
+
+      const productId = application.requestFor
+      const formConf = conf[productId]
+      if (!formConf) return
+      debugger
+      const latestForms = getLatestForms(application)
+      const leStub = latestForms.find(form => form.type === LEGAL_ENTITY)
+      let le = await bot.objects.get(leStub.link)
+      if (le.document)
+        return
+
+      const certStub = latestForms.find(form => form.type === CERTIFICATE_OF_INC)
+      if (!certStub) return
+      let cert = await bot.objects.get(certStub.link)
+
+      const { country, companyName, registrationDate, registrationNumber, region } = cert
+      // let prefill: any = { [TYPE]: LEGAL_ENTITY }
+      if (country && le.country) return
+
+      const { _link, _permalink } = le
+      let prefill = _.cloneDeep(le)
+      prefill._r = _permalink
+      prefill._c = _link
+      delete prefill._permalink
+      delete prefill._link
+
+      _.extend(prefill, { country, companyName, registrationDate, registrationNumber })
+      prefill.document = _.pick(cert, ['_link', '_permalink', '_t'])
+      prefill.document._displayName = cert.companyName
+      if (region) prefill.region = region
+      try {
+        prefill = sanitize(prefill).sanitized
+      } catch (err) {
+        debugger
+      }
+
+      let formError: any = {
+        req,
+        user,
+        application,
+        details: {
+          prefill,
+          message: `Please review and confirm`
+        }
+        // item: payload,
+      }
+      try {
+        await applications.requestEdit(formError)
+      } catch (err) {
+        debugger
+      }
+    },
+    // async [`onmessage:${FORM_ID}`](req) {
+    async validateForm({ req }) {
+      const { user, application, payload } = req
+      // debugger
       if (!application) return
       const productId = application.requestFor
       const formConf = conf[productId] && conf[productId][payload[TYPE]]
       if (!formConf) return
-      const prop = formConf.property
-      if (!prop || !payload[prop]) return
+      const { property, propertyMap } = formConf
+      if (!property || !payload[property]) return
       // debugger
       // Check if this doc was already processed
-      if (payload._prevlink && payload.registrationDate && payload.photos) {
+      let registrationDateProp = (propertyMap && propertyMap.registrationDate) || 'registrationDate'
+      if (payload._prevlink && payload[registrationDateProp] && payload[property]) {
         let dbRes = await bot.objects.get(payload._prevlink)
-        if (dbRes && dbRes.photos && dbRes.photos.length === payload.photos.length) {
-          let dbPhotos = Array.isArray(dbRes.photos) ? dbRes.photos : [dbRes.photos]
-          let payloadPhotos = Array.isArray(payload.photos) ? payload.photos : [payload.photos]
+        let pType = bot.models[payload[TYPE]].properties[property].type
+        let isArray = pType === 'array'
+        let maybeNotChanged
+        if (dbRes) {
+          if (isArray)
+            maybeNotChanged = dbRes[property] && dbRes[property].length === payload[property].length
+          else if (dbRes[property] && dbRes[property].url === payload[property].url) return
+        }
+        if (maybeNotChanged) {
+          let dbPhotos = dbRes[property]
+          let payloadPhotos = payload[property]
           let same = true
           for (let i = 0; i < dbPhotos.length && same; i++) {
             let url = dbPhotos[i].url
@@ -225,18 +291,38 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           if (same) return
         }
       }
-      let confId = `${payload.country.id
-        .split('_')[1]
-        .toLowerCase()}_${payload.region.toLowerCase()}`
+      let countryProp = (propertyMap && propertyMap.country) || 'country'
+      let regionProp = (propertyMap && propertyMap.region) || 'region'
+      let country = payload[countryProp]
+      if (!country) return
+      let reg = payload[regionProp]
+      if (reg) {
+        if (typeof reg === 'object') reg = reg.id.split('_')[1]
+        reg = reg.toLowerCase()
+      }
+      let confId = `${country.id.split('_')[1].toLowerCase()}${(reg && '_' + reg) || ''}`
       let prefill
       try {
-        prefill = await documentOcrAPI.ocr(payload, prop, formConf[confId])
+        prefill = await documentOcrAPI.ocr(payload, property, formConf[confId])
         prefill = sanitize(prefill).sanitized
-      } catch (err) {}
+      } catch (err) {
+        debugger
+      }
       const payloadClone = _.cloneDeep(payload)
       payloadClone[PERMALINK] = payloadClone._permalink
       payloadClone[LINK] = payloadClone._link
 
+      if (propertyMap) {
+        let mappedPrefill = _.cloneDeep(prefill)
+        for (let p in propertyMap) {
+          let val = mappedPrefill[p]
+          if (val) {
+            delete mappedPrefill[p]
+            mappedPrefill[propertyMap[p]] = val
+          }
+        }
+        prefill = mappedPrefill
+      }
       _.extend(payloadClone, prefill)
       // debugger
       let formError: any = {
@@ -254,9 +340,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         formError.details = {
           message: `Please fill out the form`
         }
-      let requestConfirmationCode
       try {
-        requestConfirmationCode = await applications.requestEdit(formError)
+        return await applications.requestEdit(formError)
       } catch (err) {
         debugger
       }
@@ -293,7 +378,10 @@ export const validateConf: ValidatePluginConf = async ({
         throw new Errors.InvalidInput(`model not found: ${formModelId}`)
       }
 
-      if (formModel.subClassOf !== 'tradle.Form' && formModel.subClassOf !== 'tradle.MyProduct') {
+      if (
+        !isSubClassOf('tradle.Form', formModel, bot.models) &&
+        formModel.subClassOf !== 'tradle.MyProduct'
+      ) {
         throw new Errors.InvalidInput(
           `expected ${productModelId} to map to subclasses of tradle.Form or tradle.MyProduct`
         )
@@ -304,6 +392,11 @@ export const validateConf: ValidatePluginConf = async ({
       }
     }
   })
+}
+function isSubClassOf(subType, formModel, models) {
+  const sub = formModel.subClassOf
+  if (sub === subType) return true
+  if (sub && models[sub].abstract) return isSubClassOf(subType, models[sub], models)
 }
 // let input = {"companyName":"TRADLE, INC.",
 //              "registrationDate_DAY":"TWENTY-NINTH",
