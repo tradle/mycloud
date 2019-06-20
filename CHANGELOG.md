@@ -2,20 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0-rc.36](https://github.com/tradle/mycloud/compare/v2.4.0-rc.35...v2.4.0-rc.36) (2019-06-20)
-
-
-### Bug Fixes
-
-* allow recursive subClassOf check ([7a33215](https://github.com/tradle/mycloud/commit/7a33215))
-* recursive subClassOf ([d9aad8b](https://github.com/tradle/mycloud/commit/d9aad8b))
-* region could be enum or string ([07600bd](https://github.com/tradle/mycloud/commit/07600bd))
-
-
-### Features
-
-* document OCR project ([f2d6117](https://github.com/tradle/mycloud/commit/f2d6117))
-* document OCR project ([a1320bb](https://github.com/tradle/mycloud/commit/a1320bb))
+# [2.4.0](https://github.com/tradle/mycloud/compare/v2.4.0-rc.36...v2.4.0) (2019-06-20)
 
 
 
