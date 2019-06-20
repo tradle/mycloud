@@ -1,9 +1,264 @@
 # Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
-version: v1.7.1
+version: v1.13.5
 # ignores vulnerabilities until expiry date; change duration by modifying expiry date
 ignore:
   'npm:shelljs:20140723':
     - serverless > shelljs:
         reason: shelljs doesn't get pushed up to lambdas
-        expires: '2018-10-22T17:16:52.563Z'
+        expires: '2020-01-22T17:16:52.563Z'
+  'npm:hoek:20180212':
+    - serverless-offline > jsonwebtoken > joi > topo > hoek:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.996Z'
+    - jsonwebtoken > joi > hoek:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.997Z'
+    - serverless-offline > jsonwebtoken > joi > hoek:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.997Z'
+    - jsonwebtoken > joi > topo > hoek:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.997Z'
+  'npm:lodash:20180130':
+    - serverless-iot-local > mosca > ioredis > lodash:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.997Z'
+    - serverless-iot-local > mosca > ascoltatori > kafka-node > lodash:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.997Z'
+    - mosca > ioredis > lodash:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.997Z'
+    - ascoltatori > kafka-node > lodash:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.997Z'
+    - ioredis > lodash:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.997Z'
+    - mosca > ascoltatori > kafka-node > lodash:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.997Z'
+  'npm:mime:20170907':
+    - '@tradle/cb-blockr > superagent > mime':
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.997Z'
+  SNYK-JS-FSTREAM-174725:
+    - leveldown > prebuild > node-ninja > fstream:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.997Z'
+    - leveldown > prebuild > node-gyp > fstream:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.998Z'
+    - ascoltatori > kafka-node > snappy > node-gyp > fstream:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.998Z'
+    - mosca > leveldown > prebuild > node-ninja > fstream:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.998Z'
+    - leveldown > prebuild > node-gyp > tar > fstream:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.998Z'
+    - leveldown > prebuild > node-ninja > tar > fstream:
+        reason: build=dep
+        expires: '2020-01-22T20:55:17.998Z'
+    - mosca > leveldown > prebuild > node-gyp > fstream:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.998Z'
+    - mosca > leveldown > prebuild > node-ninja > tar > fstream:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.998Z'
+    - serverless-iot-local > mosca > leveldown > prebuild > node-gyp > fstream:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.998Z'
+    - ascoltatori > kafka-node > snappy > node-gyp > tar > fstream:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.998Z'
+    - mosca > ascoltatori > kafka-node > snappy > node-gyp > fstream:
+        reason: build-de
+        expires: '2020-01-22T20:55:17.998Z'
+    - mosca > leveldown > prebuild > node-gyp > tar > fstream:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.998Z'
+    - serverless-iot-local > mosca > leveldown > prebuild > node-ninja > fstream:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.998Z'
+    - serverless-iot-local > mosca > ascoltatori > kafka-node > snappy > node-gyp > fstream:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.998Z'
+    - mosca > ascoltatori > kafka-node > snappy > node-gyp > tar > fstream:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.998Z'
+    - serverless-iot-local > mosca > leveldown > prebuild > node-ninja > tar > fstream:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.998Z'
+    - serverless-iot-local > mosca > leveldown > prebuild > node-gyp > tar > fstream:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.998Z'
+    - serverless-iot-local > mosca > ascoltatori > kafka-node > snappy > node-gyp > tar > fstream:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.998Z'
+  SNYK-JS-HANDLEBARS-173692:
+    - conventional-changelog > conventional-changelog-core > conventional-changelog-writer > handlebars:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.998Z'
+    - standard-version > conventional-changelog > conventional-changelog-core > conventional-changelog-writer > handlebars:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+  SNYK-JS-HANDLEBARS-174183:
+    - conventional-changelog > conventional-changelog-core > conventional-changelog-writer > handlebars:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.998Z'
+    - standard-version > conventional-changelog > conventional-changelog-core > conventional-changelog-writer > handlebars:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+  SNYK-JS-JSYAML-173999:
+    - json-refs > js-yaml:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - serverless > js-yaml:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - serverless > json-refs > js-yaml:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+  SNYK-JS-JSYAML-174129:
+    - json-refs > js-yaml:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - serverless > js-yaml:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - serverless > json-refs > js-yaml:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+  SNYK-JS-LODASH-73638:
+    - ioredis > lodash:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - ascoltatori > kafka-node > lodash:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - mosca > ioredis > lodash:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - mosca > ascoltatori > kafka-node > lodash:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - serverless-iot-local > mosca > ioredis > lodash:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - serverless-iot-local > mosca > ascoltatori > kafka-node > lodash:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+  SNYK-JS-LODASH-73639:
+    - ioredis > lodash:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - ascoltatori > kafka-node > lodash:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - mosca > ioredis > lodash:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - mosca > ascoltatori > kafka-node > lodash:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - serverless-iot-local > mosca > ioredis > lodash:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - serverless-iot-local > mosca > ascoltatori > kafka-node > lodash:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+  SNYK-JS-MQTTPACKET-174531:
+    - mosca > mqtt > mqtt-packet:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - aws-iot-device-sdk > mqtt > mqtt-packet:
+        reason: ''
+        expires: '2020-01-22T20:55:17.999Z'
+    - mosca > mqtt-connection > mqtt-packet:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - ascoltatori > mqtt > mqtt-packet:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - serverless-iot-local > mosca > mqtt-connection > mqtt-packet:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - ascoltatori > mqtt > mqtt-connection > mqtt-packet:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - aws-iot-device-sdk > mqtt > mqtt-connection > mqtt-packet:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - mosca > ascoltatori > mqtt > mqtt-packet:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - mosca > mqtt > mqtt-connection > mqtt-packet:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - serverless-iot-local > mosca > mqtt > mqtt-packet:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - mosca > ascoltatori > mqtt > mqtt-connection > mqtt-packet:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - serverless-iot-local > mosca > ascoltatori > mqtt > mqtt-packet:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - serverless-iot-local > mosca > mqtt > mqtt-connection > mqtt-packet:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - serverless-iot-local > mosca > ascoltatori > mqtt > mqtt-connection > mqtt-packet:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - serverless-iot-local > mqtt > mqtt-packet:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+  SNYK-JS-STATICEVAL-173693:
+    - mosca > brfs > static-module > static-eval:
+        reason: build-dep
+        expires: '2020-01-22T20:55:17.999Z'
+    - serverless-iot-local > mosca > brfs > static-module > static-eval:
+        reason: build-dep
+        expires: '2020-01-22T20:55:18.000Z'
+  SNYK-JS-TAR-174125:
+    - leveldown > prebuild > node-gyp > tar:
+        reason: build-dep
+        expires: '2020-01-22T20:55:18.000Z'
+    - leveldown > prebuild > node-ninja > tar:
+        reason: build-dep
+        expires: '2020-01-22T20:55:18.000Z'
+    - ascoltatori > kafka-node > snappy > node-gyp > tar:
+        reason: build-dep
+        expires: '2020-01-22T20:55:18.000Z'
+    - mosca > leveldown > prebuild > node-gyp > tar:
+        reason: build-dep
+        expires: '2020-01-22T20:55:18.000Z'
+    - mosca > leveldown > prebuild > node-ninja > tar:
+        reason: build-dep
+        expires: '2020-01-22T20:55:18.000Z'
+    - mosca > ascoltatori > kafka-node > snappy > node-gyp > tar:
+        reason: build-dep
+        expires: '2020-01-22T20:55:18.000Z'
+    - serverless-iot-local > mosca > leveldown > prebuild > node-gyp > tar:
+        reason: build-dep
+        expires: '2020-01-22T20:55:18.000Z'
+    - serverless-iot-local > mosca > leveldown > prebuild > node-ninja > tar:
+        reason: build-dep
+        expires: '2020-01-22T20:55:18.000Z'
+    - serverless-iot-local > mosca > ascoltatori > kafka-node > snappy > node-gyp > tar:
+        reason: build-dep
+        expires: '2020-01-22T20:55:18.000Z'
+  'npm:bl:20160119':
+    - mosca > level-sublevel > levelup > bl:
+        reason: build-dep
+        expires: '2020-01-22T20:55:18.000Z'
+    - serverless-iot-local > mosca > level-sublevel > levelup > bl:
+        reason: build-dep
+        expires: '2020-01-22T20:55:18.000Z'
+  'npm:https-proxy-agent:20180402':
+    - serverless > https-proxy-agent:
+        reason: build-dep
+        expires: '2020-01-22T20:55:18.000Z'
 patch: {}
