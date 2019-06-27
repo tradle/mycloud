@@ -21,12 +21,17 @@ import {
 import Errors from '../../errors'
 
 import Diff from 'text-diff'
-import { String } from 'aws-sdk/clients/cognitosync';
+import { String } from 'aws-sdk/clients/cognitosync'
 
 const FORM_ID = 'tradle.Form'
 const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 const CERTIFICATE_OF_INC = 'tradle.legal.CertificateOfIncorporation'
 // export const name = 'document-ocr'
+
+import telcoResponse from '../../../mx-telco-apiResponse'
+const testMap = {
+  'tradle.PhoneBill': telcoResponse
+}
 
 type DocumentOcrOpts = {
   bot: Bot
@@ -77,21 +82,18 @@ export class DocumentOcrAPI {
     if (Array.isArray(object)) {
       bucket = object[0].bucket
       key = object[0].key
-    }
-    else {
+    } else {
       bucket = object.bucket
       key = object.key
     }
-
     await this.bot.resolveEmbeds(payload)
-
     // Form now only 1 doc will be processed
     let base64
     if (Array.isArray(payload[prop])) base64 = payload[prop][0].url
     else base64 = payload[prop].url
 
     let buffer: any = DataURI.decode(base64)
-
+    // debugger
     let syncMode = true
     if (buffer.mimetype === 'application/pdf') {
       syncMode = false
@@ -102,6 +104,8 @@ export class DocumentOcrAPI {
     // let region = payload.region
     let textract = new AWS.Textract({ apiVersion: '2018-06-27' }) //, accessKeyId, secretAccessKey, region })
 
+    let isTest = myConfig.isTest && testMap[payload[TYPE]] !== null
+
     if (syncMode) {
       let params = {
         Document: {
@@ -110,25 +114,27 @@ export class DocumentOcrAPI {
         }
       }
       try {
-        let apiResponse: AWS.Textract.DetectDocumentTextResponse = await textract
-          .detectDocumentText(params)
-          .promise()
+        let apiResponse
+        if (isTest) apiResponse = testMap[payload[TYPE]]
+        else apiResponse = await textract.detectDocumentText(params).promise()
         //  apiResponse has to be json object
         let response: any = this.extractMap(apiResponse, myConfig)
 
         // need to convert string date into ms -- hack
-
-        convertDateInWords(response) // response.registrationDate
+        let map: any = Object.values(myConfig.map)
+        let dateProp = map.find(p => p.indexOf('_day') !== -1)
+        if (dateProp) dateProp = dateProp.split('_')[0]
+        convertDateInWords(response, dateProp) // response.registrationDate
         return response
       } catch (err) {
         debugger
         this.logger.error('textract detectDocumentText failed', err)
       }
       return {}
-    }
-    else {
-      var params1 = {
-        DocumentLocation: { /* required */
+    } else {
+      let params1 = {
+        DocumentLocation: {
+          /* required */
           S3Object: {
             Bucket: bucket,
             Name: key
@@ -138,33 +144,32 @@ export class DocumentOcrAPI {
       }
 
       let data
-      try {
-        data = await textract.startDocumentTextDetection(params1).promise()
-      } catch (err) {
-        debugger
-        this.logger.error('textract startDocumentTextDetection failed', err)
-        return {};
+      let params2
+      if (!isTest) {
+        try {
+          data = await textract.startDocumentTextDetection(params1).promise()
+        } catch (err) {
+          debugger
+          this.logger.error('textract startDocumentTextDetection failed', err)
+          return {}
+        }
+        await this.sleep(15000)
+        params2 = {
+          JobId: data.JobId /* required */
+        }
       }
-
-      await this.sleep(15000)
-      var params2 = {
-        JobId: data.JobId /* required */
-      }
-
       let time = 0
       let apiResponse
       while (true) {
         try {
           time++
-          apiResponse = await textract.getDocumentTextDetection(params2).promise()
-
+          if (isTest) apiResponse = testMap[payload[TYPE]]
+          else apiResponse = await textract.getDocumentTextDetection(params2).promise()
           if (apiResponse.JobStatus == 'SUCCEEDED') {
-            break;
-          }
-          else if (time >= 25) {
+            break
+          } else if (time >= 25) {
             this.logger.error('textract documentTextDetection took too long')
-          }
-          else {
+          } else {
             await this.sleep(4000)
           }
         } catch (err) {
@@ -173,21 +178,25 @@ export class DocumentOcrAPI {
         }
       }
       //  apiResponse has to be json object
+      debugger
       let response: any = this.extractMap(apiResponse, myConfig)
 
       // need to convert string date into ms -- hack
+      let map: any = Object.values(myConfig.map)
 
-      convertDateInWords(response) // response.registrationDate
+      let dateProp = map.find(p => p.indexOf('_day') !== -1)
+      if (dateProp) dateProp = dateProp.split('_')[0]
+      convertDateInWords(response, dateProp) // response.registrationDate
       return response
     }
   }
 
-  sleep = async (ms: number) => {
-    await this._sleep(ms);
+  public sleep = async (ms: number) => {
+    await this._sleep(ms)
   }
 
-  _sleep = (ms: number) => {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  public _sleep = (ms: number) => {
+    return new Promise(resolve => setTimeout(resolve, ms))
   }
 
   public lineBlocks = blocks => {
@@ -209,14 +218,13 @@ export class DocumentOcrAPI {
     return -1
   }
 
-  match = (template, blocks) => {
+  public match = (template, blocks) => {
     let markerText = template.marker
     let markerPolygon = template.Polygon
 
     for (let block of blocks) {
       let blockPolygon = block.Geometry.Polygon
-      if (blockPolygon[0].Y > markerPolygon[2].Y + 0.1)
-        return false
+      if (blockPolygon[0].Y > markerPolygon[2].Y + 0.1) return false
       if (block.Text === markerText) {
         if (this.inside(blockPolygon, markerPolygon)) {
           return true
@@ -225,7 +233,7 @@ export class DocumentOcrAPI {
     }
   }
 
-  enlarge = (markerPolygon) => {
+  public enlarge = markerPolygon => {
     markerPolygon[0].X -= 0.1
     markerPolygon[0].Y -= 0.1
     markerPolygon[1].X += 0.1
@@ -236,7 +244,7 @@ export class DocumentOcrAPI {
     markerPolygon[3].Y += 0.1
   }
 
-  inside = (toFit, inBox) => {
+  public inside = (toFit, inBox) => {
     if (
       toFit[0].X >= inBox[0].X - 0.1 &&
       toFit[0].Y >= inBox[0].Y - 0.1 &&
@@ -248,9 +256,7 @@ export class DocumentOcrAPI {
       toFit[3].Y <= inBox[3].Y + 0.1
     ) {
       return true
-    }
-    else
-      return false
+    } else return false
   }
 
   public fullText = lines => {
@@ -270,9 +276,6 @@ export class DocumentOcrAPI {
   }
 
   public extractMap = (apiResponse, myconfig) => {
-
-
-
     let input = this.firstPageTxt(apiResponse)
 
     let diff = new Diff()
@@ -280,7 +283,7 @@ export class DocumentOcrAPI {
     let min = 100000000
     let textDiff
     for (let one of myconfig.templates) {
-      let textArr = diff.main(one, input)
+      let textArr = diff.main(one.text, input)
       if (min > textArr.length) {
         min = textArr.length
         textDiff = textArr
@@ -338,10 +341,21 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!formConf) return
       debugger
       const latestForms = getLatestForms(application)
-      const leStub = latestForms.find(form => form.type === LEGAL_ENTITY)
-      let le = await bot.objects.get(leStub.link)
-      if (le.document)
+      const stub = latestForms.find(form => form.type === LEGAL_ENTITY)
+      if (stub) {
+        await this.handleLe({ stub, latestForms, req })
         return
+      }
+      // const piStub = latestForms.find(form => form.type === PERSONAL_INFO)
+      // if (piStub) {
+      //   debugger
+      // }
+    },
+    async handleLe({ stub, latestForms, req }) {
+      let le = await bot.objects.get(stub.link)
+      if (le.document) return
+
+      const { user, application, payload } = req
 
       const certStub = latestForms.find(form => form.type === CERTIFICATE_OF_INC)
       if (!certStub) return
@@ -387,16 +401,16 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     // async [`onmessage:${FORM_ID}`](req) {
     async validateForm({ req }) {
       const { user, application, payload } = req
-      // debugger
+      debugger
       if (!application) return
       const productId = application.requestFor
       const formConf = conf[productId] && conf[productId][payload[TYPE]]
       if (!formConf) return
-      const { property, propertyMap } = formConf
+      const { property } = formConf
       if (!property || !payload[property]) return
       // debugger
       // Check if this doc was already processed
-      let registrationDateProp = (propertyMap && propertyMap.registrationDate) || 'registrationDate'
+      let registrationDateProp = 'registrationDate'
       if (payload._prevlink && payload[registrationDateProp] && payload[property]) {
         let dbRes = await bot.objects.get(payload._prevlink)
         let pType = bot.models[payload[TYPE]].properties[property].type
@@ -419,11 +433,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           if (same) return
         }
       }
-      let countryProp = (propertyMap && propertyMap.country) || 'country'
-      let regionProp = (propertyMap && propertyMap.region) || 'region'
-      let country = payload[countryProp]
+      let country = payload.country
       if (!country) return
-      let reg = payload[regionProp]
+      let reg = payload.region
       if (reg) {
         if (typeof reg === 'object') reg = reg.id.split('_')[1]
         reg = reg.toLowerCase()
@@ -433,22 +445,14 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       try {
         prefill = await documentOcrAPI.ocr(payload, property, formConf[confId])
         prefill = sanitize(prefill).sanitized
-      } catch (err) { }
+      } catch (err) {
+        debugger
+        return
+      }
       const payloadClone = _.cloneDeep(payload)
       payloadClone[PERMALINK] = payloadClone._permalink
       payloadClone[LINK] = payloadClone._link
 
-      if (propertyMap) {
-        let mappedPrefill = _.cloneDeep(prefill)
-        for (let p in propertyMap) {
-          let val = mappedPrefill[p]
-          if (val) {
-            delete mappedPrefill[p]
-            mappedPrefill[propertyMap[p]] = val
-          }
-        }
-        prefill = mappedPrefill
-      }
       _.extend(payloadClone, prefill)
       // debugger
       let formError: any = {
@@ -481,10 +485,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-    bot: Bot
-    conf: IConfComponents
-    pluginConf: IDocumentOcrConf
-  }) => {
+  bot: Bot
+  conf: IConfComponents
+  pluginConf: IDocumentOcrConf
+}) => {
   const { models } = bot
   Object.keys(pluginConf).forEach(productModelId => {
     const productModel = models[productModelId]
@@ -585,20 +589,17 @@ function monthtonum(month) {
   return monthmap[month.toLowerCase()]
 }
 
-function convertDateInWords(input) {
-  if (input.registrationDate_Day && input.registrationDate_Month && input.registrationDate_Year) {
-    let d = Date.parse(
-      input.registrationDate_Year +
-      '-' +
-      monthtonum(input.registrationDate_Month) +
-      '-' +
-      daytonum(input.registrationDate_Day)
-    )
+function convertDateInWords(input, dateProp) {
+  let day = dateProp + '_Day'
+  let mon = dateProp + '_Month'
+  let year = dateProp + 'Year'
+  if (input[day] && input[mon] && input[year]) {
+    let d = Date.parse(input[year] + '-' + monthtonum(input[mon]) + '-' + daytonum(input[day]))
 
     input.registrationDate = d
-    delete input.registrationDate_Year
-    delete input.registrationDate_Month
-    delete input.registrationDate_Day
+    delete input[year]
+    delete input[mon]
+    delete input[day]
   }
 }
 
