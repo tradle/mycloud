@@ -99,10 +99,10 @@ export class DocumentOcrAPI {
       syncMode = false
     }
 
-    // let accessKeyId = ''
-    // let secretAccessKey = ''
-    // let region = payload.region
-    let textract = new AWS.Textract({ apiVersion: '2018-06-27' }) //, accessKeyId, secretAccessKey, region })
+    let accessKeyId = ''
+    let secretAccessKey = ''
+    let region = 'us-east-1'
+    let textract = new AWS.Textract({ apiVersion: '2018-06-27', accessKeyId, secretAccessKey, region })
 
     let isTest = myConfig.isTest && testMap[payload[TYPE]] !== null
 
@@ -215,118 +215,101 @@ export class DocumentOcrAPI {
   }
   public compare = (block1, block2) => {
     if (block1.Geometry.BoundingBox.Top > block2.Geometry.BoundingBox.Top) return 1
+    if (block1.Geometry.BoundingBox.Top == block2.Geometry.BoundingBox.Top) return 0
     return -1
   }
 
   public match = (template, blocks) => {
     let markerText = template.marker
-    let markerPolygon = template.Polygon
+    let markerBox = template.BoundingBox
 
     for (let block of blocks) {
-      let blockPolygon = block.Geometry.Polygon
-      if (blockPolygon[0].Y > markerPolygon[2].Y + 0.1) return false
+      let blockBox = block.Geometry.BoundingBox
+      if (blockBox.Top > markerBox.Top + markerBox.Height + 0.05)
+        return false
+      //console.log(block.Text)
       if (block.Text === markerText) {
-        if (this.inside(blockPolygon, markerPolygon)) {
+        if (this.isInside(blockBox, markerBox)) {
           return true
         }
       }
     }
   }
 
-  public enlarge = markerPolygon => {
-    markerPolygon[0].X -= 0.1
-    markerPolygon[0].Y -= 0.1
-    markerPolygon[1].X += 0.1
-    markerPolygon[1].Y -= 0.1
-    markerPolygon[2].X += 0.1
-    markerPolygon[2].Y += 0.1
-    markerPolygon[3].X -= 0.1
-    markerPolygon[3].Y += 0.1
+  public isInside = (box, bigBox) => {
+    return box.Top > bigBox.Top - 0.05 &&
+      box.Left > bigBox.Left - 0.05 &&
+      box.Width < bigBox.Width + 0.1 &&
+      box.Height < bigBox.Height + 0.1
   }
 
-  public inside = (toFit, inBox) => {
-    if (
-      toFit[0].X >= inBox[0].X - 0.1 &&
-      toFit[0].Y >= inBox[0].Y - 0.1 &&
-      toFit[1].X <= inBox[1].X + 0.1 &&
-      toFit[1].Y >= inBox[1].Y - 0.1 &&
-      toFit[2].X <= inBox[2].X + 0.1 &&
-      toFit[2].Y <= inBox[2].Y + 0.1 &&
-      toFit[3].X >= inBox[3].X - 0.1 &&
-      toFit[3].Y <= inBox[3].Y + 0.1
-    ) {
-      return true
-    } else return false
-  }
-
-  public fullText = lines => {
+  public fullText = (lines, multiline) => {
     let txt = ''
+    let delim = multiline ? '\n' : ' '
     for (let block of lines) {
-      txt += block.Text + '\n'
+      txt += block.Text + delim
     }
-    return txt
-  }
-
-  public firstPageTxt = apiResponse => {
-    let response = apiResponse //JSON.parse(rawdata);
-    let blocks = response.Blocks
-    let lines = this.lineBlocks(blocks)
-    let txt = this.fullText(lines)
     return txt
   }
 
   public extractMap = (apiResponse, myconfig) => {
-    let input = this.firstPageTxt(apiResponse)
-
-    let diff = new Diff()
-
-    let min = 100000000
-    let textDiff
-    for (let one of myconfig.templates) {
-      let textArr = diff.main(one.text, input)
-      if (min > textArr.length) {
-        min = textArr.length
-        textDiff = textArr
+    let blocks = apiResponse['Blocks']
+    let lines = this.lineBlocks(blocks)
+    let notMatched = true
+    for (let template of myconfig.templates) {
+      if (this.match(template, lines)) {
+        return this.extract(apiResponse, template, lines, myconfig)
       }
     }
-    //console.log(textDiff)
-    //console.log('number of diffs', min)
-    if (min > 70) {
-      this.logger.debug('in input ' + apiResponse + ' could not find anything')
-      this.logger.debug('no template matches, number of differences are too many: ' + min)
-      return {}
-    }
+  }
 
+  public extract = (apiResponse, template, lines, myconfig) => {
+    let input = this.fullText(lines, template.multiline)
+
+    var diff = new Diff();
+    let textDiff = diff.main(template.text, input);
+
+    // console.log(textDiff)
     let found = false
     let key
     let map = {}
     for (let part of textDiff) {
-      if (part[0] == 0) {
-        found = false
-      } else if (part[0] == -1 && part[1].includes('^')) {
+      if (part[0] == 0)
+        found = false;
+      else if (part[0] == -1 && part[1].includes('^')) {
         found = true
         key = part[1]
-      } else if (found && part[0] == 1) {
+      }
+      else if (found && part[0] == 1) {
         found = false
         let value = map[key]
         if (value) {
           map[key] = value + '\n' + part[1].trim()
-        } else {
+        }
+        else {
           map[key] = part[1].trim()
         }
+        this.logger.debug(`${key}  ---> ${map[key]}`)
       }
     }
     let output = {}
     for (const key in map) {
       let value = map[key]
       let newkey = myconfig.map[key]
-      if (newkey) output[newkey] = value
+      if (newkey)
+        output[newkey] = value
     }
     this.logger.debug('in input ' + apiResponse + ' found')
     this.logger.debug(JSON.stringify(output, null, 2))
     return output
   }
+  if(notMatched) {
+    this.logger.debug('marker has not matched')
+    return {}
+  }
+
 }
+
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
   const documentOcrAPI = new DocumentOcrAPI({ bot, conf, applications, logger })
@@ -485,10 +468,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-  bot: Bot
-  conf: IConfComponents
-  pluginConf: IDocumentOcrConf
-}) => {
+    bot: Bot
+    conf: IConfComponents
+    pluginConf: IDocumentOcrConf
+  }) => {
   const { models } = bot
   Object.keys(pluginConf).forEach(productModelId => {
     const productModel = models[productModelId]
@@ -590,13 +573,27 @@ function monthtonum(month) {
 }
 
 function convertDateInWords(input, dateProp) {
-  let day = dateProp + '_Day'
-  let mon = dateProp + '_Month'
-  let year = dateProp + 'Year'
-  if (input[day] && input[mon] && input[year]) {
-    let d = Date.parse(input[year] + '-' + monthtonum(input[mon]) + '-' + daytonum(input[day]))
-
-    input.registrationDate = d
+  if (dateProp == 'billDate') {
+    let day = dateProp + '_day'
+    let mon = dateProp + '_month'
+    let year = dateProp + '_year'
+    if (input[day] && input[mon] && input[year]) {
+      let date = input[day] + ' ' + input[mon] + ' ' + input[year]
+      let d = Date.parse(date)
+      input[dateProp] = d
+    }
+    delete input[year]
+    delete input[mon]
+    delete input[day]
+  }
+  else {
+    let day = dateProp + '_Day'
+    let mon = dateProp + '_Month'
+    let year = dateProp + 'Year'
+    if (input[day] && input[mon] && input[year]) {
+      let d = Date.parse(input[year] + '-' + monthtonum(input[mon]) + '-' + daytonum(input[day]))
+      input[dateProp] = d
+    }
     delete input[year]
     delete input[mon]
     delete input[day]
