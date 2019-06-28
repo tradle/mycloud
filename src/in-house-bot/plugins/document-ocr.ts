@@ -259,12 +259,13 @@ export class DocumentOcrAPI {
   public extractMap = (apiResponse, myconfig) => {
     let blocks = apiResponse.Blocks
     let lines = this.lineBlocks(blocks)
-    let notMatched = true
     for (let template of myconfig.templates) {
       if (this.match(template, lines)) {
         return this.extract(apiResponse, template, lines, myconfig)
       }
     }
+    this.logger.debug('marker has not matched')
+    return {} // TODO handle bad/wrong document
   }
 
   public extract = (apiResponse, template, lines, myconfig) => {
@@ -303,10 +304,7 @@ export class DocumentOcrAPI {
     this.logger.debug(JSON.stringify(output, null, 2))
     return output
   }
-  public if(notMatched) {
-    this.logger.debug('marker has not matched')
-    return {}
-  }
+
 }
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
@@ -472,10 +470,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-  bot: Bot
-  conf: IConfComponents
-  pluginConf: IDocumentOcrConf
-}) => {
+    bot: Bot
+    conf: IConfComponents
+    pluginConf: IDocumentOcrConf
+  }) => {
   const { models } = bot
   Object.keys(pluginConf).forEach(productModelId => {
     const productModel = models[productModelId]
