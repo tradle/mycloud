@@ -28,9 +28,11 @@ const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 const CERTIFICATE_OF_INC = 'tradle.legal.CertificateOfIncorporation'
 // export const name = 'document-ocr'
 
-import telcoResponse from '../../../mx-telco-apiResponse'
+import telcoResponse from '../../../data/in-house-bot/mx-telco-apiResponse'
+import energyResponse from '../../../data/in-house-bot/mx-energy-apiResponse'
 const testMap = {
-  'tradle.PhoneBill': telcoResponse
+  'tradle.PhoneBill': telcoResponse,
+  'tradle.EnergyBill': energyResponse
 }
 
 type DocumentOcrOpts = {
@@ -102,7 +104,12 @@ export class DocumentOcrAPI {
     let accessKeyId = ''
     let secretAccessKey = ''
     let region = 'us-east-1'
-    let textract = new AWS.Textract({ apiVersion: '2018-06-27', accessKeyId, secretAccessKey, region })
+    let textract = new AWS.Textract({
+      apiVersion: '2018-06-27',
+      accessKeyId,
+      secretAccessKey,
+      region
+    })
 
     let isTest = myConfig.isTest && testMap[payload[TYPE]] !== null
 
@@ -121,9 +128,8 @@ export class DocumentOcrAPI {
         let response: any = this.extractMap(apiResponse, myConfig)
 
         // need to convert string date into ms -- hack
-        let map: any = Object.values(myConfig.map)
-        let dateProp = map.find(p => p.indexOf('_day') !== -1)
-        if (dateProp) dateProp = dateProp.split('_')[0]
+
+        let dateProp = getDateProp(myConfig, this.bot.models[payload[TYPE]])
         convertDateInWords(response, dateProp) // response.registrationDate
         return response
       } catch (err) {
@@ -182,10 +188,7 @@ export class DocumentOcrAPI {
       let response: any = this.extractMap(apiResponse, myConfig)
 
       // need to convert string date into ms -- hack
-      let map: any = Object.values(myConfig.map)
-
-      let dateProp = map.find(p => p.indexOf('_day') !== -1)
-      if (dateProp) dateProp = dateProp.split('_')[0]
+      let dateProp = getDateProp(myConfig, this.bot.models[payload[TYPE]])
       convertDateInWords(response, dateProp) // response.registrationDate
       return response
     }
@@ -225,8 +228,7 @@ export class DocumentOcrAPI {
 
     for (let block of blocks) {
       let blockBox = block.Geometry.BoundingBox
-      if (blockBox.Top > markerBox.Top + markerBox.Height + 0.05)
-        return false
+      if (blockBox.Top > markerBox.Top + markerBox.Height + 0.05) return false
       //console.log(block.Text)
       if (block.Text === markerText) {
         if (this.isInside(blockBox, markerBox)) {
@@ -237,10 +239,12 @@ export class DocumentOcrAPI {
   }
 
   public isInside = (box, bigBox) => {
-    return box.Top > bigBox.Top - 0.05 &&
+    return (
+      box.Top > bigBox.Top - 0.05 &&
       box.Left > bigBox.Left - 0.05 &&
       box.Width < bigBox.Width + 0.1 &&
       box.Height < bigBox.Height + 0.1
+    )
   }
 
   public fullText = (lines, multiline) => {
@@ -253,7 +257,7 @@ export class DocumentOcrAPI {
   }
 
   public extractMap = (apiResponse, myconfig) => {
-    let blocks = apiResponse['Blocks']
+    let blocks = apiResponse.Blocks
     let lines = this.lineBlocks(blocks)
     let notMatched = true
     for (let template of myconfig.templates) {
@@ -266,27 +270,24 @@ export class DocumentOcrAPI {
   public extract = (apiResponse, template, lines, myconfig) => {
     let input = this.fullText(lines, template.multiline)
 
-    var diff = new Diff();
-    let textDiff = diff.main(template.text, input);
+    let diff = new Diff()
+    let textDiff = diff.main(template.text, input)
 
     // console.log(textDiff)
     let found = false
     let key
     let map = {}
     for (let part of textDiff) {
-      if (part[0] == 0)
-        found = false;
+      if (part[0] == 0) found = false
       else if (part[0] == -1 && part[1].includes('^')) {
         found = true
         key = part[1]
-      }
-      else if (found && part[0] == 1) {
+      } else if (found && part[0] == 1) {
         found = false
         let value = map[key]
         if (value) {
           map[key] = value + '\n' + part[1].trim()
-        }
-        else {
+        } else {
           map[key] = part[1].trim()
         }
         this.logger.debug(`${key}  ---> ${map[key]}`)
@@ -296,20 +297,17 @@ export class DocumentOcrAPI {
     for (const key in map) {
       let value = map[key]
       let newkey = myconfig.map[key]
-      if (newkey)
-        output[newkey] = value
+      if (newkey) output[newkey] = value
     }
     this.logger.debug('in input ' + apiResponse + ' found')
     this.logger.debug(JSON.stringify(output, null, 2))
     return output
   }
-  if(notMatched) {
+  public if(notMatched) {
     this.logger.debug('marker has not matched')
     return {}
   }
-
 }
-
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
   const documentOcrAPI = new DocumentOcrAPI({ bot, conf, applications, logger })
@@ -392,9 +390,19 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const { property } = formConf
       if (!property || !payload[property]) return
       // debugger
+      let country = payload.country
+      if (!country) return
+      let reg = payload.region
+      if (reg) {
+        if (typeof reg === 'object') reg = reg.id.split('_')[1]
+        reg = reg.toLowerCase()
+      }
+      let confId = `${country.id.split('_')[1].toLowerCase()}${(reg && '_' + reg) || ''}`
+
       // Check if this doc was already processed
-      let registrationDateProp = 'registrationDate'
-      if (payload._prevlink && payload[registrationDateProp] && payload[property]) {
+      let dateProp = getDateProp(formConf[confId], bot.models[payload[TYPE]])
+
+      if (payload._prevlink && (!dateProp || payload[dateProp]) && payload[property]) {
         let dbRes = await bot.objects.get(payload._prevlink)
         let pType = bot.models[payload[TYPE]].properties[property].type
         let isArray = pType === 'array'
@@ -416,14 +424,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           if (same) return
         }
       }
-      let country = payload.country
-      if (!country) return
-      let reg = payload.region
-      if (reg) {
-        if (typeof reg === 'object') reg = reg.id.split('_')[1]
-        reg = reg.toLowerCase()
-      }
-      let confId = `${country.id.split('_')[1].toLowerCase()}${(reg && '_' + reg) || ''}`
       let prefill
       try {
         prefill = await documentOcrAPI.ocr(payload, property, formConf[confId])
@@ -468,10 +468,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-    bot: Bot
-    conf: IConfComponents
-    pluginConf: IDocumentOcrConf
-  }) => {
+  bot: Bot
+  conf: IConfComponents
+  pluginConf: IDocumentOcrConf
+}) => {
   const { models } = bot
   Object.keys(pluginConf).forEach(productModelId => {
     const productModel = models[productModelId]
@@ -577,6 +577,8 @@ function convertDateInWords(input, dateProp) {
     let day = dateProp + '_day'
     let mon = dateProp + '_month'
     let year = dateProp + '_year'
+    // HACK for now
+    if (input[mon] === 'ABR') input[mon] = 'APR'
     if (input[day] && input[mon] && input[year]) {
       let date = input[day] + ' ' + input[mon] + ' ' + input[year]
       let d = Date.parse(date)
@@ -585,8 +587,7 @@ function convertDateInWords(input, dateProp) {
     delete input[year]
     delete input[mon]
     delete input[day]
-  }
-  else {
+  } else {
     let day = dateProp + '_Day'
     let mon = dateProp + '_Month'
     let year = dateProp + 'Year'
@@ -598,6 +599,15 @@ function convertDateInWords(input, dateProp) {
     delete input[mon]
     delete input[day]
   }
+}
+function getDateProp(myConfig, model) {
+  let map: any = Object.values(myConfig.map)
+  let dateProp = map.find(p => p.indexOf('_day') !== -1)
+  if (dateProp) return dateProp.split('_')[0]
+  let props = Object(map).values
+  const mProps = model.properties
+  dateProp = props.find(p => mProps[p].type === 'date')
+  return dateProp
 }
 
 // convertDateInWords(input)
