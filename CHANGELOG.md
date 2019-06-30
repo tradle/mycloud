@@ -2,7 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0](https://github.com/tradle/mycloud/compare/v2.4.0-rc.36...v2.4.0) (2019-06-20)
+## [2.4.1-rc.0](https://github.com/tradle/mycloud/compare/v2.4.0...v2.4.1-rc.0) (2019-06-30)
+
+
+### Features
+
+* proof of address ([dbe8ecb](https://github.com/tradle/mycloud/commit/dbe8ecb))
+* proof of address project ([c0f839f](https://github.com/tradle/mycloud/commit/c0f839f))
+* proof of address project ([86eda66](https://github.com/tradle/mycloud/commit/86eda66))
 
 
 
