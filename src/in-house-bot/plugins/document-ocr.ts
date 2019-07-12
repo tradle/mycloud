@@ -382,7 +382,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     // async [`onmessage:${FORM_ID}`](req) {
     async validateForm({ req }) {
       const { user, application, payload } = req
-      debugger
+      // debugger
       if (!application) return
       const productId = application.requestFor
       const formConf = conf[productId] && conf[productId][payload[TYPE]]
@@ -400,9 +400,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let confId = `${country.id.split('_')[1].toLowerCase()}${(reg && '_' + reg) || ''}`
 
       // Check if this doc was already processed
-      let dateProp = getDateProp(formConf[confId], bot.models[payload[TYPE]])
+      // let dateProp = getDateProp(formConf[confId], bot.models[payload[TYPE]])
 
-      if (payload._prevlink && (!dateProp || payload[dateProp]) && payload[property]) {
+      if (payload._prevlink && payload[property]) {
         let dbRes = await bot.objects.get(payload._prevlink)
         let pType = bot.models[payload[TYPE]].properties[property].type
         let isArray = pType === 'array'
@@ -454,7 +454,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           message: `Please fill out the form`
         }
       try {
-        return await applications.requestEdit(formError)
+        await applications.requestEdit(formError)
+        return {
+          message: 'no request edit',
+          exit: true
+        }
       } catch (err) {
         debugger
       }
