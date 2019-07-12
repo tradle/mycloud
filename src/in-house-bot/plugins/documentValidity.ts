@@ -176,7 +176,7 @@ class DocumentValidityAPI {
       if (!val)
         continue
       if (prop.type === 'string') {
-        if (payload[p] !== val) {
+        if (payload[p].toLowerCase() !== val.toLowerCase()) {
           hasChanges = true
           changes[prop.title || p] = `Value scanned from the document is ${val}, but manually was changed to ${payload[p]}`
         }
@@ -237,9 +237,10 @@ class DocumentValidityAPI {
         name: 'Document Validator'
       },
       aspect: ASPECTS,
-      reference: [{ queryId: 'report:' + rawData.id }],
       rawData: rawData
     }
+    if (rawData.id)
+      method.reference = [{ queryId: 'report:' + rawData.id }]
 
     const verification = this.bot.draft({ type: VERIFICATION })
        .set({
