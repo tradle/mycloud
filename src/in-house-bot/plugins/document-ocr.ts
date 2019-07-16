@@ -184,7 +184,7 @@ export class DocumentOcrAPI {
         }
       }
       //  apiResponse has to be json object
-      debugger
+      // debugger
       let response: any = this.extractMap(apiResponse, myConfig)
 
       // need to convert string date into ms -- hack
@@ -317,7 +317,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const productId = application.requestFor
       const formConf = conf[productId]
       if (!formConf) return
-      debugger
+      // debugger
       const latestForms = getLatestForms(application)
       const stub = latestForms.find(form => form.type === LEGAL_ENTITY)
       if (stub) {
