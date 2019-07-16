@@ -199,17 +199,19 @@ export default class Init {
   }
 
   private _decreaseDynamodbScalingReactionTime = async () => {
-    if (this.opts.isTesting) return
+    this.logger.info('TODO: investigate why this no longer works')
+    return
+    // if (this.opts.isTesting) return
 
-    await services
-      .cloudwatch({ client: this.opts.aws.cloudwatch })
-      .updateDynamodbConsumptionAlarms({
-        tables: Object.keys(this.tables).map(logicalId => this.tables[logicalId].name),
-        transform: alarm => ({
-          ...alarm,
-          EvaluationPeriods: 1
-        })
-      })
+    // await services
+    //   .cloudwatch({ client: this.opts.aws.cloudwatch })
+    //   .updateDynamodbConsumptionAlarms({
+    //     tables: Object.keys(this.tables).map(logicalId => this.tables[logicalId].name),
+    //     transform: alarm => ({
+    //       ...alarm,
+    //       EvaluationPeriods: 1
+    //     })
+    //   })
   }
 }
 
