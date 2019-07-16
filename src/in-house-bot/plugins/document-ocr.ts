@@ -304,7 +304,6 @@ export class DocumentOcrAPI {
     this.logger.debug(JSON.stringify(output, null, 2))
     return output
   }
-
 }
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
@@ -470,10 +469,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-    bot: Bot
-    conf: IConfComponents
-    pluginConf: IDocumentOcrConf
-  }) => {
+  bot: Bot
+  conf: IConfComponents
+  pluginConf: IDocumentOcrConf
+}) => {
   const { models } = bot
   Object.keys(pluginConf).forEach(productModelId => {
     const productModel = models[productModelId]
@@ -604,12 +603,10 @@ function convertDateInWords(input, dateProp) {
 }
 function getDateProp(myConfig, model) {
   let map: any = Object.values(myConfig.map)
-  let dateProp = map.find(p => p.indexOf('_day') !== -1)
+  let dateProp = map.find(p => p.toLowerCase().indexOf('_day') !== -1)
   if (dateProp) return dateProp.split('_')[0]
-  let props = Object(map).values
   const mProps = model.properties
-  dateProp = props.find(p => mProps[p].type === 'date')
-  return dateProp
+  return map.find(p => mProps[p].type === 'date')
 }
 
 // convertDateInWords(input)
