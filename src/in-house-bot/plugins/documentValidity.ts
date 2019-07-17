@@ -237,10 +237,9 @@ class DocumentValidityAPI {
         name: 'Document Validator'
       },
       aspect: ASPECTS,
-      rawData: rawData
+      rawData,
+      reference: [{ queryId: `report: DV-${Math.random().toString().substring(2)}` }]
     }
-    if (rawData.id)
-      method.reference = [{ queryId: 'report:' + rawData.id }]
 
     const verification = this.bot.draft({ type: VERIFICATION })
        .set({
