@@ -2,15 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.1](https://github.com/tradle/mycloud/compare/v2.4.1-rc.0...v2.4.1) (2019-07-16)
+## [2.4.2](https://github.com/tradle/mycloud/compare/v2.4.1...v2.4.2) (2019-07-16)
 
 
 ### Bug Fixes
 
-* check if value changed here should not be case sensitive ([3e99e78](https://github.com/tradle/mycloud/commit/3e99e78))
-* if form error request appears together with the next form request ([ca6929e](https://github.com/tradle/mycloud/commit/ca6929e))
-* if form error request appears together with the next form request ([727028f](https://github.com/tradle/mycloud/commit/727028f))
-* typo ([8a629c1](https://github.com/tradle/mycloud/commit/8a629c1))
+* temp HACK of _decreaseDynamodbScalingReactionTime ([f7f160c](https://github.com/tradle/mycloud/commit/f7f160c))
 
 
 
