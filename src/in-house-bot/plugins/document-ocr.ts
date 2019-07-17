@@ -469,10 +469,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-  bot: Bot
-  conf: IConfComponents
-  pluginConf: IDocumentOcrConf
-}) => {
+    bot: Bot
+    conf: IConfComponents
+    pluginConf: IDocumentOcrConf
+  }) => {
   const { models } = bot
   Object.keys(pluginConf).forEach(productModelId => {
     const productModel = models[productModelId]
@@ -589,21 +589,24 @@ function convertDateInWords(input, dateProp) {
     delete input[mon]
     delete input[day]
   } else {
-    let day = dateProp + '_Day'
-    let mon = dateProp + '_Month'
-    let year = dateProp + 'Year'
-    if (input[day] && input[mon] && input[year]) {
-      let d = Date.parse(input[year] + '-' + monthtonum(input[mon]) + '-' + daytonum(input[day]))
+    let date = dateProp + '_special'
+    if (input[date]) {
+      let matches = input[date].match(/([\w-?]+) DAY OF (\w+), A.D. (\d+), (.+)/i);
+      if (matches.length > 4) {
+        let d = Date.parse(matches[3] + '-' + monthtonum(matches[2]) + '-' + daytonum(matches[1]))
+        input[dateProp] = d
+      }
+      delete input[date]
+    }
+    else if (input[dateProp]) {
+      let d = Date.parse(input[dateProp])
       input[dateProp] = d
     }
-    delete input[year]
-    delete input[mon]
-    delete input[day]
   }
 }
 function getDateProp(myConfig, model) {
   let map: any = Object.values(myConfig.map)
-  let dateProp = map.find(p => p.toLowerCase().indexOf('_day') !== -1)
+  let dateProp = map.find(p => p.toLowerCase().indexOf('_') !== -1)
   if (dateProp) return dateProp.split('_')[0]
   const mProps = model.properties
   return map.find(p => mProps[p].type === 'date')
