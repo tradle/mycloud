@@ -469,10 +469,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-    bot: Bot
-    conf: IConfComponents
-    pluginConf: IDocumentOcrConf
-  }) => {
+  bot: Bot
+  conf: IConfComponents
+  pluginConf: IDocumentOcrConf
+}) => {
   const { models } = bot
   Object.keys(pluginConf).forEach(productModelId => {
     const productModel = models[productModelId]
@@ -591,14 +591,14 @@ function convertDateInWords(input, dateProp) {
   } else {
     let date = dateProp + '_special'
     if (input[date]) {
-      let matches = input[date].match(/([\w-?]+) DAY OF (\w+), A.D. (\d+), (.+)/i);
-      if (matches.length > 4) {
+      // let matches = input[date].match(/([\w-?]+) DAY OF (\w+), A.D. (\d+), (.+)/i)
+      let matches = input[date].match(/([\w-?]+) DAY OF (\w+), A. ?D. (\d+), (.+)/i)
+      if (matches && matches.length > 4) {
         let d = Date.parse(matches[3] + '-' + monthtonum(matches[2]) + '-' + daytonum(matches[1]))
         input[dateProp] = d
       }
       delete input[date]
-    }
-    else if (input[dateProp]) {
+    } else if (input[dateProp]) {
       let d = Date.parse(input[dateProp])
       input[dateProp] = d
     }
