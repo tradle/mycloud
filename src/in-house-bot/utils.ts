@@ -209,7 +209,7 @@ export const getNameFromForm = (form: any): Name | void => {
     firstName = form.givenName
     lastName = form.surname
   } else if (type === PHOTO_ID) {
-    let { scanJson } = form
+    let { scanJson, uploaded } = form
     if (scanJson) {
       if (typeof scanJson === 'string') {
         scanJson = JSON.parse(scanJson)
@@ -219,6 +219,8 @@ export const getNameFromForm = (form: any): Name | void => {
       if (personal) {
         ;({ firstName, lastName } = personal)
       }
+    } else if (uploaded) {
+      ;({ firstName, lastName } = form)
     }
   } else {
     return
