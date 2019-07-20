@@ -126,7 +126,8 @@ export class DocumentOcrAPI {
         else apiResponse = await textract.detectDocumentText(params).promise()
         //  apiResponse has to be json object
         let response: any = this.extractMap(apiResponse, myConfig)
-
+        if (response.error)
+          return response
         // need to convert string date into ms -- hack
 
         let dateProp = getDateProp(myConfig, this.bot.models[payload[TYPE]])
@@ -265,7 +266,7 @@ export class DocumentOcrAPI {
       }
     }
     this.logger.debug('marker has not matched')
-    return {} // TODO handle bad/wrong document
+    return {error: 'Please choose the correct document and try again'} // TODO handle bad/wrong document
   }
 
   public extract = (apiResponse, template, lines, myconfig) => {
@@ -424,6 +425,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let prefill
       try {
         prefill = await documentOcrAPI.ocr(payload, property, formConf[confId])
+        if (prefill.error) {
+          return {
+            message: prefill.error
+          }
+        }
         prefill = sanitize(prefill).sanitized
       } catch (err) {
         debugger
@@ -441,15 +447,17 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         application
         // item: payload,
       }
-      if (prefill) {
+      // if (prefill) {
         formError.details = {
           prefill: payloadClone,
           message: `Please review and correct the data below`
         }
-      } else
-        formError.details = {
-          message: `Please fill out the form`
-        }
+      // }
+      // else {
+      //   formError.details = {
+      //     message: `Please fill out the form`
+      //   }
+      // }
       try {
         await applications.requestEdit(formError)
         return {
