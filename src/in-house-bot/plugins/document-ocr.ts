@@ -6,6 +6,11 @@ import { getLatestForms } from '../utils'
 import AWS from 'aws-sdk'
 import Embed from '@tradle/embed'
 import validateResource from '@tradle/validate-resource'
+
+import PDFJS from 'pdfjs-dist'
+import Canvas from 'canvas'
+import assert from 'assert'
+
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
@@ -30,6 +35,7 @@ const CERTIFICATE_OF_INC = 'tradle.legal.CertificateOfIncorporation'
 
 import telcoResponse from '../../../data/in-house-bot/mx-telco-apiResponse'
 import energyResponse from '../../../data/in-house-bot/mx-energy-apiResponse'
+import { AnyLengthString } from 'aws-sdk/clients/comprehend';
 const testMap = {
   'tradle.PhoneBill': telcoResponse,
   'tradle.EnergyBill': energyResponse
@@ -41,31 +47,41 @@ type DocumentOcrOpts = {
   applications: Applications
   logger: Logger
 }
+
 interface IDocumentOcrConf {
   [productModelId: string]: {}
 }
-// const data = {
-//   companyName: 'The Walt Disney Company',
-//   registrationNumber: '2528877',
-//   registrationDate: 806904000000
-// }
 
-// const myconfig = {
-//   "legalEntity_us_de": {
-//     "map": {
-//       "^": "companyName",
-//       "^^": "streetAddress",
-//       "^^^": "registrationNumber",
-//       "^_^^^": "registrationDate_Year",
-//       "^^_^^": "registrationDate_Month",
-//       "^^^^": "registrationDate_Day"
-//     },
-//     "templates": [
-//       "Delaware\nPAGE 1\nThe First State\nI, JEFFREY W. BULLOCK, SECRETARY OF STATE OF THE STATE OF\nDELAWARE, DO HEREBY CERTIFY THE ATTACHED IS A TRUE AND CORRECT\nCOPY OF THE CERTIFICATE OF INCORPORATION OF \"^\",\nFILED IN THIS OFFICE ON THE ^^^^ DAY OF ^^_^^,A. D.^_^^^, AT ^^^^^\nA FILED COPY OF THIS CERTIFICATE HAS BEEN FORWARDED THE\nNEW CASTLE COUNTY RECORDER OF DEEDS.\nARYOF\nGE\nJeffrey W. Bullock, Secretary of State\n^^^ ^^^^^^^\nAUTHENTTCATION ^^^^^^^\nDATE: ^^^^^^\n^^^\nLAWA\nYou may verify this certificate online\nat corp. laware.gov/authver shtml\n\n",
-//       "s\nSTATE OF NEW JERSEY\nBUSINESS REGISTRATION CERTIFICATE\nDEPARTMENT OF TREASURY/\nDIVISION OF REVENUE\nPO BOX 252\nTRENTON, N J 08646-0252\nTAXPAYER NAME:\nTRADE NAME:\n^\nADDRESS:\nSEQUENCE NUMBER:\n^^\n^^^\n^^\nISSUANCE DATE:\nEFFECTIVE DATE:\n^^^^\n^^^^^\nDirector\nNew Jersey Division ot Revenue\n\n"
-//     ]
-//   }
-// }
+class NodeCanvasFactory {
+  create(width, height) {
+    assert(width > 0 && height > 0, 'Invalid canvas size')
+    var canvas = Canvas.createCanvas(width, height)
+    var context = canvas.getContext('2d')
+    return {
+      canvas: canvas,
+      context: context,
+    }
+  }
+
+  reset(canvasAndContext, width, height) {
+    assert(canvasAndContext.canvas, 'Canvas is not specified');
+    assert(width > 0 && height > 0, 'Invalid canvas size');
+    canvasAndContext.canvas.width = width;
+    canvasAndContext.canvas.height = height;
+  }
+
+  destroy(canvasAndContext) {
+    assert(canvasAndContext.canvas, 'Canvas is not specified');
+
+    // Zeroing the width and height causes release graphics
+    // resources immediately, which can greatly reduce memory consumption.
+    canvasAndContext.canvas.width = 0;
+    canvasAndContext.canvas.height = 0;
+    canvasAndContext.canvas = null;
+    canvasAndContext.context = null;
+  }
+}
+
 export class DocumentOcrAPI {
   private bot: Bot
   private conf: IDocumentOcrConf
@@ -78,27 +94,26 @@ export class DocumentOcrAPI {
     this.logger = logger
   }
   public async ocr(payload, prop, myConfig) {
-    let object: any = Embed.getEmbeds(payload)
-    let bucket: string
-    let key: string
-    if (Array.isArray(object)) {
-      bucket = object[0].bucket
-      key = object[0].key
-    } else {
-      bucket = object.bucket
-      key = object.key
-    }
     await this.bot.resolveEmbeds(payload)
     // Form now only 1 doc will be processed
     let base64
-    if (Array.isArray(payload[prop])) base64 = payload[prop][0].url
-    else base64 = payload[prop].url
+    if (Array.isArray(payload[prop]))
+      base64 = payload[prop][0].url
+    else
+      base64 = payload[prop].url
 
     let buffer: any = DataURI.decode(base64)
+
     // debugger
-    let syncMode = true
+    let imageBuffer = buffer
     if (buffer.mimetype === 'application/pdf') {
-      syncMode = false
+      let imagesArray: any[] = await this.extractImagesFromPdf(buffer)
+      if (imagesArray.length > 0)
+        imageBuffer = imagesArray[0] // first page
+      else {
+        // TODO maybe it is text pdf and need to processed by pdf2json
+        this.logger.error('textract extractImagesFromPdf failed to find images in pdf')
+      }
     }
 
     let accessKeyId = ''
@@ -113,86 +128,72 @@ export class DocumentOcrAPI {
 
     let isTest = myConfig.isTest && testMap[payload[TYPE]] !== null
 
-    if (syncMode) {
-      let params = {
-        Document: {
-          /* required */
-          Bytes: buffer
-        }
+    let params = {
+      Document: {
+        /* required */
+        Bytes: imageBuffer
       }
-      try {
-        let apiResponse
-        if (isTest) apiResponse = testMap[payload[TYPE]]
-        else apiResponse = await textract.detectDocumentText(params).promise()
-        //  apiResponse has to be json object
-        let response: any = this.extractMap(apiResponse, myConfig)
-        if (response.error)
-          return response
-        // need to convert string date into ms -- hack
-
-        let dateProp = getDateProp(myConfig, this.bot.models[payload[TYPE]])
-        convertDateInWords(response, dateProp) // response.registrationDate
-        return response
-      } catch (err) {
-        debugger
-        this.logger.error('textract detectDocumentText failed', err)
-      }
-      return {}
-    } else {
-      let params1 = {
-        DocumentLocation: {
-          /* required */
-          S3Object: {
-            Bucket: bucket,
-            Name: key
-          }
-        },
-        ClientRequestToken: key.replace('.', '-')
-      }
-
-      let data
-      let params2
-      if (!isTest) {
-        try {
-          data = await textract.startDocumentTextDetection(params1).promise()
-        } catch (err) {
-          debugger
-          this.logger.error('textract startDocumentTextDetection failed', err)
-          return {}
-        }
-        await this.sleep(15000)
-        params2 = {
-          JobId: data.JobId /* required */
-        }
-      }
-      let time = 0
+    }
+    try {
       let apiResponse
-      while (true) {
-        try {
-          time++
-          if (isTest) apiResponse = testMap[payload[TYPE]]
-          else apiResponse = await textract.getDocumentTextDetection(params2).promise()
-          if (apiResponse.JobStatus == 'SUCCEEDED') {
-            break
-          } else if (time >= 25) {
-            this.logger.error('textract documentTextDetection took too long')
-          } else {
-            await this.sleep(4000)
-          }
-        } catch (err) {
-          this.logger.error('textract getDocumentTextDetection failed', err)
-          return {}
-        }
-      }
+      if (isTest)
+        apiResponse = testMap[payload[TYPE]]
+      else
+        apiResponse = await textract.detectDocumentText(params).promise()
       //  apiResponse has to be json object
-      // debugger
       let response: any = this.extractMap(apiResponse, myConfig)
 
       // need to convert string date into ms -- hack
+
       let dateProp = getDateProp(myConfig, this.bot.models[payload[TYPE]])
       convertDateInWords(response, dateProp) // response.registrationDate
       return response
+    } catch (err) {
+      debugger
+      this.logger.error('textract detectDocumentText failed', err)
     }
+    return {}
+  }
+
+  public extractImagesFromPdf = async (pdf): Promise<any[]> => {
+    let images = []
+    try {
+      let doc = await PDFJS.getDocument({
+        data: pdf, nativeImageDecoderSupport: 'none',
+        disableFontFace: true
+      }).promise;
+      let pages = doc.numPages;
+      for (let i = 1; i <= pages; i++) {
+        if (i > 2)
+          break; // first 2 pages
+        let page = await doc.getPage(i);
+        let ops = await page.getOperatorList();
+        for (let j = 0; j < ops.fnArray.length; j++) {
+          if (ops.fnArray[j] == PDFJS.OPS.paintJpegXObject ||
+            ops.fnArray[j] == PDFJS.OPS.paintImageXObject) {
+            let op = ops.argsArray[j][0]
+            let img = page.objs.get(op)
+            let scale = img.width / page.view[2]
+            let viewport = page.getViewport({ scale })
+
+            let canvasFactory = new NodeCanvasFactory();
+            let canvasAndContext = canvasFactory.create(viewport.width, viewport.height);
+            var renderContext = {
+              canvasContext: canvasAndContext.context,
+              viewport: viewport,
+              canvasFactory: canvasFactory,
+            }
+            let renderTask = await page.render(renderContext).promise;
+            let image = canvasAndContext.canvas.toBuffer();
+            images.push(image)
+            canvasFactory.destroy(canvasAndContext)
+          }
+        }
+      }
+    } catch (err) {
+      this.logger.error('textract extractImagesFromPdf failed', err)
+    }
+    return images
   }
 
   public sleep = async (ms: number) => {
@@ -477,10 +478,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-  bot: Bot
-  conf: IConfComponents
-  pluginConf: IDocumentOcrConf
-}) => {
+    bot: Bot
+    conf: IConfComponents
+    pluginConf: IDocumentOcrConf
+  }) => {
   const { models } = bot
   Object.keys(pluginConf).forEach(productModelId => {
     const productModel = models[productModelId]
