@@ -674,7 +674,7 @@ export const loadComponentsAndPlugins = ({
       'finastra',
       'document-ocr'
     ].forEach(name => attachPlugin({ name }))
-    ;['hand-sig', 'documentValidity', 'fill-myproduct'].forEach(name =>
+    ;['hand-sig', 'documentValidity', 'fill-myproduct', 'checkOverride'].forEach(name =>
       attachPlugin({ name, requiresConf: false })
     )
 
