@@ -293,7 +293,6 @@ export default class Backlinks {
     resourceChanges = resourceChanges.filter(r => {
       const resource = r.value || r.old
       const type = resource[TYPE]
-      if (type === 'tradle.DocumentValidityCheckOverride') debugger
       if (type === BACKLINK_ITEM) return false
 
       const model = this.models[type]
