@@ -530,6 +530,9 @@
     {
       "_t": "tradle.PhoneBill",
       "billDate": 1389312000000,
+      "document": {
+        "url": "https://tradle-public-images.s3.amazonaws.com/2017-pseg.png"
+      },
       "city": "Vouvry",
       "country": {
         "id": "tradle.Country_CH",
