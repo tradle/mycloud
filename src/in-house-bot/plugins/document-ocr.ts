@@ -2,7 +2,7 @@ import _ from 'lodash'
 // import validateResource from '@tradle/validate-resource'
 import { TYPE, PERMALINK, LINK } from '@tradle/constants'
 import DataURI from 'strong-data-uri'
-import { getLatestForms } from '../utils'
+import { getLatestForms, isSubClassOf } from '../utils'
 import AWS from 'aws-sdk'
 import Embed from '@tradle/embed'
 import validateResource from '@tradle/validate-resource'
@@ -35,7 +35,7 @@ const CERTIFICATE_OF_INC = 'tradle.legal.CertificateOfIncorporation'
 
 import telcoResponse from '../../../data/in-house-bot/mx-telco-apiResponse'
 import energyResponse from '../../../data/in-house-bot/mx-energy-apiResponse'
-import { AnyLengthString } from 'aws-sdk/clients/comprehend';
+import { AnyLengthString } from 'aws-sdk/clients/comprehend'
 const testMap = {
   'tradle.PhoneBill': telcoResponse,
   'tradle.EnergyBill': energyResponse
@@ -53,32 +53,32 @@ interface IDocumentOcrConf {
 }
 
 class NodeCanvasFactory {
-  create(width, height) {
+  public create(width, height) {
     assert(width > 0 && height > 0, 'Invalid canvas size')
-    var canvas = Canvas.createCanvas(width, height)
-    var context = canvas.getContext('2d')
+    let canvas = Canvas.createCanvas(width, height)
+    let context = canvas.getContext('2d')
     return {
-      canvas: canvas,
-      context: context,
+      canvas,
+      context
     }
   }
 
-  reset(canvasAndContext, width, height) {
-    assert(canvasAndContext.canvas, 'Canvas is not specified');
-    assert(width > 0 && height > 0, 'Invalid canvas size');
-    canvasAndContext.canvas.width = width;
-    canvasAndContext.canvas.height = height;
+  public reset(canvasAndContext, width, height) {
+    assert(canvasAndContext.canvas, 'Canvas is not specified')
+    assert(width > 0 && height > 0, 'Invalid canvas size')
+    canvasAndContext.canvas.width = width
+    canvasAndContext.canvas.height = height
   }
 
-  destroy(canvasAndContext) {
-    assert(canvasAndContext.canvas, 'Canvas is not specified');
+  public destroy(canvasAndContext) {
+    assert(canvasAndContext.canvas, 'Canvas is not specified')
 
     // Zeroing the width and height causes release graphics
     // resources immediately, which can greatly reduce memory consumption.
-    canvasAndContext.canvas.width = 0;
-    canvasAndContext.canvas.height = 0;
-    canvasAndContext.canvas = null;
-    canvasAndContext.context = null;
+    canvasAndContext.canvas.width = 0
+    canvasAndContext.canvas.height = 0
+    canvasAndContext.canvas = null
+    canvasAndContext.context = null
   }
 }
 
@@ -97,10 +97,8 @@ export class DocumentOcrAPI {
     await this.bot.resolveEmbeds(payload)
     // Form now only 1 doc will be processed
     let base64
-    if (Array.isArray(payload[prop]))
-      base64 = payload[prop][0].url
-    else
-      base64 = payload[prop].url
+    if (Array.isArray(payload[prop])) base64 = payload[prop][0].url
+    else base64 = payload[prop].url
 
     let buffer: any = DataURI.decode(base64)
 
@@ -108,8 +106,8 @@ export class DocumentOcrAPI {
     let imageBuffer = buffer
     if (buffer.mimetype === 'application/pdf') {
       let imagesArray: any[] = await this.extractImagesFromPdf(buffer)
-      if (imagesArray.length > 0)
-        imageBuffer = imagesArray[0] // first page
+      if (imagesArray.length > 0) imageBuffer = imagesArray[0]
+      // first page
       else {
         // TODO maybe it is text pdf and need to processed by pdf2json
         this.logger.error('textract extractImagesFromPdf failed to find images in pdf')
@@ -136,10 +134,8 @@ export class DocumentOcrAPI {
     }
     try {
       let apiResponse
-      if (isTest)
-        apiResponse = testMap[payload[TYPE]]
-      else
-        apiResponse = await textract.detectDocumentText(params).promise()
+      if (isTest) apiResponse = testMap[payload[TYPE]]
+      else apiResponse = await textract.detectDocumentText(params).promise()
       //  apiResponse has to be json object
       let response: any = this.extractMap(apiResponse, myConfig)
 
@@ -159,32 +155,34 @@ export class DocumentOcrAPI {
     let images = []
     try {
       let doc = await PDFJS.getDocument({
-        data: pdf, nativeImageDecoderSupport: 'none',
+        data: pdf,
+        nativeImageDecoderSupport: 'none',
         disableFontFace: true
-      }).promise;
-      let pages = doc.numPages;
+      }).promise
+      let pages = doc.numPages
       for (let i = 1; i <= pages; i++) {
-        if (i > 2)
-          break; // first 2 pages
-        let page = await doc.getPage(i);
-        let ops = await page.getOperatorList();
+        if (i > 2) break // first 2 pages
+        let page = await doc.getPage(i)
+        let ops = await page.getOperatorList()
         for (let j = 0; j < ops.fnArray.length; j++) {
-          if (ops.fnArray[j] == PDFJS.OPS.paintJpegXObject ||
-            ops.fnArray[j] == PDFJS.OPS.paintImageXObject) {
+          if (
+            ops.fnArray[j] == PDFJS.OPS.paintJpegXObject ||
+            ops.fnArray[j] == PDFJS.OPS.paintImageXObject
+          ) {
             let op = ops.argsArray[j][0]
             let img = page.objs.get(op)
             let scale = img.width / page.view[2]
             let viewport = page.getViewport({ scale })
 
-            let canvasFactory = new NodeCanvasFactory();
-            let canvasAndContext = canvasFactory.create(viewport.width, viewport.height);
-            var renderContext = {
+            let canvasFactory = new NodeCanvasFactory()
+            let canvasAndContext = canvasFactory.create(viewport.width, viewport.height)
+            let renderContext = {
               canvasContext: canvasAndContext.context,
-              viewport: viewport,
-              canvasFactory: canvasFactory,
+              viewport,
+              canvasFactory
             }
-            let renderTask = await page.render(renderContext).promise;
-            let image = canvasAndContext.canvas.toBuffer();
+            let renderTask = await page.render(renderContext).promise
+            let image = canvasAndContext.canvas.toBuffer()
             images.push(image)
             canvasFactory.destroy(canvasAndContext)
           }
@@ -267,7 +265,7 @@ export class DocumentOcrAPI {
       }
     }
     this.logger.debug('marker has not matched')
-    return {error: 'Please choose the correct document and try again'} // TODO handle bad/wrong document
+    return { error: 'Please choose the correct document and try again' } // TODO handle bad/wrong document
   }
 
   public extract = (apiResponse, template, lines, myconfig) => {
@@ -449,10 +447,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         // item: payload,
       }
       // if (prefill) {
-        formError.details = {
-          prefill: payloadClone,
-          message: `Please review and correct the data below`
-        }
+      formError.details = {
+        prefill: payloadClone,
+        message: `Please review and correct the data below`
+      }
       // }
       // else {
       //   formError.details = {
@@ -478,10 +476,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-    bot: Bot
-    conf: IConfComponents
-    pluginConf: IDocumentOcrConf
-  }) => {
+  bot: Bot
+  conf: IConfComponents
+  pluginConf: IDocumentOcrConf
+}) => {
   const { models } = bot
   Object.keys(pluginConf).forEach(productModelId => {
     const productModel = models[productModelId]
@@ -515,11 +513,6 @@ export const validateConf: ValidatePluginConf = async ({
       }
     }
   })
-}
-function isSubClassOf(subType, formModel, models) {
-  const sub = formModel.subClassOf
-  if (sub === subType) return true
-  if (sub && models[sub].abstract) return isSubClassOf(subType, models[sub], models)
 }
 // let input = {"companyName":"TRADLE, INC.",
 //              "registrationDate_DAY":"TWENTY-NINTH",

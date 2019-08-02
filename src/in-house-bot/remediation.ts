@@ -10,6 +10,7 @@ import buildResource from '@tradle/build-resource'
 import baseModels from '../models'
 import Errors from '../errors'
 import { TYPES } from './constants'
+import { isSubClassOf } from './utils'
 import { ContentAddressedStore } from '../content-addressed-store'
 import { stubToId, idToStub } from './data-claim'
 import {
@@ -321,8 +322,8 @@ export class Remediation {
 
       if (
         model.id !== VERIFICATION &&
-        model.subClassOf !== FORM &&
-        model.subClassOf !== MY_PRODUCT
+        !isSubClassOf(FORM, model, models) &&
+        !isSubClassOf(MY_PRODUCT, model, models)
       ) {
         throw new CustomErrors.InvalidBundleItem(
           `invalid item at index ${i}, expected form, verification or MyProduct`
@@ -333,7 +334,7 @@ export class Remediation {
     items = items.map(item => _.clone(item))
     items = await Promise.all(
       items.map(async item => {
-        if (models[item[TYPE]].subClassOf === FORM) {
+        if (isSubClassOf(FORM, models[item[TYPE]], models)) {
           item[OWNER] = owner
           return await bot.sign(item)
         }
@@ -355,7 +356,7 @@ export class Remediation {
 
     items = await Promise.all(
       items.map(async item => {
-        if (models[item[TYPE]].subClassOf === MY_PRODUCT) {
+        if (isSubClassOf(MY_PRODUCT, models[item[TYPE]], models)) {
           item = this.resolvePointers({ items, item })
           return await bot.sign(item)
         }
@@ -422,7 +423,7 @@ export class Remediation {
       if (item.sources) {
         item.sources = item.sources.map(source => this.resolvePointers({ items, item: source }))
       }
-    } else if (model.subClassOf === MY_PRODUCT) {
+    } else if (isSubClassOf(MY_PRODUCT, model, models)) {
       if (item.forms) {
         item.forms = item.forms.map(ref => this.getFormStub({ items, ref }))
       }
@@ -463,7 +464,7 @@ export class Remediation {
     if (buildResource.isProbablyResourceStub(ref)) return ref
 
     const resource = items[ref]
-    if (!(resource && models[resource[TYPE]].subClassOf === FORM)) {
+    if (!(resource && isSubClassOf(FORM, models[resource[TYPE]], models))) {
       throw new CustomErrors.InvalidBundlePointer(`expected form at index: ${ref}`)
     }
 

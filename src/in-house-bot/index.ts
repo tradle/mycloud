@@ -30,7 +30,8 @@ import {
   getProductModelForCertificateModel,
   witness,
   didPropChange,
-  didPropChangeTo
+  didPropChangeTo,
+  isSubClassOf
 } from './utils'
 
 import { runWithTimeout, cachifyPromiser, tryAsync } from '../utils'
@@ -401,11 +402,12 @@ export const loadComponentsAndPlugins = ({
       if (!value) return
 
       const type = value[TYPE]
-      const model = bot.models[type]
+      const models = bot.models
+      const model = models[type]
       if (
         value &&
         model &&
-        model.subClassOf === 'tradle.Check' &&
+        isSubClassOf('tradle.Check', model, models) &&
         didPropChange({ old, value, prop: 'status' })
       ) {
         await productsAPI._exec(`onCheckStatusChanged`, value)
@@ -558,7 +560,7 @@ export const loadComponentsAndPlugins = ({
         const { models } = bot
         const { form } = formRequest
         const model = models[form]
-        if (model && model.subClassOf === 'tradle.MyProduct') {
+        if (model && isSubClassOf('tradle.MyProduct', model, models)) {
           const productModel = getProductModelForCertificateModel({
             models,
             certificateModel: model

@@ -440,6 +440,12 @@ export const getLatestForms = ({ forms }: { forms?: ApplicationSubmission[] }) =
   return _.uniqBy(parsed, 'type')
 }
 
+export const isSubClassOf = (subType, formModel, models) => {
+  const sub = formModel.subClassOf
+  if (sub === subType) return true
+  if (sub && models[sub].abstract) return isSubClassOf(subType, models[sub], models)
+}
+
 // Checks will be executed in case of a new resource. If the resource was modified,
 // the checks will be executed only if the properties used for verification changed.
 // returns either mapped resource or undefined if no verification needed.
