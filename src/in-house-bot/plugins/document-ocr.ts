@@ -8,7 +8,7 @@ import Embed from '@tradle/embed'
 import validateResource from '@tradle/validate-resource'
 
 import PDFJS from 'pdfjs-dist'
-// import Canvas from 'canvas'
+import Canvas from '../../canvas'
 import assert from 'assert'
 
 // @ts-ignore
@@ -53,14 +53,9 @@ interface IDocumentOcrConf {
 }
 
 class NodeCanvasFactory {
-  private Canvas
-  public constructor(Canvas) {
-    this.Canvas = Canvas
-  }
   public create(width, height) {
     assert(width > 0 && height > 0, 'Invalid canvas size')
-    debugger
-    let canvas = this.Canvas.createCanvas(width, height)
+    let canvas = Canvas.createCanvas(width, height)
     // debugger
     let context = canvas.getContext('2d')
     return {
@@ -159,7 +154,6 @@ export class DocumentOcrAPI {
 
   public extractImagesFromPdf = async (pdf): Promise<any[]> => {
     let images = []
-    const Canvas = require('canvas')
     try {
       let doc = await PDFJS.getDocument({
         data: pdf,
@@ -181,7 +175,7 @@ export class DocumentOcrAPI {
             let scale = img.width / page.view[2]
             let viewport = page.getViewport({ scale })
 
-            let canvasFactory = new NodeCanvasFactory(Canvas)
+            let canvasFactory = new NodeCanvasFactory()
             let canvasAndContext = canvasFactory.create(viewport.width, viewport.height)
             let renderContext = {
               canvasContext: canvasAndContext.context,
