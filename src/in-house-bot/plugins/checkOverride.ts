@@ -22,7 +22,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       if (bot.models[payload[TYPE]].subClassOf !== CHECK_OVERRIDE) return
       // debugger
       logger.debug(`${model.title} was created for ${application.requestFor}`)
-      application.status = 'In review'
+      const { status } = application
+      if (status !== 'In review'  &&  status !== 'started')
+        application.status = 'In review'
     }
   }
 
