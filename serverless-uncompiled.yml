@@ -64,6 +64,7 @@ package:
     - "node_modules/@tradle/gen-samples/**"
     - npm-shrinkwrap.json
     - clienttest/
+    - .localstack/**
 
 custom:
   vars: ${{file(./vars.json), file(./default-vars.json)}}
