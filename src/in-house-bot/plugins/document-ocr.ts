@@ -387,7 +387,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!formConf) return
       const { property } = formConf
       if (!property || !payload[property]) return
-      // debugger
       let country = payload.country
       if (!country) return
       let reg = payload.region
@@ -397,8 +396,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       }
       let confId = `${country.id.split('_')[1].toLowerCase()}${(reg && '_' + reg) || ''}`
       if (!formConf[confId]) return
-      // Check if this doc was already processed
-      // let dateProp = getDateProp(formConf[confId], bot.models[payload[TYPE]])
 
       if (payload._prevlink && payload[property]) {
         let dbRes = await bot.objects.get(payload._prevlink)
