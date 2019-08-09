@@ -8,24 +8,34 @@ import {
   CreatePlugin
   //   Applications
 } from '../types'
+import { getLatestForms, isSubClassOf } from '../utils'
 
 const { TYPE } = constants
 
 const CHECK_OVERRIDE = 'tradle.CheckOverride'
+const IN_REVIEW = 'In review'
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger }) => {
   const plugin = {
     async onmessage(req: IPBReq) {
       const { application, payload } = req
       if (!application) return
-      const model = bot.models[payload[TYPE]]
-      if (bot.models[payload[TYPE]].subClassOf !== CHECK_OVERRIDE) return
+      const payloadModel = bot.models[payload[TYPE]]
+      if (!isSubClassOf(CHECK_OVERRIDE, payloadModel, bot.models)) return
       // debugger
-      logger.debug(`${model.title} was created for ${application.requestFor}`)
+      logger.debug(`${payloadModel.title} was created for ${application.requestFor}`)
       const { status } = application
-      if (status !== 'In review'  &&  status !== 'started')
-        application.status = 'In review'
+      if (status !== 'In review') application.status = 'In review'
     }
+    // async onFormsCollected({ req }) {
+    //   const { application } = req
+    //   if (!application  ||  application.status === IN_REVIEW) return
+    //   const models = bot.models
+    //   const latestForms = getLatestForms(application)
+    //   const stub = latestForms.find(form => isSubClassOf(CHECK_OVERRIDE, form.type, models))
+    //   if (stub)
+    //     application.status = IN_REVIEW
+    // }
   }
 
   return {
