@@ -6,10 +6,11 @@ import { getLatestForms, isSubClassOf } from '../utils'
 import AWS from 'aws-sdk'
 import Embed from '@tradle/embed'
 import validateResource from '@tradle/validate-resource'
-
-import PDFJS from 'pdfjs-dist'
-import Canvas from '../../canvas'
-import assert from 'assert'
+import gs from 'node-gs'
+import path from 'path'
+import fs from 'fs'
+import os from 'os'
+import { v4 as uuid } from 'uuid'
 
 // @ts-ignore
 const { sanitize } = validateResource.utils
@@ -35,7 +36,6 @@ const CERTIFICATE_OF_INC = 'tradle.legal.CertificateOfIncorporation'
 
 import telcoResponse from '../../../data/in-house-bot/mx-telco-apiResponse'
 import energyResponse from '../../../data/in-house-bot/mx-energy-apiResponse'
-import { AnyLengthString } from 'aws-sdk/clients/comprehend'
 const testMap = {
   'tradle.PhoneBill': telcoResponse,
   'tradle.EnergyBill': energyResponse
@@ -47,40 +47,8 @@ type DocumentOcrOpts = {
   applications: Applications
   logger: Logger
 }
-
 interface IDocumentOcrConf {
   [productModelId: string]: {}
-}
-
-class NodeCanvasFactory {
-  public create(width, height) {
-    assert(width > 0 && height > 0, 'Invalid canvas size')
-    let canvas = Canvas.createCanvas(width, height)
-    // debugger
-    let context = canvas.getContext('2d')
-    return {
-      canvas,
-      context
-    }
-  }
-
-  public reset(canvasAndContext, width, height) {
-    assert(canvasAndContext.canvas, 'Canvas is not specified')
-    assert(width > 0 && height > 0, 'Invalid canvas size')
-    canvasAndContext.canvas.width = width
-    canvasAndContext.canvas.height = height
-  }
-
-  public destroy(canvasAndContext) {
-    assert(canvasAndContext.canvas, 'Canvas is not specified')
-
-    // Zeroing the width and height causes release graphics
-    // resources immediately, which can greatly reduce memory consumption.
-    canvasAndContext.canvas.width = 0
-    canvasAndContext.canvas.height = 0
-    canvasAndContext.canvas = null
-    canvasAndContext.context = null
-  }
 }
 
 export class DocumentOcrAPI {
@@ -102,18 +70,18 @@ export class DocumentOcrAPI {
     else base64 = payload[prop].url
 
     let buffer: any = DataURI.decode(base64)
-
+    let image
     // debugger
-    let imageBuffer = buffer
     if (buffer.mimetype === 'application/pdf') {
-      let imagesArray: any[] = await this.extractImagesFromPdf(buffer)
-      if (imagesArray.length > 0) imageBuffer = imagesArray[0]
-      // first page
-      else {
-        // TODO maybe it is text pdf and need to processed by pdf2json
-        this.logger.error('textract extractImagesFromPdf failed to find images in pdf')
+      try {
+        image = await this.convertPdfToPng(buffer)
+      } catch (err) {
+        this.logger.error('document-ocr failed', err)
+        return {}
       }
     }
+    else
+      image = buffer
 
     let accessKeyId = ''
     let secretAccessKey = ''
@@ -130,7 +98,7 @@ export class DocumentOcrAPI {
     let params = {
       Document: {
         /* required */
-        Bytes: imageBuffer
+        Bytes: image
       }
     }
     try {
@@ -152,47 +120,38 @@ export class DocumentOcrAPI {
     return {}
   }
 
-  public extractImagesFromPdf = async (pdf): Promise<any[]> => {
-    let images = []
-    try {
-      let doc = await PDFJS.getDocument({
-        data: pdf,
-        nativeImageDecoderSupport: 'none',
-        disableFontFace: true
-      }).promise
-      let pages = doc.numPages
-      for (let i = 1; i <= pages; i++) {
-        if (i > 2) break // first 2 pages
-        let page = await doc.getPage(i)
-        let ops = await page.getOperatorList()
-        for (let j = 0; j < ops.fnArray.length; j++) {
-          if (
-            ops.fnArray[j] == PDFJS.OPS.paintJpegXObject ||
-            ops.fnArray[j] == PDFJS.OPS.paintImageXObject
-          ) {
-            let op = ops.argsArray[j][0]
-            let img = page.objs.get(op)
-            let scale = img.width / page.view[2]
-            let viewport = page.getViewport({ scale })
+  public convertPdfToPng = async (pdf: any) => {
+    const ghostscriptPath = path.resolve(__dirname, 'node_modules/lambda-ghostscript/bin/gs')
+    const fileName = uuid()
+    let gsOp = gs()
+      .option('-r' + 300)
+      .option('-dFirstPage=1')
+      .option('-dLastPage=1')
+      .device('png16m')
+      .output('/tmp/' + fileName + '-%d.png')
 
-            let canvasFactory = new NodeCanvasFactory()
-            let canvasAndContext = canvasFactory.create(viewport.width, viewport.height)
-            let renderContext = {
-              canvasContext: canvasAndContext.context,
-              viewport,
-              canvasFactory
-            }
-            let renderTask = await page.render(renderContext).promise
-            let image = canvasAndContext.canvas.toBuffer()
-            images.push(image)
-            canvasFactory.destroy(canvasAndContext)
-          }
+    let platform = os.platform()
+    if (os.platform() != 'darwin')
+      gsOp.executablePath(ghostscriptPath)
+
+    return new Promise((resolve, reject) => {
+      gsOp.exec(pdf, (error, stdout, stderror) => {
+        if (error) {
+          this.logger.debug(error)
         }
-      }
-    } catch (err) {
-      this.logger.error('textract extractImagesFromPdf failed', err)
-    }
-    return images
+        // debugger
+        const outfile = '/tmp/' + fileName + '-1.png'
+        if (fs.existsSync(outfile)) {
+          let png = fs.readFileSync(outfile)
+          // remove file
+          fs.unlink(outfile, (err) => { })
+          //console.log('png file size ', png.length)
+          resolve(png)
+        }
+        else
+          reject(new Error('no png file generated'))
+      })
+    })
   }
 
   public sleep = async (ms: number) => {
@@ -477,10 +436,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-  bot: Bot
-  conf: IConfComponents
-  pluginConf: IDocumentOcrConf
-}) => {
+    bot: Bot
+    conf: IConfComponents
+    pluginConf: IDocumentOcrConf
+  }) => {
   const { models } = bot
   Object.keys(pluginConf).forEach(productModelId => {
     const productModel = models[productModelId]
