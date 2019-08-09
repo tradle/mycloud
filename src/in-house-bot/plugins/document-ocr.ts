@@ -9,7 +9,6 @@ import validateResource from '@tradle/validate-resource'
 import gs from 'node-gs'
 import path from 'path'
 import fs from 'fs'
-import os from 'os'
 import { v4 as uuid } from 'uuid'
 
 // @ts-ignore
@@ -130,8 +129,7 @@ export class DocumentOcrAPI {
       .device('png16m')
       .output('/tmp/' + fileName + '-%d.png')
 
-    let platform = os.platform()
-    if (os.platform() != 'darwin')
+    if (process.env.LAMBDA_TASK_ROOT)
       gsOp.executablePath(ghostscriptPath)
 
     return new Promise((resolve, reject) => {
