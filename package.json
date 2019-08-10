@@ -191,7 +191,6 @@
     "@tradle/validate-model": "^7.1.4",
     "@tradle/validate-resource": "^4.3.4",
     "amazon-s3-uri": "0.0.3",
-    "aws-lambda-canvas": "github:mvayngrib/aws-lambda-canvas",
     "aws-sdk": "2.437.0",
     "aws-xray-sdk-core": "^1.2.0",
     "bluebird": "^3.5.0",

@@ -1221,63 +1221,6 @@
         }
       }
     },
-    "aws-lambda-canvas": {
-      "version": "2.6.0",
-      "from": "mvayngrib/aws-lambda-canvas",
-      "resolved": "git://github.com/mvayngrib/aws-lambda-canvas.git#72f6546e2a10242483567d02ef2ce56b224595f6",
-      "dependencies": {
-        "gauge": {
-          "version": "2.7.4",
-          "from": "gauge@>=2.7.3 <2.8.0",
-          "resolved": "https://registry.npmjs.org/gauge/-/gauge-2.7.4.tgz"
-        },
-        "nan": {
-          "version": "2.14.0",
-          "from": "nan@>=2.14.0 <3.0.0",
-          "resolved": "https://registry.npmjs.org/nan/-/nan-2.14.0.tgz"
-        },
-        "node-pre-gyp": {
-          "version": "0.11.0",
-          "from": "node-pre-gyp@>=0.11.0 <0.12.0",
-          "resolved": "https://registry.npmjs.org/node-pre-gyp/-/node-pre-gyp-0.11.0.tgz"
-        },
-        "nopt": {
-          "version": "4.0.1",
-          "from": "nopt@>=4.0.1 <5.0.0",
-          "resolved": "https://registry.npmjs.org/nopt/-/nopt-4.0.1.tgz"
-        },
-        "npmlog": {
-          "version": "4.1.2",
-          "from": "npmlog@>=4.0.2 <5.0.0",
-          "resolved": "https://registry.npmjs.org/npmlog/-/npmlog-4.1.2.tgz"
-        },
-        "object-assign": {
-          "version": "4.1.1",
-          "from": "object-assign@>=4.1.0 <5.0.0",
-          "resolved": "https://registry.npmjs.org/object-assign/-/object-assign-4.1.1.tgz"
-        },
-        "semver": {
-          "version": "5.7.0",
-          "from": "semver@>=5.3.0 <6.0.0",
-          "resolved": "https://registry.npmjs.org/semver/-/semver-5.7.0.tgz"
-        },
-        "simple-get": {
-          "version": "3.0.3",
-          "from": "simple-get@>=3.0.3 <4.0.0",
-          "resolved": "https://registry.npmjs.org/simple-get/-/simple-get-3.0.3.tgz"
-        },
-        "tar": {
-          "version": "4.4.10",
-          "from": "tar@>=4.0.0 <5.0.0",
-          "resolved": "https://registry.npmjs.org/tar/-/tar-4.4.10.tgz"
-        },
-        "yallist": {
-          "version": "3.0.3",
-          "from": "yallist@>=3.0.3 <4.0.0",
-          "resolved": "https://registry.npmjs.org/yallist/-/yallist-3.0.3.tgz"
-        }
-      }
-    },
     "aws-sdk": {
       "version": "2.437.0",
       "from": "aws-sdk@2.437.0",
@@ -2236,88 +2179,6 @@
       "version": "1.0.30000892",
       "from": "caniuse-lite@>=1.0.30000844 <2.0.0",
       "resolved": "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30000892.tgz"
-    },
-    "canvas": {
-      "version": "2.5.0",
-      "from": "canvas@>=2.5.0 <3.0.0",
-      "resolved": "https://registry.npmjs.org/canvas/-/canvas-2.5.0.tgz",
-      "dependencies": {
-        "gauge": {
-          "version": "2.7.4",
-          "from": "gauge@>=2.7.3 <2.8.0",
-          "resolved": "https://registry.npmjs.org/gauge/-/gauge-2.7.4.tgz"
-        },
-        "nan": {
-          "version": "2.14.0",
-          "from": "nan@>=2.13.2 <3.0.0",
-          "resolved": "https://registry.npmjs.org/nan/-/nan-2.14.0.tgz"
-        },
-        "node-pre-gyp": {
-          "version": "0.11.0",
-          "from": "node-pre-gyp@>=0.11.0 <0.12.0",
-          "resolved": "https://registry.npmjs.org/node-pre-gyp/-/node-pre-gyp-0.11.0.tgz"
-        },
-        "nopt": {
-          "version": "4.0.1",
-          "from": "nopt@>=4.0.1 <5.0.0",
-          "resolved": "https://registry.npmjs.org/nopt/-/nopt-4.0.1.tgz"
-        },
-        "npmlog": {
-          "version": "4.1.2",
-          "from": "npmlog@>=4.0.2 <5.0.0",
-          "resolved": "https://registry.npmjs.org/npmlog/-/npmlog-4.1.2.tgz"
-        },
-        "object-assign": {
-          "version": "4.1.1",
-          "from": "object-assign@>=4.1.0 <5.0.0",
-          "resolved": "https://registry.npmjs.org/object-assign/-/object-assign-4.1.1.tgz"
-        },
-        "semver": {
-          "version": "5.7.0",
-          "from": "semver@>=5.3.0 <6.0.0",
-          "resolved": "http://registry.npmjs.org/semver/-/semver-5.7.0.tgz"
-        },
-        "simple-get": {
-          "version": "3.0.3",
-          "from": "simple-get@>=3.0.3 <4.0.0",
-          "resolved": "https://registry.npmjs.org/simple-get/-/simple-get-3.0.3.tgz"
-        },
-        "tar": {
-          "version": "4.4.10",
-          "from": "tar@>=4.0.0 <5.0.0",
-          "resolved": "https://registry.npmjs.org/tar/-/tar-4.4.10.tgz"
-        },
-        "yallist": {
-          "version": "3.0.3",
-          "from": "yallist@>=3.0.3 <4.0.0",
-          "resolved": "https://registry.npmjs.org/yallist/-/yallist-3.0.3.tgz"
-        }
-      }
-    },
-    "capture-stack-trace": {
-      "version": "1.0.1",
-      "from": "capture-stack-trace@>=1.0.0 <2.0.0",
-      "resolved": "https://registry.npmjs.org/capture-stack-trace/-/capture-stack-trace-1.0.1.tgz",
-      "dev": true
-    },
-    "caseless": {
-      "version": "0.12.0",
-      "from": "caseless@>=0.12.0 <0.13.0",
-      "resolved": "https://registry.npmjs.org/caseless/-/caseless-0.12.0.tgz"
-    },
-    "catbox": {
-      "version": "7.1.5",
-      "from": "catbox@>=7.0.0 <8.0.0",
-      "resolved": "https://registry.npmjs.org/catbox/-/catbox-7.1.5.tgz",
-      "dev": true,
-      "dependencies": {
-        "boom": {
-          "version": "5.2.0",
-          "from": "boom@>=5.0.0 <6.0.0",
-          "resolved": "https://registry.npmjs.org/boom/-/boom-5.2.0.tgz",
-          "dev": true
-        }
-      }
     },
     "catbox-memory": {
       "version": "2.0.4",
@@ -8561,11 +8422,6 @@
       "from": "pbkdf2-password@>=1.1.0 <2.0.0",
       "resolved": "https://registry.npmjs.org/pbkdf2-password/-/pbkdf2-password-1.2.1.tgz",
       "dev": true
-    },
-    "pdfjs-dist": {
-      "version": "2.1.266",
-      "from": "pdfjs-dist@>=2.1.266 <3.0.0",
-      "resolved": "https://registry.npmjs.org/pdfjs-dist/-/pdfjs-dist-2.1.266.tgz"
     },
     "peekaboo": {
       "version": "2.0.2",
