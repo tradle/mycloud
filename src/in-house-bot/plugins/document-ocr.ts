@@ -266,7 +266,8 @@ export class DocumentOcrAPI {
 }
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
-  execSync('command -v gs')
+  if (bot.isLocal)
+    execSync('command -v gs')
   const documentOcrAPI = new DocumentOcrAPI({ bot, conf, applications, logger })
   // debugger
   const plugin: IPluginLifecycleMethods = {
