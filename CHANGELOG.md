@@ -2,13 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.3](https://github.com/tradle/mycloud/compare/v2.4.2...v2.4.3) (2019-07-17)
+## [2.4.4-rc.0](https://github.com/tradle/mycloud/compare/v2.4.3...v2.4.4-rc.0) (2019-08-10)
 
 
 ### Bug Fixes
 
-* gen reference since it's required ([8471a05](https://github.com/tradle/mycloud/commit/8471a05))
-* OCR for cert of inc ([78d7d7f](https://github.com/tradle/mycloud/commit/78d7d7f))
+* applicant name gets assigned for the application ([7d72663](https://github.com/tradle/mycloud/commit/7d72663))
+* change in determining model subclassing ([8853dbb](https://github.com/tradle/mycloud/commit/8853dbb))
+* crashing if no template; make dynamic canvas require ([cbb0cec](https://github.com/tradle/mycloud/commit/cbb0cec))
+* document OCR project ([a6f3174](https://github.com/tradle/mycloud/commit/a6f3174))
+* don't let plugin to crash the server ([080e6b3](https://github.com/tradle/mycloud/commit/080e6b3))
+* don't override untill the application is completed ([c6b1d5d](https://github.com/tradle/mycloud/commit/c6b1d5d))
+* exclude .localstack in deploy package ([55b8df0](https://github.com/tradle/mycloud/commit/55b8df0))
+* name derived from uploaded Photo ID ([121db62](https://github.com/tradle/mycloud/commit/121db62))
+* OCR sniffing the right document and give an error if not ([6a8f3cf](https://github.com/tradle/mycloud/commit/6a8f3cf))
+* PhoneBill model changed ([1acfc5d](https://github.com/tradle/mycloud/commit/1acfc5d))
+* status was not always set ([ccbfe74](https://github.com/tradle/mycloud/commit/ccbfe74))
+
+
+### Features
+
+* check override project ([7d5a973](https://github.com/tradle/mycloud/commit/7d5a973))
+* check override project ([6b8269d](https://github.com/tradle/mycloud/commit/6b8269d))
+* check override project ([39e7e75](https://github.com/tradle/mycloud/commit/39e7e75))
+* Tree models ([5f2d9ec](https://github.com/tradle/mycloud/commit/5f2d9ec))
 
 
 
