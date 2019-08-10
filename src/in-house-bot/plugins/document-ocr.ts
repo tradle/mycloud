@@ -10,6 +10,7 @@ import gs from 'node-gs'
 import path from 'path'
 import fs from 'fs'
 import { v4 as uuid } from 'uuid'
+import { execSync } from 'child_process'
 
 // @ts-ignore
 const { sanitize } = validateResource.utils
@@ -78,9 +79,7 @@ export class DocumentOcrAPI {
         this.logger.error('document-ocr failed', err)
         return {}
       }
-    }
-    else
-      image = buffer
+    } else image = buffer
 
     let accessKeyId = ''
     let secretAccessKey = ''
@@ -120,7 +119,6 @@ export class DocumentOcrAPI {
   }
 
   public convertPdfToPng = async (pdf: any) => {
-    const ghostscriptPath = path.resolve(__dirname, 'node_modules/lambda-ghostscript/bin/gs')
     const fileName = uuid()
     let gsOp = gs()
       .option('-r' + 300)
@@ -129,8 +127,13 @@ export class DocumentOcrAPI {
       .device('png16m')
       .output('/tmp/' + fileName + '-%d.png')
 
-    if (process.env.LAMBDA_TASK_ROOT)
+    if (process.env.LAMBDA_TASK_ROOT) {
+      const ghostscriptPath = path.resolve(
+        __dirname,
+        '../../../node_modules/lambda-ghostscript/bin/gs'
+      )
       gsOp.executablePath(ghostscriptPath)
+    }
 
     return new Promise((resolve, reject) => {
       gsOp.exec(pdf, (error, stdout, stderror) => {
@@ -142,12 +145,10 @@ export class DocumentOcrAPI {
         if (fs.existsSync(outfile)) {
           let png = fs.readFileSync(outfile)
           // remove file
-          fs.unlink(outfile, (err) => { })
+          // fs.unlink(outfile, (err) => { })
           //console.log('png file size ', png.length)
           resolve(png)
-        }
-        else
-          reject(new Error('no png file generated'))
+        } else reject(new Error('no png file generated'))
       })
     })
   }
@@ -265,6 +266,7 @@ export class DocumentOcrAPI {
 }
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
+  execSync('command -v gs')
   const documentOcrAPI = new DocumentOcrAPI({ bot, conf, applications, logger })
   // debugger
   const plugin: IPluginLifecycleMethods = {
@@ -431,10 +433,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-    bot: Bot
-    conf: IConfComponents
-    pluginConf: IDocumentOcrConf
-  }) => {
+  bot: Bot
+  conf: IConfComponents
+  pluginConf: IDocumentOcrConf
+}) => {
   const { models } = bot
   Object.keys(pluginConf).forEach(productModelId => {
     const productModel = models[productModelId]
@@ -511,7 +513,6 @@ function daytonum(day) {
   }
   return daymap[day.toLowerCase()]
 }
-
 function monthtonum(month) {
   const monthmap = {
     january: '01',
