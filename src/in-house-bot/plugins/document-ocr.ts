@@ -81,10 +81,8 @@ export class DocumentOcrAPI {
       }
     } else image = buffer
 
-    let accessKeyId = 'AKIAJLE2B5O46BV5BTTQ'
-    let secretAccessKey = '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'
-    //AWSAccessKeyId=AKIAJLE2B5O46BV5BTTQ
-    // AWSSecretKey=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
+    let accessKeyId = ''
+    let secretAccessKey = ''
     let region = 'us-east-1'
     let textract = new AWS.Textract({
       apiVersion: '2018-06-27',
