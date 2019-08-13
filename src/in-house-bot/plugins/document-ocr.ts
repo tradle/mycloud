@@ -81,8 +81,10 @@ export class DocumentOcrAPI {
       }
     } else image = buffer
 
-    let accessKeyId = ''
-    let secretAccessKey = ''
+    let accessKeyId = 'AKIAJLE2B5O46BV5BTTQ'
+    let secretAccessKey = '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'
+    //AWSAccessKeyId=AKIAJLE2B5O46BV5BTTQ
+    // AWSSecretKey=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
     let region = 'us-east-1'
     let textract = new AWS.Textract({
       apiVersion: '2018-06-27',
@@ -121,7 +123,7 @@ export class DocumentOcrAPI {
   public convertPdfToPng = async (pdf: any) => {
     const fileName = uuid()
     let gsOp = gs()
-      .option('-r' + 300)
+      .option('-r' + 600)
       .option('-dFirstPage=1')
       .option('-dLastPage=1')
       .device('png16m')
@@ -233,7 +235,7 @@ export class DocumentOcrAPI {
     let diff = new Diff()
     let textDiff = diff.main(template.text, input)
 
-    // console.log(textDiff)
+    this.logger.debug(textDiff)
     let found = false
     let key
     let map = {}
@@ -434,10 +436,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-  bot: Bot
-  conf: IConfComponents
-  pluginConf: IDocumentOcrConf
-}) => {
+    bot: Bot
+    conf: IConfComponents
+    pluginConf: IDocumentOcrConf
+  }) => {
   const { models } = bot
   Object.keys(pluginConf).forEach(productModelId => {
     const productModel = models[productModelId]
