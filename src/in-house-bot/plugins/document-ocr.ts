@@ -121,7 +121,7 @@ export class DocumentOcrAPI {
   public convertPdfToPng = async (pdf: any) => {
     const fileName = uuid()
     let gsOp = gs()
-      .option('-r' + 600)
+      .option('-r' + 1200)
       .option('-dFirstPage=1')
       .option('-dLastPage=1')
       .device('png16m')
