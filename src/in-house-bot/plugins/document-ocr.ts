@@ -266,8 +266,7 @@ export class DocumentOcrAPI {
 }
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
-  if (bot.isLocal)
-    execSync('command -v gs')
+  if (bot.isLocal) execSync('command -v gs')
   const documentOcrAPI = new DocumentOcrAPI({ bot, conf, applications, logger })
   // debugger
   const plugin: IPluginLifecycleMethods = {
@@ -388,6 +387,15 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           }
         }
         prefill = sanitize(prefill).sanitized
+        let notEqual
+        for (let p in prefill) {
+          if (!payload[p]) notEqual = true
+          else if (typeof payload[p] === 'object' && !_.isEqual(payload[p], prefill[p]))
+            notEqual = true
+          else if (payload[p] !== prefill[p]) notEqual = true
+          if (notEqual) break
+        }
+        if (!notEqual) return
       } catch (err) {
         debugger
         return
@@ -434,10 +442,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-    bot: Bot
-    conf: IConfComponents
-    pluginConf: IDocumentOcrConf
-  }) => {
+  bot: Bot
+  conf: IConfComponents
+  pluginConf: IDocumentOcrConf
+}) => {
   const { models } = bot
   Object.keys(pluginConf).forEach(productModelId => {
     const productModel = models[productModelId]
