@@ -187,7 +187,7 @@
     "@tradle/biz-plugins": {
       "version": "1.0.0",
       "from": "tradle/biz-plugins",
-      "resolved": "git://github.com/tradle/biz-plugins.git#1bd2beeb524d2e4bdaec44aff589bdf6284c642e"
+      "resolved": "git://github.com/tradle/biz-plugins.git#44d44697b25bc01185fbed63ac93aaf270bb11e9"
     },
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
@@ -302,7 +302,7 @@
     "@tradle/custom-models": {
       "version": "4.10.10",
       "from": "tradle/custom-models",
-      "resolved": "git://github.com/tradle/custom-models.git#fe4ada3fa67e17b9c3aa13f78eeab96410ddee7b"
+      "resolved": "git://github.com/tradle/custom-models.git#4f19844861d99f999921d1488a5e62138d76ef62"
     },
     "@tradle/dynamodb": {
       "version": "1.0.0",
@@ -391,7 +391,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#27434a478666d3c162bfd7872a29f1b51e81f00d"
+      "resolved": "git://github.com/tradle/models.git#4a531c0dec1729699960d592d1e3ed7b34510be5"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
@@ -406,7 +406,7 @@
     "@tradle/models-corporate-onboarding": {
       "version": "1.0.0",
       "from": "tradle/models-corporate-onboarding",
-      "resolved": "git://github.com/tradle/models-corporate-onboarding.git#b653314041c11f7a3038206943324beda062165f"
+      "resolved": "git://github.com/tradle/models-corporate-onboarding.git#81f82a2da896d164996b30f5bdd74fcf4b19f334"
     },
     "@tradle/models-nz": {
       "version": "1.0.0",
