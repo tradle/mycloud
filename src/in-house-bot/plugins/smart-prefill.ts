@@ -24,6 +24,7 @@ const ADDRESS = 'tradle.Address'
 const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
 const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 const LEGAL_DOCUMENT = 'tradle.legal.LegalDocument'
+const CERTIFICATE_OF_INC = 'tradle.legal.CertificateOfIncorporation'
 const AGENCY = 'tradle.Agency'
 // const PERSONAL_INFO = 'tradle.PersonalInfo'
 
@@ -99,35 +100,50 @@ export const transformers = {
     }
   },
   [LEGAL_ENTITY]: {
-    [CONTROLLING_PERSON]: source => {
-      // const props:any = {}
-      // props.legalEntity = source
-      return {
-        legalEntity: {
-          [TYPE]: source[TYPE],
-          _link: source._link,
-          _permalink: source._permalink,
-          _displayName:
-            source.companyName || (source.country && source.country.title) || 'Legal Entity'
-        }
-      }
-    },
-    [LEGAL_DOCUMENT]: source => {
-      // const props:any = {}
-      // props.legalEntity = source
-      return {
-        legalEntity: {
-          [TYPE]: source[TYPE],
-          _link: source._link,
-          _permalink: source._permalink,
-          _displayName:
-            source.companyName || (source.country && source.country.title) || 'Legal Entity'
-        }
-      }
+    [CONTROLLING_PERSON]: source => prefillLegalEntity(source, 'legalEntity'),
+    [LEGAL_DOCUMENT]: source => prefillLegalEntity(source, 'legalEntity'),
+    [CERTIFICATE_OF_INC]: source => prefillLegalEntity(source, 'legalEntity'),
+  }
+  // [LEGAL_ENTITY]: {
+  //   [CONTROLLING_PERSON]: source => {
+  //     // const props:any = {}
+  //     // props.legalEntity = source
+  //     return {
+  //       legalEntity: {
+  //         [TYPE]: source[TYPE],
+  //         _link: source._link,
+  //         _permalink: source._permalink,
+  //         _displayName:
+  //           source.companyName || (source.country && source.country.title) || 'Legal Entity'
+  //       }
+  //     }
+  //   },
+  //   [LEGAL_DOCUMENT]: source => {
+  //     // const props:any = {}
+  //     // props.legalEntity = source
+  //     return {
+  //       legalEntity: {
+  //         [TYPE]: source[TYPE],
+  //         _link: source._link,
+  //         _permalink: source._permalink,
+  //         _displayName:
+  //           source.companyName || (source.country && source.country.title) || 'Legal Entity'
+  //       }
+  //     }
+  //   }
+  // }
+}
+function prefillLegalEntity(source, prop) {
+  return {
+    [prop]: {
+      [TYPE]: source[TYPE],
+      _link: source._link,
+      _permalink: source._permalink,
+      _displayName:
+        source.companyName || (source.country && source.country.title) || 'Legal Entity'
     }
   }
 }
-
 type SmartPrefillOpts = {
   bot: Bot
   conf: any
