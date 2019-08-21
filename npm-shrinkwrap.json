@@ -411,7 +411,7 @@
     "@tradle/models-nz": {
       "version": "1.0.0",
       "from": "pgmemk/models-nz",
-      "resolved": "git://github.com/pgmemk/models-nz.git#c3855d827d7299379b79227ccacb3b7c2c981a1f"
+      "resolved": "git://github.com/pgmemk/models-nz.git#6595652dd628ac391d95990e8e9c5dad39eccb71"
     },
     "@tradle/models-onfido": {
       "version": "1.0.0",
