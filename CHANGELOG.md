@@ -2,12 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.4-rc.2](https://github.com/tradle/mycloud/compare/v2.4.4-rc.1...v2.4.4-rc.2) (2019-08-13)
+## [2.4.4-rc.3](https://github.com/tradle/mycloud/compare/v2.4.4-rc.2...v2.4.4-rc.3) (2019-08-21)
+
+
+### Bug Fixes
+
+* biz-plugins ([f8526d5](https://github.com/tradle/mycloud/commit/f8526d5))
+* if the form was submitted already with all the fields and they r the same as after OCR, no need to submit request for corrections ([99cf6e5](https://github.com/tradle/mycloud/commit/99cf6e5))
+* upgrade models ([8d3df77](https://github.com/tradle/mycloud/commit/8d3df77))
 
 
 ### Features
 
-* added new prop range to property ([ea14a77](https://github.com/tradle/mycloud/commit/ea14a77))
+* added more smart prefills ([d843daa](https://github.com/tradle/mycloud/commit/d843daa))
+* models upgrade, models validator upgrade ([ad4b057](https://github.com/tradle/mycloud/commit/ad4b057))
 
 
 
