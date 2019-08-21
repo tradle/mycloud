@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "2.4.4-rc.2",
+  "version": "2.4.4-rc.3",
   "main": "index.js",
   "private": true,
   "repository": "https://github.com/tradle/mycloud",
