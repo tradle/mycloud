@@ -387,15 +387,22 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           }
         }
         prefill = sanitize(prefill).sanitized
-        let notEqual
+        let hasChanges
         for (let p in prefill) {
-          if (!payload[p]) notEqual = true
+          if (!payload[p]) hasChanges = true
           else if (typeof payload[p] === 'object' && !_.isEqual(payload[p], prefill[p]))
-            notEqual = true
-          else if (payload[p] !== prefill[p]) notEqual = true
-          if (notEqual) break
+            hasChanges = true
+          else if (payload[p] !== prefill[p]) hasChanges = true
+          if (hasChanges) break
         }
-        if (!notEqual) return
+        if (!hasChanges) {
+          logger.error(
+            `document-ocr does not send request for correction for ${
+              payload[TYPE]
+            } since the resource didn\'t change`
+          )
+          return
+        }
       } catch (err) {
         debugger
         return
