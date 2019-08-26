@@ -212,7 +212,7 @@ After you chat with the bot a bit, open up GraphiQL at [http://localhost:21012](
 
 You can also browse the database via the DynamoDB Admin at [http://localhost:8001](http://localhost:8001)
 
-When you deploy to the cloud, GraphiQL will be available at https://xxxxxxx.execute-api.us-east-1.amazonaws.com/dev/tradle/graphql
+When you deploy to the cloud, GraphiQL will be available at https://xxxxxxx.execute-api.us-east-1.amazonaws.com/dev/graphql
 
 ### AWS cli (local)
 

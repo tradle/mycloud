@@ -1,5 +1,4 @@
 import _ from 'lodash'
-// import validateResource from '@tradle/validate-resource'
 import { TYPE, PERMALINK, LINK } from '@tradle/constants'
 import DataURI from 'strong-data-uri'
 import { getLatestForms, isSubClassOf } from '../utils'
@@ -266,8 +265,7 @@ export class DocumentOcrAPI {
 }
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
-  if (bot.isLocal)
-    execSync('command -v gs')
+  if (bot.isLocal) execSync('command -v gs')
   const documentOcrAPI = new DocumentOcrAPI({ bot, conf, applications, logger })
   // debugger
   const plugin: IPluginLifecycleMethods = {
@@ -285,10 +283,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         await this.handleLe({ stub, latestForms, req })
         return
       }
-      // const piStub = latestForms.find(form => form.type === PERSONAL_INFO)
-      // if (piStub) {
-      //   debugger
-      // }
     },
     async handleLe({ stub, latestForms, req }) {
       let le = await bot.objects.get(stub.link)
@@ -329,7 +323,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           prefill,
           message: `Please review and confirm`
         }
-        // item: payload,
       }
       try {
         await applications.requestEdit(formError)
@@ -388,6 +381,22 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           }
         }
         prefill = sanitize(prefill).sanitized
+        let hasChanges
+        for (let p in prefill) {
+          if (!payload[p]) hasChanges = true
+          else if (typeof payload[p] === 'object' && !_.isEqual(payload[p], prefill[p]))
+            hasChanges = true
+          else if (payload[p] !== prefill[p]) hasChanges = true
+          if (hasChanges) break
+        }
+        if (!hasChanges) {
+          logger.error(
+            `document-ocr does not send request for correction for ${
+              payload[TYPE]
+            } since the resource didn\'t change`
+          )
+          return
+        }
       } catch (err) {
         debugger
         return
@@ -402,19 +411,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         req,
         user,
         application
-        // item: payload,
       }
-      // if (prefill) {
       formError.details = {
         prefill: payloadClone,
         message: `Please review and correct the data below`
       }
-      // }
-      // else {
-      //   formError.details = {
-      //     message: `Please fill out the form`
-      //   }
-      // }
       try {
         await applications.requestEdit(formError)
         return {
@@ -434,10 +435,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-    bot: Bot
-    conf: IConfComponents
-    pluginConf: IDocumentOcrConf
-  }) => {
+  bot: Bot
+  conf: IConfComponents
+  pluginConf: IDocumentOcrConf
+}) => {
   const { models } = bot
   Object.keys(pluginConf).forEach(productModelId => {
     const productModel = models[productModelId]

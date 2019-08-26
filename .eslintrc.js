@@ -8,6 +8,13 @@ module.exports = {
     sourceType: 'module',
     ecmaVersion: 8
   },
+  "overrides": [
+   {
+    "files": ["*interFormConditionals.js"],
+     "rules": {
+        "no-new-func": "warn"
+     }
+   }],
   rules: {
     'accessor-pairs': 'error',
     'array-bracket-spacing': 'warn',

@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.4-rc.2](https://github.com/tradle/mycloud/compare/v2.4.4-rc.1...v2.4.4-rc.2) (2019-08-13)
+## [2.4.4-rc.7](https://github.com/tradle/mycloud/compare/v2.4.4-rc.6...v2.4.4-rc.7) (2019-08-28)
 
 
 ### Features
 
-* added new prop range to property ([ea14a77](https://github.com/tradle/mycloud/commit/ea14a77))
+* softRequire added to model annotations; biz-plugins cleanup ([9570c45](https://github.com/tradle/mycloud/commit/9570c45))
 
 
 
