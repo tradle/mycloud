@@ -674,7 +674,8 @@ export const loadComponentsAndPlugins = ({
       'sme-auto-approve',
       'facetecZoom',
       'finastra',
-      'document-ocr'
+      'document-ocr',
+      'interFormConditionals'
     ].forEach(name => attachPlugin({ name }))
     ;['hand-sig', 'documentValidity', 'fill-myproduct', 'checkOverride'].forEach(name =>
       attachPlugin({ name, requiresConf: false })
