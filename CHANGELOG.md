@@ -2,12 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.4-rc.5](https://github.com/tradle/mycloud/compare/v2.4.4-rc.4...v2.4.4-rc.5) (2019-08-25)
+## [2.4.4-rc.6](https://github.com/tradle/mycloud/compare/v2.4.4-rc.5...v2.4.4-rc.6) (2019-08-27)
+
+
+### Bug Fixes
+
+* allow no-new-func rule because of using new Function for ([6b7dc2d](https://github.com/tradle/mycloud/commit/6b7dc2d))
 
 
 ### Features
 
-* file upload; in forms conditionals ([3fd7d37](https://github.com/tradle/mycloud/commit/3fd7d37))
+* inter form conditionals ([5f8fd82](https://github.com/tradle/mycloud/commit/5f8fd82))
+* inter form conditionals ([af85129](https://github.com/tradle/mycloud/commit/af85129))
+* inter form conditionals ([ec7db5d](https://github.com/tradle/mycloud/commit/ec7db5d))
 
 
 
