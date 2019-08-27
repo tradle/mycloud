@@ -26,7 +26,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
       if (!productForms) return
 
       const productModel = bot.models[requestFor]
-      // const allForms = productModel.forms.slice()
       let promises = []
       application.forms
         .map(appSub => parseStub(appSub.submission))
@@ -66,7 +65,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
         } catch (err) {}
       })
       return retForms
-      // return allForms.filter(f => forms[f]  &&  excludeForms.indexOf(f) === -1)
     }
   }
   return {
