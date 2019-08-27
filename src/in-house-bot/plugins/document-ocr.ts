@@ -1,5 +1,4 @@
 import _ from 'lodash'
-// import validateResource from '@tradle/validate-resource'
 import { TYPE, PERMALINK, LINK } from '@tradle/constants'
 import DataURI from 'strong-data-uri'
 import { getLatestForms, isSubClassOf } from '../utils'
@@ -284,10 +283,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         await this.handleLe({ stub, latestForms, req })
         return
       }
-      // const piStub = latestForms.find(form => form.type === PERSONAL_INFO)
-      // if (piStub) {
-      //   debugger
-      // }
     },
     async handleLe({ stub, latestForms, req }) {
       let le = await bot.objects.get(stub.link)
@@ -328,7 +323,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           prefill,
           message: `Please review and confirm`
         }
-        // item: payload,
       }
       try {
         await applications.requestEdit(formError)
@@ -417,19 +411,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         req,
         user,
         application
-        // item: payload,
       }
-      // if (prefill) {
       formError.details = {
         prefill: payloadClone,
         message: `Please review and correct the data below`
       }
-      // }
-      // else {
-      //   formError.details = {
-      //     message: `Please fill out the form`
-      //   }
-      // }
       try {
         await applications.requestEdit(formError)
         return {
