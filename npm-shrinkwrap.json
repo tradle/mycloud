@@ -187,7 +187,7 @@
     "@tradle/biz-plugins": {
       "version": "1.0.0",
       "from": "tradle/biz-plugins",
-      "resolved": "git://github.com/tradle/biz-plugins.git#6639ba054cac7090d6318146aa16901b0bd8c9eb"
+      "resolved": "git://github.com/tradle/biz-plugins.git#b663a75b9f81a3de9bfe8be436ca5c75a8bf3859"
     },
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
@@ -513,9 +513,9 @@
       "resolved": "https://registry.npmjs.org/@tradle/utils/-/utils-1.3.0.tgz"
     },
     "@tradle/validate-model": {
-      "version": "7.1.11",
+      "version": "7.1.12",
       "from": "@tradle/validate-model@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/validate-model/-/validate-model-7.1.11.tgz"
+      "resolved": "https://registry.npmjs.org/@tradle/validate-model/-/validate-model-7.1.12.tgz"
     },
     "@tradle/validate-resource": {
       "version": "4.3.4",
