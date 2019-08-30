@@ -677,7 +677,7 @@ export const loadComponentsAndPlugins = ({
       'document-ocr',
       'interFormConditionals'
     ].forEach(name => attachPlugin({ name }))
-    ;['hand-sig', 'documentValidity', 'fill-myproduct', 'checkOverride'].forEach(name =>
+    ;['hand-sig', 'documentValidity', 'fill-myproduct', 'checkOverride', 'regulatorRegistration'].forEach(name =>
       attachPlugin({ name, requiresConf: false })
     )
 
