@@ -2,12 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.4-rc.7](https://github.com/tradle/mycloud/compare/v2.4.4-rc.6...v2.4.4-rc.7) (2019-08-28)
+## [2.4.4-rc.8](https://github.com/tradle/mycloud/compare/v2.4.4-rc.7...v2.4.4-rc.8) (2019-08-30)
 
 
 ### Features
 
-* softRequire added to model annotations; biz-plugins cleanup ([9570c45](https://github.com/tradle/mycloud/commit/9570c45))
+* new plugin added ([66623f0](https://github.com/tradle/mycloud/commit/66623f0))
+* RegulatorRegistrationCheck model added ([152ecce](https://github.com/tradle/mycloud/commit/152ecce))
 
 
 
