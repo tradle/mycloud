@@ -683,7 +683,7 @@ export const getStatusMessageForCheck = ({
     case 'error':
     case 'pass':
     case 'warning':
-      return `${aspects}`
+      return `${aspectsStr}`
     default:
       throw new Errors.InvalidInput(`unsupported check status: ${safeStringify(check.status)}`)
   }
