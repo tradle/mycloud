@@ -214,7 +214,17 @@ class DocumentValidityAPI {
       form
     }
 // debugger
-    resource.message = getStatusMessageForCheck({models: this.bot.models, check: resource})
+    if (rawData  && status !== 'pass') {
+      let props = this.bot.models[form[TYPE]].properties
+      for (let p in rawData) {
+        if (!props[p])
+          continue
+        if (!resource.message)
+          resource.message += '; '
+        resource.message = rawData[p]
+      }
+    }
+    // resource.message = getStatusMessageForCheck({models: this.bot.models, check: resource})
     this.logger.debug(`DocumentValidity status message: ${resource.message}`)
     if (status.message)
       resource.resultDetails = status.message

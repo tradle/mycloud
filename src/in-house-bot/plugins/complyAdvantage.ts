@@ -17,7 +17,7 @@ const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 const PHOTO_ID = 'tradle.PhotoID'
 const PERSONAL_INFO = 'tradle.PersonalInfo'
 const SANCTIONS_CHECK = 'tradle.SanctionsCheck'
-const ASPECTS = 'sanctions screening'
+var ASPECTS = 'screening: '
 
 const PROVIDER = 'Comply Advantage'
 const PERSON_FORMS = [PHOTO_ID, PERSONAL_INFO]
@@ -78,6 +78,10 @@ class ComplyAdvantageAPI {
     if (!map) map = propertyMap && propertyMap[payload[TYPE]]
 
     let isPerson = (criteria && criteria.entity_type === 'person') || isPersonForm(payload)
+    if (!criteria  ||  !criteria.filter.types)
+      ASPECTS += ' sanctions'
+    else
+      ASPECTS += criteria.filter.types.join(', ')
     // debugger
     // if (await doesCheckExist({bot: this.bot, type: SANCTIONS_CHECK, eq: {form: payload._link}, application, provider: PROVIDER}))
     //   return
@@ -265,7 +269,13 @@ class ComplyAdvantageAPI {
       form
     }
 
-    resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
+    // resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
+    if (status.status === 'fail'  &&  rawData.hits) {
+      let prefix = ''
+      if (rawData.hits.length > 100)
+        prefix = 'At least '
+      resource.message=`${prefix}${rawData.hits.length} hits were found for this criteria`
+    }
     if (status.message) resource.resultDetails = status.message
     if (rawData) {
       resource.rawData = rawData
