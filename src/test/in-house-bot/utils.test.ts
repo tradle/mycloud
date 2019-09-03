@@ -44,7 +44,7 @@ test('check status message', t => {
         status: 'pending',
         aspects: ['a', 'b', 'c']
       },
-      out: 'a,b,c'
+      out: 'a, b, c'
     }
   ]
 
