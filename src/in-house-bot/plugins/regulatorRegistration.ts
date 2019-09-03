@@ -55,11 +55,12 @@ export class RegulatorRegistrationAPI {
   }
   public async check({ form, application }) {
     let status
+    let formRegistrationNumber = form.registrationNumber.replace(/-/g, '').replace(/^0+/, '')
     try {
       let res = await get(Registry.FINRA)
       let record = res.find(r => {
         let nmb = r.number.replace(/-/g, '').replace(/^0+/, '')
-        return nmb === form.registrationNumber
+        return nmb === formRegistrationNumber
       })
       if (record) status = { status: 'pass' }
       else status = { status: 'fail' }
