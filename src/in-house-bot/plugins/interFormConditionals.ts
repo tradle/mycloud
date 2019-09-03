@@ -54,19 +54,19 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
           retForms.push(formId)
           return
         }
-        let val = f[formId]
+        let values = f[formId]
         let isArray
-        if (typeof val === 'string') {
-          if (val.startsWith('set:')) {
+        if (typeof values === 'string') {
+          if (isSet(values)) {
             retForms.push(formId)
             return
           }
-          val = [val]
+          values = [values]
         }
         let hasAction
-        val.forEach(v => {
+        values.forEach(val => {
           let isAdd = val.startsWith('add: ')
-          if (!isAdd && val.startsWith('set: ')) return
+          if (!isAdd && isSet(val)) return
           hasAction = true
           val = val.slice(5).trim()
           try {
@@ -105,8 +105,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
       formConditions = formConditions[ftype]
       let setConditions
       if (Array.isArray(formConditions))
-        setConditions = formConditions.filter(f => f.startsWith('set:'))
-      else setConditions = formConditions.startsWith('set:') && [formConditions]
+        setConditions = formConditions.filter(f => isSet(f))
+      else setConditions = isSet(formConditions) && [formConditions]
 
       if (!setConditions || !setConditions.length) return
 
@@ -149,10 +149,14 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
         let [propName, formula] = val
         try {
           let value = new Function('forms', `return ${formula}`)(forms)
-          formRequest.prefill = {
-            [TYPE]: ftype,
-            [propName]: value
+          if (!formRequest.prefill) {
+            formRequest.prefill = {
+              [TYPE]: ftype,
+              [propName]: value
+            }
           }
+          else
+            formRequest.prefill[propName] = value
         } catch (err) {
           debugger
         }
@@ -162,6 +166,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
   return {
     plugin
   }
+}
+function isSet(value) {
+  return value.startsWith('set: ')
 }
 function getForms(formula) {
   let forms = []
