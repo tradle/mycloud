@@ -31,12 +31,12 @@ import {
   IHasModels,
   IUser,
   Model,
-  UpdateResourceOpts,
+  UpdateResourceOpts
 } from './types'
 
 interface IPBJudgeAppOpts {
   req?: IPBReq
-  application: string|IPBApp|ResourceStub
+  application: string | IPBApp | ResourceStub
   approve?: boolean
 }
 
@@ -46,7 +46,7 @@ interface IPropertyInfo {
 }
 
 interface RequestItemOpts {
-  item: string|ITradleObject
+  item: string | ITradleObject
   message?: string
   req?: IPBReq
   user?: IPBUser
@@ -59,13 +59,10 @@ const {
   APPLICATION_SUBMISSION,
   MY_EMPLOYEE_ONBOARDING,
   ASSIGN_RELATIONSHIP_MANAGER,
-  PRODUCT_REQUEST,
+  PRODUCT_REQUEST
 } = TYPES
 
-const PRUNABLE_FORMS = [
-  ASSIGN_RELATIONSHIP_MANAGER,
-  PRODUCT_REQUEST,
-]
+const PRUNABLE_FORMS = [ASSIGN_RELATIONSHIP_MANAGER, PRODUCT_REQUEST]
 
 type AppInfo = {
   application: IPBApp
@@ -81,13 +78,17 @@ export class Applications implements IHasModels {
   }
 
   // IHasModels
-  public buildResource: (model: string|Model) => any
+  public buildResource: (model: string | Model) => any
   public buildStub: (resource: ITradleObject) => ResourceStub
   public validateResource: (resource: ITradleObject) => any
   public validatePartialResource: (resource: ITradleObject) => void
   public getModel: (id: string) => Model
 
-  constructor({ bot, productsAPI, employeeManager }: {
+  constructor({
+    bot,
+    productsAPI,
+    employeeManager
+  }: {
     bot: Bot
     productsAPI: any
     employeeManager: any
@@ -99,7 +100,7 @@ export class Applications implements IHasModels {
     this.logger = bot.logger.sub('applications')
   }
 
-  public createCheck = async (props) => {
+  public createCheck = async props => {
     const { bot, productsAPI } = this
     const { models } = bot
     const type = props[TYPE]
@@ -107,7 +108,8 @@ export class Applications implements IHasModels {
       throw new Error('expected type and "application"')
     }
 
-    return await bot.draft({ type })
+    return await bot
+      .draft({ type })
       .set(props)
       .signAndSave()
   }
@@ -118,7 +120,7 @@ export class Applications implements IHasModels {
   }
   public judgeApplication = async ({ req, application, approve }: IPBJudgeAppOpts) => {
     const { bot, productsAPI } = this
-    application = await productsAPI.getApplication(application) as IPBApp
+    application = (await productsAPI.getApplication(application)) as IPBApp
 
     const user = await this._getApplicantFromApplication(application)
     let judge
@@ -145,15 +147,15 @@ export class Applications implements IHasModels {
     await this._commitApplicationUpdate({ application })
   }
 
-  public approve = async (opts) => {
+  public approve = async opts => {
     return this.judgeApplication({ ...opts, approve: true })
   }
 
-  public deny = async (opts) => {
+  public deny = async opts => {
     return this.judgeApplication({ ...opts, approve: false })
   }
 
-  public verify = async (opts) => {
+  public verify = async opts => {
     return await this.productsAPI.verify(opts)
   }
 
@@ -176,7 +178,7 @@ export class Applications implements IHasModels {
   }
 
   public getVerificationsForApplication = async ({ application }: AppInfo) => {
-    const { verifications=[] } = application
+    const { verifications = [] } = application
     return await Promise.map(verifications, appSub => this.bot.getResource(appSub.submission))
   }
 
@@ -197,7 +199,12 @@ export class Applications implements IHasModels {
     }
   }
 
-  public issueVerifications = async ({ req, user, application, send }: {
+  public issueVerifications = async ({
+    req,
+    user,
+    application,
+    send
+  }: {
     req?: IPBReq
     user: IPBUser
     application: IPBApp
@@ -207,12 +214,16 @@ export class Applications implements IHasModels {
     const formStubs = stubs.forms
     if (!formStubs.length) return []
 
-    const verifications = await Promise.all(stubs.verifications.map(stub => this.bot.getResource(stub)))
+    const verifications = await Promise.all(
+      stubs.verifications.map(stub => this.bot.getResource(stub))
+    )
 
     // avoid building increasingly tall trees of verifications
-    const sourcesOnly = flatMap(verifications, v => isEmpty(v.sources) ? v : v.sources)
-    return await formStubs.map(async (formStub) => {
-      const sources = sourcesOnly.filter(v => parseStub(v.document).link === parseStub(formStub).link)
+    const sourcesOnly = flatMap(verifications, v => (isEmpty(v.sources) ? v : v.sources))
+    return await formStubs.map(async formStub => {
+      const sources = sourcesOnly.filter(
+        v => parseStub(v.document).link === parseStub(formStub).link
+      )
       // if (!sources.length) {
       //   this.logger.debug('not issuing verification for form, as no source verifications found', formStub)
       //   return
@@ -242,21 +253,21 @@ export class Applications implements IHasModels {
     // avoid re-sealing
     const subs = forms.filter(sub => !sub._seal)
     // verifications are sealed in issueVerifications
-    await Promise.all(subs.map(object => this.bot.sealIfNotBatching({ counterparty, object }))    )
+    await Promise.all(subs.map(object => this.bot.sealIfNotBatching({ counterparty, object })))
   }
 
   public createSealsForApprovedApplication = async ({ application }: AppInfo) => {
     const { bot } = this
-    const promises = [
-      this.sealFormsForApplication({ application })
-    ]
+    const promises = [this.sealFormsForApplication({ application })]
 
     const { certificate } = application
     if (certificate && !certificate._seal) {
-      const sealCert = bot.getResource(certificate).then(object => bot.sealIfNotBatching({
-        counterparty: getApplicantPermalink(application),
-        object
-      }))
+      const sealCert = bot.getResource(certificate).then(object =>
+        bot.sealIfNotBatching({
+          counterparty: getApplicantPermalink(application),
+          object
+        })
+      )
 
       promises.push(sealCert)
     }
@@ -269,8 +280,8 @@ export class Applications implements IHasModels {
     return application
   }
 
-  public requestEdit = async (opts) => {
-    const { req={}, item } = opts
+  public requestEdit = async opts => {
+    const { req = {}, item } = opts
     if (item && item[TYPE]) {
       this.validatePartialResource(item)
     }
@@ -278,7 +289,7 @@ export class Applications implements IHasModels {
     return await this.productsAPI.requestEdit({
       ...opts,
       application: opts.application || req.application,
-      applicant: opts.applicant || req.applicant,
+      applicant: opts.applicant || req.applicant
     })
   }
 
@@ -287,24 +298,26 @@ export class Applications implements IHasModels {
   }
 
   public getLatestChecks = async ({ application }: AppInfo): Promise<ITradleCheck[]> => {
-    const { checks=[] } = application
+    const { checks = [] } = application
     if (!checks.length) return []
 
-    const bodies = await Promise.all(checks
-      // get latest version of those checks
-      .map(stub => omit(parseStub(stub), 'link'))
-      .map(stub => this.bot.getResource(stub)))
+    const bodies = await Promise.all(
+      checks
+        // get latest version of those checks
+        .map(stub => omit(parseStub(stub), 'link'))
+        .map(stub => this.bot.getResource(stub))
+    )
 
     const timeDesc = bodies.slice().sort((a, b) => b._time - a._time)
     return uniqBy(timeDesc, TYPE)
   }
 
   public haveAllChecksPassed = async ({ application }: AppInfo) => {
-    const { checks=[] } = application
+    const { checks = [] } = application
     if (!checks.length) return true
 
     const checkResources = await this.getLatestChecks({ application })
-    const byAPI:any = groupBy(checkResources, 'provider')
+    const byAPI: any = groupBy(checkResources, 'provider')
     const latest = Object.keys(byAPI).map(provider => byAPI[provider].pop())
     const allPassed = latest.every(check => isPassedCheck(check))
     this.logger.silly('have all checks passed?', {
@@ -315,7 +328,11 @@ export class Applications implements IHasModels {
     return allPassed
   }
 
-  public createVerification = async ({ req, application, verification }: {
+  public createVerification = async ({
+    req,
+    application,
+    verification
+  }: {
     verification: ITradleObject
     application?: IPBApp
     req?: IPBReq
@@ -339,11 +356,15 @@ export class Applications implements IHasModels {
     return verification
   }
 
-  public createApplicationSubmission = async ({ application, submission }: {
+  public createApplicationSubmission = async ({
+    application,
+    submission
+  }: {
     application: IPBApp
     submission: ITradleObject
   }) => {
-    const resource = await this.bot.draft({ type: APPLICATION_SUBMISSION })
+    const resource = await this.bot
+      .draft({ type: APPLICATION_SUBMISSION })
       .set({
         application,
         submission,
@@ -356,7 +377,11 @@ export class Applications implements IHasModels {
     await resource.save()
     return signed
   }
-  public deactivateChecks = async({ application, type, form }: {
+  public deactivateChecks = async ({
+    application,
+    type,
+    form
+  }: {
     application: IPBApp
     type: string
     form?: ITradleObject
@@ -364,35 +389,40 @@ export class Applications implements IHasModels {
     const checksOfType = application.checks.filter(check => check[TYPE] === type)
     const checks = await Promise.all(checksOfType.map(check => this.bot.getResource(check)))
     const deactivatedChecks = checks.filter(check => {
-      if (check.isInactive)
-        return false
+      if (check.isInactive) return false
       // by check type
-      if (!form)
-        return true
+      if (!form) return true
       // by check type and form
-      if (check.form  &&  check.form[PERMALINK] === form[PERMALINK])
-        return true
+      if (check.form && check.form[PERMALINK] === form[PERMALINK]) return true
     })
 
-    if (!deactivatedChecks.length)
-      return
+    if (!deactivatedChecks.length) return
 
-    await Promise.all(deactivatedChecks.map(check => this.bot.versionAndSave({
-      ...check,
-      isInactive: true
-    })))
+    await Promise.all(
+      deactivatedChecks.map(check =>
+        this.bot.versionAndSave({
+          ...check,
+          isInactive: true
+        })
+      )
+    )
   }
   // public getChecks = async (application:IPBApp) => {
   //   const stubs = (application.checks || application.submissions || []).map(appSub => appSub.submission)
   //   return Promise.all(stubs.map(this.bot.getResource))
   // }
 
-  public createApplication = async ({ user, application, req }: {
+  public createApplication = async ({
+    user,
+    application,
+    req
+  }: {
     req?: IPBReq
     user: IPBUser
     application: ITradleObject
   }) => {
-    const res = await this.bot.draft({ type: APPLICATION })
+    const res = await this.bot
+      .draft({ type: APPLICATION })
       .set(application)
       .signAndSave()
 
@@ -415,14 +445,11 @@ export class Applications implements IHasModels {
     return this.employeeManager.list()
   }
 
-  public fireEmployee = async ({ req, myProductId }: {
-    req?: IPBReq
-    myProductId: string
-  }) => {
+  public fireEmployee = async ({ req, myProductId }: { req?: IPBReq; myProductId: string }) => {
     const revokedCertificate = await this.revokeProductCertificateWithMyProductId({
       req,
       certificateModelId: MY_EMPLOYEE_ONBOARDING,
-      myProductId,
+      myProductId
     })
 
     const owner = parseStub(revokedCertificate.owner)
@@ -432,10 +459,13 @@ export class Applications implements IHasModels {
     })
   }
 
-  public getProductCertificateByMyProductId = async ({ certificateModelId, myProductId }: {
+  public getProductCertificateByMyProductId = async ({
+    certificateModelId,
+    myProductId
+  }: {
     certificateModelId: string
     myProductId: string
-  }):Promise<IMyProduct> => {
+  }): Promise<IMyProduct> => {
     const model = this.getModel(certificateModelId)
     if (!model.properties.myProductId) {
       throw new Errors.InvalidInput(`model ${certificateModelId} has no property "myProductId"`)
@@ -446,25 +476,35 @@ export class Applications implements IHasModels {
         EQ: {
           [TYPE]: certificateModelId,
           myProductId,
-          _author: await this.bot.getMyPermalink(),
+          _author: await this.bot.getMyPermalink()
         }
       }
     })
   }
 
-  public revokeProductCertificateWithMyProductId = async({ req, certificateModelId, myProductId }: {
+  public revokeProductCertificateWithMyProductId = async ({
+    req,
+    certificateModelId,
+    myProductId
+  }: {
     req?: IPBReq
     certificateModelId: string
     myProductId: string
-  }):Promise<IMyProduct> => {
-    const certificate = await this.getProductCertificateByMyProductId({ certificateModelId, myProductId })
+  }): Promise<IMyProduct> => {
+    const certificate = await this.getProductCertificateByMyProductId({
+      certificateModelId,
+      myProductId
+    })
     return await this.revokeProductCertificate({ req, certificate })
   }
 
-  public revokeProductCertificate = async ({ req, certificate }: {
+  public revokeProductCertificate = async ({
+    req,
+    certificate
+  }: {
     req?: IPBReq
     certificate: IMyProduct
-  }):Promise<IMyProduct> => {
+  }): Promise<IMyProduct> => {
     const type = certificate[TYPE]
     const { properties } = this.models[type]
     if (!properties.revoked) {
@@ -484,16 +524,13 @@ export class Applications implements IHasModels {
 
     const { cert } = await Promise.props({
       cert: promiseRevoke,
-      fire: promiseFireEmployee,
+      fire: promiseFireEmployee
     })
 
     return cert
   }
 
-  private _removeEmployeeRole = async ({ req, userId }: {
-    req?: IPBReq
-    userId: string
-  }) => {
+  private _removeEmployeeRole = async ({ req, userId }: { req?: IPBReq; userId: string }) => {
     const user = await this.bot.users.get(userId)
     if (removeRoleFromUser(user, 'employee')) {
       await this.bot.users.save(user)
@@ -504,7 +541,10 @@ export class Applications implements IHasModels {
     return await this.bot.users.get(application.applicant._permalink)
   }
 
-  private _commitApplicationUpdate = async ({ application, user }: {
+  private _commitApplicationUpdate = async ({
+    application,
+    user
+  }: {
     application: IPBApp
     user?: IPBUser
   }) => {
@@ -556,15 +596,13 @@ export class Applications implements IHasModels {
   // }
 }
 
-const getCustomerSubmissions = ({ forms }: {
-  forms: ApplicationSubmission[]
-}) => {
+const getCustomerSubmissions = ({ forms }: { forms: ApplicationSubmission[] }) => {
   if (!forms) return []
   return forms.filter(f => !PRUNABLE_FORMS.includes(f.submission[TYPE]))
 }
 
 const getCustomerFormStubs = ({ application }: AppInfo) => {
-  const { forms=[] } = application
+  const { forms = [] } = application
   return getCustomerSubmissions({ forms }).map(s => s.submission)
 }
 
