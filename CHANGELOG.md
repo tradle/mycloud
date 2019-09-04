@@ -2,7 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.4-rc.9](https://github.com/tradle/mycloud/compare/v2.4.4-rc.8...v2.4.4-rc.9) (2019-09-03)
+## [2.4.4-rc.10](https://github.com/tradle/mycloud/compare/v2.4.4-rc.9...v2.4.4-rc.10) (2019-09-03)
+
+
+### Bug Fixes
+
+* array of conditions ([31d34dd](https://github.com/tradle/mycloud/commit/31d34dd))
+* create better message for 'fail' check ([e060d99](https://github.com/tradle/mycloud/commit/e060d99))
+* minor change ([1500478](https://github.com/tradle/mycloud/commit/1500478))
+* normalize the registration number ([11fc709](https://github.com/tradle/mycloud/commit/11fc709))
+* typo ([d2a8f5a](https://github.com/tradle/mycloud/commit/d2a8f5a))
+
+
+### Features
+
+* application filters ([cafbae9](https://github.com/tradle/mycloud/commit/cafbae9))
+* inter-forms conditionals for props ([ea33225](https://github.com/tradle/mycloud/commit/ea33225))
+* upgrade models devDeps ([502a93e](https://github.com/tradle/mycloud/commit/502a93e))
 
 
 
