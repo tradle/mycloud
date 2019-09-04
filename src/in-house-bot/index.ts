@@ -111,6 +111,9 @@ type ConfigureLambdaOpts = {
   event?: string
   conf?: IConfComponents
 }
+type AppInfo = {
+  application: IPBApp
+}
 
 export const configureLambda = (opts: ConfigureLambdaOpts) => {
   const { lambda } = opts
@@ -677,9 +680,13 @@ export const loadComponentsAndPlugins = ({
       'document-ocr',
       'interFormConditionals'
     ].forEach(name => attachPlugin({ name }))
-    ;['hand-sig', 'documentValidity', 'fill-myproduct', 'checkOverride', 'regulatorRegistration'].forEach(name =>
-      attachPlugin({ name, requiresConf: false })
-    )
+    ;[
+      'hand-sig',
+      'documentValidity',
+      'fill-myproduct',
+      'checkOverride',
+      'regulatorRegistration'
+    ].forEach(name => attachPlugin({ name, requiresConf: false }))
 
     // used for some demo
     // ;[
@@ -731,6 +738,7 @@ export const loadComponentsAndPlugins = ({
     attachPlugin({ name: 'controllingPersonRegistration', componentName: 'smsBasedVerifier' })
   }
   attachPlugin({ name: 'conditional-auto-approve' })
+  attachPlugin({ name: 'count-failed-checks', requiresConf: false })
   if (plugins['limit-applications']) {
     productsAPI.removeDefaultHandler('onRequestForExistingProduct')
     attachPlugin({ name: 'limit-applications' })
