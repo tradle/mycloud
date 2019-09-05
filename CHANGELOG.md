@@ -2,12 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.4-rc.11](https://github.com/tradle/mycloud/compare/v2.4.4-rc.10...v2.4.4-rc.11) (2019-09-04)
+## [2.4.4-rc.12](https://github.com/tradle/mycloud/compare/v2.4.4-rc.11...v2.4.4-rc.12) (2019-09-05)
 
 
 ### Features
 
-* more application reports ([f7da5ad](https://github.com/tradle/mycloud/commit/f7da5ad))
+* reports project ([8827494](https://github.com/tradle/mycloud/commit/8827494))
+* reports project ([0d763e0](https://github.com/tradle/mycloud/commit/0d763e0))
 
 
 
