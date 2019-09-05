@@ -555,6 +555,10 @@ export class Applications implements IHasModels {
     if (!user) {
       user = await this._getApplicantFromApplication(application)
     }
+    if (!user.applications) {
+      this.logger.debug(`user does not have this application yet - ${application.requestFor}`)
+      return
+    }
 
     await this.productsAPI.saveNewVersionOfApplication({ user, application })
     await this.bot.users.save(user)

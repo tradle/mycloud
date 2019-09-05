@@ -20,6 +20,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       let application = await bot.getResource(applicationStub, { backlinks: ['checks'] })
 
+      if (!application.submissions  ||  !application.submissions.length)
+        return
       const checkResources = await applications.getLatestChecks({ application })
       let failedChecks = checkResources.filter(check => !isPassedCheck(check))
       let needsUpdate
