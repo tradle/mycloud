@@ -425,16 +425,6 @@ export const isPassedCheck = ({ status }) => {
 
   return id === 'pass'
 }
-export const isFailedCheck = ({ status }) => {
-  if (!status) return false
-
-  const id = getEnumValueId({
-    model: models[CHECK_STATUS],
-    value: status
-  })
-
-  return id === 'fail'
-}
 
 export const getPropertyTitle = validateResource.utils.getPropertyTitle
 export { getEnumValueId }

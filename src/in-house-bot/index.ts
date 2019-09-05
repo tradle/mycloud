@@ -738,7 +738,7 @@ export const loadComponentsAndPlugins = ({
     attachPlugin({ name: 'controllingPersonRegistration', componentName: 'smsBasedVerifier' })
   }
   attachPlugin({ name: 'conditional-auto-approve' })
-  attachPlugin({ name: 'count-failed-checks', requiresConf: false })
+  attachPlugin({ name: 'application-reports', requiresConf: false })
   if (plugins['limit-applications']) {
     productsAPI.removeDefaultHandler('onRequestForExistingProduct')
     attachPlugin({ name: 'limit-applications' })
