@@ -147,6 +147,10 @@ export class Applications implements IHasModels {
     await this._commitApplicationUpdate({ application })
   }
 
+  public updateApplication = async application => {
+    await this._commitApplicationUpdate({ application })
+  }
+
   public approve = async opts => {
     return this.judgeApplication({ ...opts, approve: true })
   }
