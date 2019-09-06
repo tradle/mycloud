@@ -26,6 +26,12 @@ import {
 } from '../types'
 import Errors from '../../errors'
 
+import AWS from 'aws-sdk'
+import _ from 'lodash'
+const ATHENA_DB = 'adv'
+const ATHENA_OUTPUT_LOCATION = 's3://jacob.gins.athena/temp/'
+const POLL_INTERVAL = 250
+
 const Registry = {
   FINRA: 'https://s3.eu-west-2.amazonaws.com/tradle.io/FINRA.json'
 }
@@ -47,29 +53,137 @@ export class RegulatorRegistrationAPI {
   private conf: any
   private applications: Applications
   private logger: Logger
+
+  private athena: AWS.Athena
+
   constructor({ bot, conf, applications, logger }) {
     this.bot = bot
     this.conf = conf
     this.applications = applications
     this.logger = logger
+    const accessKeyId = ''
+    const secretAccessKey = ''
+    const region = 'us-east-1'
+    this.athena = new AWS.Athena({ region, accessKeyId, secretAccessKey })
   }
+
+  sleep = async (ms) => {
+    await this._sleep(ms);
+  }
+  _sleep = (ms) => {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+  getExecutionId = async (sql) => {
+    return new Promise((resolve, reject) => {
+      let params = {
+        QueryString: sql,
+        ResultConfiguration: { OutputLocation: ATHENA_OUTPUT_LOCATION },
+        QueryExecutionContext: { Database: ATHENA_DB }
+      }
+
+      /* Make API call to start the query execution */
+      this.athena.startQueryExecution(params, (err, results) => {
+        if (err) return reject(err)
+        return resolve(results.QueryExecutionId)
+
+      })
+    })
+  }
+  checkStatus = async (id): Promise<string> => {
+    return new Promise<string>((resolve, reject) => {
+      this.athena.getQueryExecution({ QueryExecutionId: id }, (err, data) => {
+        if (err) return reject(err)
+        if (data.QueryExecution.Status.State === 'SUCCEEDED')
+          return resolve('SUCCEEDED')
+        else if (['FAILED', 'CANCELLED'].includes(data.QueryExecution.Status.State))
+          return reject(new Error(`Query ${data.QueryExecution.Status.State}`))
+        else return resolve('INPROCESS')
+      })
+    })
+  }
+  getResults = async (id) => {
+    return new Promise((resolve, reject) => {
+      this.athena.getQueryResults({ QueryExecutionId: id }, (err, data) => {
+        if (err) return reject(err)
+        return resolve(data)
+      })
+    })
+  }
+  buildHeader = (columns) => {
+    return _.map(columns, (i: any) => { return i.Name })
+  }
+
+  queryAthena = async (crd: string) => {
+    let id
+    try {
+      let sql = `select info.legalnm, info.busnm, info.firmcrdnb, info.secnb from firm_sec_feed
+                 where info.firmcrdnb = \'${crd}\'`
+      id = await this.getExecutionId(sql)
+      this.logger.debug('athena execution id', id)
+    } catch (err) {
+      this.logger.debug('athena error', err)
+      return { status: false, error: err, data: null }
+    }
+
+    await this.sleep(1000)
+    let timePassed = 1000
+    while (true) {
+      let result = 'INPROCESS'
+      try {
+        result = await this.checkStatus(id)
+      } catch (err) {
+        this.logger.debug('athena error', err)
+        return { status: false, error: err, data: null }
+      }
+      if (result == 'SUCCEEDED')
+        break;
+
+      if (timePassed > 10000) {
+        this.logger.debug('athena error', 'result timeout')
+        return { status: false, error: 'result timeout', data: null }
+      }
+      await this.sleep(POLL_INTERVAL)
+      timePassed += POLL_INTERVAL
+    }
+    try {
+      let data: any = await this.getResults(id)
+      var list = []
+      let header = this.buildHeader(data.ResultSet.ResultSetMetadata.ColumnInfo)
+      let top_row = _.map((<any>_.head(data.ResultSet.Rows)).Data, (n: any) => { return n.VarCharValue })
+      let resultSet = (_.difference(header, top_row).length > 0) ?
+        data.ResultSet.Rows : _.drop(data.ResultSet.Rows)
+      resultSet.forEach((item) => {
+        list.push(_.zipObject(header, _.map(item.Data, (n: any) => { return n.VarCharValue })))
+      })
+      this.logger.debug('athena query result', list)
+      return { status: true, error: null, data: list }
+    } catch (err) {
+      this.logger.debug('athena error', err)
+      return { status: false, error: err, data: null }
+    }
+  }
+
   public async check({ form, application }) {
     let status
-    let formRegistrationNumber = form.registrationNumber.replace(/-/g, '').replace(/^0+/, '')
-    try {
-      let res = await get(Registry.FINRA)
-      let record = res.find(r => {
-        let nmb = r.number.replace(/-/g, '').replace(/^0+/, '')
-        return nmb === formRegistrationNumber
-      })
-      if (record) status = { status: 'pass' }
-      else status = { status: 'fail' }
-    } catch (err) {
+    let formRegistrationNumber = form.registrationNumber.replace(/-/g, '').replace(/^0+/, '') // '133693'; 
+
+    let find = await this.queryAthena(formRegistrationNumber)
+    if (find.status == false) {
       status = {
         status: 'error',
-        message: err.getMessage()
+        message: find.error
       }
     }
+    else if (find.data.length == 0) {
+      status = {
+        status: 'error',
+        message: 'not found'
+      }
+    }
+    else {
+      status = { status: 'pass' }
+    }
+
     await this.createCheck({ application, status, form })
     if (status.status === 'pass') await this.createVerification({ application, form })
   }
@@ -132,7 +246,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   const plugin: IPluginLifecycleMethods = {
     async onmessage(req: IPBReq) {
       if (req.skipChecks) return
-
       const { user, application, payload } = req
       if (!application) return
       if (payload[TYPE] !== FORM_ID) return
