@@ -33,7 +33,7 @@ const COMMON_JOBS:Job[] = [
         'preauth',
         'auth',
         'inbox',
-      ]
+      ].map(shortName => bot.env.getStackResourceName(shortName))
     }
   },
   {

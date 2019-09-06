@@ -1,20 +1,32 @@
 import { fromHTTP } from '../../lambda'
 import { createMiddleware } from '../../middleware/graphql'
-import {
-  cachifyPromiser,
-} from '../../../utils'
+import { cachifyPromiser } from '../../../utils'
 
 import { GRAPHQL } from '../../lambda-events'
 import sampleQueries from '../../sample-queries'
+import Errors from '../../../errors'
 
 const lambda = fromHTTP({ event: GRAPHQL })
 
 const loadModelsPacks = cachifyPromiser(() => lambda.bot.modelStore.loadModelsPacks())
-// kick off first attempt async
-loadModelsPacks()
+
+const { bot } = lambda
+// pre-load as much as possible on container init
+const initPromise = Promise.all([loadModelsPacks(), bot.promiseReady()])
+  .then(() => {
+    // trigger lazy init
+    bot.graphql
+  })
+  .catch(err => {
+    bot.logger.error('failed to initialize schema', err.message)
+  })
+
+// make sure schema is gen'd on warmup
+bot.hookSimple('warmup', () => initPromise)
 
 lambda.use(async (ctx, next) => {
-  await loadModelsPacks()
+  await initPromise
+
   const { bot, conf, logger } = ctx.components
 
   logger.debug('finished setting up bot graphql middleware')
