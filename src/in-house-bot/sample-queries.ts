@@ -63,6 +63,11 @@ const listApplications = `{
           _link
           _permalink
         }
+        reviewer {
+          _t
+          _link
+          _permalink
+        }
         relationshipManagers {
           _t
           _permalink
