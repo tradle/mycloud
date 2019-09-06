@@ -18,10 +18,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let applicationStub = check.application
       if (!applicationStub) return
 
-      let application = await bot.getResource(applicationStub, { backlinks: ['checks'] })
+      let application = await bot.getResource(applicationStub, {
+        backlinks: ['checks', 'submissions']
+      })
 
-      if (!application.submissions  ||  !application.submissions.length)
-        return
+      if (!application.submissions || !application.submissions.length) return
       const checkResources = await applications.getLatestChecks({ application })
       let failedChecks = checkResources.filter(check => !isPassedCheck(check))
       let needsUpdate
@@ -68,7 +69,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (object._author === application.applicant._link)
         application.lastMsgFromClientTime = object.time || Date.now()
       else application.lastMsgToClientTime = object.time || Date.now()
-      await applications.updateApplication(application)
+      // await applications.updateApplication(application)
     }
   }
   return {
