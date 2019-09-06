@@ -8,11 +8,12 @@ type WarmUpOpts = {
   sleep?: number
 }
 
-export const warmup = (lambda: Lambda, opts:WarmUpOpts={}) => {
-  const { source=WARMUP_SOURCE_NAME } = opts
+export const warmup = (lambda: Lambda, opts: WarmUpOpts = {}) => {
+  const { source = WARMUP_SOURCE_NAME } = opts
   const { logger } = lambda
   const relax = async ctx => {
     const { event, context } = ctx
+    await lambda.bot.fire('warmup')
     const sleep = event.sleep || opts.sleep || WARMUP_SLEEP
     logger.debug(`warmup, sleeping for ${sleep}ms`)
     await wait(sleep)
