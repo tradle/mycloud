@@ -685,6 +685,11 @@ provider:
         - textract:*
       Resource: '*'
 
+    - Effect: Allow
+      Action:
+        - athena:*
+      Resource: '*'
+
     # - Effect: Allow
     #   Action:
     #     - 'ssm:GetParameter*'
