@@ -208,7 +208,7 @@ class DocumentValidityAPI {
       [TYPE]: DOCUMENT_VALIDITY,
       status,
       provider: PROVIDER,
-      application: buildResourceStub({resource: application, models: this.bot.models}),
+      application,
       dateChecked: date, //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
       aspects: isPassport ? ASPECTS_PASSPORT : ASPECTS,
       form
@@ -232,10 +232,7 @@ class DocumentValidityAPI {
       resource.rawData = rawData
 
     this.logger.debug(`Creating DocumentValidity Check for: ${form.firstName} ${form.lastName}`);
-    const check = await this.bot.draft({ type: DOCUMENT_VALIDITY })
-        .set(resource)
-        .signAndSave()
-    // const check = await this.bot.signAndSave(resource)
+    const check = await this.applications.createCheck(resource)
     this.logger.debug(`Created DocumentValidity Check for: ${form.firstName} ${form.lastName}`);
   }
 

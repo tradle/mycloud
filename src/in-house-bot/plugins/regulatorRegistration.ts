@@ -79,7 +79,7 @@ export class RegulatorRegistrationAPI {
       [TYPE]: REGULATOR_REGISTRATION_CHECK,
       status: status.status,
       provider: PROVIDER,
-      application: buildResourceStub({ resource: application, models: this.bot.models }),
+      application,
       dateChecked: new Date().getTime(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
       aspects: ASPECTS,
       form
@@ -89,11 +89,7 @@ export class RegulatorRegistrationAPI {
     if (status.message) resource.resultDetails = status.message
 
     this.logger.debug(`${PROVIDER} Creating RegulatorRegistrationCheck`)
-    const check = await this.bot
-      .draft({ type: REGULATOR_REGISTRATION_CHECK })
-      .set(resource)
-      .signAndSave()
-    // const check = await this.bot.signAndSave(resource)
+    await this.applications.createCheck(resource)
     this.logger.debug(`${PROVIDER} Created RegulatorRegistrationCheck`)
   }
 
