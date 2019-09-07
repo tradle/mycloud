@@ -30,5 +30,6 @@
   "markdown.extension.toc.levels": "2..6",
   "markdown.extension.toc.githubCompatibility": true,
   "markdown.extension.preview.autoShowPreviewToSide": true,
-  "terminal.integrated.macOptionIsMeta": true
+  "terminal.integrated.macOptionIsMeta": true,
+  "workbench.editor.enablePreviewFromQuickOpen": false
 }
