@@ -81,7 +81,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
               return
             }
           } catch (err) {
-            debugger
+            // debugger
           }
         })
         if (!hasAction) retForms.push(formId)
@@ -104,8 +104,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
 
       formConditions = formConditions[ftype]
       let setConditions
-      if (Array.isArray(formConditions))
-        setConditions = formConditions.filter(f => isSet(f))
+      if (Array.isArray(formConditions)) setConditions = formConditions.filter(f => isSet(f))
       else setConditions = isSet(formConditions) && [formConditions]
 
       if (!setConditions || !setConditions.length) return
@@ -154,9 +153,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
               [TYPE]: ftype,
               [propName]: value
             }
-          }
-          else
-            formRequest.prefill[propName] = value
+          } else formRequest.prefill[propName] = value
         } catch (err) {
           debugger
         }
