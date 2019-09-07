@@ -2,12 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.4-rc.13](https://github.com/tradle/mycloud/compare/v2.4.4-rc.12...v2.4.4-rc.13) (2019-09-05)
+## [2.4.4-rc.14](https://github.com/tradle/mycloud/compare/v2.4.4-rc.13...v2.4.4-rc.14) (2019-09-07)
 
 
 ### Bug Fixes
 
-* case when application is updated but not yet reg with user ([47678cc](https://github.com/tradle/mycloud/commit/47678cc))
+* cound check overrides ([1a0439a](https://github.com/tradle/mycloud/commit/1a0439a))
+* updatng application ([2970249](https://github.com/tradle/mycloud/commit/2970249))
+
+
+### Features
+
+* Application model changed ([86e8c87](https://github.com/tradle/mycloud/commit/86e8c87))
+* Application model changed ([a9b5ec8](https://github.com/tradle/mycloud/commit/a9b5ec8))
+* disable preview sources mode ([2b63704](https://github.com/tradle/mycloud/commit/2b63704))
+* redesign RMs ([88d6ff0](https://github.com/tradle/mycloud/commit/88d6ff0))
 
 
 
