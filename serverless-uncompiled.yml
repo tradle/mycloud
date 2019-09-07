@@ -690,6 +690,11 @@ provider:
         - athena:*
       Resource: '*'
 
+    - Effect: Allow
+      Action:
+        - glue:*
+      Resource: '*'  
+
     # - Effect: Allow
     #   Action:
     #     - 'ssm:GetParameter*'
