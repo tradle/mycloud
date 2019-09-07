@@ -50,7 +50,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const ptype = payload[TYPE]
       if (bot.models[ptype].subClassOf === CHECK_OVERRIDE) {
         application.hasCheckOverrides = true
-        application.numberOfCheckOverrides = application.checkOverrides.length
+        let numberOfCheckOverrides = application.numberOfCheckOverrides || 0
+        application.numberOfCheckOverrides = ++numberOfCheckOverrides
       }
     },
     async willSend({ req, to, object, application }) {
