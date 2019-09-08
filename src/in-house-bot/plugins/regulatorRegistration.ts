@@ -179,11 +179,11 @@ export class RegulatorRegistrationAPI {
     if (find.status == false) {
       status = {
         status: 'error',
-        message: find.error
+        message: find.error.message
       }
     } else if (find.data.length == 0) {
       status = {
-        status: 'error',
+        status: 'fail',
         message: 'not found'
       }
     } else {
