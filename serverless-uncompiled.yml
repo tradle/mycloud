@@ -1676,6 +1676,17 @@ resources:
             Ref: AWS::StackName
           BucketEncryptionKeyArn:
             Fn::GetAtt: Keys.Outputs.BucketEncryptionKeyArn
+    
+    RefData:
+      Type: AWS::CloudFormation::Stack
+      Properties:
+        TemplateURL:
+          Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/refdata.json'
+        Parameters:
+          Namespace:
+            Ref: AWS::StackName
+          PrivateConfBucket:
+            Fn::GetAtt: Buckets.Outputs.PrivateConf
 
     AutoScalingEventsTable:
       Type: AWS::CloudFormation::Stack

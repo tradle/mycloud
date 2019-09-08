@@ -28,8 +28,8 @@ import Errors from '../../errors'
 
 import AWS from 'aws-sdk'
 import _ from 'lodash'
-const ATHENA_DB = 'adv'
-const ATHENA_OUTPUT_LOCATION = 's3://jacob.gins.athena/temp/'
+const ATHENA_DB = 'sec'
+//const ATHENA_OUTPUT_LOCATION = 's3://jacob.gins.athena/temp/'
 const POLL_INTERVAL = 250
 
 const Registry = {
@@ -75,9 +75,10 @@ export class RegulatorRegistrationAPI {
   }
   public getExecutionId = async sql => {
     return new Promise((resolve, reject) => {
+      const outputLocation = 's3://' + this.bot.buckets.PrivateConf.id + '/temp'
       let params = {
         QueryString: sql,
-        ResultConfiguration: { OutputLocation: ATHENA_OUTPUT_LOCATION },
+        ResultConfiguration: { OutputLocation: outputLocation },
         QueryExecutionContext: { Database: ATHENA_DB }
       }
 

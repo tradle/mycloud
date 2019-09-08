@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Reference data for Athena Lambda wiring
+
+Parameters:
+  Namespace:
+    Type: String
+  PrivateConfBucket:
+    Type: String
+
+Resources:
+  SecGlueDatabase:
+    Type: 'AWS::Glue::Database'
+    Properties:
+      DatabaseInput:
+        Name: sec
+        Description: gov sec data
+      CatalogId:
+        Ref: 'AWS::AccountId'
+  SecGlueTable:
+    Type: 'AWS::Glue::Table'
+    Properties:
+      DatabaseName:
+        Ref: SecGlueDatabase
+      CatalogId:
+        Ref: 'AWS::AccountId'
+      TableInput:
+        Name: firm_sec_feed
+        TableType: EXTERNAL_TABLE
+        StorageDescriptor:
+          OutputFormat: org.apache.hadoop.hive.ql.io.IgnoreKeyTextOutputFormat
+          SortColumns: []
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          BucketColumns: []
+          Columns:
+            - Type: >-
+                struct<SECRgnCD:string,FirmCrdNb:string,SECNb:string,BusNm:string,LegalNm:string,UmbrRgstn:string>
+              Name: info
+            - Type: >-
+                struct<Strt1:string,Strt2:string,City:string,State:string,Cntry:string,PostlCd:string,PhNb:string,FaxNb:string>
+              Name: mainaddr
+            - Type: string
+              Name: mailingaddr
+            - Type: 'struct<FirmType:string,St:string,Dt:string>'
+              Name: rgstn
+            - Type: 'struct<States:array<struct<RgltrCd:string,St:string,Dt:string>>>'
+              Name: noticefiled
+            - Type: 'struct<Dt:string,FormVrsn:string>'
+              Name: filing
+            - Type: >-
+                struct<Part1A:struct<Item1:struct<Q1F5:string,Q1I:string,Q1M:string,Q1N:string,Q1O:string,Q1P:string,WebAddrs:array<string>>,Item2A:struct<Q2A1:string,Q2A2:string,Q2A4:string,Q2A5:string,Q2A6:string,Q2A7:string,Q2A8:string,Q2A9:string,Q2A10:string,Q2A11:string,Q2A12:string,Q2A13:string>,Item2B:string,Item3A:struct<OrgFormNm:string>,Item3B:struct<Q3B:string>,Item3C:struct<StateCD:string,CntryNm:string>,Item5A:struct<TtlEmp:string>,Item5B:struct<Q5B1:string,Q5B2:string,Q5B3:string,Q5B4:string,Q5B5:string,Q5B6:string>,Item5C:struct<Q5C1:string,Q5C2:string>,Item5D:struct<Q5DF1:string,Q5DF3:string>,Item5E:struct<Q5E1:string,Q5E2:string,Q5E3:string,Q5E4:string,Q5E5:string,Q5E6:string,Q5E7:string>,Item5F:struct<Q5F1:string,Q5F2A:string,Q5F2B:string,Q5F2C:string,Q5F2D:string,Q5F2E:string,Q5F2F:string,Q5F3:string>,Item5G:struct<Q5G1:string,Q5G2:string,Q5G3:string,Q5G4:string,Q5G5:string,Q5G6:string,Q5G7:string,Q5G8:string,Q5G9:string,Q5G10:string,Q5G11:string,Q5G12:string>,Item5H:string,Item5I:struct<Q5I1:string>,Item5J:struct<Q5J1:string,Q5J2:string>,Item6A:struct<Q6A1:string,Q6A2:string,Q6A3:string,Q6A4:string,Q6A5:string,Q6A6:string,Q6A7:string,Q6A8:string,Q6A9:string,Q6A10:string,Q6A11:string,Q6A12:string,Q6A13:string,Q6A14:string>,Item6B:struct<Q6B1:string,Q6B2:string,Q6B3:string>,Item7A:struct<Q7A1:string,Q7A2:string,Q7A3:string,Q7A4:string,Q7A5:string,Q7A6:string,Q7A7:string,Q7A8:string,Q7A9:string,Q7A10:string,Q7A11:string,Q7A12:string,Q7A13:string,Q7A14:string,Q7A15:string,Q7A16:string>,Item7B:struct<Q7B:string>,Item8A:struct<Q8A1:string,Q8A2:string,Q8A3:string>,Item8B:struct<Q8B1:string,Q8B2:string,Q8B3:string>,Item8C:struct<Q8C1:string,Q8C2:string,Q8C3:string,Q8C4:string>,Item8D:struct<Q8D:string>,Item8E:struct<Q8E:string>,Item8F:string,Item8G:struct<Q8G1:string>,Item8H:struct<Q8H1:string,Q8H2:string>,Item8I:struct<Q8I:string>,Item9A:struct<Q9A1A:string,Q9A1B:string,Q9A2A:string,Q9A2B:string>,Item9B:struct<Q9B1A:string,Q9B1B:string,Q9B2A:string,Q9B2B:string>,Item9C:struct<Q9C1:string,Q9C2:string,Q9C3:string,Q9C4:string>,Item9D:struct<Q9D1:string,Q9D2:string>,Item9E:string,Item9F:struct<Q9F:string>,Item10A:struct<Q10A:string>,Item11:struct<Q11:string>,Item11A:struct<Q11A1:string,Q11A2:string>,Item11B:struct<Q11B1:string,Q11B2:string>,Item11C:struct<Q11C1:string,Q11C2:string,Q11C3:string,Q11C4:string,Q11C5:string>,Item11D:struct<Q11D1:string,Q11D2:string,Q11D3:string,Q11D4:string,Q11D5:string>,Item11E:struct<Q11E1:string,Q11E2:string,Q11E3:string,Q11E4:string>,Item11F:struct<Q11F:string>,Item11G:struct<Q11G:string>,Item11H:struct<Q11H1A:string,Q11H1B:string,Q11H1C:string,Q11H2:string>>>
+              Name: forminfo
+          SerdeInfo:
+            SerializationLibrary: org.openx.data.jsonserde.JsonSerDe
+          Parameters: {}
+          SkewedInfo:
+            SkewedColumnNames: []
+            SkewedColumnValueLocationMaps: {}
+            SkewedColumnValues: []
+          Location: 
+             Fn::Join:
+                - ''
+                - - 's3://' 
+                  - Ref: PrivateConfBucket
+                  - 'refdata/us/'
+          NumberOfBuckets: -1
+          StoredAsSubDirectories: false
