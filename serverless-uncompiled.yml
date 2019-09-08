@@ -1677,8 +1677,8 @@ resources:
           BucketEncryptionKeyArn:
             Fn::GetAtt: Keys.Outputs.BucketEncryptionKeyArn
     
-    REFDATA:
-    Type: AWS::CloudFormation::Stack
+    RefData:
+      Type: AWS::CloudFormation::Stack
       Properties:
         TemplateURL:
           Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/refdata.json'

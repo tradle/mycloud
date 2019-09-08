@@ -1,7 +1,9 @@
-AWSTemplateFormatVersion: 2010-09-09
+AWSTemplateFormatVersion: '2010-09-09'
 Description: Reference data for Athena Lambda wiring
 
 Parameters:
+  Namespace:
+    Type: String
   PrivateConfBucket:
     Type: String
 
@@ -12,12 +14,15 @@ Resources:
       DatabaseInput:
         Name: sec
         Description: gov sec data
-      CatalogId: !Ref 'AWS::AccountId'
+      CatalogId:
+        Ref: 'AWS::AccountId'
   SecGlueTable:
     Type: 'AWS::Glue::Table'
     Properties:
-      DatabaseName: !Ref SecGlueDatabase
-      CatalogId: !Ref 'AWS::AccountId'
+      DatabaseName:
+        Ref: SecGlueDatabase
+      CatalogId:
+        Ref: 'AWS::AccountId'
       TableInput:
         Name: firm_sec_feed
         TableType: EXTERNAL_TABLE
@@ -46,7 +51,6 @@ Resources:
               Name: forminfo
           SerdeInfo:
             SerializationLibrary: org.openx.data.jsonserde.JsonSerDe
-          BucketColumns: []
           Parameters: {}
           SkewedInfo:
             SkewedColumnNames: []
