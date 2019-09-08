@@ -8,7 +8,7 @@ import {
   // getLatestForms,
   // isSubClassOf,
   getStatusMessageForCheck,
-  doesCheckNeedToBeCreated,
+  doesCheckNeedToBeCreated
 } from '../utils'
 
 import { get } from '../../utils'
@@ -67,13 +67,13 @@ export class RegulatorRegistrationAPI {
     this.athena = new AWS.Athena({ region, accessKeyId, secretAccessKey })
   }
 
-  sleep = async (ms) => {
-    await this._sleep(ms);
+  public sleep = async ms => {
+    await this._sleep(ms)
   }
-  _sleep = (ms) => {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  public _sleep = ms => {
+    return new Promise(resolve => setTimeout(resolve, ms))
   }
-  getExecutionId = async (sql) => {
+  public getExecutionId = async sql => {
     return new Promise((resolve, reject) => {
       let params = {
         QueryString: sql,
@@ -85,23 +85,21 @@ export class RegulatorRegistrationAPI {
       this.athena.startQueryExecution(params, (err, results) => {
         if (err) return reject(err)
         return resolve(results.QueryExecutionId)
-
       })
     })
   }
-  checkStatus = async (id): Promise<string> => {
+  public checkStatus = async (id): Promise<string> => {
     return new Promise<string>((resolve, reject) => {
       this.athena.getQueryExecution({ QueryExecutionId: id }, (err, data) => {
         if (err) return reject(err)
-        if (data.QueryExecution.Status.State === 'SUCCEEDED')
-          return resolve('SUCCEEDED')
+        if (data.QueryExecution.Status.State === 'SUCCEEDED') return resolve('SUCCEEDED')
         else if (['FAILED', 'CANCELLED'].includes(data.QueryExecution.Status.State))
           return reject(new Error(`Query ${data.QueryExecution.Status.State}`))
         else return resolve('INPROCESS')
       })
     })
   }
-  getResults = async (id) => {
+  public getResults = async id => {
     return new Promise((resolve, reject) => {
       this.athena.getQueryResults({ QueryExecutionId: id }, (err, data) => {
         if (err) return reject(err)
@@ -109,11 +107,13 @@ export class RegulatorRegistrationAPI {
       })
     })
   }
-  buildHeader = (columns) => {
-    return _.map(columns, (i: any) => { return i.Name })
+  public buildHeader = columns => {
+    return _.map(columns, (i: any) => {
+      return i.Name
+    })
   }
 
-  queryAthena = async (crd: string) => {
+  public queryAthena = async (crd: string) => {
     let id
     try {
       let sql = `select info.legalnm, info.busnm, info.firmcrdnb, info.secnb from firm_sec_feed
@@ -135,8 +135,7 @@ export class RegulatorRegistrationAPI {
         this.logger.debug('athena error', err)
         return { status: false, error: err, data: null }
       }
-      if (result == 'SUCCEEDED')
-        break;
+      if (result == 'SUCCEEDED') break
 
       if (timePassed > 10000) {
         this.logger.debug('athena error', 'result timeout')
@@ -147,13 +146,22 @@ export class RegulatorRegistrationAPI {
     }
     try {
       let data: any = await this.getResults(id)
-      var list = []
+      let list = []
       let header = this.buildHeader(data.ResultSet.ResultSetMetadata.ColumnInfo)
-      let top_row = _.map((<any>_.head(data.ResultSet.Rows)).Data, (n: any) => { return n.VarCharValue })
-      let resultSet = (_.difference(header, top_row).length > 0) ?
-        data.ResultSet.Rows : _.drop(data.ResultSet.Rows)
-      resultSet.forEach((item) => {
-        list.push(_.zipObject(header, _.map(item.Data, (n: any) => { return n.VarCharValue })))
+      let top_row = _.map((_.head(data.ResultSet.Rows) as any).Data, (n: any) => {
+        return n.VarCharValue
+      })
+      let resultSet =
+        _.difference(header, top_row).length > 0 ? data.ResultSet.Rows : _.drop(data.ResultSet.Rows)
+      resultSet.forEach(item => {
+        list.push(
+          _.zipObject(
+            header,
+            _.map(item.Data, (n: any) => {
+              return n.VarCharValue
+            })
+          )
+        )
       })
       this.logger.debug('athena query result', list)
       return { status: true, error: null, data: list }
@@ -165,22 +173,20 @@ export class RegulatorRegistrationAPI {
 
   public async check({ form, application }) {
     let status
-    let formRegistrationNumber = form.registrationNumber.replace(/-/g, '').replace(/^0+/, '') // '133693'; 
+    let formRegistrationNumber = form.registrationNumber.replace(/-/g, '').replace(/^0+/, '') // '133693';
 
     let find = await this.queryAthena(formRegistrationNumber)
     if (find.status == false) {
       status = {
         status: 'error',
-        message: find.error
+        message: find.error.message
       }
-    }
-    else if (find.data.length == 0) {
+    } else if (find.data.length == 0) {
       status = {
-        status: 'error',
+        status: 'fail',
         message: 'not found'
       }
-    }
-    else {
+    } else {
       status = { status: 'pass' }
     }
 
@@ -193,7 +199,7 @@ export class RegulatorRegistrationAPI {
       [TYPE]: REGULATOR_REGISTRATION_CHECK,
       status: status.status,
       provider: PROVIDER,
-      application: buildResourceStub({ resource: application, models: this.bot.models }),
+      application,
       dateChecked: new Date().getTime(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
       aspects: ASPECTS,
       form
@@ -203,11 +209,7 @@ export class RegulatorRegistrationAPI {
     if (status.message) resource.resultDetails = status.message
 
     this.logger.debug(`${PROVIDER} Creating RegulatorRegistrationCheck`)
-    const check = await this.bot
-      .draft({ type: REGULATOR_REGISTRATION_CHECK })
-      .set(resource)
-      .signAndSave()
-    // const check = await this.bot.signAndSave(resource)
+    await this.applications.createCheck(resource)
     this.logger.debug(`${PROVIDER} Created RegulatorRegistrationCheck`)
   }
 

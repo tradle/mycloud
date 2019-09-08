@@ -2,12 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.4-rc.13](https://github.com/tradle/mycloud/compare/v2.4.4-rc.12...v2.4.4-rc.13) (2019-09-05)
+## [2.4.4-rc.15](https://github.com/tradle/mycloud/compare/v2.4.4-rc.14...v2.4.4-rc.15) (2019-09-08)
 
 
 ### Bug Fixes
 
-* case when application is updated but not yet reg with user ([47678cc](https://github.com/tradle/mycloud/commit/47678cc))
+* bad error message should be string not object ([17da5b4](https://github.com/tradle/mycloud/commit/17da5b4))
+
+
+### Features
+
+* assign Application to a team ([8741c46](https://github.com/tradle/mycloud/commit/8741c46))
 
 
 

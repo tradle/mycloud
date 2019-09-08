@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "2.4.4-rc.13",
+  "version": "2.4.4-rc.15",
   "dependencies": {
     "@aws/dynamodb-auto-marshaller": {
       "version": "0.4.1",
@@ -192,7 +192,7 @@
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
       "from": "tradle/bot-employee-manager",
-      "resolved": "git://github.com/tradle/bot-employee-manager.git#9a12d5cf82763fdcf0c577f4960b802a16a0d94f"
+      "resolved": "git://github.com/tradle/bot-employee-manager.git#463d29759db1cb67896860e024d6887e40af385e"
     },
     "@tradle/bot-products": {
       "version": "1.0.0",
@@ -302,7 +302,7 @@
     "@tradle/custom-models": {
       "version": "4.10.10",
       "from": "tradle/custom-models",
-      "resolved": "git://github.com/tradle/custom-models.git#a8d20398a51bdcf6dd6a163be3b8193a827da582"
+      "resolved": "git://github.com/tradle/custom-models.git#dd95afe961954085a3169421cfe8a586434847f2"
     },
     "@tradle/dynamodb": {
       "version": "1.0.0",
@@ -391,7 +391,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#3a4426a443774071ff77aed385b2ef9a297fc5f9"
+      "resolved": "git://github.com/tradle/models.git#d49526a74aedb48b5a2ff599259bbb4745e09e1a"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
