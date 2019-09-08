@@ -5,6 +5,7 @@ import {
   Applications,
   ITradleObject,
   IPBApp,
+  IPBReq,
   IPluginLifecycleMethods,
   ValidatePluginConf
 } from '../types'
@@ -15,7 +16,9 @@ const { parseStub } = validateResource.utils
 export const name = 'interFormConditionals'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const FORM_REQUEST = 'tradle.FormRequest'
-
+const APPLICATION = 'tradle.Application'
+const ENUM = 'tradle.Enum'
+const CHECK_OVERRIDE = 'tradle.CheckOverride'
 export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
   const plugin: IPluginLifecycleMethods = {
     getRequiredForms: async ({ user, application }) => {
@@ -88,6 +91,55 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
       })
       return retForms
     },
+    async onmessage(req: IPBReq) {
+      let { payload, application, user } = req
+      if (bot.models[payload[TYPE]].subClassOf !== CHECK_OVERRIDE) return
+      await this.onFormsCollected({ req })
+    },
+    async onFormsCollected({ req }) {
+      let settings = conf[APPLICATION]
+      if (!settings) return
+      const { user, application } = req
+      const model = bot.models[APPLICATION]
+      let { allForms, allFormulas, forms } = await getAllToExecute({
+        application,
+        bot,
+        settings,
+        model,
+        logger
+      })
+
+      let keys = [],
+        values = []
+      for (let p in model.properties) {
+        keys.push(p)
+        values.push(application[p] || null)
+      }
+
+      allFormulas.forEach(async val => {
+        let [propName, formula] = val
+        let prop = model.properties[propName]
+        try {
+          let value = new Function(...keys, `return ${formula}`)(...values)
+          if (!value) return
+          if (
+            typeof value === 'string' &&
+            prop.type === 'object' &&
+            bot.models[prop.ref].subClassOf === ENUM
+          ) {
+            let elm = bot.models[prop.ref].enum.find(e => e.id === value)
+            if (!elm) return
+            value = {
+              id: `${prop.ref}_${elm.id}`,
+              title: elm.title
+            }
+          }
+          application[propName] = value
+        } catch (err) {
+          debugger
+        }
+      })
+    },
     async willRequestForm({ application, formRequest }) {
       // debugger
       if (!application) return
@@ -103,46 +155,18 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
       if (!formConditions) return
 
       formConditions = formConditions[ftype]
-      let setConditions
-      if (Array.isArray(formConditions)) setConditions = formConditions.filter(f => isSet(f))
-      else setConditions = isSet(formConditions) && [formConditions]
+      let settings
+      if (Array.isArray(formConditions)) settings = formConditions.filter(f => isSet(f))
+      else settings = isSet(formConditions) && [formConditions]
 
-      if (!setConditions || !setConditions.length) return
-
-      let allForms = []
-      let allFormulas = []
-      setConditions.forEach(async val => {
-        let [propName, formula] = val
-          .slice(5)
-          .split('=')
-          .map(s => s.trim())
-
-        if (!model.properties[propName]) {
-          debugger
-          return
-        }
-
-        let formIds = getForms(formula)
-        if (!formIds.length) return
-
-        allFormulas.push([propName, formula])
-        formIds.forEach(f => !allForms.includes(f) && allForms.push(f))
+      if (!settings || !settings.length) return
+      let { allForms, allFormulas, forms } = await getAllToExecute({
+        application,
+        bot,
+        settings,
+        model,
+        logger
       })
-
-      let promises = []
-      application.forms
-        .map(appSub => parseStub(appSub.submission))
-        .forEach(f => {
-          if (allForms.includes(f.type)) promises.push(bot.objects.get(f.link))
-        })
-
-      let forms = {}
-      try {
-        let result = await Promise.all(promises)
-        result.forEach(r => (forms[r[TYPE]] = r))
-      } catch (err) {
-        logger.error('interFormConditionals', err)
-      }
 
       allFormulas.forEach(async val => {
         let [propName, formula] = val
@@ -183,4 +207,42 @@ function getForms(formula) {
     idx = idx2 + 2
   }
   return forms
+}
+async function getAllToExecute({ bot, application, settings, model, logger }) {
+  let allForms = []
+  let allFormulas = []
+
+  settings.forEach(async val => {
+    let [propName, formula] = val
+      .slice(5)
+      .split('=')
+      .map(s => s.trim())
+
+    if (!model.properties[propName]) {
+      debugger
+      return
+    }
+
+    allFormulas.push([propName, formula])
+    let formIds = getForms(formula)
+    if (!formIds.length) return
+
+    formIds.forEach(f => !allForms.includes(f) && allForms.push(f))
+  })
+
+  let promises = []
+  application.forms
+    .map(appSub => parseStub(appSub.submission))
+    .forEach(f => {
+      if (allForms.includes(f.type)) promises.push(bot.objects.get(f.link))
+    })
+  let forms = {}
+  try {
+    let result = await Promise.all(promises)
+    result.forEach(r => (forms[r[TYPE]] = r))
+  } catch (err) {
+    logger.error('interFormConditionals', err)
+  }
+
+  return { allForms, allFormulas, forms }
 }
