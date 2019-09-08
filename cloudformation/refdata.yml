@@ -1,6 +1,10 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Reference data for Athena Lambda wiring
 
+Parameters:
+  PrivateConfBucket:
+    Type: String
+
 Resources:
   SecGlueDatabase:
     Type: 'AWS::Glue::Database'
@@ -48,6 +52,11 @@ Resources:
             SkewedColumnNames: []
             SkewedColumnValueLocationMaps: {}
             SkewedColumnValues: []
-          Location: !Ref R_BUCKET_PrivateConf/us
+          Location: 
+             Fn::Join:
+                - ''
+                - - 's3://' 
+                  - Ref: PrivateConfBucket
+                  - 'refdata/us/'
           NumberOfBuckets: -1
           StoredAsSubDirectories: false
