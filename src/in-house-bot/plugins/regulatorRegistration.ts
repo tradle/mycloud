@@ -39,13 +39,14 @@ const REGULATOR_REGISTRATION_CHECK = 'tradle.RegulatorRegistrationCheck'
 const PROVIDER = 'https://catalog.data.gov'
 const ASPECTS = 'registration with FINRA'
 // const FORM_ID = 'io.lenka.BSAPI102a'
-const FORM_ID = 'com.svb.BSAPI102a'
+const FORM_ID = 'io.lenka.BSAPI102a'
 
 // export const name = 'broker-match'
 interface IRegCheck {
   application: IPBApp
   status: any
   form: ITradleObject
+  rawData?: any
 }
 
 export class RegulatorRegistrationAPI {
@@ -177,11 +178,13 @@ export class RegulatorRegistrationAPI {
     let formRegistrationNumber = form.registrationNumber.replace(/-/g, '').replace(/^0+/, '') // '133693';
 
     let find = await this.queryAthena(formRegistrationNumber)
+    let rawData
     if (find.status == false) {
       status = {
         status: 'error',
         message: find.error.message
       }
+      rawData = find.error
     } else if (find.data.length == 0) {
       status = {
         status: 'fail',
@@ -191,10 +194,10 @@ export class RegulatorRegistrationAPI {
       status = { status: 'pass' }
     }
 
-    await this.createCheck({ application, status, form })
+    await this.createCheck({ application, status, form, rawData })
     if (status.status === 'pass') await this.createVerification({ application, form })
   }
-  public createCheck = async ({ application, status, form }: IRegCheck) => {
+  public createCheck = async ({ application, status, form, rawData }: IRegCheck) => {
     // debugger
     let resource: any = {
       [TYPE]: REGULATOR_REGISTRATION_CHECK,
@@ -208,7 +211,8 @@ export class RegulatorRegistrationAPI {
 
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
-
+    if (rawData)
+      resource.rawData = rawData
     this.logger.debug(`${PROVIDER} Creating RegulatorRegistrationCheck`)
     await this.applications.createCheck(resource)
     this.logger.debug(`${PROVIDER} Created RegulatorRegistrationCheck`)
