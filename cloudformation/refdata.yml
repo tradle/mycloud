@@ -56,11 +56,11 @@ Resources:
             SkewedColumnNames: []
             SkewedColumnValueLocationMaps: {}
             SkewedColumnValues: []
-          Location: 
+          Location:
              Fn::Join:
                 - ''
-                - - 's3://' 
+                - - 's3://'
                   - Ref: PrivateConfBucket
-                  - 'refdata/us/'
+                  - '/refdata/us/'
           NumberOfBuckets: -1
           StoredAsSubDirectories: false
