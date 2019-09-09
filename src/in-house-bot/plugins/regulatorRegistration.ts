@@ -186,13 +186,25 @@ export class RegulatorRegistrationAPI {
         status: 'error',
         message: (typeof find.error === 'string') && find.error || find.error.message
       }
-      rawData = (typeof find.error === 'object')  &&  find.error
+      rawData = (typeof find.error === 'object') && find.error
     } else if (find.data.length == 0) {
       status = {
         status: 'fail',
-        message: 'not found'
+        message: `Company with CRD ${formRegistrationNumber} is not found`
       }
     } else {
+      // firmcrdnb=133693, secnb=801-73527, busnm=H/2 CAPITAL PARTNERS, legalnm=H/2 CREDIT MANAGER LP
+      //let secNumber = find.data.secnb
+      //let name = find.data.busnm
+      //let legalname = find.data.legalnm
+      // let companyName = form.companyName
+      // if (name != companyName && legalname != companyName) {
+      //status = {
+      //status: 'fail',
+      //message: `Company name for CRD ${formRegistrationNumber} does not match`
+      //}
+      //}
+      //else
       status = { status: 'pass' }
     }
 
