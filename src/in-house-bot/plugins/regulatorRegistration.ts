@@ -28,7 +28,7 @@ import Errors from '../../errors'
 
 import AWS from 'aws-sdk'
 import _ from 'lodash'
-const ATHENA_DB = 'sec'
+//const ATHENA_DB = 'sec'
 //const ATHENA_OUTPUT_LOCATION = 's3://jacob.gins.athena/temp/'
 const POLL_INTERVAL = 250
 
@@ -78,11 +78,11 @@ export class RegulatorRegistrationAPI {
     return new Promise((resolve, reject) => {
       const outputLocation = 's3://' + this.bot.buckets.PrivateConf.id + '/temp'
       this.logger.debug(`regulatorRegistration: ${outputLocation}`)
-
+      const database = this.bot.env.getStackResourceName('sec')
       let params = {
         QueryString: sql,
         ResultConfiguration: { OutputLocation: outputLocation },
-        QueryExecutionContext: { Database: ATHENA_DB }
+        QueryExecutionContext: { Database: database }
       }
 
       /* Make API call to start the query execution */

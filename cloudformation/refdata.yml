@@ -12,7 +12,8 @@ Resources:
     Type: 'AWS::Glue::Database'
     Properties:
       DatabaseInput:
-        Name: sec
+        Name: 
+          Fn::Sub: '${Namespace}-sec'
         Description: gov sec data
       CatalogId:
         Ref: 'AWS::AccountId'
