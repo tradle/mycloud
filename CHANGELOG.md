@@ -2,17 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.4-rc.15](https://github.com/tradle/mycloud/compare/v2.4.4-rc.14...v2.4.4-rc.15) (2019-09-08)
+## [2.4.4-rc.16](https://github.com/tradle/mycloud/compare/v2.4.4-rc.15...v2.4.4-rc.16) (2019-09-09)
 
 
 ### Bug Fixes
 
-* bad error message should be string not object ([17da5b4](https://github.com/tradle/mycloud/commit/17da5b4))
-
-
-### Features
-
-* assign Application to a team ([8741c46](https://github.com/tradle/mycloud/commit/8741c46))
+* for assign reviewer ([6678769](https://github.com/tradle/mycloud/commit/6678769))
+* path is wrong ([585704e](https://github.com/tradle/mycloud/commit/585704e))
+* testing athena in plugin ([e6cb528](https://github.com/tradle/mycloud/commit/e6cb528))
+* testing plugin ([f9ce578](https://github.com/tradle/mycloud/commit/f9ce578))
+* testing plugin ([9797975](https://github.com/tradle/mycloud/commit/9797975))
 
 
 
