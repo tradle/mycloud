@@ -39,7 +39,7 @@ const REGULATOR_REGISTRATION_CHECK = 'tradle.RegulatorRegistrationCheck'
 const PROVIDER = 'https://catalog.data.gov'
 const ASPECTS = 'registration with FINRA'
 // const FORM_ID = 'io.lenka.BSAPI102a'
-const FORM_ID = 'io.lenka.BSAPI102a'
+const FORM_ID = 'com.cvb.BSAPI102a'
 
 // export const name = 'broker-match'
 interface IRegCheck {
