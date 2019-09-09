@@ -77,6 +77,8 @@ export class RegulatorRegistrationAPI {
   public getExecutionId = async sql => {
     return new Promise((resolve, reject) => {
       const outputLocation = 's3://' + this.bot.buckets.PrivateConf.id + '/temp'
+      this.logger.debug(`regulatorRegistration: ${outputLocation}`)
+
       let params = {
         QueryString: sql,
         ResultConfiguration: { OutputLocation: outputLocation },
@@ -182,9 +184,9 @@ export class RegulatorRegistrationAPI {
     if (find.status == false) {
       status = {
         status: 'error',
-        message: find.error.message
+        message: (typeof find.error === 'string') && find.error || find.error.message
       }
-      rawData = find.error
+      rawData = (typeof find.error === 'object')  &&  find.error
     } else if (find.data.length == 0) {
       status = {
         status: 'fail',
