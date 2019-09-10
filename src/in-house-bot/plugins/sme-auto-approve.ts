@@ -1,6 +1,7 @@
 // import _ from 'lodash'
 // import validateResource from '@tradle/validate-resource'
 import { TYPE } from '@tradle/constants'
+import { buildResourceStub } from '@tradle/build-resource'
 import {
   Bot,
   CreatePlugin,
@@ -144,7 +145,8 @@ export class SmeAutoApprove {
     let childProductId = makeMyProductModelID(this.conf.child)
 
     const products = results.filter(r => r.products  &&  r.products.filter(rr => rr.submission[TYPE] === childProductId))
-
+    if (!aApp.chileApps || aApp.childApps.length < items.length)
+      aApp.childApps = items.map(a => buildResourceStub({resource: a, models: this.bot.models}))
     if (!products.length  ||  products.length < cp.length) {
       this.logger.debug('Not all child applications were approved yet. Nothing further to check')
       return
