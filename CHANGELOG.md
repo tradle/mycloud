@@ -2,13 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.4-rc.17](https://github.com/tradle/mycloud/compare/v2.4.4-rc.16...v2.4.4-rc.17) (2019-09-10)
+## [2.4.4-rc.18](https://github.com/tradle/mycloud/compare/v2.4.4-rc.17...v2.4.4-rc.18) (2019-09-10)
 
 
-### Features
+### Bug Fixes
 
-* interform conditionals project ([08dfb4d](https://github.com/tradle/mycloud/commit/08dfb4d))
-* show CPs with BA ([217cf54](https://github.com/tradle/mycloud/commit/217cf54))
+* add index for associateResource in ProductRequest ([582e057](https://github.com/tradle/mycloud/commit/582e057))
 
 
 
