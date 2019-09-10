@@ -73,7 +73,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
           hasAction = true
           val = val.slice(5).trim()
           try {
-            let ret = new Function('forms', `return ${val}`)(forms)
+            let ret = new Function('forms', 'application', `return ${val}`)(forms, application)
             if (ret) {
               if (isAdd) {
                 retForms.push(formId)
@@ -92,15 +92,21 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
       return retForms
     },
     async onmessage(req: IPBReq) {
-      let { payload, application, user } = req
-      if (bot.models[payload[TYPE]].subClassOf !== CHECK_OVERRIDE) return
-      await this.onFormsCollected({ req })
-    },
-    async onFormsCollected({ req }) {
-      let settings = conf[APPLICATION]
-      if (!settings) return
-      const { user, application } = req
+      const { payload, application, user } = req
+      if (!application || !application.forms || !application.forms.length) return
+      //   if (bot.models[payload[TYPE]].subClassOf !== CHECK_OVERRIDE) return
+      //   await this.onFormsCollected({ req })
+      // },
+      // async onFormsCollected({ req }) {
+      const conditions = conf[APPLICATION]
+      if (!conditions) return
+      const all = conditions.all
+      // const { user, application } = req
+      const forThisProduct = conditions[application.requestFor]
+      if (!all && !forThisProduct) return
       const model = bot.models[APPLICATION]
+      let settings = (all && all.slice()) || []
+      if (forThisProduct) settings = settings.concat(forThisProduct)
       let { allForms, allFormulas, forms } = await getAllToExecute({
         application,
         bot,
@@ -108,19 +114,20 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
         model,
         logger
       })
-
       let keys = [],
         values = []
       for (let p in model.properties) {
         keys.push(p)
         values.push(application[p] || null)
       }
-
+      if (!forms[payload[TYPE]])
+        forms[payload[TYPE]] = payload
       allFormulas.forEach(async val => {
         let [propName, formula] = val
         let prop = model.properties[propName]
         try {
-          let value = new Function(...keys, `return ${formula}`)(...values)
+          // let value = new Function(...keys, `return ${formula}`)(...values)
+          let value = new Function('application', 'forms', `return ${formula}`)(application, forms)
           if (!value) return
           if (
             typeof value === 'string' &&
@@ -171,7 +178,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
       allFormulas.forEach(async val => {
         let [propName, formula] = val
         try {
-          let value = new Function('forms', `return ${formula}`)(forms)
+          let value = new Function('forms', 'application', `return ${formula}`)(forms, application)
           if (!formRequest.prefill) {
             formRequest.prefill = {
               [TYPE]: ftype,
