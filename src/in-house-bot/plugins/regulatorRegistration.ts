@@ -40,7 +40,7 @@ const PROVIDER = 'https://catalog.data.gov'
 const ASPECTS = 'registration with FINRA'
 // const FORM_ID = 'io.lenka.BSAPI102a'
 const FORM_ID_US = 'com.cvb.BSAPI102a'
-const FORM_ID_GB = 'com.svb.BSAPI102PSDFirms'
+const FORM_ID_GB = 'com.svb.BSAPI102FCAPSDFirms'
 
 // export const name = 'broker-match'
 interface IRegCheck {
@@ -183,8 +183,12 @@ export class RegulatorRegistrationAPI {
 
   public async check({ form, application }) {
     let status
-    let formRegistrationNumber = form.registrationNumber.replace(/-/g, '').replace(/^0+/, '') // '133693';
+    let formRegistrationNumber
     let country: string = form[TYPE] == FORM_ID_US ? 'us' : 'gb'
+    if (form[TYPE] == FORM_ID_US)
+      formRegistrationNumber = form.registrationNumber.replace(/-/g, '').replace(/^0+/, '') // '133693';
+    else
+      formRegistrationNumber = form.frn.replace(/-/g, '').replace(/^0+/, '') // '827161';  
     let find = await this.queryAthena(formRegistrationNumber, country)
     let rawData
     if (find.status == false) {
@@ -276,7 +280,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const { user, application, payload } = req
       if (!application) return
       if (payload[TYPE] !== FORM_ID_US && payload[TYPE] !== FORM_ID_GB) return
-      if (!payload.registrationNumber) return
+      if (!payload.registrationNumber && !payload.frn) return
 
       let createCheck = await doesCheckNeedToBeCreated({
         bot,
