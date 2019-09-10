@@ -371,7 +371,7 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = ({ bot, applications 
 
       const form = await bot.getResource(formStub)
 
-      debugger
+      // debugger
       let toCheck = await doesCheckNeedToBeCreated({ bot, type: DOCUMENT_CHECKER_CHECK, application, provider: PROVIDER, form, propertiesToCheck: ['scan'], prop: 'form' })
       if (!toCheck) {
         logger.debug(`${PROVIDER}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
