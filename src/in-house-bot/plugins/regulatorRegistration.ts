@@ -39,7 +39,8 @@ const REGULATOR_REGISTRATION_CHECK = 'tradle.RegulatorRegistrationCheck'
 const PROVIDER = 'https://catalog.data.gov'
 const ASPECTS = 'registration with FINRA'
 // const FORM_ID = 'io.lenka.BSAPI102a'
-const FORM_ID = 'com.cvb.BSAPI102a'
+const FORM_ID_US = 'com.cvb.BSAPI102a'
+const FORM_ID_GB = 'com.svb.BSAPI102PSDFirms'
 
 // export const name = 'broker-match'
 interface IRegCheck {
@@ -117,11 +118,16 @@ export class RegulatorRegistrationAPI {
     })
   }
 
-  public queryAthena = async (crd: string) => {
+  public queryAthena = async (crd: string, country: string) => {
     let id
+    let sql
+    if (country == 'us')
+      sql = `select info.legalnm, info.busnm, info.firmcrdnb, info.secnb from firm_sec_feed
+             where info.firmcrdnb = \'${crd}\'`
+    else
+      sql = `select firm from firm_psd_perm where frn = \'${crd}\'`
+
     try {
-      let sql = `select info.legalnm, info.busnm, info.firmcrdnb, info.secnb from firm_sec_feed
-                 where info.firmcrdnb = \'${crd}\'`
       id = await this.getExecutionId(sql)
       this.logger.debug('athena execution id', id)
     } catch (err) {
@@ -178,8 +184,8 @@ export class RegulatorRegistrationAPI {
   public async check({ form, application }) {
     let status
     let formRegistrationNumber = form.registrationNumber.replace(/-/g, '').replace(/^0+/, '') // '133693';
-
-    let find = await this.queryAthena(formRegistrationNumber)
+    let country: string = form[TYPE] == FORM_ID_US ? 'us' : 'gb'
+    let find = await this.queryAthena(formRegistrationNumber, country)
     let rawData
     if (find.status == false) {
       status = {
@@ -269,7 +275,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (req.skipChecks) return
       const { user, application, payload } = req
       if (!application) return
-      if (payload[TYPE] !== FORM_ID) return
+      if (payload[TYPE] !== FORM_ID_US && payload[TYPE] !== FORM_ID_GB) return
       if (!payload.registrationNumber) return
 
       let createCheck = await doesCheckNeedToBeCreated({
