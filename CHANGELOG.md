@@ -2,12 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.4-rc.18](https://github.com/tradle/mycloud/compare/v2.4.4-rc.17...v2.4.4-rc.18) (2019-09-10)
-
-
-### Bug Fixes
-
-* add index for associateResource in ProductRequest ([582e057](https://github.com/tradle/mycloud/commit/582e057))
+## [2.4.4-rc.19](https://github.com/tradle/mycloud/compare/v2.4.4-rc.18...v2.4.4-rc.19) (2019-09-10)
 
 
 
