@@ -11,7 +11,7 @@ import {
   IPBApp,
   UpdateResourceOpts,
   ISMS,
-  Bot,
+  Bot
 } from '../types'
 import { SMSBasedVerifier, TTL } from '../sms-based-verifier'
 import Errors from '../../errors'
@@ -28,7 +28,8 @@ const ASPECTS = 'Phone verification'
 const PROVIDER = 'Tradle'
 const DEFAULT_SMS_GATEWAY = 'sns'
 
-const createSMSPrompt = (phoneNumber: string) => `Please enter your SMS confirmation code when you receive it at ${phoneNumber}`
+const createSMSPrompt = (phoneNumber: string) =>
+  `Please enter your SMS confirmation code when you receive it at ${phoneNumber}`
 
 interface ISMSForm {
   property: string
@@ -74,10 +75,13 @@ interface PhoneCheck extends ITradleObject {
 
 const isValidPhoneNumber = (number: string) => true
 const EXEC_ASYNC = false
-const getSMSClient = ({ bot, gateway=DEFAULT_SMS_GATEWAY }: {
-  bot: Bot,
+const getSMSClient = ({
+  bot,
+  gateway = DEFAULT_SMS_GATEWAY
+}: {
+  bot: Bot
   gateway: SMSGatewayName
-}):ISMS => {
+}): ISMS => {
   if (gateway.toLowerCase() === 'sns') {
     return bot.snsUtils
   }
@@ -86,13 +90,10 @@ const getSMSClient = ({ bot, gateway=DEFAULT_SMS_GATEWAY }: {
 }
 
 export const name = 'verify-phone-number'
-export const createPlugin:CreatePlugin<SMSBasedVerifier> = ({
-  bot,
-  commands,
-  smsBasedVerifier,
-  conf,
-  applications
-}, pluginOpts: ISMSPluginOpts) => {
+export const createPlugin: CreatePlugin<SMSBasedVerifier> = (
+  { bot, commands, smsBasedVerifier, conf, applications },
+  pluginOpts: ISMSPluginOpts
+) => {
   const { logger } = pluginOpts
   const pluginConf = pluginOpts.conf as ISMSPluginConf
   const { products } = pluginConf
@@ -102,11 +103,11 @@ export const createPlugin:CreatePlugin<SMSBasedVerifier> = ({
       db: bot.db,
       sms,
       commands,
-      logger: pluginOpts.logger,
+      logger: pluginOpts.logger
     })
   }
 
-  const getPhone = (application: IPBApp, form: ITradleObject):Phone => {
+  const getPhone = (application: IPBApp, form: ITradleObject): Phone => {
     if (!application) return
 
     const pConf = get(pluginConf.products, [application.requestFor, form[TYPE]]) as any
@@ -117,7 +118,10 @@ export const createPlugin:CreatePlugin<SMSBasedVerifier> = ({
     return Array.isArray(value) ? value[0] : value
   }
 
-  const shouldCreateCheck = async ({ user, phoneNumber }: {
+  const shouldCreateCheck = async ({
+    user,
+    phoneNumber
+  }: {
     user: IPBUser
     phoneNumber: string
   }) => {
@@ -134,7 +138,7 @@ export const createPlugin:CreatePlugin<SMSBasedVerifier> = ({
 
   const maybeRequestPhoneCheck = async (opts: RequestPhoneCheckOpts) => {
     const { user, phone } = opts
-    const keepGoing = true || await shouldCreateCheck({ user, phoneNumber: phone.number })
+    const keepGoing = true || (await shouldCreateCheck({ user, phoneNumber: phone.number }))
     if (!keepGoing) {
       logger.debug('not creating phone check, already verified or pending', {
         user: user.id,
@@ -155,16 +159,14 @@ export const createPlugin:CreatePlugin<SMSBasedVerifier> = ({
       phoneObj = {
         number: phone,
         phoneType: buildResource.enumValue({
-            model: bot.models['tradle.PhoneTypes'],
-            value: 'mobile'
-          })
+          model: bot.models['tradle.PhoneTypes'],
+          value: 'mobile'
+        })
       }
-    }
-    else
-      phoneObj = phone
+    } else phoneObj = phone
     logger.debug(`creating ${PHONE_CHECK}`, { phoneObj })
 
-    let resource:any = {
+    let resource: any = {
       [TYPE]: PHONE_CHECK,
       application,
       phone: phoneObj,
@@ -175,20 +177,20 @@ export const createPlugin:CreatePlugin<SMSBasedVerifier> = ({
       user: user.identity,
       dateExpires: Date.now() + TTL.ms
     }
-debugger
+    debugger
 
-    resource.message = getStatusMessageForCheck({models: bot.models, check: resource})
-    const createCheck = applications.createCheck(resource)
+    resource.message = getStatusMessageForCheck({ models: bot.models, check: resource })
+    const createCheck = applications.createCheck(resource, req)
 
     const requestConfirmationCode = await applications.requestItem({
       req,
       user,
       application,
       message: createSMSPrompt(phoneObj.number),
-      item: OTP,
+      item: OTP
     })
 
-    const [check] = await Promise.all([ createCheck, requestConfirmationCode ])
+    const [check] = await Promise.all([createCheck, requestConfirmationCode])
     if (EXEC_ASYNC) return
 
     const checkJson = check.toJSON({ validate: false }) as PhoneCheck
@@ -196,7 +198,7 @@ debugger
   }
 
   const plugin = {
-    'onmessage:tradle.Form': async (req) => {
+    'onmessage:tradle.Form': async req => {
       const { user, application, payload } = req
       if (payload[TYPE] === OTP) {
         try {
@@ -208,7 +210,7 @@ debugger
             user,
             application,
             message: INVALID_OTP,
-            item: OTP,
+            item: OTP
           })
         }
 
@@ -225,7 +227,7 @@ debugger
   const execPhoneCheck = async (check: PhoneCheck) => {
     const stub = bot.buildStub(check)
     const confirmationCode = randomDigits(5)
-    const passCheckParams:UpdateResourceOpts = {
+    const passCheckParams: UpdateResourceOpts = {
       type: PHONE_CHECK,
       permalink: stub._permalink,
       props: {
@@ -237,7 +239,7 @@ debugger
       smsOpts: {
         phoneNumber: check.phone.number,
         message: `confirmation code: ${confirmationCode}`,
-        senderId: conf.org.name,
+        senderId: conf.org.name
       },
       deferredCommand: {
         dateExpires: check.dateExpires,
@@ -246,14 +248,14 @@ debugger
         command: {
           component: 'applications',
           method: 'updateCheck',
-          params: passCheckParams,
+          params: passCheckParams
         }
       }
     })
   }
 
   if (EXEC_ASYNC) {
-    bot.hookSimple(EventTopics.resource.save.async, async (event) => {
+    bot.hookSimple(EventTopics.resource.save.async, async event => {
       const { value, old } = event
       if (!value) return // this is a 'delete' op
       if (value[TYPE] !== PHONE_CHECK) return
@@ -272,8 +274,8 @@ debugger
   }
 }
 
-export const validateConf:ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
-  const { products={}, gateway } = pluginConf as ISMSPluginConf
+export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
+  const { products = {}, gateway } = pluginConf as ISMSPluginConf
   const sms: ISMS = getSMSClient({ bot, gateway: pluginConf.gateway })
   for (let product in products) {
     let pConf = products[product]
@@ -286,7 +288,9 @@ export const validateConf:ValidatePluginConf = async ({ bot, conf, pluginConf })
       let fConf = pConf[form]
       let { property } = fConf
       if (!property) {
-        throw new Errors.InvalidInput(`expected property name at products['${product}']['${form}'].property`)
+        throw new Errors.InvalidInput(
+          `expected property name at products['${product}']['${form}'].property`
+        )
       }
 
       if (!formModel.properties[property]) {

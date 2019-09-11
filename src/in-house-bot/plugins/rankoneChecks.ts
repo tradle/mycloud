@@ -104,9 +104,7 @@ export class RankOneCheckAPI {
         // debugger
         if (r.selfie._link === selfieLink && r.photoID._link === photoIdLink) {
           this.logger.debug(
-            `Rankone: check already exists for ${photoID.firstName} ${photoID.lastName} ${
-              photoID.documentType.title
-            }`
+            `Rankone: check already exists for ${photoID.firstName} ${photoID.lastName} ${photoID.documentType.title}`
           )
           return
         }
@@ -121,9 +119,7 @@ export class RankOneCheckAPI {
           })
           if (!changed) {
             this.logger.debug(
-              `Rankone: nothing to check the 'scan' didn't change ${photoID.firstName} ${
-                photoID.lastName
-              } ${photoID.documentType.title}`
+              `Rankone: nothing to check the 'scan' didn't change ${photoID.firstName} ${photoID.lastName} ${photoID.documentType.title}`
             )
             return
           }
@@ -199,7 +195,7 @@ export class RankOneCheckAPI {
   public appendFileBuf = ({ form, filename, content, contentType }) =>
     form.append(filename, content, { filename, contentType })
 
-  public createCheck = async ({ status, selfie, photoID, rawData, application, error }) => {
+  public createCheck = async ({ status, selfie, photoID, rawData, application, error, req }) => {
     let models = this.bot.models
     let photoID_displayName = buildResource.title({ models, resource: photoID })
     let checkR: any = {
@@ -221,7 +217,7 @@ export class RankOneCheckAPI {
       `Creating RankOne ${FACIAL_RECOGNITION} for: ${photoID.firstName} ${photoID.lastName}`
     )
 
-    let check = await this.applications.createCheck(checkR)
+    let check = await this.applications.createCheck(checkR, req)
     this.logger.debug(
       `Created RankOne ${FACIAL_RECOGNITION} for: ${photoID.firstName} ${photoID.lastName}`
     )
@@ -296,7 +292,8 @@ export const createPlugin: CreatePlugin<RankOneCheckAPI> = (components, pluginOp
         photoID,
         rawData,
         error,
-        application
+        application,
+        req
       })
       const pchecks = [promiseCheck]
       if (status === true) {

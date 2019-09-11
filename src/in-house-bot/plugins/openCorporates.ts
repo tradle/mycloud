@@ -176,7 +176,7 @@ class OpenCorporatesAPI {
       url
     }
   }
-  public createCorporateCheck = async ({ application, rawData, message, hits, url, form }) => {
+  public createCorporateCheck = async ({ application, rawData, message, hits, url, form, req }) => {
     let checkR: any = {
       [TYPE]: CORPORATION_EXISTS,
       status: (!message && hits.length === 1 && 'pass') || 'fail',
@@ -192,7 +192,7 @@ class OpenCorporatesAPI {
     if (hits.length) checkR.rawData = hits
     else if (rawData) checkR.rawData = rawData
 
-    let check = await this.applications.createCheck(checkR)
+    let check = await this.applications.createCheck(checkR, req)
 
     // debugger
     return check.toJSON()
@@ -320,7 +320,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
           message,
           hits,
           url,
-          form: payload
+          form: payload,
+          req
         })
       )
       if (hasVerification)

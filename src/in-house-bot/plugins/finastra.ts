@@ -8,6 +8,7 @@ import {
   Bot,
   Logger,
   IPBApp,
+  IPBReq,
   IWillJudgeAppArg,
   ITradleObject,
   CreatePlugin,
@@ -56,6 +57,7 @@ interface IAccountCheck {
   status: any
   message?: string
   aspects: string
+  req: IPBReq
 }
 interface IFinastraError {
   application: IPBApp
@@ -63,6 +65,7 @@ interface IFinastraError {
   accountNumberError?: string
   customerIdError?: string
   judge: any
+  req: IPBReq
 }
 const DEFAULT_CONF = {
   client_id: '',
@@ -134,7 +137,10 @@ export class IFinastraAPI {
     })
 
     if (!res.ok) {
-      console.error('Failed to get fusion API access token, error:', res.status + ' ' + res.statusText)
+      console.error(
+        'Failed to get fusion API access token, error:',
+        res.status + ' ' + res.statusText
+      )
       let stat = +res.status
       if (stat == 400) {
         const result = await res.json()
@@ -222,7 +228,15 @@ export class IFinastraAPI {
     return { status: true, account: result.accountNumber, error: null }
   }
 
-  public createCheck = async ({ application, status, accountNumber, customerId, message, aspects }: IAccountCheck) => {
+  public createCheck = async ({
+    application,
+    status,
+    accountNumber,
+    customerId,
+    message,
+    aspects,
+    req
+  }: IAccountCheck) => {
     let date = new Date().getTime()
     debugger
     let resource: any = {
@@ -231,19 +245,16 @@ export class IFinastraAPI {
       provider: PROVIDER,
       application,
       dateChecked: date,
-      aspects,
+      aspects
     }
-    if (accountNumber)
-      resource.accountNumber = accountNumber
-    if (customerId)
-      resource.customerId = customerId
-    if (message)
-      resource.resultDetails = message
+    if (accountNumber) resource.accountNumber = accountNumber
+    if (customerId) resource.customerId = customerId
+    if (message) resource.resultDetails = message
 
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
 
     this.logger.debug(`${PROVIDER} Creating AccountCreatingCheck for: ${accountNumber}`)
-    await this.applications.createCheck(resource)
+    await this.applications.createCheck(resource, req)
     this.logger.debug(`${PROVIDER} Created Check for: ${accountNumber}`)
   }
 }
@@ -255,7 +266,14 @@ export const createPlugin: CreatePlugin<IFinastraAPI> = (
   { conf, logger }
 ) => {
   const documentChecker = new IFinastraAPI({ bot, applications, conf, logger })
-  const handleError = async ({ tokenError, customerIdError, accountNumberError, judge, application }: IFinastraError) => {
+  const handleError = async ({
+    tokenError,
+    customerIdError,
+    accountNumberError,
+    judge,
+    application,
+    req
+  }: IFinastraError) => {
     let message, aspects, errMessage
     debugger
     const title = bot.models[application.requestFor].title
@@ -283,13 +301,15 @@ export const createPlugin: CreatePlugin<IFinastraAPI> = (
       status: { status: 'fail' },
       resultDetails: message,
       aspects,
-      provider: PROVIDER
+      provider: PROVIDER,
+      req
     }
     if (await doesCheckNeedToBeCreated({ check, bot })) await documentChecker.createCheck(check)
     throw new Errors.AbortError(`${PROVIDER}: ${errMessage}`)
   }
   const plugin: IPluginLifecycleMethods = {
     willIssueCertificate: async ({
+      req,
       user,
       certificate,
       application,
@@ -326,30 +346,29 @@ export const createPlugin: CreatePlugin<IFinastraAPI> = (
 
       let tokenResult = await documentChecker.token()
       if (!tokenResult.status) {
-        await handleError({ tokenError: tokenResult.error, judge, application })
+        await handleError({ tokenError: tokenResult.error, judge, application, req })
         return
       }
       let customerResult = await documentChecker.customerCreate(tokenResult.token, customer)
       if (!customerResult.status) {
-        await handleError({ customerIdError: customerResult.error, judge, application })
+        await handleError({ customerIdError: customerResult.error, judge, application, req })
         return
       }
       debugger
       let accountResult = await documentChecker.accountCreate(tokenResult.token, customerResult.id)
       if (!accountResult.status) {
-        await handleError({ accountNumberError: accountResult.error, judge, application })
+        await handleError({ accountNumberError: accountResult.error, judge, application, req })
         return
       }
       certificate.accountNumber = accountResult.account
-      await documentChecker.createCheck(
-        {
-          application,
-          customerId: customerResult.id,
-          accountNumber: accountResult.account,
-          status: { status: 'pass' },
-          aspects: ASPECTS_ACCOUNT
-        }
-      )
+      await documentChecker.createCheck({
+        application,
+        customerId: customerResult.id,
+        accountNumber: accountResult.account,
+        status: { status: 'pass' },
+        aspects: ASPECTS_ACCOUNT,
+        req
+      })
     }
   }
 

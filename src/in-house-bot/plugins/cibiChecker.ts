@@ -7,6 +7,7 @@ import {
   Bot,
   Logger,
   IPBApp,
+  IPBReq,
   ITradleObject,
   CreatePlugin,
   Applications,
@@ -68,6 +69,7 @@ interface ICIBICheck {
     provider: string
     aspect: string
     type: string
+    req: IPBReq
 }
 
 interface ICIBICheckerConf {
@@ -348,7 +350,7 @@ export class CIBICheckerAPI {
     }
 
 
-    createCheck = async ({ application, status, form, provider, aspect, type }: ICIBICheck) => {
+    createCheck = async ({ application, status, form, provider, aspect, type, req }: ICIBICheck) => {
         let resource:any = {
           [TYPE]: type,
           status: status.status,
@@ -365,7 +367,7 @@ export class CIBICheckerAPI {
           resource.rawData = status.rawData
 
         this.logger.debug(`Creating ${provider} check for ${aspect}`);
-        await this.applications.createCheck(resource)
+        await this.applications.createCheck(resource, req)
         this.logger.debug(`Created ${provider} check for ${aspect}`);
     }
 
@@ -453,7 +455,7 @@ debugger
       else {
           let negrecStatus = await documentChecker.handleNegrecData(form, application)
           await documentChecker.createCheck({application, status: negrecStatus, form, provider: PROVIDER_CREDIT_BUREAU
-                                            ,aspect: NEGREC_ASPECTS, type: NEGREC_CHECK })
+                                            ,aspect: NEGREC_ASPECTS, type: NEGREC_CHECK, req })
           if (negrecStatus.status === 'pass') {
               await documentChecker.createVerification({ application, form, rawData: negrecStatus.rawData
                                                        ,provider: PROVIDER_CREDIT_BUREAU, aspect: NEGREC_ASPECTS, type: NEGREC_CHECK })
@@ -475,7 +477,7 @@ debugger
       if (toCheckIdentity) {
         let { identityStatus, address } = await documentChecker.handleIdentityData(form, application)
         await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU
-                                          ,aspect: IDENTITY_ASPECTS, type : DOCUMENT_CHECKER_CHECK})
+                                          ,aspect: IDENTITY_ASPECTS, type : DOCUMENT_CHECKER_CHECK, req})
         if (identityStatus.status === 'pass') {
             await documentChecker.createVerification({ application, form, rawData: identityStatus.rawData, provider: PROVIDER_CREDIT_BUREAU
                                                      ,aspect: IDENTITY_ASPECTS, type: DOCUMENT_CHECKER_CHECK })
@@ -514,12 +516,12 @@ debugger
                 cibiIdentityStatus.status = 'fail'
                 cibiIdentityStatus.message = 'not exact match'
                 await documentChecker.createCheck({application, status: cibiIdentityStatus, form
-                                                  ,provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK})
+                                                  ,provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK, req})
                 return
             }
         }
         await documentChecker.createCheck({application, status: cibiIdentityStatus, form, provider: PROVIDER_CREDIT_BUREAU
-                                          ,aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK})
+                                          ,aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK, req})
         await documentChecker.createVerification({ application, form, rawData: cibiIdentityStatus.rawData, provider: PROVIDER_CREDIT_BUREAU
                                                  ,aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK })
         return
@@ -565,12 +567,12 @@ debugger
             cibiIdentityStatus.status = 'fail'
             cibiIdentityStatus.message = 'not exact match'
             await documentChecker.createCheck({application, status: cibiIdentityStatus, form: addressForm
-                                              ,provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK})
+                                              ,provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK, req})
             return
         }
       }
       await documentChecker.createCheck({application, status: cibiIdentityStatus, form: addressForm, provider: PROVIDER_CREDIT_BUREAU
-                                        ,aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK})
+                                        ,aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK, req})
       await documentChecker.createVerification({ application, form: addressForm, rawData: cibiIdentityStatus.rawData
                                                ,provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK })
 

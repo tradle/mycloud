@@ -10,6 +10,7 @@ import {
   Bot,
   Logger,
   IPBApp,
+  IPBReq,
   ITradleObject,
   CreatePlugin,
   Applications,
@@ -39,6 +40,7 @@ interface IFacetecZoomCheck {
   application: IPBApp
   status: any
   form: ITradleObject
+  req: IPBReq
 }
 
 interface IFacetecZoomCheckConf {
@@ -106,7 +108,7 @@ export class IFacetecZoomCheckAPI {
     return { status: 'pass', rawData, message }
   }
 
-  public createCheck = async ({ application, status, form }: IFacetecZoomCheck) => {
+  public createCheck = async ({ application, status, form, req }: IFacetecZoomCheck) => {
     let resource: any = {
       [TYPE]: SELFIE_SPOOF_PROOF_CHECK,
       status: status.status,
@@ -127,7 +129,7 @@ export class IFacetecZoomCheckAPI {
       resource.livenessScore = status.rawData.data.livenessScore
     }
     this.logger.debug(`Creating ${PROVIDER} check for ${ASPECTS}`)
-    await this.applications.createCheck(resource)
+    await this.applications.createCheck(resource, req)
     this.logger.debug(`Created ${PROVIDER} check for ${ASPECTS}`)
   }
 
@@ -197,15 +199,13 @@ export const createPlugin: CreatePlugin<IFacetecZoomCheckAPI> = (
       })
       if (!toCheck) {
         logger.debug(
-          `${PROVIDER}: check already exists for ${form.firstName} ${form.lastName} ${
-            form.documentType.title
-          }`
+          `${PROVIDER}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`
         )
         return
       }
       // debugger
       let status = await documentChecker.selfieLiveness(form, application)
-      await documentChecker.createCheck({ application, status, form })
+      await documentChecker.createCheck({ application, status, form, req })
       if (status.status === 'pass') {
         await documentChecker.createVerification({ application, form, rawData: status.rawData })
       }

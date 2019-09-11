@@ -9,6 +9,7 @@ import {
   Bot,
   Logger,
   IPBApp,
+  IPBReq,
   ITradleObject,
   CreatePlugin,
   Applications,
@@ -44,6 +45,7 @@ interface IJenIdCheck {
   application: IPBApp
   status: any
   form: ITradleObject
+  req: IPBReq
 }
 
 interface IJenIdCheckerConf {
@@ -216,7 +218,7 @@ export class JenIdCheckerAPI {
 
   }
 
-  createCheck = async ({ application, status, form }: IJenIdCheck) => {
+  createCheck = async ({ application, status, form, req }: IJenIdCheck) => {
     let resource: any = {
       [TYPE]: DOCUMENT_CHECKER_CHECK,
       status: status.status,
@@ -233,7 +235,7 @@ export class JenIdCheckerAPI {
       resource.rawData = status.rawData
 
     this.logger.debug(`Creating ${PROVIDER} check for ${ASPECTS}`);
-    await this.applications.createCheck(resource)
+    await this.applications.createCheck(resource, req)
     this.logger.debug(`Created ${PROVIDER} check for ${ASPECTS}`);
   }
 
@@ -377,7 +379,7 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = ({ bot, applications 
       }
       // debugger
       let status = await documentChecker.handleData(form, application)
-      await documentChecker.createCheck({ application, status, form })
+      await documentChecker.createCheck({ application, status, form, req })
       if (status.status === 'pass') {
         await documentChecker.createVerification({ application, form, rawData: status.rawData })
       }

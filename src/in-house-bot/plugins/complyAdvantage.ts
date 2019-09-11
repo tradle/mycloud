@@ -54,6 +54,7 @@ interface IComplyCheck {
   rawData: any
   status: any
   form: ITradleObject
+  req: IPBReq
 }
 
 class ComplyAdvantageAPI {
@@ -70,7 +71,7 @@ class ComplyAdvantageAPI {
     this.logger = logger
   }
 
-  public async getAndProcessData({ user, pConf, payload, propertyMap, application }) {
+  public async getAndProcessData({ user, pConf, payload, propertyMap, application, req }) {
     let criteria = pConf.filter
     // let companyName, registrationDate
     // let resource = payload
@@ -127,7 +128,7 @@ class ComplyAdvantageAPI {
           message: !dateOfBirth && 'No date of birth was provided'
           // message: `Sanctions check for "${name}" failed.` + (!dateOfBirth  &&  ' No registration date was provided')
         }
-        await this.createCheck({ application, rawData: {}, status, form: payload })
+        await this.createCheck({ application, rawData: {}, status, form: payload, req })
         return
       }
       if (firstName.length === 1 && lastName.length === 1) {
@@ -137,7 +138,7 @@ class ComplyAdvantageAPI {
           message: 'Bad criteria: one letter first and last names'
           // message: `Sanctions check for "${name}" failed.` + (!dateOfBirth  &&  ' No registration date was provided')
         }
-        await this.createCheck({ application, rawData: {}, status, form: payload })
+        await this.createCheck({ application, rawData: {}, status, form: payload, req })
         return
       }
       name = firstName + ' ' + lastName
@@ -160,7 +161,7 @@ class ComplyAdvantageAPI {
           status: 'fail',
           message: !registrationDate && ' No registration date was provided'
         }
-        await this.createCheck({ application, rawData: {}, status, form: payload })
+        await this.createCheck({ application, rawData: {}, status, form: payload, req })
         return
       }
     }
@@ -169,7 +170,7 @@ class ComplyAdvantageAPI {
     let pchecks = []
     let { rawData, hits, status } = r
     if (rawData.status === 'failure') {
-      pchecks.push(this.createCheck({ application, rawData, status: 'fail', form: payload }))
+      pchecks.push(this.createCheck({ application, rawData, status: 'fail', form: payload, req }))
     } else {
       let hasVerification
       if (hits && hits.length)
@@ -178,7 +179,7 @@ class ComplyAdvantageAPI {
         hasVerification = true
         this.logger.debug(`${PROVIDER} creating verification for: ${companyName || name}`)
       }
-      pchecks.push(this.createCheck({ application, rawData, status, form: payload }))
+      pchecks.push(this.createCheck({ application, rawData, status, form: payload, req }))
       if (hasVerification)
         pchecks.push(this.createVerification({ user, application, form: payload, rawData }))
     }
@@ -261,7 +262,7 @@ class ComplyAdvantageAPI {
     return hits && { rawData, status, hits }
   }
 
-  public createCheck = async ({ application, rawData, status, form }: IComplyCheck) => {
+  public createCheck = async ({ application, rawData, status, form, req }: IComplyCheck) => {
     let dateStr = rawData.updated_at
     let date
     if (dateStr) date = Date.parse(dateStr) - new Date().getTimezoneOffset() * 60 * 1000
@@ -291,7 +292,7 @@ class ComplyAdvantageAPI {
     }
 
     this.logger.debug(`${PROVIDER} Creating SanctionsCheck for: ${rawData.submitted_term}`)
-    await this.applications.createCheck(resource)
+    await this.applications.createCheck(resource, req)
     // const check = await this.bot.signAndSave(resource)
     this.logger.debug(`${PROVIDER} Created SanctionsCheck for: ${rawData.submitted_term}`)
   }
@@ -347,7 +348,8 @@ export const createPlugin: CreatePlugin<void> = (
           pConf,
           application,
           propertyMap: null,
-          payload
+          payload,
+          req
         })
         return
       } else return
@@ -356,7 +358,14 @@ export const createPlugin: CreatePlugin<void> = (
       if (!isPersonForm(payload) && !propertyMap) return
 
       // if (!isPersonForm(payload) && payload[TYPE] !== LEGAL_ENTITY) return
-      await complyAdvantage.getAndProcessData({ user, pConf, application, propertyMap, payload })
+      await complyAdvantage.getAndProcessData({
+        user,
+        pConf,
+        application,
+        propertyMap,
+        payload,
+        req
+      })
     }
   }
 
