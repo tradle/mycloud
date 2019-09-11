@@ -11,7 +11,7 @@ import {
   ITradleObject,
   IPBApp,
   Applications,
-  Logger,
+  Logger
 } from '../types'
 
 const MY_CP_PRODUCT = 'tradle.legal.MyControllingPersonOnboarding'
@@ -49,35 +49,34 @@ export class SmeAutoApprove {
     this.logger = logger
   }
 
-  public checkCPs = async (application) => {
-    let aApp, checkIfAllFormsSubmitted = true
+  public checkCPs = async application => {
+    let aApp,
+      checkIfAllFormsSubmitted = true
     if (application.requestFor === this.conf.parent) {
       aApp = application
       checkIfAllFormsSubmitted = false
+    } else {
+      aApp = await this.getAssociatedResource(application)
+      // const pr: ITradleObject = await this.bot.getResource(application.request)
+      // const associatedResource = pr.associatedResource
+      // // const asociatedApplication = await this.bot.getResource(associatedResource, {backlinks: ['forms']})
+      // const associatedApplication = await this.bot.db.find({
+      //   filter: {
+      //     EQ: {
+      //       [TYPE]: APPLICATION,
+      //       _permalink: associatedResource
+      //     }
+      //   }
+      // })
+      // aApp = associatedApplication && associatedApplication.items && associatedApplication.items[0]
     }
-    else {
-      const pr:ITradleObject = await this.bot.getResource(application.request)
-      const associatedResource = pr.associatedResource
-      // const asociatedApplication = await this.bot.getResource(associatedResource, {backlinks: ['forms']})
-      const associatedApplication = await this.bot.db.find({
-        filter: {
-          EQ: {
-           [TYPE]: APPLICATION,
-           _permalink: associatedResource
-          }
-        }
-      })
-      aApp = associatedApplication  &&  associatedApplication.items  &&  associatedApplication.items[0]
-    }
-    const appSubmissions = await this.bot.getResource(aApp, {backlinks: ['submissions']})
-// debugger
+    const appSubmissions = await this.bot.getResource(aApp, { backlinks: ['submissions'] })
+    // debugger
 
     // let forms = aApp.forms
-    if (!appSubmissions)
-      return
-    const submissions:any[] = appSubmissions.submissions
-    if (!submissions.length)
-      return
+    if (!appSubmissions) return
+    const submissions: any[] = appSubmissions.submissions
+    if (!submissions.length) return
 
     if (checkIfAllFormsSubmitted) {
       let parentProductID = makeMyProductModelID(this.conf.parent)
@@ -94,60 +93,63 @@ export class SmeAutoApprove {
     }
 
     let cp = submissions.filter(f => f.submission[TYPE] === CP)
-    if (!cp.length)
-      return
+    if (!cp.length) return
 
     let { items } = await this.bot.db.find({
       filter: {
         EQ: {
-         [TYPE]: PRODUCT_REQUEST,
-         'associatedResource': aApp._permalink,
+          [TYPE]: PRODUCT_REQUEST,
+          associatedResource: aApp._permalink
         }
       }
     })
-    if (!items  ||  !items.length) {
+    if (!items || !items.length) {
       this.logger.debug('Child applications were not submitted yet. Nothing further to check')
       return
     }
     if (items.length < cp.length) {
-      this.logger.debug('The number of submitted child applications is not the same as emails that were sent out. Nothing further to check')
+      this.logger.debug(
+        'The number of submitted child applications is not the same as emails that were sent out. Nothing further to check'
+      )
       return
     }
 
-    const prReq:ITradleObject[] = items;
-
-    ({ items } = await this.bot.db.find({
+    const prReq: ITradleObject[] = items
+    ;({ items } = await this.bot.db.find({
       filter: {
         EQ: {
-         [TYPE]: APPLICATION
+          [TYPE]: APPLICATION
         },
         IN: {
-          'context': prReq.map(r => r.contextId)
+          context: prReq.map(r => r.contextId)
         }
       }
-    }));
+    }))
 
-
-    if (!items  ||  !items.length) {
-      this.logger.debug('Something wrong PR for child applications found and Applications for these PRs are not!!! Something is screwed')
+    if (!items || !items.length) {
+      this.logger.debug(
+        'Something wrong PR for child applications found and Applications for these PRs are not!!! Something is screwed'
+      )
       return
     }
 
-    const appsForCP:ITradleObject[] = items;
+    const appsForCP: ITradleObject[] = items
 
     const requests = appsForCP.map(app => this.bot.getResource(app, { backlinks: ['products'] }))
-    const results:ITradleObject[] = await Promise.all(requests)
-// debugger
+    const results: ITradleObject[] = await Promise.all(requests)
+    // debugger
     if (!results) {
       this.logger.debug('Child applications were not approved yet. Nothing further to check')
       return
     }
     let childProductId = makeMyProductModelID(this.conf.child)
 
-    const products = results.filter(r => r.products  &&  r.products.filter(rr => rr.submission[TYPE] === childProductId))
+    const products = results.filter(
+      r => r.products && r.products.filter(rr => rr.submission[TYPE] === childProductId)
+    )
     if (!aApp.chileApps || aApp.childApps.length < items.length)
-      aApp.childApps = items.map(a => buildResourceStub({resource: a, models: this.bot.models}))
-    if (!products.length  ||  products.length < cp.length) {
+      aApp.childApps = items.map(a => buildResourceStub({ resource: a, models: this.bot.models }))
+    if (!products.length || products.length < cp.length) {
       this.logger.debug('Not all child applications were approved yet. Nothing further to check')
       return
     }
@@ -155,52 +157,70 @@ export class SmeAutoApprove {
 
     await this.applications.approve({ application: aApp })
   }
+  public getAssociatedResource = async application => {
+    const pr: ITradleObject = await this.bot.getResource(application.request)
+    const associatedResource = pr.associatedResource
+    // const asociatedApplication = await this.bot.getResource(associatedResource, {backlinks: ['forms']})
+    const associatedApplication = await this.bot.db.find({
+      filter: {
+        EQ: {
+          [TYPE]: APPLICATION,
+          _permalink: associatedResource
+        }
+      }
+    })
+    return associatedApplication && associatedApplication.items && associatedApplication.items[0]
+  }
 }
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
   const autoApproveAPI = new SmeAutoApprove({ bot, conf, applications, logger })
-// debugger
+  // debugger
   const plugin: IPluginLifecycleMethods = {
     didApproveApplication: async (opts: IWillJudgeAppArg, certificate: ITradleObject) => {
       let childProduct = makeMyProductModelID(conf.child)
-// debugger
+      // debugger
       if (certificate[TYPE] === childProduct) {
-        logger.debug('New child application was approved. Check if parent application can be auto-approved')
+        logger.debug(
+          'New child application was approved. Check if parent application can be auto-approved'
+        )
         await autoApproveAPI.checkCPs(opts.application)
       }
     },
     // check if auto-approve ifvapplication Legal entity product was submitted
-    onFormsCollected: async ({req}) => {
-// debugger
+    onFormsCollected: async ({ req }) => {
+      // debugger
       const { application } = req
-      if (application.requestFor !== conf.parent)
-        return
-      logger.debug('Parent application was submitted. Check if all child applications checked in')
-      await autoApproveAPI.checkCPs(application)
+      const { requestFor } = application
+      if (requestFor === conf.parent) {
+        logger.debug('Parent application was submitted. Check if all child applications checked in')
+        await autoApproveAPI.checkCPs(application)
+      } else if (requestFor === conf.child) {
+        logger.debug('Child application was submitted')
+        let parentApp = await autoApproveAPI.getAssociatedResource(application)
+        application.parent = parentApp
+      }
     }
   }
 
   return { plugin }
 }
+
 function makeMyProductModelID(modelId) {
   let parts = modelId.split('.')
   parts[parts.length - 1] = 'My' + parts[parts.length - 1]
   return parts.join('.')
 }
-export const validateConf:ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
+export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
   const { models } = bot
   // debugger
-  for (let appType in <ISmeConf>pluginConf) {
+  for (let appType in pluginConf as ISmeConf) {
     let child = pluginConf.child
-    if (!child)
-      throw new Error('missing child')
-    if (!models[child])
-      throw new Error(`there is no model: ${child}`)
+    if (!child) throw new Error('missing child')
+    if (!models[child]) throw new Error(`there is no model: ${child}`)
 
     let parent = pluginConf.parent
-    if (!parent)
-      throw new Error('missing parent')
-    if (!models[parent])
-      throw new Error(`there is no model: ${parent}`)
+    if (!parent) throw new Error('missing parent')
+    if (!models[parent]) throw new Error(`there is no model: ${parent}`)
   }
 }
