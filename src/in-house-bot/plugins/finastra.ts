@@ -229,7 +229,7 @@ export class IFinastraAPI {
       [TYPE]: ACCOUNT_CREATION_CHECK,
       status: status.status,
       provider: PROVIDER,
-      application: buildResourceStub({ resource: application, models: this.bot.models }),
+      application,
       dateChecked: date,
       aspects,
     }

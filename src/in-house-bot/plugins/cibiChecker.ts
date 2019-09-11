@@ -353,7 +353,7 @@ export class CIBICheckerAPI {
           [TYPE]: type,
           status: status.status,
           provider: provider,
-          application: buildResourceStub({resource: application, models: this.bot.models}),
+          application,
           dateChecked: Date.now(),
           aspects: aspect,
           form

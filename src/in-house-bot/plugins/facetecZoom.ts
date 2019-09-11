@@ -111,7 +111,7 @@ export class IFacetecZoomCheckAPI {
       [TYPE]: SELFIE_SPOOF_PROOF_CHECK,
       status: status.status,
       provider: PROVIDER,
-      application: buildResourceStub({ resource: application, models: this.bot.models }),
+      application,
       dateChecked: Date.now(),
       aspects: ASPECTS,
       livenessScore: 0,

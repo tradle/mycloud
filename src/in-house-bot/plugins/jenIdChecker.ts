@@ -221,7 +221,7 @@ export class JenIdCheckerAPI {
       [TYPE]: DOCUMENT_CHECKER_CHECK,
       status: status.status,
       provider: PROVIDER,
-      application: buildResourceStub({ resource: application, models: this.bot.models }),
+      application,
       dateChecked: Date.now(),
       aspects: ASPECTS,
       form
