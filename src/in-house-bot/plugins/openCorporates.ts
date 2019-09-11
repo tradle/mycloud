@@ -178,6 +178,7 @@ class OpenCorporatesAPI {
   }
   public createCorporateCheck = async ({ application, rawData, message, hits, url, form }) => {
     let checkR: any = {
+      [TYPE]: CORPORATION_EXISTS,
       status: (!message && hits.length === 1 && 'pass') || 'fail',
       provider: OPEN_CORPORATES,
       application: buildResourceStub({ resource: application, models: this.bot.models }),
@@ -190,10 +191,8 @@ class OpenCorporatesAPI {
     if (message) checkR.resultDetails = message
     if (hits.length) checkR.rawData = hits
     else if (rawData) checkR.rawData = rawData
-    const check = await this.bot
-      .draft({ type: CORPORATION_EXISTS })
-      .set(checkR)
-      .signAndSave()
+
+    let check = await this.applications.createCheck(checkR)
 
     // debugger
     return check.toJSON()

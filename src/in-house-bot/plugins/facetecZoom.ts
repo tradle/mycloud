@@ -127,10 +127,7 @@ export class IFacetecZoomCheckAPI {
       resource.livenessScore = status.rawData.data.livenessScore
     }
     this.logger.debug(`Creating ${PROVIDER} check for ${ASPECTS}`)
-    const check = await this.bot
-      .draft({ type: SELFIE_SPOOF_PROOF_CHECK })
-      .set(resource)
-      .signAndSave()
+    await this.applications.createCheck(resource)
     this.logger.debug(`Created ${PROVIDER} check for ${ASPECTS}`)
   }
 

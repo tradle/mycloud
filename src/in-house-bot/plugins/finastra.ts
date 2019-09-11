@@ -243,11 +243,7 @@ export class IFinastraAPI {
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
 
     this.logger.debug(`${PROVIDER} Creating AccountCreatingCheck for: ${accountNumber}`)
-    const check = await this.bot
-      .draft({ type: ACCOUNT_CREATION_CHECK })
-      .set(resource)
-      .signAndSave()
-    // const check = await this.bot.signAndSave(resource)
+    await this.applications.createCheck(resource)
     this.logger.debug(`${PROVIDER} Created Check for: ${accountNumber}`)
   }
 }

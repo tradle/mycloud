@@ -254,9 +254,7 @@ export class DocumentCheckerAPI {
       resource.rawData = sanitize(rawData).sanitized
 
     this.logger.debug(`Creating ${PROVIDER} check for ${ASPECTS}`);
-    const check = await this.bot.draft({ type: DOCUMENT_CHECKER_CHECK })
-        .set(resource)
-        .signAndSave()
+    await this.applications.createCheck(resource)
     this.logger.debug(`Created ${PROVIDER} check for ${ASPECTS}`);
   }
 

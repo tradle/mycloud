@@ -284,10 +284,7 @@ class ComplyAdvantageAPI {
     }
 
     this.logger.debug(`${PROVIDER} Creating SanctionsCheck for: ${rawData.submitted_term}`)
-    const check = await this.bot
-      .draft({ type: SANCTIONS_CHECK })
-      .set(resource)
-      .signAndSave()
+    await this.applications.createCheck(resource)
     // const check = await this.bot.signAndSave(resource)
     this.logger.debug(`${PROVIDER} Created SanctionsCheck for: ${rawData.submitted_term}`)
   }

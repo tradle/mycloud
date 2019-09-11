@@ -139,6 +139,7 @@ export class TruefaceAPI {
     let models = this.bot.models
     let { message, data } = rawData
     let checkR:any = {
+      [TYPE]: TRUEFACE_CHECK,
       status,
       provider: PROVIDER,
       aspects: 'Spoof detection',
@@ -153,9 +154,7 @@ export class TruefaceAPI {
     // if (error)
     checkR.livenessScore = data  &&  data.score || 0
 
-    const check = await this.bot.draft({ type: TRUEFACE_CHECK })
-      .set(checkR)
-      .signAndSave()
+    let check = await this.applications.createCheck(checkR)
 
     return check.toJSON()
   }

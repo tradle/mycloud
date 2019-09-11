@@ -46,11 +46,11 @@ const NEGREC_URL = 'https://www.info4bus.com/i4b_api/negrec_api.asmx?op=NEGREC_S
 
 const matchResultMap = {'E': 'Error', 'M': 'Match', 'N': 'Multiple Match',
                         'NM': 'Match after multiple match', 'U': 'No match', 'X': 'Too many matches'
-                       } 
+                       }
 const industryMap = {'FH': 'Finance House', 'BK': 'Banking', 'CO': 'Collections',
                      'CP': 'Cooperative', 'GO': 'Government', 'IN': 'Insurance', 'LL': 'Leasing',
                      'RB': 'Real estate banking', 'RT': 'Retail', 'SE': 'Services', 'TE': 'Telecom',
-                     'UT': 'Utilities', 'AU': 'Auto retail finance'  
+                     'UT': 'Utilities', 'AU': 'Auto retail finance'
                     }
 const purposeMap =  {'CE': 'Consumer Inquiry', 'CM': 'Customer Management', 'CO': 'Collections',
                      'CR': 'Credit Application', 'FR': 'Fraud Detection', 'IT': 'Internal', 'MA': 'Marketing',
@@ -67,13 +67,13 @@ interface ICIBICheck {
     form: ITradleObject
     provider: string
     aspect: string
-    type: string 
+    type: string
 }
 
 interface ICIBICheckerConf {
     username: string
     token: string
-    test : boolean 
+    test : boolean
     negrecUsername: string
     negrecToken: string
     negrecTest: boolean
@@ -103,12 +103,12 @@ export class CIBICheckerAPI {
     }
 
     handleNegrecData = async (form, application) => {
-        
+
         let firstname = form.firstName
         let secondname = (form.middleName)? form.middleName : ''
         let lastname = form.lastName
-        
-        let subjectName = `${lastname} ${firstname} ${secondname}` // 'DELA CRUZ JUAN'   
+
+        let subjectName = `${lastname} ${firstname} ${secondname}` // 'DELA CRUZ JUAN'
         let subjectType = 'I'
 
         let negrecSearchXML = `<?xml version="1.0" encoding="utf-8"?>
@@ -120,14 +120,14 @@ export class CIBICheckerAPI {
          <subject_name>${subjectName}</subject_name>
          <subject_type>${subjectType}</subject_type>
          </NEGREC_SEARCH></soap12:Body></soap12:Envelope>`
-        
-        let url = this.conf.negrecTest? NEGREC_TEST_URL : NEGREC_URL 
-        let negrecReport = await this.negrec(negrecSearchXML, url) 
+
+        let url = this.conf.negrecTest? NEGREC_TEST_URL : NEGREC_URL
+        let negrecReport = await this.negrec(negrecSearchXML, url)
 
         let negrecStatus
         if (!negrecReport.success) {
-            negrecStatus = {status: 'error', message: negrecReport.error, rawData: {}} 
-            this.logger.debug(`Failed request data from ${PROVIDER_CREDIT_BUREAU}, error : ${negrecReport.error}`); 
+            negrecStatus = {status: 'error', message: negrecReport.error, rawData: {}}
+            this.logger.debug(`Failed request data from ${PROVIDER_CREDIT_BUREAU}, error : ${negrecReport.error}`);
         } else {
             this.logger.debug(`Received data from ${PROVIDER_CREDIT_BUREAU}: ${JSON.stringify(negrecReport.data, null, 2)}`);
             let subjects : any[] = negrecReport.data.SUBJECTS
@@ -135,7 +135,7 @@ export class CIBICheckerAPI {
                 negrecStatus = { status: 'pass', message: 'No negative record.', rawData: negrecReport.data}
             }
             else {
-                negrecStatus = {status: 'fail', message: 'Negative records found.', rawData: negrecReport.data}    
+                negrecStatus = {status: 'fail', message: 'Negative records found.', rawData: negrecReport.data}
             }
         }
         return negrecStatus
@@ -162,12 +162,12 @@ export class CIBICheckerAPI {
                 }
             else {
                 status.success = false
-                status.error = data['_']        
+                status.error = data['_']
             }
             status.data = data
         }
         return status
-    } 
+    }
 
 
     handleIdentityData = async (form, application) => {
@@ -179,20 +179,20 @@ export class CIBICheckerAPI {
         \n<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         \nxmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
         <soap12:Body>
-        <GET_REPORT xmlns="http://tempuri.org/"> 
+        <GET_REPORT xmlns="http://tempuri.org/">
         <auth_token>${this.conf.token}</auth_token><username>${this.conf.username}</username>
         <product>10</product>
         <request>
         <![CDATA[<Request><CapsApplicant><firstname>${firstname}</firstname><secondname>${secondname}</secondname><lastname>${lastname}</lastname><dob>${dateOfBirth}</dob></CapsApplicant></Request>]]>
         </request>
         </GET_REPORT></soap12:Body></soap12:Envelope>`
-        
-        let url = this.conf.test? REP_TEST_URL : REP_URL 
+
+        let url = this.conf.test? REP_TEST_URL : REP_URL
         let identityReport = await this.identityWithAddress(identityReportXML, url)
-    
+
         let identityStatus
         if (!identityReport.status.success) {
-           identityStatus = {status: 'error', message: identityReport.status.error, rawData: {}} 
+           identityStatus = {status: 'error', message: identityReport.status.error, rawData: {}}
            this.logger.debug(`Failed request data from ${PROVIDER_CREDIT_BUREAU}, error : ${identityReport.status.error}`);
         } else {
             this.logger.debug(`Received data from ${PROVIDER_CREDIT_BUREAU}: ${JSON.stringify(identityReport.status.data, null, 2)}`);
@@ -207,7 +207,7 @@ export class CIBICheckerAPI {
                 identityStatus = { status: 'pass', message: message, rawData: identityReport.status.data}
             }
         }
-        
+
         return { identityStatus, address : identityReport.address }
     }
 
@@ -225,7 +225,7 @@ export class CIBICheckerAPI {
                 }
             }
             else {
-                unparsed += this.buildUnparsed(addr) 
+                unparsed += this.buildUnparsed(addr)
                 addr.status = statusMap[addr.status]
                 addr.address_type = addressTypeMap[addr.address_type]
             }
@@ -236,7 +236,7 @@ export class CIBICheckerAPI {
 
         let id = report.Identification
         if (id) {
-            if (isArray(id)) {  
+            if (isArray(id)) {
                for (let i of id) {
                    i.status = statusMap[i.status]
                }
@@ -248,21 +248,21 @@ export class CIBICheckerAPI {
 
         let name = report.Name
         if (name) {
-            if (isArray(name)) {  
+            if (isArray(name)) {
                 for (let n of name) {
                     n.status = statusMap[n.status]
-                    n.type = nameTypeMap[n.type]  
+                    n.type = nameTypeMap[n.type]
                 }
             }
             else {
                 name.status = statusMap[name.status]
-                name.type = nameTypeMap[name.type] 
+                name.type = nameTypeMap[name.type]
             }
         }
 
         let empl = report.Employment
         if (empl) {
-            if (isArray(empl)) {  
+            if (isArray(empl)) {
                 for (let e of empl) {
                     e.status = statusMap[e.status]
                 }
@@ -281,12 +281,12 @@ export class CIBICheckerAPI {
             unparsed += addr.city + ' ';
         if (addr.unparsed_street && addr.unparsed_street.length > 0)
             unparsed += addr.unparsed_street;
-        return unparsed                     
-    }    
+        return unparsed
+    }
 
     identityWithAddress = async (data, url) => {
         let address = { unparsed : undefined }
-    
+
         let status = await this.post(data, url)
         if (status.success) {
            let data = status.data['soap:Envelope']['soap:Body'].GET_REPORTResponse.GET_REPORTResult.Answer
@@ -312,10 +312,10 @@ export class CIBICheckerAPI {
            }
            else {
                 status.error = err.message
-                status.success = false          
-           } 
+                status.success = false
+           }
         }
-      
+
         return { status , address }
     }
 
@@ -328,8 +328,8 @@ export class CIBICheckerAPI {
                     'Content-Type': 'application/soap+xml; charset=utf-8',
                 }
             });
-     
-            if (res.ok) { 
+
+            if (res.ok) {
                 let result = await res.text()
                 let parser = new xml2js.Parser({explicitArray: false, trim: true});
                 let jsonObj = parser.parseStringSync(result)
@@ -346,10 +346,11 @@ export class CIBICheckerAPI {
             return {success: false, error: err.message}
         }
     }
-     
+
 
     createCheck = async ({ application, status, form, provider, aspect, type }: ICIBICheck) => {
         let resource:any = {
+          [TYPE]: type,
           status: status.status,
           provider: provider,
           application: buildResourceStub({resource: application, models: this.bot.models}),
@@ -362,11 +363,9 @@ export class CIBICheckerAPI {
           resource.resultDetails = status.message
         if (status.rawData)
           resource.rawData = status.rawData
-    
+
         this.logger.debug(`Creating ${provider} check for ${aspect}`);
-        const check = await this.bot.draft({ type })
-            .set(resource)
-            .signAndSave()
+        await this.applications.createCheck(resource)
         this.logger.debug(`Created ${provider} check for ${aspect}`);
     }
 
@@ -381,14 +380,14 @@ export class CIBICheckerAPI {
           reference: [{ queryId: 'report:' + rawData._id }],
           rawData: rawData
         }
-    
+
         const verification = this.bot.draft({ type: VERIFICATION })
            .set({
              document: form,
              method
            })
            .toJSON()
-    
+
         await this.applications.createVerification({ application, verification })
         this.logger.debug(`Created ${provider} verification for ${aspect}`);
         if (application.checks)
@@ -406,20 +405,20 @@ export class CIBICheckerAPI {
           reference: [{ queryId: 'report:' + rawData._id }],
           rawData: rawData
         }
-    
+
         const verification = this.bot.draft({ type: VERIFICATION })
            .set({
              document: form,
              method
            })
            .toJSON()
-    
+
         await this.applications.createVerification({ application, verification })
         this.logger.debug(`Created ${provider} verification for ${aspect}`);
         if (application.checks)
             await this.applications.deactivateChecks({ application, type: ADDRESS_CHECK, form })
     }
-}        
+}
 
 export const name = 'cibiChecker'
 
@@ -428,7 +427,7 @@ export const createPlugin: CreatePlugin<CIBICheckerAPI> = ({ bot, applications }
   const plugin:IPluginLifecycleMethods = {
     onFormsCollected: async ({req}) => {
       logger.debug(`${PROVIDER_CREDIT_BUREAU}: onFormsCollected called`)
-     
+
       if (req.skipChecks) return
       const { user, application, applicant, payload } = req
 
@@ -459,10 +458,10 @@ debugger
               await documentChecker.createVerification({ application, form, rawData: negrecStatus.rawData
                                                        ,provider: PROVIDER_CREDIT_BUREAU, aspect: NEGREC_ASPECTS, type: NEGREC_CHECK })
           }
-      }  
-      
+      }
+
       let toCheckIdentity = await doesCheckNeedToBeCreated({bot, type: DOCUMENT_CHECKER_CHECK, application
-                                                           ,provider: PROVIDER_CREDIT_BUREAU, form 
+                                                           ,provider: PROVIDER_CREDIT_BUREAU, form
                                                            ,propertiesToCheck: ['firstName', 'middleName'
                                                            ,'lastName', 'dateOfBirth']
                                                            ,prop: 'form'})
@@ -470,7 +469,7 @@ debugger
       if (!toCheckIdentity) {
         logger.debug(`${PROVIDER_CREDIT_BUREAU}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
       }
-      
+
       let cibiAddressUnparsed;
       let cibiIdentityStatus;
       if (toCheckIdentity) {
@@ -481,16 +480,16 @@ debugger
             await documentChecker.createVerification({ application, form, rawData: identityStatus.rawData, provider: PROVIDER_CREDIT_BUREAU
                                                      ,aspect: IDENTITY_ASPECTS, type: DOCUMENT_CHECKER_CHECK })
         }
-              
+
         if (!address.unparsed)
             return // CIBI does not return address information
-        
-        cibiAddressUnparsed = address.unparsed 
-        cibiIdentityStatus = identityStatus   
+
+        cibiAddressUnparsed = address.unparsed
+        cibiIdentityStatus = identityStatus
       }
 
       let formAddress = form.full
-     
+
       if (formAddress && formAddress.trim().length > 0) {
         let createCheck = await doesCheckNeedToBeCreated({bot, type: ADDRESS_CHECK, application, provider: PROVIDER_CREDIT_BUREAU
                                                          ,form, propertiesToCheck: ['full', 'city'], prop: 'form'})
@@ -505,7 +504,7 @@ debugger
             if (!address.unparsed)
                return // CIBI does not return address information
             cibiAddressUnparsed = address.unparsed
-            cibiIdentityStatus = identityStatus  
+            cibiIdentityStatus = identityStatus
         }
 
         let addressTokens = formAddress.trim().replace(/\s+/g, ' ').toUpperCase().split(' ')
@@ -518,7 +517,7 @@ debugger
                                                   ,provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK})
                 return
             }
-        }    
+        }
         await documentChecker.createCheck({application, status: cibiIdentityStatus, form, provider: PROVIDER_CREDIT_BUREAU
                                           ,aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK})
         await documentChecker.createVerification({ application, form, rawData: cibiIdentityStatus.rawData, provider: PROVIDER_CREDIT_BUREAU
@@ -556,7 +555,7 @@ debugger
          if (!address.unparsed)
             return // CIBI does not return address information
          cibiAddressUnparsed = address.unparsed
-         cibiIdentityStatus = identityStatus  
+         cibiIdentityStatus = identityStatus
       }
 
       let addressTokens = combined.replace(/\s+/g, ' ').split(' ')
@@ -569,12 +568,12 @@ debugger
                                               ,provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK})
             return
         }
-      }    
+      }
       await documentChecker.createCheck({application, status: cibiIdentityStatus, form: addressForm, provider: PROVIDER_CREDIT_BUREAU
                                         ,aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK})
       await documentChecker.createVerification({ application, form: addressForm, rawData: cibiIdentityStatus.rawData
                                                ,provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK })
-    
+
     }
   }
 
@@ -611,29 +610,29 @@ export const validateConf:ValidatePluginConf = async (opts) => {
 
 
 /*
-   
-     
-    
+
+
+
         handleIdSearch = async (form, application) => {
         let idNumber = ''
         let idType = '' // 'SSS' | 'GSSS' | 'TIN'
         let idReportXML = `<?xml version="1.0" encoding="utf-8"?>
-                  \n<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                  \n<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                   \nxmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
                   <soap12:Body>
-                  <GET_REPORT xmlns="http://tempuri.org/"> 
-                  <auth_token>${this.conf.token}</auth_token><username>${this.conf.username}</username> 
+                  <GET_REPORT xmlns="http://tempuri.org/">
+                  <auth_token>${this.conf.token}</auth_token><username>${this.conf.username}</username>
                   <product>8</product>
                   <request>
                   <![CDATA[<Request><CapsInquiry><id_type>${idType}</id_type><id_number>${idNumber}</id_number></CapsInquiry></Request>]]>
                   </request>
                   </GET_REPORT></soap12:Body></soap12:Envelope>`
-                  
+
         let idReport = await this.identityWithAddress(idReportXML, REP_URL)
-    
+
         let idStatus
         if (!idReport.success) {
-            idStatus = {status: 'error', message: idReport.error, rawData: {}} 
+            idStatus = {status: 'error', message: idReport.error, rawData: {}}
             this.logger.debug(`Failed request data from ${PROVIDER_CREDIT_BUREAU}, error : ${idReport.error}`);
         } else {
             this.logger.debug(`Received data from ${PROVIDER_CREDIT_BUREAU}: ${JSON.stringify(idReport.data, null, 2)}`);
@@ -644,7 +643,7 @@ export const validateConf:ValidatePluginConf = async (opts) => {
                     idStatus = {status: 'fail', message: 'Id could not be verified.', rawData: idReport.data}
                 }
                 else {
-                    //TODO name verification 
+                    //TODO name verification
                     let message = idReport.data.Request.result_code
                     idStatus = { status: 'pass', message: message, rawData: idReport.data}
                 }
@@ -652,10 +651,10 @@ export const validateConf:ValidatePluginConf = async (opts) => {
             else {
                 let message = idReport.data.Error.message
                 idStatus = { status: 'pass', message: message, rawData: idReport.data}
-            }    
+            }
         }
         return idStatus
     }
-  
+
 
 */

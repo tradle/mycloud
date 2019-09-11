@@ -211,6 +211,7 @@ export class FacialRecognitionAPI {
     else if (status !== true) checkStatus = 'fail'
     else checkStatus = 'pass'
     let checkR: any = {
+      [TYPE]: FACIAL_RECOGNITION,
       status: checkStatus,
       provider: PROVIDER,
       aspects: 'facial similarity',
@@ -225,11 +226,7 @@ export class FacialRecognitionAPI {
     // if (error)
     if (rawData.code) checkR.resultDetails = rawData.code
 
-    const check = await this.bot
-      .draft({ type: FACIAL_RECOGNITION })
-      .set(checkR)
-      .signAndSave()
-
+    let check = await this.applications.createCheck(checkR)
     return check.toJSON()
   }
 
