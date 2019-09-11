@@ -3,7 +3,7 @@
   "stage": "dev",
   "region": "us-east-1",
   "profile": "default",
-  "emailForNotifications": "mark@tradle.io",
+  "emailForNotifications": "ellen@tradle.io",
   "blockchain": "ethereum:rinkeby",
   "thresholdThrottlingAlarm": 10,
   "thresholdErrorsAlarm": 10,

@@ -2,13 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.4-rc.17](https://github.com/tradle/mycloud/compare/v2.4.4-rc.16...v2.4.4-rc.17) (2019-09-10)
-
-
-### Features
-
-* interform conditionals project ([08dfb4d](https://github.com/tradle/mycloud/commit/08dfb4d))
-* show CPs with BA ([217cf54](https://github.com/tradle/mycloud/commit/217cf54))
+## [2.4.4-rc.19](https://github.com/tradle/mycloud/compare/v2.4.4-rc.18...v2.4.4-rc.19) (2019-09-10)
 
 
 
