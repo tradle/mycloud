@@ -10,38 +10,38 @@ const CHECK_OVERRIDE = 'tradle.CheckOverride'
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
   const plugin: IPluginLifecycleMethods = {
-    async onResourceCreated(check: any) {
-      let type = check[TYPE]
-      if (bot.models[type].subClassOf !== CHECK) return
-      if (isPassedCheck(check)) return
+    // async onResourceCreated(check: any) {
+    //   let type = check[TYPE]
+    //   if (bot.models[type].subClassOf !== CHECK) return
+    //   if (isPassedCheck(check)) return
 
-      let applicationStub = check.application
-      if (!applicationStub) return
+    //   let applicationStub = check.application
+    //   if (!applicationStub) return
 
-      let application = await bot.getResource(applicationStub, {
-        backlinks: ['checks', 'submissions']
-      })
+    //   let application = await bot.getResource(applicationStub, {
+    //     backlinks: ['checks', 'submissions']
+    //   })
 
-      if (!application.submissions || !application.submissions.length) return
-      const checkResources = await applications.getLatestChecks({ application })
-      let failedChecks = checkResources.filter(check => !isPassedCheck(check))
-      let needsUpdate
-      if (failedChecks.length) {
-        application.numberOfChecksFailed = failedChecks.length
-        application.hasFailedChecks = true
-        needsUpdate = true
-      } else {
-        if (application.numberOfChecksFailed) {
-          application.numberOfChecksFailed = 0
-          needsUpdate = true
-        }
-        if (application.hasFailedChecks) {
-          application.hasFailedChecks = false
-          needsUpdate = true
-        }
-      }
-      if (needsUpdate) await applications.updateApplication(application)
-    },
+    //   if (!application.submissions || !application.submissions.length) return
+    //   const checkResources = await applications.getLatestChecks({ application })
+    //   let failedChecks = checkResources.filter(check => !isPassedCheck(check))
+    //   let needsUpdate
+    //   if (failedChecks.length) {
+    //     application.numberOfChecksFailed = failedChecks.length
+    //     application.hasFailedChecks = true
+    //     needsUpdate = true
+    //   } else {
+    //     if (application.numberOfChecksFailed) {
+    //       application.numberOfChecksFailed = 0
+    //       needsUpdate = true
+    //     }
+    //     if (application.hasFailedChecks) {
+    //       application.hasFailedChecks = false
+    //       needsUpdate = true
+    //     }
+    //   }
+    //   if (needsUpdate) await applications.updateApplication(application)
+    // },
     async onmessage(req: IPBReq) {
       if (req.skipChecks) return
 
