@@ -114,19 +114,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
         model,
         logger
       })
-      let keys = [],
-        values = []
-      for (let p in model.properties) {
-        keys.push(p)
-        values.push(application[p] || null)
-      }
-      if (!forms[payload[TYPE]])
-        forms[payload[TYPE]] = payload
+      if (!forms[payload[TYPE]]) forms[payload[TYPE]] = payload
       allFormulas.forEach(async val => {
         let [propName, formula] = val
         let prop = model.properties[propName]
         try {
-          // let value = new Function(...keys, `return ${formula}`)(...values)
           let value = new Function('application', 'forms', `return ${formula}`)(application, forms)
           if (!value) return
           if (
@@ -143,6 +135,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
           }
           application[propName] = value
         } catch (err) {
+          logger.debug('interFormConditionals: ', err)
           debugger
         }
       })
