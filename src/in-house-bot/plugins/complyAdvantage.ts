@@ -55,6 +55,7 @@ interface IComplyCheck {
   status: any
   form: ITradleObject
   req: IPBReq
+  aspects: any
 }
 
 class ComplyAdvantageAPI {
@@ -78,9 +79,10 @@ class ComplyAdvantageAPI {
     let map = pConf.propertyMap && pConf.propertyMap[payload[TYPE]]
     if (!map) map = propertyMap && propertyMap[payload[TYPE]]
     debugger
+    let aspects
     let isPerson = (criteria && criteria.entity_type === 'person') || isPersonForm(payload)
-    if (!criteria || !criteria.filter.types) ASPECTS += ' sanctions'
-    else ASPECTS += criteria.filter.types.join(', ')
+    if (!criteria || !criteria.filter.types) aspects = ASPECTS + 'sanctions'
+    else aspects = ASPECTS + criteria.filter.types.join(', ')
     // debugger
     // if (await doesCheckExist({bot: this.bot, type: SANCTIONS_CHECK, eq: {form: payload._link}, application, provider: PROVIDER}))
     //   return
@@ -128,7 +130,7 @@ class ComplyAdvantageAPI {
           message: !dateOfBirth && 'No date of birth was provided'
           // message: `Sanctions check for "${name}" failed.` + (!dateOfBirth  &&  ' No registration date was provided')
         }
-        await this.createCheck({ application, rawData: {}, status, form: payload, req })
+        await this.createCheck({ application, rawData: {}, status, form: payload, req, aspects })
         return
       }
       if (firstName.length === 1 && lastName.length === 1) {
@@ -138,7 +140,7 @@ class ComplyAdvantageAPI {
           message: 'Bad criteria: one letter first and last names'
           // message: `Sanctions check for "${name}" failed.` + (!dateOfBirth  &&  ' No registration date was provided')
         }
-        await this.createCheck({ application, rawData: {}, status, form: payload, req })
+        await this.createCheck({ application, rawData: {}, status, form: payload, req, aspects })
         return
       }
       name = firstName + ' ' + lastName
@@ -161,7 +163,7 @@ class ComplyAdvantageAPI {
           status: 'fail',
           message: !registrationDate && ' No registration date was provided'
         }
-        await this.createCheck({ application, rawData: {}, status, form: payload, req })
+        await this.createCheck({ application, rawData: {}, status, form: payload, req, aspects })
         return
       }
     }
@@ -170,7 +172,9 @@ class ComplyAdvantageAPI {
     let pchecks = []
     let { rawData, hits, status } = r
     if (rawData.status === 'failure') {
-      pchecks.push(this.createCheck({ application, rawData, status: 'fail', form: payload, req }))
+      pchecks.push(
+        this.createCheck({ application, rawData, status: 'fail', form: payload, req, aspects })
+      )
     } else {
       let hasVerification
       if (hits && hits.length)
@@ -179,7 +183,7 @@ class ComplyAdvantageAPI {
         hasVerification = true
         this.logger.debug(`${PROVIDER} creating verification for: ${companyName || name}`)
       }
-      pchecks.push(this.createCheck({ application, rawData, status, form: payload, req }))
+      pchecks.push(this.createCheck({ application, rawData, status, form: payload, req, aspects }))
       if (hasVerification)
         pchecks.push(this.createVerification({ user, application, form: payload, rawData }))
     }
@@ -262,7 +266,14 @@ class ComplyAdvantageAPI {
     return hits && { rawData, status, hits }
   }
 
-  public createCheck = async ({ application, rawData, status, form, req }: IComplyCheck) => {
+  public createCheck = async ({
+    application,
+    rawData,
+    status,
+    form,
+    req,
+    aspects
+  }: IComplyCheck) => {
     let dateStr = rawData.updated_at
     let date
     if (dateStr) date = Date.parse(dateStr) - new Date().getTimezoneOffset() * 60 * 1000
@@ -274,7 +285,7 @@ class ComplyAdvantageAPI {
       provider: PROVIDER,
       application,
       dateChecked: date, //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
-      aspects: ASPECTS,
+      aspects,
       form
     }
 
