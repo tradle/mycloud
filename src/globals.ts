@@ -21,9 +21,9 @@ import { requestInterceptor } from './request-interceptor'
 
 const warn = (...args) => {
   // no need to pollute with this anymore
-  if (!process.env.IS_OFFLINE) {
-    console.warn(...args)
-  }
+  // if (!process.env.IS_OFFLINE) {
+  //   console.warn(...args)
+  // }
 }
 
 if (!process.env.IS_OFFLINE) {
