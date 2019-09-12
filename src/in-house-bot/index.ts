@@ -685,7 +685,7 @@ export const loadComponentsAndPlugins = ({
         'documentValidity',
         'fill-myproduct',
         'checkOverride',
-        // 'regulatorRegistration'
+        'regulatorRegistration'
       ].forEach(name => attachPlugin({ name, requiresConf: false }))
 
     // used for some demo

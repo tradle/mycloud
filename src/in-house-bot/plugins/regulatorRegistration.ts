@@ -29,7 +29,7 @@ import Errors from '../../errors'
 import AWS from 'aws-sdk'
 import _ from 'lodash'
 import util from 'util'
-import remapKeys from 'remap-keys'
+//import remapKeys from 'remap-keys'
 
 //const ATHENA_DB = 'sec'
 //const ATHENA_OUTPUT_LOCATION = 's3://jacob.gins.athena/temp/'
@@ -292,8 +292,8 @@ export class RegulatorRegistrationAPI {
       }
     } else {
       // remap to form properties
-      let found = remapKeys(find.data[0], subject.map)
-      this.logger.debug(`regulatorRegistration check() found ${found}`)
+      //let found = remapKeys(find.data[0], subject.map)
+      //this.logger.debug(`regulatorRegistration check() found ${found}`)
 
       status = { status: 'pass' }
     }
