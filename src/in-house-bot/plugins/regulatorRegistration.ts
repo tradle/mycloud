@@ -356,18 +356,18 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   // debugger
   const plugin: IPluginLifecycleMethods = {
     async onmessage(req: IPBReq) {
-      this.logger.debug('regulatorRegistration called onmessage')
+      logger.debug('regulatorRegistration called onmessage')
       if (req.skipChecks) return
       const { user, application, payload } = req
       if (!application) return
 
       let subject = regulatorRegistrationAPI.mapToSubject(payload[TYPE])
       if (!subject) return
-      this.logger.debug(`regulatorRegistration called for subject ${subject}`)
+      logger.debug(`regulatorRegistration called for subject ${subject}`)
 
       if (!payload[subject.check]) return
 
-      this.logger.debug('regulatorRegistration before doesCheckNeedToBeCreated')
+      logger.debug('regulatorRegistration before doesCheckNeedToBeCreated')
       let createCheck = await doesCheckNeedToBeCreated({
         bot,
         type: REGULATOR_REGISTRATION_CHECK,
@@ -377,7 +377,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         propertiesToCheck: [subject.check],
         prop: 'form'
       })
-      this.logger.debug(`'regulatorRegistration after doesCheckNeedToBeCreated with createCheck=${createCheck}`)
+      logger.debug(`'regulatorRegistration after doesCheckNeedToBeCreated with createCheck=${createCheck}`)
 
       if (!createCheck) return
       let r = await regulatorRegistrationAPI.check({ subject, form: payload, application, req })
