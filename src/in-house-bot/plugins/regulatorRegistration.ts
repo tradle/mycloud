@@ -28,6 +28,9 @@ import Errors from '../../errors'
 
 import AWS from 'aws-sdk'
 import _ from 'lodash'
+import util from 'util'
+import remapKeys from 'remap-keys'
+
 //const ATHENA_DB = 'sec'
 //const ATHENA_OUTPUT_LOCATION = 's3://jacob.gins.athena/temp/'
 const POLL_INTERVAL = 250
@@ -39,8 +42,75 @@ const REGULATOR_REGISTRATION_CHECK = 'tradle.RegulatorRegistrationCheck'
 const PROVIDER = 'https://catalog.data.gov'
 const ASPECTS = 'registration with FINRA'
 // const FORM_ID = 'io.lenka.BSAPI102a'
-const FORM_ID_US = 'com.cvb.BSAPI102a'
-const FORM_ID_GB = 'com.svb.BSAPI102FCAPSDFirms'
+
+const FORM_ID = 'com.cvb.BSAPI102a'
+
+const FORM_ID_US_firm_sec_feed = 'com.cvb.BSAPI102a'
+const FORM_ID_GB_firms_psd_perm = 'com.svb.BSAPI102FCAPSDFirms'
+const FORM_ID_GB_e_money_firms = 'com.svb.BSAPI102FCAPSDeMoneyInstitutions'
+const FORM_ID_GB_emd_agents = 'com.svb.BSAPI102FCAPSDAgent'
+const FORM_ID_GB_credit_institutions = 'com.svb.BSAPI102FCAPSDCreditInstitutions'
+
+const SecGlueTable = {
+  map: { firmcrdnb: 'registrationNumber' },
+  check: 'registrationNumber',
+  query: 'select info.firmcrdnb from firm_sec_feed where info.firmcrdnb = \'%s\''
+}
+
+const FirmsPsdPermGlueTable = {
+  map: {
+    frn: 'frn',
+    firm: 'firm',
+    'psd firm status': 'psdFirmStatus',
+    'psd agent status': 'psdAgentStatus',
+    'authorisation status': 'authorisationStatus',
+    'effective date': 'effectiveDate'
+  },
+  check: 'frn',
+  query: 'select * from firms_psd_perm where frn = %s'
+}
+
+const EMoneyFirmsGlueTable = {
+  map: {
+    frn: 'frn',
+    firm: 'firm',
+    'emoney register status': 'eMoneyRegisterStatus',
+    'authorisation status': 'authorisationStatus',
+    'effective date': 'effectiveDate'
+  },
+  check: 'frn',
+  query: 'select * from e_money_firms where frn = %s'
+}
+
+const EmdAgentsGlueTable = {
+  map: {
+    'frn': 'frn',
+    'firm': 'firm',
+    'e-money agent status': 'psdFirmStatus',
+    'e-money agent effective date': 'effectiveDate'
+  },
+  check: 'frn',
+  query: 'select * from emd_agents where frn = %s'
+}
+
+const CreditInstitutionsGlueTable = {
+  map: {
+    frn: 'frn',
+    firm: 'firm',
+    'authorisation status': 'authorisationStatus',
+    'effective date': 'effectiveDate'
+  },
+  check: 'frn',
+  query: 'select * from credit_institutions where frn = %s'
+}
+
+const typeMap = {
+  FORM_ID_US_firm_sec_feed: SecGlueTable,
+  FORM_ID_GB_firms_psd_perm: FirmsPsdPermGlueTable,
+  FORM_ID_GB_e_money_firms: EMoneyFirmsGlueTable,
+  FORM_ID_GB_emd_agents: EmdAgentsGlueTable,
+  FORM_ID_GB_credit_institutions: CreditInstitutionsGlueTable
+}
 
 // export const name = 'broker-match'
 interface IRegCheck {
@@ -79,7 +149,9 @@ export class RegulatorRegistrationAPI {
     return new Promise((resolve, reject) => {
       const outputLocation = 's3://' + this.bot.buckets.PrivateConf.id + '/temp'
       this.logger.debug(`regulatorRegistration: ${outputLocation}`)
+      this.logger.debug(`regulatorRegistration getExecutionId with ${sql}`)
       const database = this.bot.env.getStackResourceName('sec')
+      this.logger.debug(`regulatorRegistration getExecutionId in db ${database}`)
       let params = {
         QueryString: sql,
         ResultConfiguration: { OutputLocation: outputLocation },
@@ -118,14 +190,9 @@ export class RegulatorRegistrationAPI {
     })
   }
 
-  public queryAthena = async (crd: string, country: string) => {
+  public queryAthena = async (sql: string) => {
     let id
-    let sql
-    if (country == 'us')
-      sql = `select info.legalnm, info.busnm, info.firmcrdnb, info.secnb from firm_sec_feed
-             where info.firmcrdnb = \'${crd}\'`
-    else
-      sql = `select firm from firm_psd_perm where frn = \'${crd}\'`
+    this.logger.debug(`regulatorRegistration queryAthena() called with sql ${sql}`)
 
     try {
       id = await this.getExecutionId(sql)
@@ -181,15 +248,36 @@ export class RegulatorRegistrationAPI {
     }
   }
 
-  public async check({ form, application }) {
+  public mapToSubject = (type) => {
+    let subject
+    switch (type) {
+      case FORM_ID_US_firm_sec_feed:
+        subject = typeMap.FORM_ID_US_firm_sec_feed
+        break;
+      case FORM_ID_GB_firms_psd_perm:
+        subject = typeMap.FORM_ID_GB_firms_psd_perm
+        break;
+      case FORM_ID_GB_e_money_firms:
+        subject = typeMap.FORM_ID_GB_e_money_firms
+        break;
+      case FORM_ID_GB_emd_agents:
+        subject = typeMap.FORM_ID_GB_emd_agents
+        break;
+      case FORM_ID_GB_credit_institutions:
+        subject = typeMap.FORM_ID_GB_credit_institutions
+        break;
+      default:
+        subject = null;
+    }
+    return subject
+  }
+
+  public async check({ subject, form, application }) {
     let status
-    let formRegistrationNumber
-    let country: string = form[TYPE] == FORM_ID_US ? 'us' : 'gb'
-    if (form[TYPE] == FORM_ID_US)
-      formRegistrationNumber = form.registrationNumber.replace(/-/g, '').replace(/^0+/, '') // '133693';
-    else
-      formRegistrationNumber = form.frn.replace(/-/g, '').replace(/^0+/, '') // '827161';  
-    let find = await this.queryAthena(formRegistrationNumber, country)
+    let formRegistrationNumber = form[subject.check].replace(/-/g, '').replace(/^0+/, '') // '133693';
+    this.logger.debug(`regulatorRegistration check() called with number ${formRegistrationNumber}`)
+    let sql = util.format(subject.query, formRegistrationNumber)
+    let find = await this.queryAthena(sql)
     let rawData
     if (find.status == false) {
       status = {
@@ -200,21 +288,13 @@ export class RegulatorRegistrationAPI {
     } else if (find.data.length == 0) {
       status = {
         status: 'fail',
-        message: `Company with CRD ${formRegistrationNumber} is not found`
+        message: `Company with provided number ${formRegistrationNumber} is not found`
       }
     } else {
-      // firmcrdnb=133693, secnb=801-73527, busnm=H/2 CAPITAL PARTNERS, legalnm=H/2 CREDIT MANAGER LP
-      //let secNumber = find.data.secnb
-      //let name = find.data.busnm
-      //let legalname = find.data.legalnm
-      // let companyName = form.companyName
-      // if (name != companyName && legalname != companyName) {
-      //status = {
-      //status: 'fail',
-      //message: `Company name for CRD ${formRegistrationNumber} does not match`
-      //}
-      //}
-      //else
+      // remap to form properties
+      let found = remapKeys(find.data[0], subject.map)
+      this.logger.debug(`regulatorRegistration check() found ${found}`)
+
       status = { status: 'pass' }
     }
 
@@ -276,23 +356,31 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   // debugger
   const plugin: IPluginLifecycleMethods = {
     async onmessage(req: IPBReq) {
+      this.logger.debug('regulatorRegistration called onmessage')
       if (req.skipChecks) return
       const { user, application, payload } = req
       if (!application) return
-      if (payload[TYPE] !== FORM_ID_US && payload[TYPE] !== FORM_ID_GB) return
-      if (!payload.registrationNumber && !payload.frn) return
 
+      let subject = regulatorRegistrationAPI.mapToSubject(payload[TYPE])
+      this.logger.debug(`regulatorRegistration called for subject ${subject}`)
+      if (!subject) return
+
+      if (!payload[subject.check]) return
+
+      this.logger.debug('regulatorRegistration before doesCheckNeedToBeCreated')
       let createCheck = await doesCheckNeedToBeCreated({
         bot,
         type: REGULATOR_REGISTRATION_CHECK,
         application,
         provider: PROVIDER,
         form: payload,
-        propertiesToCheck: ['registrationNumber'],
+        propertiesToCheck: [subject.check],
         prop: 'form'
       })
+      this.logger.debug(`'regulatorRegistration after doesCheckNeedToBeCreated with createCheck=${createCheck}`)
+
       if (!createCheck) return
-      let r = await regulatorRegistrationAPI.check({ form: payload, application })
+      let r = await regulatorRegistrationAPI.check({ subject, form: payload, application })
     }
   }
   return { plugin }

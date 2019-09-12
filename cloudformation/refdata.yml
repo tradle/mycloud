@@ -66,7 +66,7 @@ Resources:
           NumberOfBuckets: -1
           StoredAsSubDirectories: false
 
-  PsdGlueTable:
+  FirmsPsdPermGlueTable:
     Type: 'AWS::Glue::Table'
     Properties:
       DatabaseName:
@@ -74,7 +74,7 @@ Resources:
       CatalogId:
         Ref: 'AWS::AccountId'
       TableInput:
-        Name: firm_psd_perm
+        Name: firms_psd_perm
         TableType: EXTERNAL_TABLE
         StorageDescriptor:      
           OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
@@ -113,8 +113,163 @@ Resources:
               - ''
               - - 's3://'
                 - Ref: PrivateConfBucket
-                - '/refdata/gb/'
+                - '/refdata/gb/firms_psd_perm/'
           NumberOfBuckets: -1
           StoredAsSubDirectories: false
           Compressed: true
+  
+  EMoneyFirmsGlueTable:
+    Type: 'AWS::Glue::Table'
+    Properties:
+      DatabaseName:
+        Ref: SecGlueDatabase
+      CatalogId:
+        Ref: 'AWS::AccountId'
+      TableInput:
+        Name: e_money_firms
+        TableType: EXTERNAL_TABLE
+        StorageDescriptor:      
+          Columns:
+            - Name: frn
+              Type: bigint
+            - Name: firm
+              Type: string
+            - Name: emoney register status
+              Type: string
+            - Name: authorisation status
+              Type: string
+            - Name: effective date
+              Type: string
+          Location: 
+              Fn::Join:
+              - ''
+              - - 's3://'
+                - Ref: PrivateConfBucket
+                - '/refdata/gb/e_money_firms/'
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          Compressed: true
+          NumberOfBuckets: -1
+          StoredAsSubDirectories: 'false'
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+            Parameters:
+              field.delim: ","
+          BucketColumns: []
+          SortColumns: []
+          Parameters:
+            skip.header.line.count: '1'
+            sizeKey: '11431'
+            objectCount: '1'
+            recordCount: '184'
+            averageRecordSize: '86'
+            compressionType: gzip
+            classification: csv
+            columnsOrdered: 'true'
+            areColumnsQuoted: 'false'
+            delimiter: ","
+            typeOfData: file
+
+  EmdAgentsGlueTable:
+    Type: 'AWS::Glue::Table'
+    Properties:
+      DatabaseName:
+        Ref: SecGlueDatabase
+      CatalogId:
+        Ref: 'AWS::AccountId'
+      TableInput:
+        Name: emd_agents
+        TableType: EXTERNAL_TABLE
+        StorageDescriptor: 
+          Columns:
+            - Name: frn
+              Type: bigint
+            - Name: firm
+              Type: string
+            - Name: e-money agent status
+              Type: string
+            - Name: e-money agent effective date
+              Type: string
+          Location: 
+            Fn::Join:
+              - ''
+              - - 's3://'
+                - Ref: PrivateConfBucket
+                - '/refdata/gb/emd_agents/'
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          Compressed: 'true'
+          NumberOfBuckets: -1
+          StoredAsSubDirectories: 'false'
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+            Parameters:
+              field.delim: ","
+          BucketColumns: []
+          SortColumns: []
+          Parameters:
+            skip.header.line.count: '1'
+            sizeKey: '3115'
+            objectCount: '1'
+            recordCount: '64'
+            averageRecordSize: '57'
+            compressionType: gzip
+            classification: csv
+            columnsOrdered: 'true'
+            areColumnsQuoted: 'false'
+            delimiter: ","
+            typeOfData: file
+
+  CreditInstitutionsGlueTable:
+    Type: 'AWS::Glue::Table'
+    Properties:
+      DatabaseName:
+        Ref: SecGlueDatabase
+      CatalogId:
+        Ref: 'AWS::AccountId'
+      TableInput:
+        Name: credit_institutions
+        TableType: EXTERNAL_TABLE
+        StorageDescriptor:
+          Columns:
+            - Name: frn
+              Type: bigint
+            - Name: firm
+              Type: string
+            - Name: authorisation status
+              Type: string
+            - Name: effective date
+              Type: date
+            - Name: expiration date
+              Type: date
+          Location: 
+            Fn::Join:
+              - ''
+              - - 's3://'
+                - Ref: PrivateConfBucket
+                - '/refdata/gb/credit_institutions/'
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          Compressed: 'true'
+          NumberOfBuckets: -1
+          StoredAsSubDirectories: 'false'
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+            Parameters:
+              field.delim: ","
+          BucketColumns: []
+          SortColumns: []
+          Parameters:
+            skip.header.line.count: '1'
+            sizeKey: '41065'
+            objectCount: '1'
+            recordCount: '687'
+            averageRecordSize: '61'
+            compressionType: gzip
+            classification: csv
+            columnsOrdered: 'true'
+            areColumnsQuoted: 'false'
+            delimiter: ","
+            typeOfData: file
+        
   
