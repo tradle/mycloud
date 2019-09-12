@@ -274,7 +274,7 @@ export class RegulatorRegistrationAPI {
   }
   public async check({ subject, form, application, req }) {
     let status
-    let formRegistrationNumber = form[subject.check].replace(/-/g, '').replace(/^0+/, '') // '133693';
+    let formRegistrationNumber = form[subject.check] //.replace(/-/g, '').replace(/^0+/, '') // '133693';
     this.logger.debug(`regulatorRegistration check() called with number ${formRegistrationNumber}`)
     let sql = util.format(subject.query, formRegistrationNumber)
     let find = await this.queryAthena(sql)
