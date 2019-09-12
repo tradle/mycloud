@@ -144,6 +144,26 @@ Resources:
           AttributeType: S
         - AttributeName: __x4r__
           AttributeType: S
+        - AttributeName: __x5h__
+          AttributeType: S
+        - AttributeName: __x5r__
+          AttributeType: S
+        - AttributeName: __x6h__
+          AttributeType: S
+        - AttributeName: __x6r__
+          AttributeType: S
+        - AttributeName: __x7h__
+          AttributeType: S
+        - AttributeName: __x7r__
+          AttributeType: S
+        - AttributeName: __x8h__
+          AttributeType: S
+        - AttributeName: __x8r__
+          AttributeType: S
+        - AttributeName: __x9h__
+          AttributeType: S
+        - AttributeName: __x9r__
+          AttributeType: S
       KeySchema:
         - AttributeName: __h__
           KeyType: HASH
@@ -211,6 +231,76 @@ Resources:
             - AttributeName: __x4h__
               KeyType: HASH
             - AttributeName: __x4r__
+              KeyType: RANGE
+          Projection:
+            ProjectionType: KEYS_ONLY
+          ProvisionedThroughput:
+            Fn::If:
+              - DoProvisionDynamoDBScaling
+              - ReadCapacityUnits: 10
+                WriteCapacityUnits: 10
+              - Ref: "AWS::NoValue"
+        - IndexName: idx5
+          KeySchema:
+            - AttributeName: __x5h__
+              KeyType: HASH
+            - AttributeName: __x5r__
+              KeyType: RANGE
+          Projection:
+            ProjectionType: KEYS_ONLY
+          ProvisionedThroughput:
+            Fn::If:
+              - DoProvisionDynamoDBScaling
+              - ReadCapacityUnits: 10
+                WriteCapacityUnits: 10
+              - Ref: "AWS::NoValue"
+        - IndexName: idx6
+          KeySchema:
+            - AttributeName: __x6h__
+              KeyType: HASH
+            - AttributeName: __x6r__
+              KeyType: RANGE
+          Projection:
+            ProjectionType: KEYS_ONLY
+          ProvisionedThroughput:
+            Fn::If:
+              - DoProvisionDynamoDBScaling
+              - ReadCapacityUnits: 10
+                WriteCapacityUnits: 10
+              - Ref: "AWS::NoValue"
+        - IndexName: idx7
+          KeySchema:
+            - AttributeName: __x7h__
+              KeyType: HASH
+            - AttributeName: __x7r__
+              KeyType: RANGE
+          Projection:
+            ProjectionType: KEYS_ONLY
+          ProvisionedThroughput:
+            Fn::If:
+              - DoProvisionDynamoDBScaling
+              - ReadCapacityUnits: 10
+                WriteCapacityUnits: 10
+              - Ref: "AWS::NoValue"
+        - IndexName: idx8
+          KeySchema:
+            - AttributeName: __x8h__
+              KeyType: HASH
+            - AttributeName: __x8r__
+              KeyType: RANGE
+          Projection:
+            ProjectionType: KEYS_ONLY
+          ProvisionedThroughput:
+            Fn::If:
+              - DoProvisionDynamoDBScaling
+              - ReadCapacityUnits: 10
+                WriteCapacityUnits: 10
+              - Ref: "AWS::NoValue"
+        - IndexName: idx9
+          KeySchema:
+            - AttributeName: __x9h__
+              KeyType: HASH
+            - AttributeName: __x9r__
               KeyType: RANGE
           Projection:
             ProjectionType: KEYS_ONLY
