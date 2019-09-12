@@ -362,8 +362,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!application) return
 
       let subject = regulatorRegistrationAPI.mapToSubject(payload[TYPE])
-      this.logger.debug(`regulatorRegistration called for subject ${subject}`)
       if (!subject) return
+      this.logger.debug(`regulatorRegistration called for subject ${subject}`)
 
       if (!payload[subject.check]) return
 
