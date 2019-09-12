@@ -100,7 +100,7 @@ export class Applications implements IHasModels {
     this.logger = bot.logger.sub('applications')
   }
 
-  public createCheck = async props => {
+  public createCheck = async (props, req) => {
     const { bot, productsAPI } = this
     const { models } = bot
     const type = props[TYPE]
@@ -108,10 +108,39 @@ export class Applications implements IHasModels {
       throw new Error('expected type and "application"')
     }
 
-    return await bot
+    let check = await bot
       .draft({ type })
       .set(props)
       .signAndSave()
+
+    let checkResource = check.toJSON()
+    let { application, latestChecks } = req
+    if (!latestChecks) {
+      latestChecks = await this.getLatestChecks({ application })
+      req.latestChecks = latestChecks
+    }
+    let idx = latestChecks.findIndex(c => c[TYPE] === props[TYPE])
+    if (idx !== -1) latestChecks.splice(idx, 1)
+    latestChecks.push(checkResource)
+
+    let failedChecks = latestChecks.filter(check => !isPassedCheck(check))
+    if (failedChecks.length) {
+      application.numberOfChecksFailed = failedChecks.length
+      application.hasFailedChecks = true
+      application.hasFailedSanctionsChecks =
+        failedChecks.findIndex(check => check[TYPE] === 'tradle.SanctionsCheck') !== -1
+      application.hasFailedDocumentValidityChecks =
+        failedChecks.findIndex(check => check[TYPE] === 'tradle.DocumentValidityCheck') !== -1
+    } else {
+      if (application.numberOfChecksFailed) {
+        application.numberOfChecksFailed = 0
+      }
+      if (application.hasFailedChecks) {
+        application.hasFailedChecks = false
+      }
+    }
+
+    return check
   }
 
   public updateCheck = async (opts: UpdateResourceOpts) => {

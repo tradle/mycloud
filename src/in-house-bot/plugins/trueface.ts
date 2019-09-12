@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import querystring from 'querystring'
-import FormData from 'form-data';
-import Embed from '@tradle/embed';
+import FormData from 'form-data'
+import Embed from '@tradle/embed'
 import buildResource from '@tradle/build-resource'
 import constants from '@tradle/constants'
 import {
@@ -14,12 +14,12 @@ import {
   IPBReq,
   ITradleObject,
   IConfComponents,
-  ValidatePluginConf,
+  ValidatePluginConf
 } from '../types'
 import {
   getStatusMessageForCheck,
   ensureThirdPartyServiceConfigured,
-  getThirdPartyServiceInfo,
+  getThirdPartyServiceInfo
 } from '../utils'
 
 import Errors from '../../errors'
@@ -50,21 +50,21 @@ type ITruefaceConf = {
   threshold?: string
   products: any
 }
-  // Conf sample:
-  //
-  //     "trueface": {
-  //       "url": "http://0.0.0.0:7999",
-  //       "token": "",
-  //       "products": {
-  //         "nl.tradle.DigitalPassport": [
-  //           "tradle.Selfie"
-  //         ]
-  //       }
-  //     },
+// Conf sample:
+//
+//     "trueface": {
+//       "url": "http://0.0.0.0:7999",
+//       "token": "",
+//       "products": {
+//         "nl.tradle.DigitalPassport": [
+//           "tradle.Selfie"
+//         ]
+//       }
+//     },
 
 export class TruefaceAPI {
-  private bot:Bot
-  private logger:Logger
+  private bot: Bot
+  private logger: Logger
   private applications: Applications
   private conf: ITruefaceConf
   constructor({ bot, applications, logger, conf }) {
@@ -74,13 +74,13 @@ export class TruefaceAPI {
     this.conf = conf
   }
 
-  public prepCheck = async(payload:ITradleObject, application) => {
+  public prepCheck = async (payload: ITradleObject, application) => {
     let payloadType = payload[TYPE]
     const props = this.bot.models[payloadType].properties
     let propertiesToCheck
     for (let p in payload) {
       let prop = props[p]
-      if (prop  &&  prop.ref === 'tradle.Photo') {
+      if (prop && prop.ref === 'tradle.Photo') {
         propertiesToCheck = p
         break
       }
@@ -92,10 +92,7 @@ export class TruefaceAPI {
     }
     return { propToCheck: propertiesToCheck, resource }
   }
-  public checkForSpoof = async ({ image, application }: {
-    image: string
-    application: IPBApp
-  }) => {
+  public checkForSpoof = async ({ image, application }: { image: string; application: IPBApp }) => {
     let rawData: any, error, message
     // call whatever API with whatever params
     let url = `${this.conf.apiUrl}/spdetect`
@@ -106,26 +103,23 @@ export class TruefaceAPI {
       img: buf.toString('base64')
     }
 
-// debugger
+    // debugger
     let status
     try {
       rawData = await post(url, data, {
         headers: {
           'x-auth': this.conf.token,
-          'Authorization': this.conf.apiKey,
+          Authorization: this.conf.apiKey
         },
-        timeout: REQUEST_TIMEOUT,
+        timeout: REQUEST_TIMEOUT
       })
-      this.logger.debug('Trueface spoof detection:', rawData);
+      this.logger.debug('Trueface spoof detection:', rawData)
       if (rawData.success) {
-        if (rawData.data.score < (this.conf.threshold  ||  0.7))
-          status = 'fail'
-        else
-          status = 'pass'
+        if (rawData.data.score < (this.conf.threshold || 0.7)) status = 'fail'
+        else status = 'pass'
         return { status, rawData, error }
-      }
-      else {
-        return {status: rawData.status, rawData: {}, error: rawData}
+      } else {
+        return { status: rawData.status, rawData: {}, error: rawData }
       }
     } catch (err) {
       debugger
@@ -135,10 +129,11 @@ export class TruefaceAPI {
     }
   }
 
-  public createCheck = async ({ status, resource, rawData, application, error }) => {
+  public createCheck = async ({ status, resource, rawData, application, error, req }) => {
     let models = this.bot.models
     let { message, data } = rawData
-    let checkR:any = {
+    let checkR: any = {
+      [TYPE]: TRUEFACE_CHECK,
       status,
       provider: PROVIDER,
       aspects: 'Spoof detection',
@@ -148,36 +143,39 @@ export class TruefaceAPI {
       dateChecked: new Date().getTime()
     }
     // debugger
-    checkR.message = getStatusMessageForCheck({models: this.bot.models, check: checkR})
-    this.logger.debug('Trueface spoof detection:', checkR.message);
+    checkR.message = getStatusMessageForCheck({ models: this.bot.models, check: checkR })
+    this.logger.debug('Trueface spoof detection:', checkR.message)
     // if (error)
-    checkR.livenessScore = data  &&  data.score || 0
+    checkR.livenessScore = (data && data.score) || 0
 
-    const check = await this.bot.draft({ type: TRUEFACE_CHECK })
-      .set(checkR)
-      .signAndSave()
+    let check = await this.applications.createCheck(checkR, req)
 
     return check.toJSON()
   }
 
   public createVerification = async ({ user, application, resource }) => {
-    const method:any = {
+    const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: _.clone(NTECH_API_RESOURCE),
       aspect: ASPECTS,
       reference: [{ queryId: 'n/a' }]
     }
 
-    const verification = this.bot.draft({ type: VERIFICATION })
-       .set({
-         document: resource,
-         method
-       })
-       .toJSON()
+    const verification = this.bot
+      .draft({ type: VERIFICATION })
+      .set({
+        document: resource,
+        method
+      })
+      .toJSON()
 
     await this.applications.createVerification({ application, verification })
     if (application.checks)
-      await this.applications.deactivateChecks({ application, type: TRUEFACE_CHECK, form: resource })
+      await this.applications.deactivateChecks({
+        application,
+        type: TRUEFACE_CHECK,
+        form: resource
+      })
   }
 }
 
@@ -191,33 +189,29 @@ export const createPlugin: CreatePlugin<TruefaceAPI> = (components, pluginOpts) 
     logger,
     conf: {
       ...getThirdPartyServiceInfo(components.conf, 'trueface'),
-      ...conf,
-    },
+      ...conf
+    }
   })
 
-  const plugin:IPluginLifecycleMethods = {
-    onmessage: async function(req: IPBReq) {
-    // onFormsCollected: async ({ req, user, application }) => {
+  const plugin: IPluginLifecycleMethods = {
+    async onmessage(req: IPBReq) {
+      // onFormsCollected: async ({ req, user, application }) => {
       if (req.skipChecks) return
       const { user, application, applicant, payload } = req
       if (!application) return
       let productId = application.requestFor
       let { products } = conf
-      if (!products  ||  !products[productId])
-        return
+      if (!products || !products[productId]) return
       let payloadType = payload[TYPE]
-      if (products[productId].indexOf(payloadType) === -1)
-        return
+      if (products[productId].indexOf(payloadType) === -1) return
 
       // if (await doesCheckExist({bot, type: TRUEFACE_CHECK, eq: {form: payload._link}, application, provider: PROVIDER}))
       //   return
 
       let result = await trueface.prepCheck(payload, application)
-      if (!result)
-        return
+      if (!result) return
       let { propToCheck, resource } = result
-      if (!propToCheck)
-        return
+      if (!propToCheck) return
 
       // const resource = await trueface.checkResource(application, payload, propToCheck)
       // if (!resource) return
@@ -229,10 +223,17 @@ export const createPlugin: CreatePlugin<TruefaceAPI> = (components, pluginOpts) 
         application
       })
 
-      const promiseCheck = trueface.createCheck({status, resource, rawData, error, application})
+      const promiseCheck = trueface.createCheck({
+        status,
+        resource,
+        rawData,
+        error,
+        application,
+        req
+      })
       const pchecks = [promiseCheck]
       if (status === 'pass') {
-        const promiseVerification = trueface.createVerification({user, application, resource})
+        const promiseVerification = trueface.createVerification({ user, application, resource })
         pchecks.push(promiseVerification)
       }
 
@@ -246,7 +247,7 @@ export const createPlugin: CreatePlugin<TruefaceAPI> = (components, pluginOpts) 
   }
 }
 
-export const validateConf:ValidatePluginConf = async (opts) => {
+export const validateConf: ValidatePluginConf = async opts => {
   ensureThirdPartyServiceConfigured(opts.conf, 'trueface')
 
   const pluginConf = opts.pluginConf as ITruefaceConf

@@ -118,6 +118,7 @@ interface IRegCheck {
   status: any
   form: ITradleObject
   rawData?: any
+  req: IPBReq
 }
 
 export class RegulatorRegistrationAPI {
@@ -271,8 +272,7 @@ export class RegulatorRegistrationAPI {
     }
     return subject
   }
-
-  public async check({ subject, form, application }) {
+  public async check({ subject, form, application, req }) {
     let status
     let formRegistrationNumber = form[subject.check].replace(/-/g, '').replace(/^0+/, '') // '133693';
     this.logger.debug(`regulatorRegistration check() called with number ${formRegistrationNumber}`)
@@ -298,10 +298,10 @@ export class RegulatorRegistrationAPI {
       status = { status: 'pass' }
     }
 
-    await this.createCheck({ application, status, form, rawData })
+    await this.createCheck({ application, status, form, rawData, req })
     if (status.status === 'pass') await this.createVerification({ application, form })
   }
-  public createCheck = async ({ application, status, form, rawData }: IRegCheck) => {
+  public createCheck = async ({ application, status, form, rawData, req }: IRegCheck) => {
     // debugger
     let resource: any = {
       [TYPE]: REGULATOR_REGISTRATION_CHECK,
@@ -318,7 +318,7 @@ export class RegulatorRegistrationAPI {
     if (rawData)
       resource.rawData = rawData
     this.logger.debug(`${PROVIDER} Creating RegulatorRegistrationCheck`)
-    await this.applications.createCheck(resource)
+    await this.applications.createCheck(resource, req)
     this.logger.debug(`${PROVIDER} Created RegulatorRegistrationCheck`)
   }
 
@@ -380,7 +380,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       this.logger.debug(`'regulatorRegistration after doesCheckNeedToBeCreated with createCheck=${createCheck}`)
 
       if (!createCheck) return
-      let r = await regulatorRegistrationAPI.check({ subject, form: payload, application })
+      let r = await regulatorRegistrationAPI.check({ subject, form: payload, application, req })
     }
   }
   return { plugin }

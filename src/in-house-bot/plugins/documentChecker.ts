@@ -36,7 +36,7 @@ const { VERIFICATION } = constants.TYPES
 const PHOTO_ID = 'tradle.PhotoID'
 const STATUS = 'tradle.Status'
 const DOCUMENT_CHECKER_CHECK = 'tradle.documentChecker.Check'
-const ASPECTS= 'Document authentication and verification'
+const ASPECTS = 'Document authentication and verification'
 
 const PROVIDER = 'Keesing Technologies'
 
@@ -52,6 +52,7 @@ interface IDocumentCheck {
   status: any
   form: ITradleObject
   checkId?: string
+  req: IPBReq
 }
 interface IDocumentCheckerConf {
   test?: boolean
@@ -64,14 +65,14 @@ interface IDocumentCheckerConf {
 //   bearer: string
 // }
 
-var token: string
-var tokenObtained: number
-var tokenExpirationInterval: number
+let token: string
+let tokenObtained: number
+let tokenExpirationInterval: number
 
 export class DocumentCheckerAPI {
-  private bot:Bot
-  private conf:IDocumentCheckerConf
-  private logger:Logger
+  private bot: Bot
+  private conf: IDocumentCheckerConf
+  private logger: Logger
   private applications: Applications
   constructor({ bot, applications, conf, logger }) {
     this.bot = bot
@@ -79,29 +80,32 @@ export class DocumentCheckerAPI {
     this.applications = applications
     this.logger = logger
   }
-  public getData = async (resource, application) => {
+  public getData = async (resource, application, req) => {
     let bearer = await getToken()
     if (!bearer) {
       debugger
       return {
         status: {
           status: 'error',
-          message: `Can't obtain token`,
+          message: `Can't obtain token`
         }
       }
     }
 
     let verification_url, verification_images_url
     try {
-      ({verification_url, verification_images_url} = await this.getVerificationUrls(bearer, resource._link))
+      ;({ verification_url, verification_images_url } = await this.getVerificationUrls(
+        bearer,
+        resource._link
+      ))
     } catch (err) {
       debugger
       this.logger.debug(`${PROVIDER} something went wrong`, err)
       let status = {
         status: 'error',
-        message: `Check was not completed: ${err.message}`,
+        message: `Check was not completed: ${err.message}`
       }
-      await this.createCheck({ application, status, form: resource })
+      await this.createCheck({ application, status, form: resource, req })
       return
     }
 
@@ -113,8 +117,11 @@ export class DocumentCheckerAPI {
     // const base64 = buf.toString('base64')
 
     let imgUrl = `${API_URL}/${trimLeadingSlashes(verification_images_url)}`
-    let fn = `${resource.documentType.title}_${resource.firstName}_${resource.lastName}`.replace(/[^\w]/gi, '_')
-    let filename = `${fn}_${application.checks && application.checks.length  ||  0}.jpg`
+    let fn = `${resource.documentType.title}_${resource.firstName}_${resource.lastName}`.replace(
+      /[^\w]/gi,
+      '_'
+    )
+    let filename = `${fn}_${(application.checks && application.checks.length) || 0}.jpg`
     // debugger
     let body = new FormData()
     let bodyBack
@@ -137,74 +144,83 @@ export class DocumentCheckerAPI {
     //   }
     // }
     // else {
-      body.append('type', 'front')
-      body.append('file', buf, {filename})
+    body.append('type', 'front')
+    body.append('file', buf, { filename })
     // }
     let { status, message } = await this.uploadImage(imgUrl, body, bearer)
 
-    if (bodyBack  &&  status === 'pending')
-      ({status, message} = await this.uploadImage(imgUrl, bodyBack, bearer))
+    if (bodyBack && status === 'pending')
+      ({ status, message } = await this.uploadImage(imgUrl, bodyBack, bearer))
 
-    let uploadStatus:any = { status }
-    if (message)
-      uploadStatus.message = message
+    let uploadStatus: any = { status }
+    if (message) uploadStatus.message = message
     if (status === 'error') {
-      this.logger.debug(`${PROVIDER}: upload failed`, message);
-      await this.createCheck({ application, status: uploadStatus, form: resource, checkId: verification_url.split('/').pop() })
+      this.logger.debug(`${PROVIDER}: upload failed`, message)
+      await this.createCheck({
+        req,
+        application,
+        status: uploadStatus,
+        form: resource,
+        checkId: verification_url.split('/').pop()
+      })
       return
     }
 
     let started = await this.startVerification(verification_url, bearer)
 
     if (started)
-      await this.createCheck({ application, status: uploadStatus, form: resource, checkId: verification_url.split('/').pop() })
-    this.logger.debug(`${PROVIDER}: start verification status - `, started);
+      await this.createCheck({
+        req,
+        application,
+        status: uploadStatus,
+        form: resource,
+        checkId: verification_url.split('/').pop()
+      })
+    this.logger.debug(`${PROVIDER}: start verification status - `, started)
   }
-  async uploadImage(imgUrl:string, body:FormData, bearer:string) {
+  public async uploadImage(imgUrl: string, body: FormData, bearer: string) {
     // debugger
     try {
       let imgRes = await fetch(imgUrl, {
-                      method: 'POST',
-                      headers: {
-                        'Authorization': `Bearer ${bearer}`
-                      },
-                      body
-                    })
-      if (imgRes.ok)
-        return { status: 'pending' }
-      else
-        return { status: 'error', message: `Check was not completed: ${imgRes.statusText}`}
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${bearer}`
+        },
+        body
+      })
+      if (imgRes.ok) return { status: 'pending' }
+      else return { status: 'error', message: `Check was not completed: ${imgRes.statusText}` }
     } catch (err) {
       this.logger.debug('something went wrong', err)
-      return { status: 'error', message: `Check was not completed: ${err.message}`}
+      return { status: 'error', message: `Check was not completed: ${err.message}` }
     }
   }
-  async startVerification(verification_url, bearer) {
+  public async startVerification(verification_url, bearer) {
     let url = `${API_URL}/${trimLeadingSlashes(verification_url)}`
     let res = await fetch(url, {
-                  method: 'PUT',
-                  headers: {
-                    'Authorization': `Bearer ${bearer}`,
-                    'Content-Type': 'application/json; charset=utf-8',
-                  }
-                })
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${bearer}`,
+        'Content-Type': 'application/json; charset=utf-8'
+      }
+    })
     return res.ok
   }
-  async getVerificationUrls(bearer, reference) {
-    let body:any = {
+  public async getVerificationUrls(bearer, reference) {
+    let body: any = {
       webhook_url: `${trimTrailingSlashes(this.bot.apiBaseUrl)}/documentChecker`,
-      reference: reference
+      reference
     }
-    this.logger.debug(`${PROVIDER} webhook-url: `, body.webhook_url);
+    this.logger.debug(`${PROVIDER} webhook-url: `, body.webhook_url)
 
     body = JSON.stringify(body)
     this.logger.debug(`${PROVIDER}.getVerificationUrls payload: ${body}`)
     let url = `${API_URL}/verifications`
     let headers = {
-                    'Content-Type': 'application/json; charset=utf-8',
-                    'Authorization': `Bearer ${bearer}`
-                  }
-    return await post(url, body, {headers})
+      'Content-Type': 'application/json; charset=utf-8',
+      Authorization: `Bearer ${bearer}`
+    }
+    return await post(url, body, { headers })
   }
   // getToken = async () => {
   //   // if (token) {
@@ -235,33 +251,35 @@ export class DocumentCheckerAPI {
   //   }
 
   // }
-  public createCheck = async ({ application, rawData, status, form, checkId }: IDocumentCheck) => {
-    let resource:any = {
+  public createCheck = async ({
+    application,
+    rawData,
+    status,
+    form,
+    checkId,
+    req
+  }: IDocumentCheck) => {
+    let resource: any = {
       [TYPE]: DOCUMENT_CHECKER_CHECK,
       status: status.status,
       provider: PROVIDER,
-      application: buildResourceStub({resource: application, models: this.bot.models}),
+      application,
       dateChecked: Date.now(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
       aspects: ASPECTS,
       form
     }
-    resource.message = getStatusMessageForCheck({models: this.bot.models, check: resource})
-    if (status.message)
-      resource.resultDetails = status.message
-    if (checkId)
-      resource.checkId = checkId
-    if (rawData)
-      resource.rawData = sanitize(rawData).sanitized
+    resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
+    if (status.message) resource.resultDetails = status.message
+    if (checkId) resource.checkId = checkId
+    if (rawData) resource.rawData = sanitize(rawData).sanitized
 
-    this.logger.debug(`Creating ${PROVIDER} check for ${ASPECTS}`);
-    const check = await this.bot.draft({ type: DOCUMENT_CHECKER_CHECK })
-        .set(resource)
-        .signAndSave()
-    this.logger.debug(`Created ${PROVIDER} check for ${ASPECTS}`);
+    this.logger.debug(`Creating ${PROVIDER} check for ${ASPECTS}`)
+    await this.applications.createCheck(resource, req)
+    this.logger.debug(`Created ${PROVIDER} check for ${ASPECTS}`)
   }
 
   public createVerification = async ({ user, application, form, rawData }) => {
-    const method:any = {
+    const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
         [TYPE]: 'tradle.API',
@@ -269,18 +287,19 @@ export class DocumentCheckerAPI {
       },
       aspect: 'document validity',
       reference: [{ queryId: 'report:' + rawData.id }],
-      rawData: rawData
+      rawData
     }
 
-    const verification = this.bot.draft({ type: VERIFICATION })
-       .set({
-         document: form,
-         method
-       })
-       .toJSON()
+    const verification = this.bot
+      .draft({ type: VERIFICATION })
+      .set({
+        document: form,
+        method
+      })
+      .toJSON()
 
     await this.applications.createVerification({ application, verification })
-    this.logger.debug(`Created ${PROVIDER} verification for ${ASPECTS}`);
+    this.logger.debug(`Created ${PROVIDER} verification for ${ASPECTS}`)
     if (application.checks)
       await this.applications.deactivateChecks({ application, type: DOCUMENT_CHECKER_CHECK, form })
   }
@@ -289,7 +308,7 @@ export class DocumentCheckerAPI {
       filter: {
         EQ: {
           [TYPE]: DOCUMENT_CHECKER_CHECK,
-          checkId: checkId
+          checkId
         }
       }
     })
@@ -297,7 +316,7 @@ export class DocumentCheckerAPI {
   public async handleVerificationEvent(evt) {
     let { event, data } = evt
     // don't run reports right now
-// debugger
+    // debugger
     let bearer = await getToken()
     if (event === 'verification.report.created') {
       // let url = `${API_URL}/${trimLeadingSlashes(data.verification_url)}/report`
@@ -311,60 +330,60 @@ export class DocumentCheckerAPI {
       // let ret = await res.text()
       return
     }
-    this.logger.debug(`${PROVIDER} fetching verification results for ${ASPECTS}`);
+    this.logger.debug(`${PROVIDER} fetching verification results for ${ASPECTS}`)
     let url = `${API_URL}/${trimLeadingSlashes(data.verification_url)}`
     let res = await fetch(url, {
-                            method: 'GET',
-                            headers: {
-                              'Content-Type': 'application/json; charset=utf-8',
-                              'Authorization': `Bearer ${bearer}`
-                            }
-                          })
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        Authorization: `Bearer ${bearer}`
+      }
+    })
 
     if (res.status === 404) {
-      this.logger.debug(`${PROVIDER} verification results - 404`);
+      this.logger.debug(`${PROVIDER} verification results - 404`)
       debugger
       return
     }
     let rawData = await res.json()
 
-    let { state, error, results} = rawData
+    let { state, error, results } = rawData
     let { status, description, report_url } = results
-    status = status  &&  status.toLowerCase()
-    if (state !== 'finished' || error)
-      status = 'error'
-    else if (status === 'ok')
-      status = 'pass'
+    status = status && status.toLowerCase()
+    if (state !== 'finished' || error) status = 'error'
+    else if (status === 'ok') status = 'pass'
     // else if (status === 'referred')
     //   status = 'pending'
-    else
-      status = 'fail'
+    else status = 'fail'
 
-    let check:any = await this.getByCheckId(data.id)
+    let check: any = await this.getByCheckId(data.id)
 
-    const [form, application] = await Promise.all([this.bot.getResource(check.form), this.bot.getResource(check.application)])
+    const [form, application] = await Promise.all([
+      this.bot.getResource(check.form),
+      this.bot.getResource(check.application)
+    ])
     let user = await this.bot.getResource(application.applicant)
 
-    this.logger.debug(`${PROVIDER} verification results: ${rawData}`);
+    this.logger.debug(`${PROVIDER} verification results: ${rawData}`)
 
     let pchecks = []
-
 
     let model = this.bot.models[STATUS]
 
     check.status = status
     // Update check
     // debugger
-    let message = getStatusMessageForCheck({models: this.bot.models, check})
+    let message = getStatusMessageForCheck({ models: this.bot.models, check })
     rawData = sanitize(rawData).sanitized
-    const updatedCheck = this.bot.draft({ resource: check })
+    const updatedCheck = this.bot
+      .draft({ resource: check })
       .set({ status, message, rawData })
       .version()
       .signAndSave()
 
     pchecks.push(updatedCheck)
     if (status === 'pass')
-      pchecks.push(this.createVerification({user, application, form, rawData}))
+      pchecks.push(this.createVerification({ user, application, form, rawData }))
 
     // if (state !== 'finished'  ||  error  ||  ret.status === 'error')
     //    pchecks.push(this.createCheck({application, rawData, status: {status: 'error'}, form}))
@@ -372,18 +391,21 @@ export class DocumentCheckerAPI {
     //   pchecks.push(this.createCheck({application, rawData, status: {status: 'fail'}, form}))
     // else {
     //   pchecks.push(this.createCheck({application, rawData, status: {status: 'pass'}, form}))
-      // pchecks.push(this.createVerification({user, application, form, rawData}))
+    // pchecks.push(this.createVerification({user, application, form, rawData}))
     // }
     let checksAndVerifications = await Promise.all(pchecks)
-    let check1:any = await this.getByCheckId(data.id)
+    let check1: any = await this.getByCheckId(data.id)
   }
 }
 
 export const name = 'documentChecker'
 
-export const createPlugin: CreatePlugin<DocumentCheckerAPI> = ({ bot, applications }, { conf, logger }) => {
+export const createPlugin: CreatePlugin<DocumentCheckerAPI> = (
+  { bot, applications },
+  { conf, logger }
+) => {
   const documentChecker = new DocumentCheckerAPI({ bot, applications, conf, logger })
-  const plugin:IPluginLifecycleMethods = {
+  const plugin: IPluginLifecycleMethods = {
     onFormsCollected: async ({ req }) => {
       if (req.skipChecks) return
       const { user, application, applicant, payload } = req
@@ -391,19 +413,28 @@ export const createPlugin: CreatePlugin<DocumentCheckerAPI> = ({ bot, applicatio
       if (!application) return
 
       const formStub = getParsedFormStubs(application).find(form => form.type === PHOTO_ID)
-      if (!formStub)
-        return
+      if (!formStub) return
 
       const form = await bot.getResource(formStub)
 
-// debugger
-      let createCheck = await doesCheckNeedToBeCreated({bot, type: DOCUMENT_CHECKER_CHECK, application, provider: PROVIDER, form, propertiesToCheck: ['scan'], prop: 'form'})
+      // debugger
+      let createCheck = await doesCheckNeedToBeCreated({
+        bot,
+        type: DOCUMENT_CHECKER_CHECK,
+        application,
+        provider: PROVIDER,
+        form,
+        propertiesToCheck: ['scan'],
+        prop: 'form'
+      })
       if (!createCheck) {
-        logger.debug(`${PROVIDER}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
+        logger.debug(
+          `${PROVIDER}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`
+        )
         return
       }
       // debugger
-      let result = await documentChecker.getData(form, application)
+      let result = await documentChecker.getData(form, application, req)
     }
   }
 
@@ -412,21 +443,16 @@ export const createPlugin: CreatePlugin<DocumentCheckerAPI> = ({ bot, applicatio
     api: documentChecker
   }
 }
-export const validateConf:ValidatePluginConf = async (opts) => {
+export const validateConf: ValidatePluginConf = async opts => {
   const pluginConf = opts.pluginConf as IDocumentCheckerConf
   const { account, username } = pluginConf
 
   let err = ''
-  if (!account)
-    err = '\nExpected "accountname".'
-  else if (typeof account !== 'string')
-    err += '\nExpected "accountname" to be a string.'
-  if (!username)
-    err += '\nExpected "username"'
-  else if (typeof username !== 'string')
-    err += '\nExpected "username" to be a string'
-  if (err.length)
-    throw new Error(err)
+  if (!account) err = '\nExpected "accountname".'
+  else if (typeof account !== 'string') err += '\nExpected "accountname" to be a string.'
+  if (!username) err += '\nExpected "username"'
+  else if (typeof username !== 'string') err += '\nExpected "username" to be a string'
+  if (err.length) throw new Error(err)
 }
 const getToken = async () => {
   // if (token) {
@@ -443,9 +469,9 @@ const getToken = async () => {
   let aurl = `${AUTH_URL}/connect/token`
   try {
     let res = await fetch(aurl, {
-                        method: 'POST',
-                        body: form
-                      })
+      method: 'POST',
+      body: form
+    })
     let result = await res.json()
     token = result.access_token
     tokenObtained = Date.now()

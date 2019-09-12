@@ -9,6 +9,7 @@ import {
   Bot,
   Logger,
   IPBApp,
+  IPBReq,
   ITradleObject,
   CreatePlugin,
   Applications,
@@ -44,6 +45,7 @@ interface IJenIdCheck {
   application: IPBApp
   status: any
   form: ITradleObject
+  req: IPBReq
 }
 
 interface IJenIdCheckerConf {
@@ -216,12 +218,12 @@ export class JenIdCheckerAPI {
 
   }
 
-  createCheck = async ({ application, status, form }: IJenIdCheck) => {
+  createCheck = async ({ application, status, form, req }: IJenIdCheck) => {
     let resource: any = {
       [TYPE]: DOCUMENT_CHECKER_CHECK,
       status: status.status,
       provider: PROVIDER,
-      application: buildResourceStub({ resource: application, models: this.bot.models }),
+      application,
       dateChecked: Date.now(),
       aspects: ASPECTS,
       form
@@ -233,9 +235,7 @@ export class JenIdCheckerAPI {
       resource.rawData = status.rawData
 
     this.logger.debug(`Creating ${PROVIDER} check for ${ASPECTS}`);
-    const check = await this.bot.draft({ type: DOCUMENT_CHECKER_CHECK })
-      .set(resource)
-      .signAndSave()
+    await this.applications.createCheck(resource, req)
     this.logger.debug(`Created ${PROVIDER} check for ${ASPECTS}`);
   }
 
@@ -371,7 +371,7 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = ({ bot, applications 
 
       const form = await bot.getResource(formStub)
 
-      debugger
+      // debugger
       let toCheck = await doesCheckNeedToBeCreated({ bot, type: DOCUMENT_CHECKER_CHECK, application, provider: PROVIDER, form, propertiesToCheck: ['scan'], prop: 'form' })
       if (!toCheck) {
         logger.debug(`${PROVIDER}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
@@ -379,7 +379,7 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = ({ bot, applications 
       }
       // debugger
       let status = await documentChecker.handleData(form, application)
-      await documentChecker.createCheck({ application, status, form })
+      await documentChecker.createCheck({ application, status, form, req })
       if (status.status === 'pass') {
         await documentChecker.createVerification({ application, form, rawData: status.rawData })
       }

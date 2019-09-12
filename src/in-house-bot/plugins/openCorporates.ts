@@ -5,7 +5,7 @@ import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 import constants from '@tradle/constants'
-import { Bot, Logger, CreatePlugin, Applications } from '../types'
+import { Bot, Logger, CreatePlugin, Applications, IPBReq } from '../types'
 import {
   toISODateString,
   getCheckParameters,
@@ -16,7 +16,7 @@ import {
 
 const { TYPE, TYPES } = constants
 const { VERIFICATION } = TYPES
-const FORM_ID = 'tradle.legal.LegalEntity'
+// const FORM_ID = 'tradle.legal.LegalEntity'
 const OPEN_CORPORATES = 'Open Corporates'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 
@@ -176,11 +176,12 @@ class OpenCorporatesAPI {
       url
     }
   }
-  public createCorporateCheck = async ({ application, rawData, message, hits, url, form }) => {
+  public createCorporateCheck = async ({ application, rawData, message, hits, url, form, req }) => {
     let checkR: any = {
+      [TYPE]: CORPORATION_EXISTS,
       status: (!message && hits.length === 1 && 'pass') || 'fail',
       provider: OPEN_CORPORATES,
-      application: buildResourceStub({ resource: application, models: this.bot.models }),
+      application,
       dateChecked: Date.now(),
       shareUrl: url,
       aspects: 'company existence',
@@ -190,10 +191,8 @@ class OpenCorporatesAPI {
     if (message) checkR.resultDetails = message
     if (hits.length) checkR.rawData = hits
     else if (rawData) checkR.rawData = rawData
-    const check = await this.bot
-      .draft({ type: CORPORATION_EXISTS })
-      .set(checkR)
-      .signAndSave()
+
+    let check = await this.applications.createCheck(checkR, req)
 
     // debugger
     return check.toJSON()
@@ -233,7 +232,7 @@ class OpenCorporatesAPI {
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger, conf }) => {
   const openCorporates = new OpenCorporatesAPI({ bot, conf, applications, logger })
   const plugin = {
-    async [`onmessage:${FORM_ID}`](req) {
+    async onmessage(req: IPBReq) {
       // debugger
       if (req.skipChecks) return
       const { user, application, payload } = req
@@ -246,10 +245,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       }
 
       // debugger
-
-      let productId = application.requestFor
+      let ptype = payload[TYPE]
       let { products, propertyMap } = conf
-      if (!products || !products[productId] || products[productId].indexOf(FORM_ID) === -1) {
+      let productId = application.requestFor
+      if (!products || !products[productId] || !products[productId].includes(ptype)) {
         logger.debug('not running check as form is missing "country"')
         return
       }
@@ -266,10 +265,12 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       let propertiesToCheck = [
         'registrationNumber',
         'registrationDate',
-        'region',
         'country',
         'companyName'
       ]
+      if (bot.models[ptype].properties['region'])
+        propertiesToCheck.push('region')
+
       let createCheck = await doesCheckNeedToBeCreated({
         bot,
         type: CORPORATION_EXISTS,
@@ -319,7 +320,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
           message,
           hits,
           url,
-          form: payload
+          form: payload,
+          req
         })
       )
       if (hasVerification)

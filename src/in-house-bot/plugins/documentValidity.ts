@@ -3,20 +3,12 @@ import fetch from 'node-fetch'
 import _ from 'lodash'
 import { buildResourceStub } from '@tradle/build-resource'
 import constants from '@tradle/constants'
-import {
-  Bot,
-  Logger,
-  IPBApp,
-  IPBReq,
-  ITradleObject,
-  CreatePlugin,
-  Applications
-} from '../types'
+import { Bot, Logger, IPBApp, IPBReq, ITradleObject, CreatePlugin, Applications } from '../types'
 
 import {
   getStatusMessageForCheck,
   toISODateString,
-  doesCheckNeedToBeCreated,
+  doesCheckNeedToBeCreated
   // hasPropertiesChanged
 } from '../utils'
 
@@ -33,8 +25,8 @@ const ONE_YEAR_MILLIS = 60 * 60 * 24 * 365 * 1000
 const MIN_VALID_AGE = 14
 const MAX_VALID_AGE = 120
 const MAX_EXPIRATION_YEARS = 10
-const MIN_AGE_MILLIS = MIN_VALID_AGE * ONE_YEAR_MILLIS  // 14 years
-const MAX_AGE_MILLIS = MAX_VALID_AGE * ONE_YEAR_MILLIS  // 120 years
+const MIN_AGE_MILLIS = MIN_VALID_AGE * ONE_YEAR_MILLIS // 14 years
+const MAX_AGE_MILLIS = MAX_VALID_AGE * ONE_YEAR_MILLIS // 120 years
 const MAX_EXPIRATION_YEARS_MILLIS = MAX_EXPIRATION_YEARS * ONE_YEAR_MILLIS
 
 const DISPLAY_NAME = 'Document Validity'
@@ -44,11 +36,12 @@ interface IValidityCheck {
   rawData: any
   status: any
   form: ITradleObject
+  req: IPBReq
 }
 
 class DocumentValidityAPI {
-  private bot:Bot
-  private logger:Logger
+  private bot: Bot
+  private logger: Logger
   private applications: Applications
   constructor({ bot, applications, logger }) {
     this.bot = bot
@@ -56,23 +49,50 @@ class DocumentValidityAPI {
     this.logger = logger
   }
 
-  public async checkDocument({user, payload, application}) {
-    let { documentType, country, dateOfExpiry, dateOfIssue, dateOfBirth, scanJson, scan, nationality } = payload
+  public async checkDocument({ user, payload, application, req }) {
+    let {
+      documentType,
+      country,
+      dateOfExpiry,
+      dateOfIssue,
+      dateOfBirth,
+      scanJson,
+      scan,
+      nationality
+    } = payload
     // if (await doesCheckExist({bot: this.bot, type: DOCUMENT_VALIDITY, eq: {form: payload._link}, application, provider: PROVIDER}))
     //   return
 
-    let propertiesToCheck = ['dateOfExpiry', 'dateOfBirth', 'dateOfIssue', 'nationality', 'scanJson', 'documentType', 'country']
-    let createCheck = await doesCheckNeedToBeCreated({bot: this.bot, type: DOCUMENT_VALIDITY, application, provider: PROVIDER, form: payload, propertiesToCheck, prop: 'form'})
-// debugger
+    let propertiesToCheck = [
+      'dateOfExpiry',
+      'dateOfBirth',
+      'dateOfIssue',
+      'nationality',
+      'scanJson',
+      'documentType',
+      'country'
+    ]
+    let createCheck = await doesCheckNeedToBeCreated({
+      bot: this.bot,
+      type: DOCUMENT_VALIDITY,
+      application,
+      provider: PROVIDER,
+      form: payload,
+      propertiesToCheck,
+      prop: 'form'
+    })
+    // debugger
     if (!createCheck) {
-      this.logger.debug(`DocumentValidity: check already exists for ${payload.firstName} ${payload.lastName} ${payload.documentType.title}`)
+      this.logger.debug(
+        `DocumentValidity: check already exists for ${payload.firstName} ${payload.lastName} ${payload.documentType.title}`
+      )
       return
     }
 
     let isPassport = documentType.id.indexOf('_passport') !== -1
-    let rawData:any = {}
+    let rawData: any = {}
     if (dateOfExpiry) {
-      if (dateOfExpiry < Date.now())  {
+      if (dateOfExpiry < Date.now()) {
         rawData['Date Of Expiry'] = 'The document has expired'
         rawData.Status = 'fail'
       }
@@ -85,8 +105,7 @@ class DocumentValidityAPI {
       if (dateOfBirth > Date.now() - MIN_AGE_MILLIS) {
         rawData['Date Of Birth'] = `The age of the person is less then ${MIN_VALID_AGE} years old`
         rawData.Status = 'fail'
-      }
-      else if (dateOfBirth < Date.now() - MAX_AGE_MILLIS) {
+      } else if (dateOfBirth < Date.now() - MAX_AGE_MILLIS) {
         rawData['Date Of Birth'] = `The age of the person is more then ${MAX_VALID_AGE} years old`
         rawData.Status = 'fail'
       }
@@ -97,21 +116,19 @@ class DocumentValidityAPI {
         rawData.Status = 'fail'
       }
     }
-// debugger
+    // debugger
     // if (isPassport  &&  (issuer  ||  nationality)) {
-    if (isPassport  &&  nationality) {
+    if (isPassport && nationality) {
       let countries = this.bot.models[COUNTRY].enum
       let nationalityCountry
       if (nationality) {
         if (typeof nationality === 'string')
-          nationalityCountry = _.find(countries, (c) => c.cca3 === nationality)
-        else
-          nationalityCountry = _.find(countries, (c) => c.id ===  nationality.id.split('_')[1])
+          nationalityCountry = _.find(countries, c => c.cca3 === nationality)
+        else nationalityCountry = _.find(countries, c => c.id === nationality.id.split('_')[1])
         if (!nationalityCountry) {
           rawData.Status = 'fail'
           rawData.Nationality = `Country in nationality field '${nationality}' is invalid`
-        }
-        else if (nationalityCountry.title !== country.title) {
+        } else if (nationalityCountry.title !== country.title) {
           rawData.Status = 'fail'
           rawData.Nationality = `Country in the nationality field '${nationalityCountry.title}' is not the same as the Country in the form`
         }
@@ -132,37 +149,36 @@ class DocumentValidityAPI {
       //   }
       // }
     }
-    if (!rawData.Status)
-      rawData.Status = 'pass'
+    if (!rawData.Status) rawData.Status = 'pass'
     if (rawData.Status === 'fail') {
       // if (rawData.Issuer)
       //   this.logger.debug(`DocumentValidity: ${rawData.Issuer}`)
-      if (rawData.Nationality)
-        this.logger.debug(`DocumentValidity: ${rawData.Nationality}`)
+      if (rawData.Nationality) this.logger.debug(`DocumentValidity: ${rawData.Nationality}`)
       if (rawData['Date Of Expiry'])
         this.logger.debug(`DocumentValidity: ${rawData['Date Of Expiry']}`)
       if (rawData['Date Of Birth'])
         this.logger.debug(`DocumentValidity: ${rawData['Date Of Birth']}`)
     }
-// debugger
+    // debugger
     if (payload.uploaded) {
       _.extend(rawData, {
         Warning: 'Document was not scanned but uploaded',
         Status: 'warning'
       })
-    }
-    else if (scanJson) {
+    } else if (scanJson) {
       this.checkTheDifferences(payload, rawData)
       // Create BlinkID check
     }
 
     let pchecks = []
-    pchecks.push(this.createCheck({application, rawData, status: rawData.Status, form: payload}))
+    pchecks.push(
+      this.createCheck({ req, application, rawData, status: rawData.Status, form: payload })
+    )
     if (rawData.Status === 'pass')
-      pchecks.push(this.createVerification({user, application, form: payload, rawData}))
+      pchecks.push(this.createVerification({ user, application, form: payload, rawData }))
     let checksAndVerifications = await Promise.all(pchecks)
   }
-  checkTheDifferences(payload, rawData) {
+  public checkTheDifferences(payload, rawData) {
     let props = this.bot.models[PHOTO_ID].properties
     let { scanJson } = payload
     let { personal, document } = scanJson
@@ -170,41 +186,39 @@ class DocumentValidityAPI {
     let changes = {}
     for (let p in payload) {
       let prop = props[p]
-      if (!prop  ||  prop.type === 'object')
-        continue
-      let val = personal  &&  personal[p] || document  &&  document[p]
-      if (!val)
-        continue
+      if (!prop || prop.type === 'object') continue
+      let val = (personal && personal[p]) || (document && document[p])
+      if (!val) continue
       if (prop.type === 'string') {
         if (payload[p].toLowerCase() !== val.toLowerCase()) {
           hasChanges = true
-          changes[prop.title || p] = `Value scanned from the document is ${val}, but manually was changed to ${payload[p]}`
+          changes[
+            prop.title || p
+          ] = `Value scanned from the document is ${val}, but manually was changed to ${payload[p]}`
         }
-      }
-      else if (prop.type === 'date') {
+      } else if (prop.type === 'date') {
         if (payload[p] !== val) {
           let changed = true
-          if (typeof val === 'string'  &&  toISODateString(payload[p]) === toISODateString(val))
+          if (typeof val === 'string' && toISODateString(payload[p]) === toISODateString(val))
             changed = false
           if (changed) {
             hasChanges = true
-            changes[prop.title || p] = `Value scanned from the document is ${toISODateString(val)}, but manually was set to ${toISODateString(payload[p])}`
+            changes[prop.title || p] = `Value scanned from the document is ${toISODateString(
+              val
+            )}, but manually was set to ${toISODateString(payload[p])}`
           }
         }
       }
     }
-    if (hasChanges)
-      rawData['Differences With Scanned Document'] = changes
+    if (hasChanges) rawData['Differences With Scanned Document'] = changes
   }
-  public createCheck = async ({ application, rawData, status, form }: IValidityCheck) => {
+  public createCheck = async ({ application, rawData, status, form, req }: IValidityCheck) => {
     let dateStr = rawData.updated_at
     let date
-    if (dateStr)
-      date = Date.parse(dateStr) - (new Date().getTimezoneOffset() * 60 * 1000)
-    else
-      date = new Date().getTime()
+    if (dateStr) date = Date.parse(dateStr) - new Date().getTimezoneOffset() * 60 * 1000
+    else date = new Date().getTime()
     let isPassport = form.documentType.id.indexOf('_passport') !== -1
-    let resource:any = {
+    let resource: any = {
       [TYPE]: DOCUMENT_VALIDITY,
       status,
       provider: PROVIDER,
@@ -213,31 +227,27 @@ class DocumentValidityAPI {
       aspects: isPassport ? ASPECTS_PASSPORT : ASPECTS,
       form
     }
-// debugger
-    if (rawData  && status !== 'pass') {
+    // debugger
+    if (rawData && status !== 'pass') {
       let props = this.bot.models[form[TYPE]].properties
       for (let p in rawData) {
-        if (!props[p])
-          continue
-        if (!resource.message)
-          resource.message += '; '
+        if (!props[p]) continue
+        if (!resource.message) resource.message += '; '
         resource.message = rawData[p]
       }
     }
     // resource.message = getStatusMessageForCheck({models: this.bot.models, check: resource})
     this.logger.debug(`DocumentValidity status message: ${resource.message}`)
-    if (status.message)
-      resource.resultDetails = status.message
-    if (rawData)
-      resource.rawData = rawData
+    if (status.message) resource.resultDetails = status.message
+    if (rawData) resource.rawData = rawData
 
-    this.logger.debug(`Creating DocumentValidity Check for: ${form.firstName} ${form.lastName}`);
-    const check = await this.applications.createCheck(resource)
-    this.logger.debug(`Created DocumentValidity Check for: ${form.firstName} ${form.lastName}`);
+    this.logger.debug(`Creating DocumentValidity Check for: ${form.firstName} ${form.lastName}`)
+    const check = await this.applications.createCheck(resource, req)
+    this.logger.debug(`Created DocumentValidity Check for: ${form.firstName} ${form.lastName}`)
   }
 
   public createVerification = async ({ user, application, form, rawData }) => {
-    const method:any = {
+    const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
         [TYPE]: 'tradle.API',
@@ -245,34 +255,41 @@ class DocumentValidityAPI {
       },
       aspect: ASPECTS,
       rawData,
-      reference: [{ queryId: `report: DV-${Math.random().toString().substring(2)}` }]
+      reference: [
+        {
+          queryId: `report: DV-${Math.random()
+            .toString()
+            .substring(2)}`
+        }
+      ]
     }
 
-    const verification = this.bot.draft({ type: VERIFICATION })
-       .set({
-         document: form,
-         method
-       })
-       .toJSON()
-// debugger
+    const verification = this.bot
+      .draft({ type: VERIFICATION })
+      .set({
+        document: form,
+        method
+      })
+      .toJSON()
+    // debugger
 
     await this.applications.createVerification({ application, verification })
-    this.logger.debug(`Created DocumentValidity Verification for: ${form.firstName} ${form.lastName}`);
+    this.logger.debug(
+      `Created DocumentValidity Verification for: ${form.firstName} ${form.lastName}`
+    )
     if (application.checks)
       await this.applications.deactivateChecks({ application, type: DOCUMENT_VALIDITY, form })
   }
 }
-export const createPlugin:CreatePlugin<void> = ({ bot, applications }, { logger }) => {
+export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger }) => {
   const documentValidity = new DocumentValidityAPI({ bot, applications, logger })
   const plugin = {
-    onmessage: async function(req: IPBReq) {
-      if (req.skipChecks)
-        return
+    async onmessage(req: IPBReq) {
+      if (req.skipChecks) return
       const { user, application, applicant, payload } = req
-      if (!application  || payload[TYPE] !== PHOTO_ID)
-        return
+      if (!application || payload[TYPE] !== PHOTO_ID) return
 
-      await documentValidity.checkDocument({user, application, payload})
+      await documentValidity.checkDocument({ user, application, payload, req })
     }
   }
 

@@ -203,7 +203,7 @@ export class FacialRecognitionAPI {
     return { status: rawData.verified, rawData, error }
   }
 
-  public createCheck = async ({ status, selfie, photoID, rawData, application, error }) => {
+  public createCheck = async ({ status, selfie, photoID, rawData, application, error, req }) => {
     let models = this.bot.models
     let checkStatus, message
     let photoID_displayName = buildResource.title({ models, resource: photoID })
@@ -211,6 +211,7 @@ export class FacialRecognitionAPI {
     else if (status !== true) checkStatus = 'fail'
     else checkStatus = 'pass'
     let checkR: any = {
+      [TYPE]: FACIAL_RECOGNITION,
       status: checkStatus,
       provider: PROVIDER,
       aspects: 'facial similarity',
@@ -225,11 +226,7 @@ export class FacialRecognitionAPI {
     // if (error)
     if (rawData.code) checkR.resultDetails = rawData.code
 
-    const check = await this.bot
-      .draft({ type: FACIAL_RECOGNITION })
-      .set(checkR)
-      .signAndSave()
-
+    let check = await this.applications.createCheck(checkR, req)
     return check.toJSON()
   }
 
@@ -301,7 +298,8 @@ export const createPlugin: CreatePlugin<FacialRecognitionAPI> = (components, plu
         photoID,
         rawData,
         error,
-        application
+        application,
+        req
       })
       const pchecks = [promiseCheck]
       if (status === true) {

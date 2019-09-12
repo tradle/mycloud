@@ -13,11 +13,11 @@ import { getCheckParameters, getStatusMessageForCheck, doesCheckNeedToBeCreated 
 const { TYPE } = constants
 const VERIFICATION = 'tradle.Verification'
 const BASE_URL = 'https://api.complyadvantage.com/searches'
-const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
+// const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 const PHOTO_ID = 'tradle.PhotoID'
 const PERSONAL_INFO = 'tradle.PersonalInfo'
 const SANCTIONS_CHECK = 'tradle.SanctionsCheck'
-var ASPECTS = 'screening: '
+let ASPECTS = 'screening: '
 
 const PROVIDER = 'Comply Advantage'
 const PERSON_FORMS = [PHOTO_ID, PERSONAL_INFO]
@@ -54,6 +54,7 @@ interface IComplyCheck {
   rawData: any
   status: any
   form: ITradleObject
+  req: IPBReq
 }
 
 class ComplyAdvantageAPI {
@@ -70,18 +71,16 @@ class ComplyAdvantageAPI {
     this.logger = logger
   }
 
-  public async getAndProcessData({ user, pConf, payload, propertyMap, application }) {
+  public async getAndProcessData({ user, pConf, payload, propertyMap, application, req }) {
     let criteria = pConf.filter
     // let companyName, registrationDate
     // let resource = payload
-    let map = pConf.propertyMap
+    let map = pConf.propertyMap && pConf.propertyMap[payload[TYPE]]
     if (!map) map = propertyMap && propertyMap[payload[TYPE]]
-
+    debugger
     let isPerson = (criteria && criteria.entity_type === 'person') || isPersonForm(payload)
-    if (!criteria  ||  !criteria.filter.types)
-      ASPECTS += ' sanctions'
-    else
-      ASPECTS += criteria.filter.types.join(', ')
+    if (!criteria || !criteria.filter.types) ASPECTS += ' sanctions'
+    else ASPECTS += criteria.filter.types.join(', ')
     // debugger
     // if (await doesCheckExist({bot: this.bot, type: SANCTIONS_CHECK, eq: {form: payload._link}, application, provider: PROVIDER}))
     //   return
@@ -113,7 +112,9 @@ class ComplyAdvantageAPI {
     })
     if (!resource) {
       if (error) this.logger.debug(error)
-      return
+      // HACK - check if there is a check for this provider
+      if (application.checks && application.checks.find(c => c[TYPE] === payload[TYPE])) return
+      resource = payload
     }
     let { companyName, registrationDate, firstName, lastName, dateOfBirth } = resource
     let name
@@ -127,7 +128,7 @@ class ComplyAdvantageAPI {
           message: !dateOfBirth && 'No date of birth was provided'
           // message: `Sanctions check for "${name}" failed.` + (!dateOfBirth  &&  ' No registration date was provided')
         }
-        await this.createCheck({ application, rawData: {}, status, form: payload })
+        await this.createCheck({ application, rawData: {}, status, form: payload, req })
         return
       }
       if (firstName.length === 1 && lastName.length === 1) {
@@ -137,7 +138,7 @@ class ComplyAdvantageAPI {
           message: 'Bad criteria: one letter first and last names'
           // message: `Sanctions check for "${name}" failed.` + (!dateOfBirth  &&  ' No registration date was provided')
         }
-        await this.createCheck({ application, rawData: {}, status, form: payload })
+        await this.createCheck({ application, rawData: {}, status, form: payload, req })
         return
       }
       name = firstName + ' ' + lastName
@@ -145,6 +146,14 @@ class ComplyAdvantageAPI {
       this.logger.debug(`${PROVIDER} for: ${companyName}`)
 
       if (!companyName || !registrationDate) {
+        let props = this.bot.models[payload[TYPE]].properties
+        if (
+          props.companyName &&
+          props.companyName.readOnly &&
+          props.registrationDate &&
+          props.registrationDate.readOnly
+        )
+          return
         this.logger.debug(
           `${PROVIDER}. Not enough information to run the check for: ${payload[TYPE]}`
         )
@@ -152,7 +161,7 @@ class ComplyAdvantageAPI {
           status: 'fail',
           message: !registrationDate && ' No registration date was provided'
         }
-        await this.createCheck({ application, rawData: {}, status, form: payload })
+        await this.createCheck({ application, rawData: {}, status, form: payload, req })
         return
       }
     }
@@ -161,7 +170,7 @@ class ComplyAdvantageAPI {
     let pchecks = []
     let { rawData, hits, status } = r
     if (rawData.status === 'failure') {
-      pchecks.push(this.createCheck({ application, rawData, status: 'fail', form: payload }))
+      pchecks.push(this.createCheck({ application, rawData, status: 'fail', form: payload, req }))
     } else {
       let hasVerification
       if (hits && hits.length)
@@ -170,7 +179,7 @@ class ComplyAdvantageAPI {
         hasVerification = true
         this.logger.debug(`${PROVIDER} creating verification for: ${companyName || name}`)
       }
-      pchecks.push(this.createCheck({ application, rawData, status, form: payload }))
+      pchecks.push(this.createCheck({ application, rawData, status, form: payload, req }))
       if (hasVerification)
         pchecks.push(this.createVerification({ user, application, form: payload, rawData }))
     }
@@ -253,7 +262,7 @@ class ComplyAdvantageAPI {
     return hits && { rawData, status, hits }
   }
 
-  public createCheck = async ({ application, rawData, status, form }: IComplyCheck) => {
+  public createCheck = async ({ application, rawData, status, form, req }: IComplyCheck) => {
     let dateStr = rawData.updated_at
     let date
     if (dateStr) date = Date.parse(dateStr) - new Date().getTimezoneOffset() * 60 * 1000
@@ -263,18 +272,17 @@ class ComplyAdvantageAPI {
       [TYPE]: SANCTIONS_CHECK,
       status: status.status,
       provider: PROVIDER,
-      application: buildResourceStub({ resource: application, models: this.bot.models }),
+      application,
       dateChecked: date, //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
       aspects: ASPECTS,
       form
     }
 
     // resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
-    if (status.status === 'fail'  &&  rawData.hits) {
+    if (status.status === 'fail' && rawData.hits) {
       let prefix = ''
-      if (rawData.hits.length > 100)
-        prefix = 'At least '
-      resource.message=`${prefix}${rawData.hits.length} hits were found for this criteria`
+      if (rawData.hits.length > 100) prefix = 'At least '
+      resource.message = `${prefix}${rawData.hits.length} hits were found for this criteria`
     }
     if (status.message) resource.resultDetails = status.message
     if (rawData) {
@@ -284,10 +292,7 @@ class ComplyAdvantageAPI {
     }
 
     this.logger.debug(`${PROVIDER} Creating SanctionsCheck for: ${rawData.submitted_term}`)
-    const check = await this.bot
-      .draft({ type: SANCTIONS_CHECK })
-      .set(resource)
-      .signAndSave()
+    await this.applications.createCheck(resource, req)
     // const check = await this.bot.signAndSave(resource)
     this.logger.debug(`${PROVIDER} Created SanctionsCheck for: ${rawData.submitted_term}`)
   }
@@ -332,14 +337,35 @@ export const createPlugin: CreatePlugin<void> = (
       if (!application) return
 
       let productId = application.requestFor
-      let { products, propertyMap, forms } = conf
+      let { products, forms } = conf
+      let ptype = payload[TYPE]
       let pConf
       if (products && products[productId]) pConf = products[productId]
-      else if (forms && forms[payload[TYPE]]) pConf = forms[payload[TYPE]]
-      else return
+      else if (forms && forms[ptype]) {
+        pConf = forms[ptype]
+        await complyAdvantage.getAndProcessData({
+          user,
+          pConf,
+          application,
+          propertyMap: null,
+          payload,
+          req
+        })
+        return
+      } else return
 
-      if (!isPersonForm(payload) && payload[TYPE] !== LEGAL_ENTITY) return
-      await complyAdvantage.getAndProcessData({ user, pConf, application, propertyMap, payload })
+      let propertyMap = pConf.propertyMap[ptype]
+      if (!isPersonForm(payload) && !propertyMap) return
+
+      // if (!isPersonForm(payload) && payload[TYPE] !== LEGAL_ENTITY) return
+      await complyAdvantage.getAndProcessData({
+        user,
+        pConf,
+        application,
+        propertyMap,
+        payload,
+        req
+      })
     }
   }
 

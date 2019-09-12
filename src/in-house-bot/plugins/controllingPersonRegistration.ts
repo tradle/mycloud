@@ -1,16 +1,10 @@
 import QueryString from 'querystring'
-import {
-  Bot,
-  Logger,
-  CreatePlugin,
-  Applications,
-  ISMS
-} from '../types'
+import { Bot, Logger, CreatePlugin, Applications, ISMS } from '../types'
 import * as Templates from '../templates'
 import Errors from '../../errors'
-import * as crypto  from '../../crypto'
-import { TYPES } from  '../constants'
-import { TYPE } from  '../../constants'
+import * as crypto from '../../crypto'
+import { TYPES } from '../constants'
+import { TYPE } from '../../constants'
 
 import { getLatestForms, getAppLinks, hasPropertiesChanged } from '../utils'
 import { appLinks } from '../../app-links'
@@ -36,7 +30,7 @@ const ONBOARD_MESSAGE = 'Controlling person onboarding'
 const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
   template: 'action',
   blocks: [
-    { body: 'Hello {{name}}', },
+    { body: 'Hello {{name}}' },
     { body: 'Click below to complete your onboarding' },
     {
       action: {
@@ -49,14 +43,17 @@ const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
         text: 'On Web',
         href: '{{webUrl}}'
       }
-    },
+    }
   ],
-  signature: '-{{orgName}} Team',
+  signature: '-{{orgName}} Team'
 }
-const getSMSClient = ({ bot, gateway=DEFAULT_SMS_GATEWAY }: {
-  bot: Bot,
+const getSMSClient = ({
+  bot,
+  gateway = DEFAULT_SMS_GATEWAY
+}: {
+  bot: Bot
   gateway: SMSGatewayName
-}):ISMS => {
+}): ISMS => {
   if (gateway.toLowerCase() === 'sns') {
     return bot.snsUtils
   }
@@ -73,16 +70,15 @@ export const genConfirmationEmail = ({
   name,
   orgName,
   product,
-  extraQueryParams={},
+  extraQueryParams = {}
 }: GenConfirmationEmailOpts) => {
-
   const [mobileUrl, webUrl] = ['mobile', 'web'].map(platform => {
     return appLinks.getApplyForProductLink({
       provider,
       host,
       product,
       platform,
-      ...extraQueryParams,
+      ...extraQueryParams
     })
   })
 
@@ -110,11 +106,11 @@ interface IControllingPersonConf {
 }
 
 class ControllingPersonRegistrationAPI {
-  private bot:Bot
-  private logger:Logger
+  private bot: Bot
+  private logger: Logger
   private org: any
   private conf: IControllingPersonConf
-  private applications:Applications
+  private applications: Applications
   constructor({ bot, org, conf, logger, applications }) {
     this.bot = bot
     this.org = org
@@ -122,7 +118,7 @@ class ControllingPersonRegistrationAPI {
     this.logger = logger
     this.applications = applications
   }
-  async sendConfirmationEmail({resource, application, legalEntity}) {
+  public async sendConfirmationEmail({ resource, application, legalEntity }) {
     let emailAddress = resource.emailAddress
 
     this.logger.debug('controlling person: preparing to send invite') // to ${emailAddress} from ${this.conf.senderEmail}`)
@@ -135,7 +131,8 @@ class ControllingPersonRegistrationAPI {
       extraQueryParams.isAgent = true
       extraQueryParams.legalEntity = legalEntity._permalink
     }
-    let product = application.requestFor === LEGAL_ENTITY_PRODUCT ? CP_ONBOARDING : EMPLOYEE_ONBOARDING
+    let product =
+      application.requestFor === LEGAL_ENTITY_PRODUCT ? CP_ONBOARDING : EMPLOYEE_ONBOARDING
 
     const body = genConfirmationEmail({
       provider,
@@ -159,7 +156,7 @@ class ControllingPersonRegistrationAPI {
       this.logger.error('failed to email controlling person', err)
     }
   }
-  async sendLinkViaSMS({resource, application, smsBasedVerifier, legalEntity}) {
+  public async sendLinkViaSMS({ resource, application, smsBasedVerifier, legalEntity }) {
     const host = this.bot.apiBaseUrl
     const provider = await this.bot.getMyPermalink()
     const extraQueryParams: any = { application: application._permalink }
@@ -167,72 +164,83 @@ class ControllingPersonRegistrationAPI {
       extraQueryParams.isAgent = true
       extraQueryParams.legalEntity = legalEntity._permalink
     }
-    let product = application.requestFor === LEGAL_ENTITY_PRODUCT ? CP_ONBOARDING : EMPLOYEE_ONBOARDING
+    let product =
+      application.requestFor === LEGAL_ENTITY_PRODUCT ? CP_ONBOARDING : EMPLOYEE_ONBOARDING
     const [mobileUrl] = ['mobile'].map(platform => {
       return appLinks.getApplyForProductLink({
         provider,
         host,
         product,
         platform,
-        ...extraQueryParams,
+        ...extraQueryParams
       })
     })
     let phoneNumber
-    if (typeof resource.phone === 'string')
-      phoneNumber = resource.phone
-    else
-      phoneNumber = resource.phone.number
+    if (typeof resource.phone === 'string') phoneNumber = resource.phone
+    else phoneNumber = resource.phone.number
     // link should be shortend
-    let shortUrl = host + '/l/' + Math.random().toString(36).substring(2)
+    let shortUrl =
+      host +
+      '/l/' +
+      Math.random()
+        .toString(36)
+        .substring(2)
     debugger
-    const r = await this.bot.draft({ type: SHORT_TO_LONG_URL_MAPPING })
-        .set({
-          longUrl: mobileUrl,
-          shortUrl
-        })
-        .signAndSave()
+    const r = await this.bot
+      .draft({ type: SHORT_TO_LONG_URL_MAPPING })
+      .set({
+        longUrl: mobileUrl,
+        shortUrl
+      })
+      .signAndSave()
 
     await smsBasedVerifier.sendSMS({
       smsOpts: {
-        phoneNumber: phoneNumber,
+        phoneNumber,
         message: `Tradle: ${shortUrl}`,
-        senderId: this.org.name,
+        senderId: this.org.name
       }
     })
   }
 }
 
 export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
-  var { bot, applications, commands, smsBasedVerifier } = components
-  var { logger, conf } = pluginOpts
+  let { bot, applications, commands, smsBasedVerifier } = components
+  let { logger, conf } = pluginOpts
   const orgConf = components.conf
   const { org } = orgConf
   const cp = new ControllingPersonRegistrationAPI({ bot, conf, org, logger, applications })
   const plugin = {
-    onmessage: async function(req) {
+    async onmessage(req) {
       const { user, application, payload } = req
       if (!application) return
       let productId = application.requestFor
       let { products } = conf
 
       let ptype = payload[TYPE]
-      if (!products  ||  !products[productId]  ||  products[productId].indexOf(ptype) === -1)
-        return
+      if (!products || !products[productId] || products[productId].indexOf(ptype) === -1) return
 
-      if (!payload.emailAddress) { //  &&  !payload.phone) {
+      if (!payload.emailAddress) {
+        //  &&  !payload.phone) {
         logger.error(`controlling person: no email address and no phone provided`)
         return
       }
 
       const legalEntity = await bot.getResource(payload.legalEntity)
 
-      if (!await hasPropertiesChanged({ resource: payload, bot, propertiesToCheck: ['emailAddress', 'phone'] }))
+      if (
+        !(await hasPropertiesChanged({
+          resource: payload,
+          bot,
+          propertiesToCheck: ['emailAddress', 'phone']
+        }))
+      )
         return
 
       logger.debug('controlling person: processing started') // for ${payload.emailAddress}`)
-debugger
+      debugger
       // if (payload.emailAddress) {
-      await cp.sendConfirmationEmail({resource: payload, application, legalEntity})
+      await cp.sendConfirmationEmail({ resource: payload, application, legalEntity })
       return
       // }
       // if (!smsBasedVerifier) {
@@ -247,62 +255,62 @@ debugger
       // await cp.sendLinkViaSMS({resource: payload, application, smsBasedVerifier, legalEntity})
     }
 
-//       let personalInfo, legalEntity
-//       if (payload[TYPE] === CONTROLLING_PERSON) {
-//         const tasks = [payload.controllingPerson, payload.legalEntity].map(stub => bot.getResource(stub));
-//         ([personalInfo, legalEntity] = await Promise.all(tasks))
-//       }
-//       else
-//         personalInfo = payload
+    //       let personalInfo, legalEntity
+    //       if (payload[TYPE] === CONTROLLING_PERSON) {
+    //         const tasks = [payload.controllingPerson, payload.legalEntity].map(stub => bot.getResource(stub));
+    //         ([personalInfo, legalEntity] = await Promise.all(tasks))
+    //       }
+    //       else
+    //         personalInfo = payload
 
-//       if (!personalInfo.emailAddress) {
-//         logger.error(`controlling person: no email address`)
-//         return
-//       }
+    //       if (!personalInfo.emailAddress) {
+    //         logger.error(`controlling person: no email address`)
+    //         return
+    //       }
 
-//       if (!await hasPropertiesChanged({ resource: payload, bot, propertiesToCheck: ['emailAddress'] }))
-//         return
+    //       if (!await hasPropertiesChanged({ resource: payload, bot, propertiesToCheck: ['emailAddress'] }))
+    //         return
 
-//       if (payload[TYPE] === PERSONAL_INFO) {
-//         const stubs = getLatestForms(application)
-//         if (!stubs.length)
-//           return
-//         let cp = stubs.filter(s => s.type === CONTROLLING_PERSON)
-//         if (!cp.length)
-//           return
-//         const { items } = await bot.db.find({
-//           filter: {
-//             EQ: {
-//              [TYPE]: CONTROLLING_PERSON,
-//              'controllingPerson._permalink': personalInfo._permalink,
-//             },
-//             IN: {
-//               '_permalink': cp.map(f => f.permalink)
-//             }
-//           }
-//         })
-//         if (!items.length)
-//           return
-//         const controllingPerson = items[0]
-//         legalEntity = await bot.getResource(controllingPerson.legalEntity)
-//       }
-//       logger.error(`controlling person: processing for ${personalInfo.emailAddress}`)
+    //       if (payload[TYPE] === PERSONAL_INFO) {
+    //         const stubs = getLatestForms(application)
+    //         if (!stubs.length)
+    //           return
+    //         let cp = stubs.filter(s => s.type === CONTROLLING_PERSON)
+    //         if (!cp.length)
+    //           return
+    //         const { items } = await bot.db.find({
+    //           filter: {
+    //             EQ: {
+    //              [TYPE]: CONTROLLING_PERSON,
+    //              'controllingPerson._permalink': personalInfo._permalink,
+    //             },
+    //             IN: {
+    //               '_permalink': cp.map(f => f.permalink)
+    //             }
+    //           }
+    //         })
+    //         if (!items.length)
+    //           return
+    //         const controllingPerson = items[0]
+    //         legalEntity = await bot.getResource(controllingPerson.legalEntity)
+    //       }
+    //       logger.error(`controlling person: processing for ${personalInfo.emailAddress}`)
 
-//       // if (personalInfo._prevlink) {
-//       //   let prevR = await bot.objects.get(personalInfo._prevlink)
-//       //   if (prevR  &&  prevR.emailAddress === personalInfo.emailAddress)
-//       //     return
-//       // }
-//       // let invite = await cp._createDraftAndInvite(personalInfo, req)
+    //       // if (personalInfo._prevlink) {
+    //       //   let prevR = await bot.objects.get(personalInfo._prevlink)
+    //       //   if (prevR  &&  prevR.emailAddress === personalInfo.emailAddress)
+    //       //     return
+    //       // }
+    //       // let invite = await cp._createDraftAndInvite(personalInfo, req)
 
-//       // const stubs = getLatestForms(application)
-//       // const legalEntityStub = stubs.filter(({ type }) => type === LEGAL_ENTITY)
+    //       // const stubs = getLatestForms(application)
+    //       // const legalEntityStub = stubs.filter(({ type }) => type === LEGAL_ENTITY)
 
-//       // legalEntity = await bot.getResource(legalEntityStub[0])
-//       // applications.createApplicationSubmission({application: draftApplication, submission: payload})
-// debugger
-//       await cp.sendConfirmationEmail({resource: personalInfo, application, legalEntity})
-//     }
+    //       // legalEntity = await bot.getResource(legalEntityStub[0])
+    //       // applications.createApplicationSubmission({application: draftApplication, submission: payload})
+    // debugger
+    //       await cp.sendConfirmationEmail({resource: personalInfo, application, legalEntity})
+    //     }
   }
 
   return {

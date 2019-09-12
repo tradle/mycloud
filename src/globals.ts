@@ -1,3 +1,5 @@
+import './use-xray'
+
 Error.stackTraceLimit = Infinity
 
 import { install as installSourceMapSupport } from 'source-map-support'
@@ -9,38 +11,19 @@ import Promise from 'bluebird'
 
 global.Promise = Promise
 
-import http from 'http'
-import { parse as parseURL } from 'url'
 import AWS from 'aws-sdk'
 
 AWS.config.setPromisesDependency(Promise)
 
-import AWSXRay from 'aws-xray-sdk-core'
-import yn from 'yn'
-
-const xrayIsOn =
-  yn(process.env.ENABLE_XRAY) && !yn(process.env.TRADLE_BUILD) && process.env._X_AMZN_TRACE_ID
-
-process.env.XRAY_IS_ON = xrayIsOn ? '1' : ''
-
 import mockery from 'mockery'
-import once from 'lodash/once'
 import { createLogger } from './logger'
 import { requestInterceptor } from './request-interceptor'
 
 const warn = (...args) => {
   // no need to pollute with this anymore
-  // if (!process.env.IS_OFFLINE) {
-  //   console.warn(...args)
-  // }
-}
-
-if (xrayIsOn) {
-  // tslint-disable-rule: no-console
-  warn('capturing all http requests with AWSXRay')
-  AWSXRay.captureHTTPsGlobal(http)
-} else if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
-  warn('AWSXray is off')
+  if (!process.env.IS_OFFLINE) {
+    console.warn(...args)
+  }
 }
 
 if (!process.env.IS_OFFLINE) {

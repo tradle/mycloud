@@ -1,13 +1,7 @@
 import get from 'lodash/get'
 import { TYPE } from '@tradle/constants'
 import { Conf } from '../configure'
-import {
-  CreatePlugin,
-  ITradleObject,
-  IPBApp,
-  IPluginOpts,
-  ValidatePluginConf,
-} from '../types'
+import { CreatePlugin, ITradleObject, IPBApp, IPluginOpts, ValidatePluginConf } from '../types'
 import { EmailBasedVerifier, TTL } from '../email-based-verifier'
 import { getPropertyTitle } from '../utils'
 import Errors from '../../errors'
@@ -75,15 +69,12 @@ interface IEBVPluginOpts extends IPluginOpts {
 // }
 
 export const name = 'email-based-verification'
-export const createPlugin:CreatePlugin<EmailBasedVerifier> = ({
-  bot,
-  commands,
-  emailBasedVerifier,
-  conf,
-  applications
-}, pluginOpts: IEBVPluginOpts) => {
+export const createPlugin: CreatePlugin<EmailBasedVerifier> = (
+  { bot, commands, emailBasedVerifier, conf, applications },
+  pluginOpts: IEBVPluginOpts
+) => {
   const { logger } = pluginOpts
-  const pluginConf = <IEBVPluginConf>pluginOpts.conf
+  const pluginConf = pluginOpts.conf as IEBVPluginConf
   const { senderEmail, products } = pluginConf
   if (!emailBasedVerifier) {
     emailBasedVerifier = new EmailBasedVerifier({
@@ -98,7 +89,7 @@ export const createPlugin:CreatePlugin<EmailBasedVerifier> = ({
   const getEmail = (application: IPBApp, form: ITradleObject) => {
     if (!application) return
 
-    const pConf = <any>get(pluginConf.products, [application.requestFor, form[TYPE]])
+    const pConf = get(pluginConf.products, [application.requestFor, form[TYPE]]) as any
     if (!pConf) return
 
     const value = form[pConf.property]
@@ -139,13 +130,15 @@ export const createPlugin:CreatePlugin<EmailBasedVerifier> = ({
       const emailType = corporate ? 'corporate' : 'personal'
       return {
         message: `Please correct the field "${title}"`,
-        errors: [{
-          name: property,
-          error: `Please provide your ${emailType} email`
-        }]
+        errors: [
+          {
+            name: property,
+            error: `Please provide your ${emailType} email`
+          }
+        ]
       }
     },
-    'onmessage:tradle.Form': async (req) => {
+    'onmessage:tradle.Form': async req => {
       const { user, application, payload } = req
       const emailAddress = getEmail(application, payload)
       if (!emailAddress) return
@@ -166,29 +159,29 @@ export const createPlugin:CreatePlugin<EmailBasedVerifier> = ({
       }
 
       logger.debug(`created ${EMAIL_CHECK}`, { emailAddress: value })
-      const createCheck = applications.createCheck({
-        [TYPE]: EMAIL_CHECK,
-        application,
-        emailAddress: value,
-        // this org
-        provider: conf.org.name,
-        user: user.identity,
-        dateExpires: Date.now() + TTL.ms
-      })
+      const createCheck = applications.createCheck(
+        {
+          [TYPE]: EMAIL_CHECK,
+          application,
+          emailAddress: value,
+          // this org
+          provider: conf.org.name,
+          user: user.identity,
+          dateExpires: Date.now() + TTL.ms
+        },
+        req
+      )
 
       const alertUser = await bot.sendSimpleMessage({
         to: user,
         message: `Please check ${value} for a confirmation link`
       })
 
-      await Promise.all([
-        createCheck,
-        alertUser
-      ])
+      await Promise.all([createCheck, alertUser])
     }
   }
 
-  bot.hookSimple(EventTopics.resource.save.async, async (event) => {
+  bot.hookSimple(EventTopics.resource.save.async, async event => {
     const { value, old } = event
     if (!value) return // this is a 'delete' op
     if (value[TYPE] !== EMAIL_CHECK) return
@@ -236,8 +229,8 @@ export const createPlugin:CreatePlugin<EmailBasedVerifier> = ({
   }
 }
 
-export const validateConf:ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
-  const { senderEmail, products={} } = pluginConf as IEBVPluginConf
+export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
+  const { senderEmail, products = {} } = pluginConf as IEBVPluginConf
   if (!senderEmail) {
     throw new Error('expected "senderEmail"')
   }
@@ -258,7 +251,9 @@ export const validateConf:ValidatePluginConf = async ({ bot, conf, pluginConf })
       let fConf = pConf[form]
       let { property, corporate } = fConf
       if (!property) {
-        throw new Errors.InvalidInput(`expected property name at products['${product}']['${form}'].property`)
+        throw new Errors.InvalidInput(
+          `expected property name at products['${product}']['${form}'].property`
+        )
       }
 
       if (!formModel.properties[property]) {
@@ -266,7 +261,9 @@ export const validateConf:ValidatePluginConf = async ({ bot, conf, pluginConf })
       }
 
       if (typeof corporate !== 'undefined' && typeof corporate !== 'boolean') {
-        throw new Errors.InvalidInput(`expected boolean "corporate" at products['${product}']['${form}']`)
+        throw new Errors.InvalidInput(
+          `expected boolean "corporate" at products['${product}']['${form}']`
+        )
       }
     }
   }

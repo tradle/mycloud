@@ -122,7 +122,8 @@ export interface IValidateFormOutput {
   errors?: ValidationError[]
 }
 
-export interface WillIssueCertificateArg { 
+export interface WillIssueCertificateArg {
+  req: IPBReq
   user: IPBUser
   application: IPBApp
   certificate: ITradleObject

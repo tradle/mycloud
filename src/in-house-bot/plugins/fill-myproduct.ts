@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
-import { Bot, Logger, CreatePlugin } from '../types'
+import { Bot, Logger, CreatePlugin, WillIssueCertificateArg } from '../types'
 import baseModels from '../../models'
 import { getLatestForms } from '../utils'
 
@@ -19,7 +19,7 @@ export class FillMyProductPlugin {
     this.logger = logger
   }
 
-  public willIssueCertificate = async ({ user, application, certificate }) => {
+  public willIssueCertificate = async ({ user, application, certificate, req }:  WillIssueCertificateArg) => {
     const { models } = this.bot
     const model = models[certificate[TYPE]]
     if (!model) {
