@@ -3,6 +3,9 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: MyCloud tables
 
 Parameters:
+  Refresh:
+    Type: String
+
   Namespace:
     Type: String
 

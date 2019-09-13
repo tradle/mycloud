@@ -693,7 +693,7 @@ provider:
     - Effect: Allow
       Action:
         - glue:*
-      Resource: '*'  
+      Resource: '*'
 
     # - Effect: Allow
     #   Action:
@@ -1209,6 +1209,10 @@ functions:
 
 resources:
   Parameters:
+    Refresh:
+      Type: String
+      Default: "1.0"
+
     SourceDeploymentBucket:
       Type: String
       Default: ""
@@ -1399,6 +1403,7 @@ resources:
             default: "Stack Info"
           Parameters:
             - Stage
+            - Refresh
 
         - Label:
             default: "Existing Resources (ignore if this is a new deployment)"
@@ -1604,6 +1609,8 @@ resources:
         TemplateURL:
           Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/tables.json'
         Parameters:
+          Refresh:
+            Ref: Refresh
           Namespace:
             Ref: AWS::StackName
           ExistingEventsTable:
@@ -1676,7 +1683,7 @@ resources:
             Ref: AWS::StackName
           BucketEncryptionKeyArn:
             Fn::GetAtt: Keys.Outputs.BucketEncryptionKeyArn
-    
+
     RefData:
       Type: AWS::CloudFormation::Stack
       Properties:
