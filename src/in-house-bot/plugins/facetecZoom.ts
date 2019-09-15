@@ -133,7 +133,7 @@ export class IFacetecZoomCheckAPI {
     this.logger.debug(`Created ${PROVIDER} check for ${ASPECTS}`)
   }
 
-  public createVerification = async ({ application, form, rawData }) => {
+  public createVerification = async ({ application, form, rawData, req }) => {
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
@@ -159,7 +159,8 @@ export class IFacetecZoomCheckAPI {
       await this.applications.deactivateChecks({
         application,
         type: SELFIE_SPOOF_PROOF_CHECK,
-        form
+        form,
+        req
       })
   }
 }
@@ -195,7 +196,8 @@ export const createPlugin: CreatePlugin<IFacetecZoomCheckAPI> = (
         provider: PROVIDER,
         form,
         propertiesToCheck: ['scan'],
-        prop: 'form'
+        prop: 'form',
+        req
       })
       if (!toCheck) {
         logger.debug(
@@ -207,7 +209,12 @@ export const createPlugin: CreatePlugin<IFacetecZoomCheckAPI> = (
       let status = await documentChecker.selfieLiveness(form, application)
       await documentChecker.createCheck({ application, status, form, req })
       if (status.status === 'pass') {
-        await documentChecker.createVerification({ application, form, rawData: status.rawData })
+        await documentChecker.createVerification({
+          application,
+          form,
+          rawData: status.rawData,
+          req
+        })
       }
     },
     willRequestForm: ({ user, application, formRequest }) => {

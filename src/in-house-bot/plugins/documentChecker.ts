@@ -301,7 +301,11 @@ export class DocumentCheckerAPI {
     await this.applications.createVerification({ application, verification })
     this.logger.debug(`Created ${PROVIDER} verification for ${ASPECTS}`)
     if (application.checks)
-      await this.applications.deactivateChecks({ application, type: DOCUMENT_CHECKER_CHECK, form })
+      await this.applications.deactivateChecks({
+        application,
+        type: DOCUMENT_CHECKER_CHECK,
+        form
+      })
   }
   public async getByCheckId(checkId) {
     return await this.bot.db.findOne({
@@ -425,7 +429,8 @@ export const createPlugin: CreatePlugin<DocumentCheckerAPI> = (
         provider: PROVIDER,
         form,
         propertiesToCheck: ['scan'],
-        prop: 'form'
+        prop: 'form',
+        req
       })
       if (!createCheck) {
         logger.debug(

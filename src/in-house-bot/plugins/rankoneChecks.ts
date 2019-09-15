@@ -13,6 +13,7 @@ import {
   Applications,
   ITradleObject,
   IPBApp,
+  IPBReq,
   IPluginLifecycleMethods,
   ValidatePluginConf
 } from '../types'
@@ -66,7 +67,7 @@ export class RankOneCheckAPI {
     this.conf = conf
   }
 
-  public getSelfieAndPhotoID = async (application: IPBApp) => {
+  public getSelfieAndPhotoID = async (application: IPBApp, req: IPBReq) => {
     const stubs = getLatestForms(application)
     const photoIDStub = stubs.find(({ type }) => type === PHOTO_ID)
     const selfieStub = stubs.find(({ type }) => type === SELFIE)
@@ -89,20 +90,28 @@ export class RankOneCheckAPI {
 
     let selfieLink = selfie._link
     let photoIdLink = photoID._link
-    let items = await getChecks({
-      bot: this.bot,
-      type: FACIAL_RECOGNITION,
-      application,
-      provider: PROVIDER
-    })
+
+    let items
+    if (req.checks) {
+      items = req.checks.filter(r => r.provider === PROVIDER)
+      items.sort((a, b) => a.time - b.time)
+    } else {
+      items = await getChecks({
+        bot: this.bot,
+        type: FACIAL_RECOGNITION,
+        application,
+        provider: PROVIDER
+      })
+    }
+
     if (items.length) {
       let checks = items.filter(
         r => r.selfie._link === selfieLink || r.photoID._link === photoIdLink
       )
-      if (checks.length) {
-        let r = checks[0]
+      if (checks.length && checks[0].status.id !== 'tradle.Status_error') {
+        let check = checks[0]
         // debugger
-        if (r.selfie._link === selfieLink && r.photoID._link === photoIdLink) {
+        if (check.selfie._link === selfieLink && check.photoID._link === photoIdLink) {
           this.logger.debug(
             `Rankone: check already exists for ${photoID.firstName} ${photoID.lastName} ${photoID.documentType.title}`
           )
@@ -111,11 +120,12 @@ export class RankOneCheckAPI {
         // debugger
         // Check what changed photoID or Selfie.
         // If it was Selfie then create a new check since Selfi is not editable
-        if (r.selfie._link === selfieLink) {
+        if (check.selfie._link === selfieLink) {
           let changed = await hasPropertiesChanged({
             resource: photoID,
             bot: this.bot,
-            propertiesToCheck: ['scan']
+            propertiesToCheck: ['scan'],
+            req
           })
           if (!changed) {
             this.logger.debug(
@@ -224,7 +234,7 @@ export class RankOneCheckAPI {
     return check.toJSON()
   }
 
-  public createVerification = async ({ user, application, photoID }) => {
+  public createVerification = async ({ user, application, photoID, req }) => {
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: _.clone(RANKONE_API_RESOURCE),
@@ -244,7 +254,8 @@ export class RankOneCheckAPI {
       await this.applications.deactivateChecks({
         application,
         type: FACIAL_RECOGNITION,
-        form: photoID
+        form: photoID,
+        req
       })
   }
 }
@@ -275,17 +286,15 @@ export const createPlugin: CreatePlugin<RankOneCheckAPI> = (components, pluginOp
       //let { products } = conf
       //if (!products  ||  !products[productId])
       //  return
-      const result = await rankOne.getSelfieAndPhotoID(application)
+      const result = await rankOne.getSelfieAndPhotoID(application, req)
       if (!result) return
       const { selfie, photoID } = result
-
       const { status, rawData, error } = await rankOne.matchSelfieAndPhotoID({
         selfie,
         photoID,
         application
       })
       // const { checkStatus, data, err} = await rankOne.checkForSpoof({image: selfie.url, application})
-
       const promiseCheck = rankOne.createCheck({
         status,
         selfie,
@@ -297,7 +306,7 @@ export const createPlugin: CreatePlugin<RankOneCheckAPI> = (components, pluginOp
       })
       const pchecks = [promiseCheck]
       if (status === true) {
-        const promiseVerification = rankOne.createVerification({ user, application, photoID })
+        const promiseVerification = rankOne.createVerification({ user, application, photoID, req })
         pchecks.push(promiseVerification)
       }
 

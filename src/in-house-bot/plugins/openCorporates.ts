@@ -10,7 +10,7 @@ import {
   toISODateString,
   getCheckParameters,
   getStatusMessageForCheck,
-  doesCheckExist,
+  // doesCheckExist,
   doesCheckNeedToBeCreated
 } from '../utils'
 
@@ -198,7 +198,7 @@ class OpenCorporatesAPI {
     return check.toJSON()
   }
 
-  public createVerification = async ({ user, application, form, rawData }) => {
+  public createVerification = async ({ user, application, form, rawData, req }) => {
     // debugger
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
@@ -226,12 +226,13 @@ class OpenCorporatesAPI {
     // debugger
 
     if (application.checks)
-      await this.applications.deactivateChecks({ application, type: CORPORATION_EXISTS, form })
+      await this.applications.deactivateChecks({ application, type: CORPORATION_EXISTS, form, req })
   }
 }
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger, conf }) => {
   const openCorporates = new OpenCorporatesAPI({ bot, conf, applications, logger })
   const plugin = {
+    name: 'open-corporates',
     async onmessage(req: IPBReq) {
       // debugger
       if (req.skipChecks) return
@@ -252,24 +253,19 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         logger.debug('not running check as form is missing "country"')
         return
       }
-      if (
-        await doesCheckExist({
-          bot,
-          type: CORPORATION_EXISTS,
-          eq: { form: payload._link },
-          application,
-          provider: OPEN_CORPORATES
-        })
-      )
-        return
-      let propertiesToCheck = [
-        'registrationNumber',
-        'registrationDate',
-        'country',
-        'companyName'
-      ]
-      if (bot.models[ptype].properties['region'])
-        propertiesToCheck.push('region')
+      // if (
+      //   await doesCheckExist({
+      //     bot,
+      //     type: CORPORATION_EXISTS,
+      //     eq: { form: payload._link },
+      //     application,
+      //     provider: OPEN_CORPORATES
+      //   })
+      // )
+      //   return
+
+      let propertiesToCheck = ['registrationNumber', 'registrationDate', 'country', 'companyName']
+      if (bot.models[ptype].properties.region) propertiesToCheck.push('region')
 
       let createCheck = await doesCheckNeedToBeCreated({
         bot,
@@ -278,16 +274,20 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         provider: OPEN_CORPORATES,
         form: payload,
         propertiesToCheck,
-        prop: 'form'
+        prop: 'form',
+        req
       })
       if (!createCheck) return
+
+      let map = propertyMap && propertyMap[payload[TYPE]]
+      if (map) map = { ...defaultPropMap, ...map }
 
       let { resource, error } = await getCheckParameters({
         plugin: DISPLAY_NAME,
         resource: payload,
         bot,
         defaultPropMap,
-        map: propertyMap && propertyMap[payload[TYPE]]
+        map
       })
       // Check if the check parameters changed
       if (!resource) {
@@ -330,7 +330,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
             user,
             application,
             form: payload,
-            rawData: hits[0].company
+            rawData: hits[0].company,
+            req
           })
         )
       // })

@@ -127,7 +127,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let checkTypes = conf.products[application.requestFor]
       if (!checkTypes)
         return
-      debugger
+      // debugger
 
       if (checkTypes.length) {
         let checks = await applications.getLatestChecks({ application })

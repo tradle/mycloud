@@ -12,12 +12,8 @@ import { SMSBasedVerifier } from '../sms-based-verifier'
 
 const { APPLICATION, IDENTITY } = TYPES
 
-const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
-// const PERSONAL_INFO = 'tradle.PersonalInfo'
 const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const AGENCY = 'tradle.Agency'
-const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
-const LEGAL_ENTITY_PRODUCT = 'tradle.legal.LegalEntityProduct'
 const CP_ONBOARDING = 'tradle.legal.ControllingPersonOnboarding'
 const SHORT_TO_LONG_URL_MAPPING = 'tradle.ShortToLongUrlMapping'
 
@@ -132,11 +128,7 @@ class ControllingPersonRegistrationAPI {
       extraQueryParams.legalEntity = legalEntity._permalink
     }
 
-    const stubs = getLatestForms(application)
-    const legalEntityStub = stubs.find(({ type }) => type === LEGAL_ENTITY)
-
-    let product =
-      application.requestFor === LEGAL_ENTITY && CP_ONBOARDING || EMPLOYEE_ONBOARDING
+    let product = (application.requestFor === AGENCY && EMPLOYEE_ONBOARDING) || CP_ONBOARDING
 
     const body = genConfirmationEmail({
       provider,
@@ -168,8 +160,7 @@ class ControllingPersonRegistrationAPI {
       extraQueryParams.isAgent = true
       extraQueryParams.legalEntity = legalEntity._permalink
     }
-    let product =
-      application.requestFor === LEGAL_ENTITY_PRODUCT ? CP_ONBOARDING : EMPLOYEE_ONBOARDING
+    let product = (application.requestFor === AGENCY && EMPLOYEE_ONBOARDING) || CP_ONBOARDING
     const [mobileUrl] = ['mobile'].map(platform => {
       return appLinks.getApplyForProductLink({
         provider,
@@ -236,7 +227,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         !(await hasPropertiesChanged({
           resource: payload,
           bot,
-          propertiesToCheck: ['emailAddress', 'phone']
+          propertiesToCheck: ['emailAddress', 'phone'],
+          req
         }))
       )
         return

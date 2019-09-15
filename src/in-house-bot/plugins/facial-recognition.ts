@@ -230,7 +230,7 @@ export class FacialRecognitionAPI {
     return check.toJSON()
   }
 
-  public createVerification = async ({ user, application, photoID }) => {
+  public createVerification = async ({ user, application, photoID, req }) => {
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: _.clone(NTECH_API_RESOURCE),
@@ -251,7 +251,8 @@ export class FacialRecognitionAPI {
       await this.applications.deactivateChecks({
         application,
         type: FACIAL_RECOGNITION,
-        form: photoID
+        form: photoID,
+        req
       })
   }
 }
@@ -306,7 +307,8 @@ export const createPlugin: CreatePlugin<FacialRecognitionAPI> = (components, plu
         const promiseVerification = facialRecognition.createVerification({
           user,
           application,
-          photoID
+          photoID,
+          req
         })
         pchecks.push(promiseVerification)
       }

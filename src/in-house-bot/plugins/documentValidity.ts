@@ -79,7 +79,8 @@ class DocumentValidityAPI {
       provider: PROVIDER,
       form: payload,
       propertiesToCheck,
-      prop: 'form'
+      prop: 'form',
+      req
     })
     // debugger
     if (!createCheck) {
@@ -175,7 +176,7 @@ class DocumentValidityAPI {
       this.createCheck({ req, application, rawData, status: rawData.Status, form: payload })
     )
     if (rawData.Status === 'pass')
-      pchecks.push(this.createVerification({ user, application, form: payload, rawData }))
+      pchecks.push(this.createVerification({ user, application, form: payload, rawData, req }))
     let checksAndVerifications = await Promise.all(pchecks)
   }
   public checkTheDifferences(payload, rawData) {
@@ -246,7 +247,7 @@ class DocumentValidityAPI {
     this.logger.debug(`Created DocumentValidity Check for: ${form.firstName} ${form.lastName}`)
   }
 
-  public createVerification = async ({ user, application, form, rawData }) => {
+  public createVerification = async ({ user, application, form, rawData, req }) => {
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
@@ -278,7 +279,7 @@ class DocumentValidityAPI {
       `Created DocumentValidity Verification for: ${form.firstName} ${form.lastName}`
     )
     if (application.checks)
-      await this.applications.deactivateChecks({ application, type: DOCUMENT_VALIDITY, form })
+      await this.applications.deactivateChecks({ application, type: DOCUMENT_VALIDITY, form, req })
   }
 }
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger }) => {
