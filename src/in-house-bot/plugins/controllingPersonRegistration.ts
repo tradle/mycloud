@@ -131,8 +131,12 @@ class ControllingPersonRegistrationAPI {
       extraQueryParams.isAgent = true
       extraQueryParams.legalEntity = legalEntity._permalink
     }
+
+    const stubs = getLatestForms(application)
+    const legalEntityStub = stubs.find(({ type }) => type === LEGAL_ENTITY)
+
     let product =
-      application.requestFor === LEGAL_ENTITY_PRODUCT ? CP_ONBOARDING : EMPLOYEE_ONBOARDING
+      application.requestFor === LEGAL_ENTITY && CP_ONBOARDING || EMPLOYEE_ONBOARDING
 
     const body = genConfirmationEmail({
       provider,

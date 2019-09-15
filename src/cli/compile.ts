@@ -1,12 +1,8 @@
 import _ from 'lodash'
-const LOCALLY_AVAILABLE = [
-  'AWS::DynamoDB::Table',
-  'AWS::S3::Bucket',
-  'AWS::ApiGateway::RestApi'
-]
+const LOCALLY_AVAILABLE = ['AWS::DynamoDB::Table', 'AWS::S3::Bucket', 'AWS::ApiGateway::RestApi']
 
 import { ENV_RESOURCE_PREFIX, ADMIN_ALERTS_TOPIC_NAME } from '../constants'
-const NUM_INDEXES = 5
+const NUM_INDEXES = 10
 
 export {
   forEachResource,
@@ -18,10 +14,10 @@ export {
   addBucketTables,
   stripDevFunctions,
   setBucketEncryption,
-  addLogProcessorEvents,
+  addLogProcessorEvents
 }
 
-function addCustomResourceDependencies (yml, interpolated) {
+function addCustomResourceDependencies(yml, interpolated) {
   const { prefix } = interpolated.custom
   const naming = require('serverless/lib/plugins/aws/lib/naming')
   const lambdas = Object.keys(interpolated.functions).map(shortName => {
@@ -32,8 +28,8 @@ function addCustomResourceDependencies (yml, interpolated) {
   Initialize.DependsOn = _.uniq(lambdas.concat(Initialize.DependsOn || []))
 }
 
-function setBucketEncryption ({ target, interpolated }) {
-  const { encryption=[] } = interpolated.custom.vars
+function setBucketEncryption({ target, interpolated }) {
+  const { encryption = [] } = interpolated.custom.vars
   if (!encryption.length) return
 
   encryption.forEach(bucketName => {
@@ -55,7 +51,7 @@ function setBucketEncryption ({ target, interpolated }) {
   // })
 }
 
-function addBucketTables ({ yml, prefix }) {
+function addBucketTables({ yml, prefix }) {
   const { resources, custom } = yml
   const { tableBuckets } = custom
   if (!tableBuckets) return
@@ -95,13 +91,7 @@ function addBucketTables ({ yml, prefix }) {
 
 const getIndexName = i => `idx${i}`
 
-function getBucketTableDefinition ({
-  name,
-  read,
-  write,
-  indexes,
-  dependencies
-}) {
+function getBucketTableDefinition({ name, read, write, indexes, dependencies }) {
   const GlobalSecondaryIndexes = _.range(0, indexes).map(i => ({
     IndexName: getIndexName(i),
     KeySchema: [
@@ -116,7 +106,7 @@ function getBucketTableDefinition ({
     ],
     Projection: {
       // ProjectionType: 'ALL'
-      ProjectionType: 'KEYS_ONLY',
+      ProjectionType: 'KEYS_ONLY'
       // ProjectionType: 'INCLUDE',
       // NonKeyAttributes: [
       //   TYPE, '_link', '_permalink', '_author',
@@ -125,7 +115,7 @@ function getBucketTableDefinition ({
     ProvisionedThroughput: {
       ReadCapacityUnits: read.minimum,
       WriteCapacityUnits: write.minimum
-    },
+    }
   }))
 
   const KeySchema = [
@@ -166,12 +156,12 @@ function getBucketTableDefinition ({
       GlobalSecondaryIndexes,
       PointInTimeRecoverySpecification: {
         PointInTimeRecoveryEnabled: true
-      },
+      }
     }
   }
 }
 
-function forEachResource (yaml, fn) {
+function forEachResource(yaml, fn) {
   const { resources, provider } = yaml
   const { Resources } = resources
   const { environment } = provider
@@ -208,11 +198,11 @@ function forEachResource (yaml, fn) {
   // })
 }
 
-function forEachLambda (yaml, fn) {
+function forEachLambda(yaml, fn) {
   return forEachResourceOfType(yaml, fn, 'AWS::Lambda::Function')
 }
 
-function forEachResourceOfType (yaml, fn, type) {
+function forEachResourceOfType(yaml, fn, type) {
   forEachResource(yaml, resource => {
     if (resource.Type === type) {
       fn(resource)
@@ -220,7 +210,7 @@ function forEachResourceOfType (yaml, fn, type) {
   })
 }
 
-function stripDevFunctions (yml) {
+function stripDevFunctions(yml) {
   const { functions } = yml
   Object.keys(functions).forEach(name => {
     if (name.endsWith('_dev')) {
@@ -229,7 +219,7 @@ function stripDevFunctions (yml) {
   })
 }
 
-function addResourcesToEnvironment (yaml) {
+function addResourcesToEnvironment(yaml) {
   const { provider, functions } = yaml
   // for (let fnName in functions) {
   //   addHTTPMethodsToEnvironment(functions[fnName])
@@ -248,7 +238,9 @@ function addResourcesToEnvironment (yaml) {
       return
     }
 
-    const type = resource.Type.split('::').pop().toUpperCase()
+    const type = resource.Type.split('::')
+      .pop()
+      .toUpperCase()
     let shortName = id
     if (id.toUpperCase().endsWith(type)) {
       shortName = shortName.slice(0, id.length - type.length)
@@ -272,7 +264,7 @@ function addResourcesToEnvironment (yaml) {
   }
 }
 
-function addResourcesToOutputs (yaml:any) {
+function addResourcesToOutputs(yaml: any) {
   const { resources } = yaml
   if (!resources.Outputs) resources.Outputs = {}
 
@@ -285,7 +277,7 @@ function addResourcesToOutputs (yaml:any) {
       }
     }
 
-    const output:any = Outputs[id] = {}
+    const output: any = (Outputs[id] = {})
     if (resource.Description) {
       output.Description = resource.Description
     }
@@ -294,21 +286,20 @@ function addResourcesToOutputs (yaml:any) {
   })
 }
 
-function removeResourcesThatDontWorkLocally ({ provider, resources }) {
+function removeResourcesThatDontWorkLocally({ provider, resources }) {
   const { Resources } = resources
   resources.Resources = {}
-  Object.keys(Resources)
-    .forEach(name => {
-      const resource = Resources[name]
-      if (LOCALLY_AVAILABLE.includes(resource.Type)) {
-        resources.Resources[name] = resource
-      }
-    })
+  Object.keys(Resources).forEach(name => {
+    const resource = Resources[name]
+    if (LOCALLY_AVAILABLE.includes(resource.Type)) {
+      resources.Resources[name] = resource
+    }
+  })
 
   provider.iamRoleStatements = []
 }
 
-function addLogProcessorEvents (yaml: any) {
+function addLogProcessorEvents(yaml: any) {
   const processLambdaName = 'logProcessor'
   const logProcessor = yaml.functions[processLambdaName]
   // const naming = require('serverless/lib/plugins/aws/lib/naming')
@@ -320,7 +311,7 @@ function addLogProcessorEvents (yaml: any) {
         // logGroup: `/aws/lambda/${yaml.custom.prefix}${name}`,
         logGroup: {
           'Fn::Sub': `/aws/lambda/${stackNameVar}-${name}`
-        },
+        }
         // logGroup: {
         //   Ref: naming.getLogGroupLogicalId(name)
         // },

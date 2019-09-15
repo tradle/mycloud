@@ -2,21 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.4-rc.21](https://github.com/tradle/mycloud/compare/v2.4.4-rc.20...v2.4.4-rc.21) (2019-09-11)
+## [2.4.4-rc.22](https://github.com/tradle/mycloud/compare/v2.4.4-rc.21...v2.4.4-rc.22) (2019-09-12)
 
 
 ### Bug Fixes
 
-* createCheck signature change; checks accounting is here ([c939c57](https://github.com/tradle/mycloud/commit/c939c57))
-* createCheck signature in applications.ts changed ([498c680](https://github.com/tradle/mycloud/commit/498c680))
-* openCorporates and complyAdvantage worked for LegalEntity only ([2b97c8b](https://github.com/tradle/mycloud/commit/2b97c8b))
-* remove code that overrides application ([608bf44](https://github.com/tradle/mycloud/commit/608bf44))
-
-
-### Features
-
-* arg list changed for willCreateCertificate ([52fd900](https://github.com/tradle/mycloud/commit/52fd900))
-* sub applications now are connected to the parent ([18890dd](https://github.com/tradle/mycloud/commit/18890dd))
+* aspects got accumulated ([c68e603](https://github.com/tradle/mycloud/commit/c68e603))
 
 
 
