@@ -1,7 +1,6 @@
 import constants from '@tradle/constants'
-const { TYPE } = constants
+import { TYPE, PERMALINK, LINK } from '@tradle/constants'
 const { VERIFICATION } = constants.TYPES
-import { buildResourceStub } from '@tradle/build-resource'
 
 // @ts-ignore
 import {
@@ -29,7 +28,10 @@ import Errors from '../../errors'
 import AWS from 'aws-sdk'
 import _ from 'lodash'
 import util from 'util'
-//import remapKeys from 'remap-keys'
+import validateResource from '@tradle/validate-resource'
+// @ts-ignore
+const { sanitize } = validateResource.utils
+import remapKeys from 'remap-keys'
 
 //const ATHENA_DB = 'sec'
 //const ATHENA_OUTPUT_LOCATION = 's3://jacob.gins.athena/temp/'
@@ -42,8 +44,6 @@ const REGULATOR_REGISTRATION_CHECK = 'tradle.RegulatorRegistrationCheck'
 const PROVIDER = 'https://catalog.data.gov'
 const ASPECTS = 'registration with FINRA'
 // const FORM_ID = 'io.lenka.BSAPI102a'
-
-const FORM_ID = 'com.cvb.BSAPI102a'
 
 const FORM_ID_US_firm_sec_feed = 'com.cvb.BSAPI102a'
 const FORM_ID_GB_firms_psd_perm = 'com.svb.BSAPI102FCAPSDFirms'
@@ -272,13 +272,14 @@ export class RegulatorRegistrationAPI {
     }
     return subject
   }
-  public async check({ subject, form, application, req }) {
+  public async check({ subject, form, application, req, user }) {
     let status
     let formRegistrationNumber = form[subject.check] //.replace(/-/g, '').replace(/^0+/, '') // '133693';
     this.logger.debug(`regulatorRegistration check() called with number ${formRegistrationNumber}`)
     let sql = util.format(subject.query, formRegistrationNumber)
     let find = await this.queryAthena(sql)
     let rawData
+    let prefill
     if (find.status == false) {
       status = {
         status: 'error',
@@ -292,14 +293,41 @@ export class RegulatorRegistrationAPI {
       }
     } else {
       // remap to form properties
-      //let found = remapKeys(find.data[0], subject.map)
-      //this.logger.debug(`regulatorRegistration check() found ${found}`)
-
+      prefill = remapKeys(find.data[0], subject.map)
+      this.logger.debug(`regulatorRegistration check() found ${prefill}`)
       status = { status: 'pass' }
     }
 
     await this.createCheck({ application, status, form, rawData, req })
-    if (status.status === 'pass') await this.createVerification({ application, form })
+
+    if (status.status === 'pass') {
+      await this.createVerification({ application, form })
+
+      prefill = sanitize(prefill).sanitized
+      const payloadClone = _.cloneDeep(form)
+      payloadClone[PERMALINK] = payloadClone._permalink
+      payloadClone[LINK] = payloadClone._link
+      _.extend(payloadClone, prefill)
+      // debugger
+      let formError: any = {
+        req,
+        user,
+        application
+      }
+      formError.details = {
+        prefill: payloadClone,
+        message: `Please review and correct the data below`
+      }
+      try {
+        await this.applications.requestEdit(formError)
+        return {
+          message: 'no request edit',
+          exit: true
+        }
+      } catch (err) {
+        debugger
+      }
+    }
   }
   public createCheck = async ({ application, status, form, rawData, req }: IRegCheck) => {
     // debugger
@@ -355,7 +383,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   const regulatorRegistrationAPI = new RegulatorRegistrationAPI({ bot, conf, applications, logger })
   // debugger
   const plugin: IPluginLifecycleMethods = {
-    async onmessage(req: IPBReq) {
+    async validateForm({ req }) {
       logger.debug('regulatorRegistration called onmessage')
       if (req.skipChecks) return
       const { user, application, payload } = req
@@ -363,7 +391,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       let subject = regulatorRegistrationAPI.mapToSubject(payload[TYPE])
       if (!subject) return
-      logger.debug(`regulatorRegistration called for subject ${subject}`)
+      logger.debug(`regulatorRegistration called for type ${payload[TYPE]} to check ${subject.check}`)
 
       if (!payload[subject.check]) return
 
@@ -377,10 +405,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         propertiesToCheck: [subject.check],
         prop: 'form'
       })
-      logger.debug(`'regulatorRegistration after doesCheckNeedToBeCreated with createCheck=${createCheck}`)
+      logger.debug(`regulatorRegistration after doesCheckNeedToBeCreated with createCheck=${createCheck}`)
 
       if (!createCheck) return
-      let r = await regulatorRegistrationAPI.check({ subject, form: payload, application, req })
+      let r = await regulatorRegistrationAPI.check({ subject, form: payload, application, req, user })
     }
   }
   return { plugin }
