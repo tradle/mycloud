@@ -153,7 +153,7 @@ export class TruefaceAPI {
     return check.toJSON()
   }
 
-  public createVerification = async ({ user, application, resource }) => {
+  public createVerification = async ({ user, application, resource, req }) => {
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: _.clone(NTECH_API_RESOURCE),
@@ -174,7 +174,8 @@ export class TruefaceAPI {
       await this.applications.deactivateChecks({
         application,
         type: TRUEFACE_CHECK,
-        form: resource
+        form: resource,
+        req
       })
   }
 }
@@ -233,7 +234,7 @@ export const createPlugin: CreatePlugin<TruefaceAPI> = (components, pluginOpts) 
       })
       const pchecks = [promiseCheck]
       if (status === 'pass') {
-        const promiseVerification = trueface.createVerification({ user, application, resource })
+        const promiseVerification = trueface.createVerification({ user, application, resource, req })
         pchecks.push(promiseVerification)
       }
 

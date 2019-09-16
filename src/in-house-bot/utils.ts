@@ -21,12 +21,14 @@ import {
   ITradleObject,
   IConfComponents,
   IUser,
-  IPBApp
+  IPBApp,
+  Applications
 } from './types'
 
 import { TYPE } from '../constants'
 import { TRADLE } from './constants'
 import { safeStringify, trimLeadingSlashes, trimTrailingSlashes } from '../string-utils'
+import { logger } from '@tradle/dynamodb/lib/defaults'
 
 const SealModel = models['tradle.Seal']
 const SEAL_MODEL_PROPS = Object.keys(SealModel.properties)
@@ -491,7 +493,8 @@ export const doesCheckNeedToBeCreated = async ({
   provider,
   form,
   propertiesToCheck,
-  prop
+  prop,
+  req
 }: {
   bot: Bot
   type: string
@@ -500,14 +503,22 @@ export const doesCheckNeedToBeCreated = async ({
   form: ITradleObject
   propertiesToCheck: string[]
   prop: string
+  req: IPBReq
 }) => {
   // debugger
-  let items = await getChecks({ bot, type, application, provider })
+  if (!application.checks || !application.checks.length) return true
+  if (!req.checks) {
+    let startTime = Date.now()
+    req.checks = await Promise.all(application.checks.map(checkStub => bot.getResource(checkStub)))
+    bot.logger.debug(`getChecks took: ${Date.now() - startTime}`)
+  }
+  let items = req.checks.filter(check => check.provider === provider)
+  // let items = await getChecks({ bot, type, application, provider })
   if (!items.length) return true
   else {
     let checks = items.filter(r => r[prop]._link === form._link)
     if (checks.length) return false
-    return await hasPropertiesChanged({ resource: form, bot, propertiesToCheck })
+    return await hasPropertiesChanged({ resource: form, bot, propertiesToCheck, req })
   }
 }
 export const getChecks = async ({
@@ -543,56 +554,63 @@ export const getChecks = async ({
   return items
 }
 
-export const doesCheckExist = async ({
-  bot,
-  type,
-  eq,
-  application,
-  provider
-}: {
-  bot: Bot
-  type: string
-  eq: any
-  application: IPBApp
-  provider: string
-}) => {
-  // debugger
-  let eqClause = {
-    [TYPE]: type,
-    'application._permalink': application._permalink,
-    provider
-  }
-  if (eq) {
-    for (let p in eq) eqClause[`${p}._link`] = eq[p]
-  }
-  const { items } = await bot.db.find({
-    allowScan: true,
-    limit: 1,
-    orderBy: {
-      property: 'dateChecked',
-      desc: true
-    },
-    filter: {
-      EQ: eqClause,
-      NEQ: {
-        'status.id': 'tradle.Status_error'
-      }
-    }
-  })
-  return items.length
-}
+// export const doesCheckExist = async ({
+//   bot,
+//   type,
+//   eq,
+//   application,
+//   provider
+// }: {
+//   bot: Bot
+//   type: string
+//   eq: any
+//   application: IPBApp
+//   provider: string
+// }) => {
+//   // debugger
+//   let eqClause = {
+//     [TYPE]: type,
+//     'application._permalink': application._permalink,
+//     provider
+//   }
+//   if (eq) {
+//     for (let p in eq) eqClause[`${p}._link`] = eq[p]
+//   }
+//   const { items } = await bot.db.find({
+//     allowScan: true,
+//     limit: 1,
+//     orderBy: {
+//       property: 'dateChecked',
+//       desc: true
+//     },
+//     filter: {
+//       EQ: eqClause,
+//       NEQ: {
+//         'status.id': 'tradle.Status_error'
+//       }
+//     }
+//   })
+//   return items.length
+// }
 
 export const hasPropertiesChanged = async ({
   resource,
   bot,
-  propertiesToCheck
+  propertiesToCheck,
+  req
 }: {
   resource: ITradleObject
   bot: Bot
   propertiesToCheck: string[]
+  req: IPBReq
 }) => {
   // debugger
-  let dbRes = resource._prevlink && (await bot.objects.get(resource._prevlink))
+  if (!resource._prevlink) return true
+  let dbRes = req.previousPayloadVersion
+  if (!dbRes) {
+    dbRes = await bot.objects.get(resource._prevlink)
+    req.previousPayloadVersion = dbRes
+  }
   if (!dbRes) return true
   let r: any = {}
   // Use defaultPropMap for creating mapped resource if the map was not supplied or

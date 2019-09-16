@@ -78,7 +78,7 @@ class ComplyAdvantageAPI {
     // let resource = payload
     let map = pConf.propertyMap && pConf.propertyMap[payload[TYPE]]
     if (!map) map = propertyMap && propertyMap[payload[TYPE]]
-    debugger
+    // debugger
     let aspects
     let isPerson = (criteria && criteria.entity_type === 'person') || isPersonForm(payload)
     if (!criteria || !criteria.filter.types) aspects = ASPECTS + 'sanctions'
@@ -98,13 +98,15 @@ class ComplyAdvantageAPI {
       provider: PROVIDER,
       form: payload,
       propertiesToCheck,
-      prop: 'form'
+      prop: 'form',
+      req
     })
     if (!createCheck) return
 
     let defaultMap: any = (isPerson && defaultPersonPropMap) || defaultPropMap
 
     // Check if the check parameters changed
+    let startDate = Date.now()
     let { resource, error } = await getCheckParameters({
       plugin: PROVIDER,
       resource: payload,
@@ -112,6 +114,7 @@ class ComplyAdvantageAPI {
       defaultPropMap: defaultMap,
       map
     })
+    this.logger.debug(`${PROVIDER} : getCheckParameters: ${Date.now() - startDate} `)
     if (!resource) {
       if (error) this.logger.debug(error)
       // HACK - check if there is a check for this provider
@@ -185,7 +188,7 @@ class ComplyAdvantageAPI {
       }
       pchecks.push(this.createCheck({ application, rawData, status, form: payload, req, aspects }))
       if (hasVerification)
-        pchecks.push(this.createVerification({ user, application, form: payload, rawData }))
+        pchecks.push(this.createVerification({ user, application, form: payload, rawData, req }))
     }
     let checksAndVerifications = await Promise.all(pchecks)
   }
@@ -229,6 +232,7 @@ class ComplyAdvantageAPI {
     let message
     let status: any
     // if (!json) {
+    let startDate = Date.now()
     try {
       let res = await fetch(url, {
         method: 'POST',
@@ -246,6 +250,7 @@ class ComplyAdvantageAPI {
 
       return { status, rawData: {}, hits: [] }
     }
+    this.logger.debug(`${PROVIDER} fetching data ${Date.now() - startDate}`)
     let rawData = json && json.content.data
     let entityType = criteria.entity_type
     if (!entityType)
@@ -277,7 +282,7 @@ class ComplyAdvantageAPI {
     let dateStr = rawData.updated_at
     let date
     if (dateStr) date = Date.parse(dateStr) - new Date().getTimezoneOffset() * 60 * 1000
-    else date = new Date().getTime()
+    else date = Date.now()
     // debugger
     let resource: any = {
       [TYPE]: SANCTIONS_CHECK,
@@ -302,13 +307,13 @@ class ComplyAdvantageAPI {
       if (rawData.ref) resource.providerReferenceNumber = rawData.ref
     }
 
-    this.logger.debug(`${PROVIDER} Creating SanctionsCheck for: ${rawData.submitted_term}`)
+    let startDate = Date.now()
     await this.applications.createCheck(resource, req)
     // const check = await this.bot.signAndSave(resource)
-    this.logger.debug(`${PROVIDER} Created SanctionsCheck for: ${rawData.submitted_term}`)
+    this.logger.debug(`${PROVIDER} End Creating SanctionsCheck: ${Date.now() - startDate}`)
   }
 
-  public createVerification = async ({ user, application, form, rawData }) => {
+  public createVerification = async ({ user, application, form, rawData, req }) => {
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
@@ -328,9 +333,11 @@ class ComplyAdvantageAPI {
       })
       .toJSON()
 
+    let startDate = Date.now()
     await this.applications.createVerification({ application, verification })
+    this.logger.debug(`${PROVIDER} create verification: ${Date.now() - startDate}`)
     if (application.checks)
-      await this.applications.deactivateChecks({ application, type: SANCTIONS_CHECK, form })
+      await this.applications.deactivateChecks({ application, type: SANCTIONS_CHECK, form, req })
   }
 }
 // {conf, bot, productsAPI, logger}
@@ -341,6 +348,7 @@ export const createPlugin: CreatePlugin<void> = (
   // const complyAdvantage = new ComplyAdvantageAPI({ bot, apiKey: conf.credentials.apiKey, productsAPI, logger })
   const complyAdvantage = new ComplyAdvantageAPI({ bot, productsAPI, applications, conf, logger })
   const plugin = {
+    name: 'complyAdvantage',
     async onmessage(req: IPBReq) {
       if (req.skipChecks) return
       const { user, application, applicant, payload } = req
@@ -369,6 +377,7 @@ export const createPlugin: CreatePlugin<void> = (
       if (!isPersonForm(payload) && !propertyMap) return
 
       // if (!isPersonForm(payload) && payload[TYPE] !== LEGAL_ENTITY) return
+
       await complyAdvantage.getAndProcessData({
         user,
         pConf,

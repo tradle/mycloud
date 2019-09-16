@@ -371,7 +371,7 @@ export class CIBICheckerAPI {
         this.logger.debug(`Created ${provider} check for ${aspect}`);
     }
 
-    createVerification = async ({ application, form, rawData, provider, aspect, type }) => {
+    createVerification = async ({ application, form, rawData, provider, aspect, type, req }) => {
         const method:any = {
           [TYPE]: 'tradle.APIBasedVerificationMethod',
           api: {
@@ -393,10 +393,10 @@ export class CIBICheckerAPI {
         await this.applications.createVerification({ application, verification })
         this.logger.debug(`Created ${provider} verification for ${aspect}`);
         if (application.checks)
-          await this.applications.deactivateChecks({ application, type, form })
+          await this.applications.deactivateChecks({ application, type, form, req })
     }
 
-    createAddressVerification = async ({ application, form, rawData, provider, aspect }) => {
+    createAddressVerification = async ({ application, form, rawData, provider, aspect, req }) => {
         const method:any = {
           [TYPE]: 'tradle.APIBasedVerificationMethod',
           api: {
@@ -418,7 +418,7 @@ export class CIBICheckerAPI {
         await this.applications.createVerification({ application, verification })
         this.logger.debug(`Created ${provider} verification for ${aspect}`);
         if (application.checks)
-            await this.applications.deactivateChecks({ application, type: ADDRESS_CHECK, form })
+            await this.applications.deactivateChecks({ application, type: ADDRESS_CHECK, form, req })
     }
 }
 
@@ -448,7 +448,8 @@ debugger
       let toCheckNameChange = await doesCheckNeedToBeCreated({bot, type: NEGREC_CHECK, application
                                                              ,provider: PROVIDER_CREDIT_BUREAU, form
                                                              ,propertiesToCheck: ['firstName', 'middleName', 'lastName']
-                                                             ,prop: 'form'})
+                                                             ,prop: 'form'
+                                                            ,req})
       if (!toCheckNameChange) {
           logger.debug(`${PROVIDER_CREDIT_BUREAU}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
       }
@@ -458,7 +459,7 @@ debugger
                                             ,aspect: NEGREC_ASPECTS, type: NEGREC_CHECK, req })
           if (negrecStatus.status === 'pass') {
               await documentChecker.createVerification({ application, form, rawData: negrecStatus.rawData
-                                                       ,provider: PROVIDER_CREDIT_BUREAU, aspect: NEGREC_ASPECTS, type: NEGREC_CHECK })
+                                                       ,provider: PROVIDER_CREDIT_BUREAU, aspect: NEGREC_ASPECTS, type: NEGREC_CHECK, req })
           }
       }
 
@@ -466,7 +467,8 @@ debugger
                                                            ,provider: PROVIDER_CREDIT_BUREAU, form
                                                            ,propertiesToCheck: ['firstName', 'middleName'
                                                            ,'lastName', 'dateOfBirth']
-                                                           ,prop: 'form'})
+                                                           ,prop: 'form'
+                                                           ,req})
 
       if (!toCheckIdentity) {
         logger.debug(`${PROVIDER_CREDIT_BUREAU}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
@@ -480,7 +482,7 @@ debugger
                                           ,aspect: IDENTITY_ASPECTS, type : DOCUMENT_CHECKER_CHECK, req})
         if (identityStatus.status === 'pass') {
             await documentChecker.createVerification({ application, form, rawData: identityStatus.rawData, provider: PROVIDER_CREDIT_BUREAU
-                                                     ,aspect: IDENTITY_ASPECTS, type: DOCUMENT_CHECKER_CHECK })
+                                                     ,aspect: IDENTITY_ASPECTS, type: DOCUMENT_CHECKER_CHECK, req })
         }
 
         if (!address.unparsed)
@@ -494,7 +496,7 @@ debugger
 
       if (formAddress && formAddress.trim().length > 0) {
         let createCheck = await doesCheckNeedToBeCreated({bot, type: ADDRESS_CHECK, application, provider: PROVIDER_CREDIT_BUREAU
-                                                         ,form, propertiesToCheck: ['full', 'city'], prop: 'form'})
+                                                         ,form, propertiesToCheck: ['full', 'city'], prop: 'form', req})
         if (!createCheck) {
            logger.debug(`${PROVIDER_CREDIT_BUREAU}: address check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
            return
@@ -523,7 +525,7 @@ debugger
         await documentChecker.createCheck({application, status: cibiIdentityStatus, form, provider: PROVIDER_CREDIT_BUREAU
                                           ,aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK, req})
         await documentChecker.createVerification({ application, form, rawData: cibiIdentityStatus.rawData, provider: PROVIDER_CREDIT_BUREAU
-                                                 ,aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK })
+                                                 ,aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK, req })
         return
       }
 
@@ -536,7 +538,7 @@ debugger
       let addressForm:ITradleObject = await bot.objects.get(addressStub.link)
 
       let createCheck = await doesCheckNeedToBeCreated({bot, type: ADDRESS_CHECK, application, provider: PROVIDER_CREDIT_BUREAU, form: addressForm
-                                                       ,propertiesToCheck: ['streetAddress', 'city'], prop: 'form'})
+                                                       ,propertiesToCheck: ['streetAddress', 'city'], prop: 'form', req})
       if (!createCheck) {
         logger.debug(`${PROVIDER_CREDIT_BUREAU}: address check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
         return
@@ -574,7 +576,7 @@ debugger
       await documentChecker.createCheck({application, status: cibiIdentityStatus, form: addressForm, provider: PROVIDER_CREDIT_BUREAU
                                         ,aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK, req})
       await documentChecker.createVerification({ application, form: addressForm, rawData: cibiIdentityStatus.rawData
-                                               ,provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK })
+                                               ,provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK, req })
 
     }
   }

@@ -114,9 +114,13 @@ export class Applications implements IHasModels {
       .signAndSave()
 
     let checkResource = check.toJSON()
-    let { application, latestChecks } = req
+
+    let { application, latestChecks, checks } = req
     if (!latestChecks) {
-      latestChecks = await this.getLatestChecks({ application })
+      if (checks) {
+        const timeDesc = req.checks.slice().sort((a, b) => b._time - a._time)
+        latestChecks = uniqBy(timeDesc, TYPE)
+      } else latestChecks = await this.getLatestChecks({ application })
       req.latestChecks = latestChecks
     }
     let idx = latestChecks.findIndex(c => c[TYPE] === props[TYPE])
@@ -333,13 +337,14 @@ export class Applications implements IHasModels {
   public getLatestChecks = async ({ application }: AppInfo): Promise<ITradleCheck[]> => {
     const { checks = [] } = application
     if (!checks.length) return []
-
+    // let startTime = new Date().getTime()
     const bodies = await Promise.all(
       checks
         // get latest version of those checks
         .map(stub => omit(parseStub(stub), 'link'))
         .map(stub => this.bot.getResource(stub))
     )
+    // this.logger.debug(`ending getLatestChecks: ${new Date().getTime() - startTime}`)
 
     const timeDesc = bodies.slice().sort((a, b) => b._time - a._time)
     return uniqBy(timeDesc, TYPE)
@@ -413,14 +418,20 @@ export class Applications implements IHasModels {
   public deactivateChecks = async ({
     application,
     type,
-    form
+    form,
+    req
   }: {
     application: IPBApp
     type: string
     form?: ITradleObject
+    req?: IPBReq
   }) => {
-    const checksOfType = application.checks.filter(check => check[TYPE] === type)
-    const checks = await Promise.all(checksOfType.map(check => this.bot.getResource(check)))
+    let checks
+    if (req) checks = req.checks
+    else {
+      const checksOfType = application.checks.filter(check => check[TYPE] === type)
+      checks = await Promise.all(checksOfType.map(check => this.bot.getResource(check)))
+    }
     const deactivatedChecks = checks.filter(check => {
       if (check.isInactive) return false
       // by check type

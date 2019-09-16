@@ -189,7 +189,7 @@ export class GDCCheckerAPI {
     this.logger.debug(`Created ${PROVIDER} check for ${ASPECTS}`)
   }
 
-  public createVerification = async ({ application, form, rawData }) => {
+  public createVerification = async ({ application, form, rawData, req }) => {
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
@@ -212,7 +212,12 @@ export class GDCCheckerAPI {
     await this.applications.createVerification({ application, verification })
     this.logger.debug(`Created ${PROVIDER} verification for ${ASPECTS}`)
     if (application.checks)
-      await this.applications.deactivateChecks({ application, type: DOCUMENT_CHECKER_CHECK, form })
+      await this.applications.deactivateChecks({
+        application,
+        type: DOCUMENT_CHECKER_CHECK,
+        form,
+        req
+      })
   }
 }
 
@@ -243,7 +248,8 @@ export const createPlugin: CreatePlugin<GDCCheckerAPI> = (
         provider: PROVIDER,
         form,
         propertiesToCheck: ['scan'],
-        prop: 'form'
+        prop: 'form',
+        req
       })
       if (!toCheck) {
         logger.debug(
@@ -255,7 +261,12 @@ export const createPlugin: CreatePlugin<GDCCheckerAPI> = (
       let status = await documentChecker.handleData(form, application)
       await documentChecker.createCheck({ application, status, form, req })
       if (status.status === 'pass') {
-        await documentChecker.createVerification({ application, form, rawData: status.rawData })
+        await documentChecker.createVerification({
+          application,
+          form,
+          rawData: status.rawData,
+          req
+        })
       }
     }
   }

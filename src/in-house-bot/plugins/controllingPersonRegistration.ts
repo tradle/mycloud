@@ -227,7 +227,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         !(await hasPropertiesChanged({
           resource: payload,
           bot,
-          propertiesToCheck: ['emailAddress', 'phone']
+          propertiesToCheck: ['emailAddress', 'phone'],
+          req
         }))
       )
         return

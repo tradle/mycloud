@@ -54,7 +54,7 @@ const FORM_ID_GB_credit_institutions = 'com.svb.BSAPI102FCAPSDCreditInstitutions
 const SecGlueTable = {
   map: { firmcrdnb: 'registrationNumber' },
   check: 'registrationNumber',
-  query: 'select info.firmcrdnb from firm_sec_feed where info.firmcrdnb = \'%s\''
+  query: "select info.firmcrdnb from firm_sec_feed where info.firmcrdnb = '%s'"
 }
 
 const FirmsPsdPermGlueTable = {
@@ -84,8 +84,8 @@ const EMoneyFirmsGlueTable = {
 
 const EmdAgentsGlueTable = {
   map: {
-    'frn': 'frn',
-    'firm': 'firm',
+    frn: 'frn',
+    firm: 'firm',
     'e-money agent status': 'psdFirmStatus',
     'e-money agent effective date': 'effectiveDate'
   },
@@ -249,26 +249,26 @@ export class RegulatorRegistrationAPI {
     }
   }
 
-  public mapToSubject = (type) => {
+  public mapToSubject = type => {
     let subject
     switch (type) {
       case FORM_ID_US_firm_sec_feed:
         subject = typeMap.FORM_ID_US_firm_sec_feed
-        break;
+        break
       case FORM_ID_GB_firms_psd_perm:
         subject = typeMap.FORM_ID_GB_firms_psd_perm
-        break;
+        break
       case FORM_ID_GB_e_money_firms:
         subject = typeMap.FORM_ID_GB_e_money_firms
-        break;
+        break
       case FORM_ID_GB_emd_agents:
         subject = typeMap.FORM_ID_GB_emd_agents
-        break;
+        break
       case FORM_ID_GB_credit_institutions:
         subject = typeMap.FORM_ID_GB_credit_institutions
-        break;
+        break
       default:
-        subject = null;
+        subject = null
     }
     return subject
   }
@@ -282,9 +282,9 @@ export class RegulatorRegistrationAPI {
     if (find.status == false) {
       status = {
         status: 'error',
-        message: (typeof find.error === 'string') && find.error || find.error.message
+        message: (typeof find.error === 'string' && find.error) || find.error.message
       }
-      rawData = (typeof find.error === 'object') && find.error
+      rawData = typeof find.error === 'object' && find.error
     } else if (find.data.length == 0) {
       status = {
         status: 'fail',
@@ -299,7 +299,7 @@ export class RegulatorRegistrationAPI {
     }
 
     await this.createCheck({ application, status, form, rawData, req })
-    if (status.status === 'pass') await this.createVerification({ application, form })
+    if (status.status === 'pass') await this.createVerification({ application, form, req })
   }
   public createCheck = async ({ application, status, form, rawData, req }: IRegCheck) => {
     // debugger
@@ -315,14 +315,13 @@ export class RegulatorRegistrationAPI {
 
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
-    if (rawData)
-      resource.rawData = rawData
+    if (rawData) resource.rawData = rawData
     this.logger.debug(`${PROVIDER} Creating RegulatorRegistrationCheck`)
     await this.applications.createCheck(resource, req)
     this.logger.debug(`${PROVIDER} Created RegulatorRegistrationCheck`)
   }
 
-  public createVerification = async ({ application, form }) => {
+  public createVerification = async ({ application, form, req }) => {
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
@@ -341,12 +340,13 @@ export class RegulatorRegistrationAPI {
       })
       .toJSON()
 
-    await this.applications.createVerification({ application, verification })
+    await this.applications.createVerification({ application, verification, req })
     if (application.checks)
       await this.applications.deactivateChecks({
         application,
         type: REGULATOR_REGISTRATION_CHECK,
-        form
+        form,
+        req
       })
   }
 }
@@ -375,9 +375,12 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         provider: PROVIDER,
         form: payload,
         propertiesToCheck: [subject.check],
-        prop: 'form'
+        prop: 'form',
+        req
       })
-      logger.debug(`'regulatorRegistration after doesCheckNeedToBeCreated with createCheck=${createCheck}`)
+      logger.debug(
+        `'regulatorRegistration after doesCheckNeedToBeCreated with createCheck=${createCheck}`
+      )
 
       if (!createCheck) return
       let r = await regulatorRegistrationAPI.check({ subject, form: payload, application, req })

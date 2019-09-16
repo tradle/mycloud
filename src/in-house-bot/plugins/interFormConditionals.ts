@@ -21,6 +21,7 @@ const ENUM = 'tradle.Enum'
 const CHECK_OVERRIDE = 'tradle.CheckOverride'
 export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
   const plugin: IPluginLifecycleMethods = {
+    name: 'interFormConditionals',
     getRequiredForms: async ({ user, application }) => {
       if (!application || !application.forms || !application.forms.length) return
 
@@ -136,7 +137,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
           application[propName] = value
         } catch (err) {
           logger.debug('interFormConditionals: ', err)
-          debugger
+          // debugger
         }
       })
     },
