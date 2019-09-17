@@ -198,7 +198,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       } else if (requestFor === conf.child) {
         logger.debug('Child application was submitted')
         let parentApp = await autoApproveAPI.getAssociatedResource(application)
-        application.parent = parentApp
+        // application.parent = parentApp
+        application.parent = buildResourceStub({ resource: parentApp, models: bot.models })
+        debugger
       }
     }
   }
