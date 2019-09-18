@@ -239,9 +239,9 @@ Resources:
             - Name: authorisation status
               Type: string
             - Name: effective date
-              Type: date
+              Type: string
             - Name: expiration date
-              Type: date
+              Type: string
           Location: 
             Fn::Join:
               - ''
