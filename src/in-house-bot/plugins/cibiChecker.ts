@@ -1,7 +1,6 @@
 import fetch from 'node-fetch'
 import xml2js from 'xml2js-parser'
 import _ from 'lodash'
-import { buildResourceStub } from '@tradle/build-resource'
 import constants from '@tradle/constants'
 import {
   Bot,
