@@ -1,7 +1,6 @@
 import constants from '@tradle/constants'
-const { TYPE } = constants
+import { TYPE, PERMALINK, LINK } from '@tradle/constants'
 const { VERIFICATION } = constants.TYPES
-import { buildResourceStub } from '@tradle/build-resource'
 
 // @ts-ignore
 import {
@@ -17,6 +16,8 @@ import {
   Bot,
   CreatePlugin,
   Applications,
+  ValidatePluginConf,
+  IConfComponents,
   IPluginLifecycleMethods,
   ITradleObject,
   ITradleCheck,
@@ -29,10 +30,11 @@ import Errors from '../../errors'
 import AWS from 'aws-sdk'
 import _ from 'lodash'
 import util from 'util'
-//import remapKeys from 'remap-keys'
+import validateResource from '@tradle/validate-resource'
+// @ts-ignore
+const { sanitize } = validateResource.utils
+import remapKeys from 'remap-keys'
 
-//const ATHENA_DB = 'sec'
-//const ATHENA_OUTPUT_LOCATION = 's3://jacob.gins.athena/temp/'
 const POLL_INTERVAL = 250
 
 const Registry = {
@@ -43,8 +45,6 @@ const PROVIDER = 'https://catalog.data.gov'
 const ASPECTS = 'registration with FINRA'
 // const FORM_ID = 'io.lenka.BSAPI102a'
 
-const FORM_ID = 'com.cvb.BSAPI102a'
-
 const FORM_ID_US_firm_sec_feed = 'com.cvb.BSAPI102a'
 const FORM_ID_GB_firms_psd_perm = 'com.svb.BSAPI102FCAPSDFirms'
 const FORM_ID_GB_e_money_firms = 'com.svb.BSAPI102FCAPSDeMoneyInstitutions'
@@ -52,12 +52,14 @@ const FORM_ID_GB_emd_agents = 'com.svb.BSAPI102FCAPSDAgent'
 const FORM_ID_GB_credit_institutions = 'com.svb.BSAPI102FCAPSDCreditInstitutions'
 
 const SecGlueTable = {
+  type: FORM_ID_US_firm_sec_feed,
   map: { firmcrdnb: 'registrationNumber' },
   check: 'registrationNumber',
   query: "select info.firmcrdnb from firm_sec_feed where info.firmcrdnb = '%s'"
 }
 
 const FirmsPsdPermGlueTable = {
+  type: FORM_ID_GB_firms_psd_perm,
   map: {
     frn: 'frn',
     firm: 'firm',
@@ -71,6 +73,7 @@ const FirmsPsdPermGlueTable = {
 }
 
 const EMoneyFirmsGlueTable = {
+  type: FORM_ID_GB_e_money_firms,
   map: {
     frn: 'frn',
     firm: 'firm',
@@ -83,6 +86,7 @@ const EMoneyFirmsGlueTable = {
 }
 
 const EmdAgentsGlueTable = {
+  type: FORM_ID_GB_emd_agents,
   map: {
     frn: 'frn',
     firm: 'firm',
@@ -94,6 +98,7 @@ const EmdAgentsGlueTable = {
 }
 
 const CreditInstitutionsGlueTable = {
+  type: FORM_ID_GB_credit_institutions,
   map: {
     frn: 'frn',
     firm: 'firm',
@@ -101,15 +106,32 @@ const CreditInstitutionsGlueTable = {
     'effective date': 'effectiveDate'
   },
   check: 'frn',
-  query: 'select * from credit_institutions where frn = %s'
+  query: 'select * from credit_institutions where frn = %s',
+  test: {
+    status: true,
+    data: [{ frn: 815220, firm: 'RCI Bank UK Limited', 'authorisation status': 'Authorised', 'effective date': '2019-03-06 00:00:00' }],
+    error: null
+  }
 }
 
-const typeMap = {
-  FORM_ID_US_firm_sec_feed: SecGlueTable,
-  FORM_ID_GB_firms_psd_perm: FirmsPsdPermGlueTable,
-  FORM_ID_GB_e_money_firms: EMoneyFirmsGlueTable,
-  FORM_ID_GB_emd_agents: EmdAgentsGlueTable,
-  FORM_ID_GB_credit_institutions: CreditInstitutionsGlueTable
+const typeMap = [
+  SecGlueTable,
+  FirmsPsdPermGlueTable,
+  EMoneyFirmsGlueTable,
+  EmdAgentsGlueTable,
+  CreditInstitutionsGlueTable
+]
+
+interface IRegulatorRegistrationAthenaConf {
+  type: string,
+  map: Object,
+  check: string,
+  query: string,
+  test?: Object
+}
+
+interface IRegulatorRegistrationConf {
+  athenaMaps: [IRegulatorRegistrationAthenaConf]
 }
 
 // export const name = 'broker-match'
@@ -250,35 +272,20 @@ export class RegulatorRegistrationAPI {
   }
 
   public mapToSubject = type => {
-    let subject
-    switch (type) {
-      case FORM_ID_US_firm_sec_feed:
-        subject = typeMap.FORM_ID_US_firm_sec_feed
-        break
-      case FORM_ID_GB_firms_psd_perm:
-        subject = typeMap.FORM_ID_GB_firms_psd_perm
-        break
-      case FORM_ID_GB_e_money_firms:
-        subject = typeMap.FORM_ID_GB_e_money_firms
-        break
-      case FORM_ID_GB_emd_agents:
-        subject = typeMap.FORM_ID_GB_emd_agents
-        break
-      case FORM_ID_GB_credit_institutions:
-        subject = typeMap.FORM_ID_GB_credit_institutions
-        break
-      default:
-        subject = null
+    for (let subject of this.conf.athenaMaps) {
+      if (subject.type == type)
+        return subject;
     }
-    return subject
+    return null
   }
-  public async check({ subject, form, application, req }) {
+  public async check({ subject, form, application, req, user }) {
     let status
     let formRegistrationNumber = form[subject.check] //.replace(/-/g, '').replace(/^0+/, '') // '133693';
     this.logger.debug(`regulatorRegistration check() called with number ${formRegistrationNumber}`)
     let sql = util.format(subject.query, formRegistrationNumber)
-    let find = await this.queryAthena(sql)
+    let find = subject.test ? subject.test : await this.queryAthena(sql)
     let rawData
+    let prefill
     if (find.status == false) {
       status = {
         status: 'error',
@@ -292,14 +299,48 @@ export class RegulatorRegistrationAPI {
       }
     } else {
       // remap to form properties
-      //let found = remapKeys(find.data[0], subject.map)
-      //this.logger.debug(`regulatorRegistration check() found ${found}`)
-
+      prefill = remapKeys(find.data[0], subject.map)
+      // date convert from string
+      for (let propertyName in prefill) {
+        if (propertyName.endsWith('Date')) {
+          let val = prefill[propertyName];
+          prefill[propertyName] = new Date(val).getTime()
+        }
+      }
+      this.logger.debug(`regulatorRegistration check() found ${prefill}`)
       status = { status: 'pass' }
     }
 
     await this.createCheck({ application, status, form, rawData, req })
-    if (status.status === 'pass') await this.createVerification({ application, form, req })
+
+    if (status.status === 'pass') {
+      await this.createVerification({ application, form, req })
+
+      prefill = sanitize(prefill).sanitized
+      const payloadClone = _.cloneDeep(form)
+      payloadClone[PERMALINK] = payloadClone._permalink
+      payloadClone[LINK] = payloadClone._link
+      _.extend(payloadClone, prefill)
+      // debugger
+      let formError: any = {
+        req,
+        user,
+        application
+      }
+      formError.details = {
+        prefill: payloadClone,
+        message: `Please review and correct the data below`
+      }
+      try {
+        await this.applications.requestEdit(formError)
+        return {
+          message: 'no request edit',
+          exit: true
+        }
+      } catch (err) {
+        debugger
+      }
+    }
   }
   public createCheck = async ({ application, status, form, rawData, req }: IRegCheck) => {
     // debugger
@@ -355,17 +396,23 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   const regulatorRegistrationAPI = new RegulatorRegistrationAPI({ bot, conf, applications, logger })
   // debugger
   const plugin: IPluginLifecycleMethods = {
-    async onmessage(req: IPBReq) {
+    async validateForm({ req }) {
       logger.debug('regulatorRegistration called onmessage')
       if (req.skipChecks) return
       const { user, application, payload } = req
       if (!application) return
-
+      let payloadType = payload[TYPE]
       let subject = regulatorRegistrationAPI.mapToSubject(payload[TYPE])
       if (!subject) return
-      logger.debug(`regulatorRegistration called for subject ${subject}`)
+      logger.debug(`regulatorRegistration called for type ${payload[TYPE]} to check ${subject.check}`)
 
       if (!payload[subject.check]) return
+
+      if (payload._prevlink) {
+        let dbRes = await bot.objects.get(payload._prevlink)
+        if (dbRes[subject.check] == payload[subject.check])
+          return
+      }
 
       logger.debug('regulatorRegistration before doesCheckNeedToBeCreated')
       let createCheck = await doesCheckNeedToBeCreated({
@@ -378,13 +425,38 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         prop: 'form',
         req
       })
-      logger.debug(
-        `'regulatorRegistration after doesCheckNeedToBeCreated with createCheck=${createCheck}`
-      )
+      logger.debug(`regulatorRegistration after doesCheckNeedToBeCreated with createCheck=${createCheck}`)
 
       if (!createCheck) return
-      let r = await regulatorRegistrationAPI.check({ subject, form: payload, application, req })
+      let r = await regulatorRegistrationAPI.check({ subject, form: payload, application, req, user })
     }
   }
   return { plugin }
+}
+
+
+export const validateConf: ValidatePluginConf = async ({
+  bot,
+  conf,
+  pluginConf
+}: {
+    bot: Bot
+    conf: IConfComponents
+    pluginConf: IRegulatorRegistrationConf
+  }) => {
+  const { models } = bot
+  if (!pluginConf.athenaMaps)
+    throw new Errors.InvalidInput('athena maps are not found')
+  pluginConf.athenaMaps.forEach(subject => {
+    const model = models[subject.type]
+    if (!model) {
+      throw new Errors.InvalidInput(`model not found for: ${subject.type}`)
+    }
+    let mapValues = Object.values(subject.map);
+    for (let prop of mapValues) {
+      if (!model.properties[prop]) {
+        throw new Errors.InvalidInput(`property ${prop} was not found in ${subject.type}`)
+      }
+    }
+  })
 }

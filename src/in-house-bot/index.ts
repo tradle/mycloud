@@ -678,14 +678,14 @@ export const loadComponentsAndPlugins = ({
       'facetecZoom',
       'finastra',
       'document-ocr',
-      'interFormConditionals'
+      'interFormConditionals',
+      'regulatorRegistration'
     ].forEach(name => attachPlugin({ name }))
       ;[
         'hand-sig',
         'documentValidity',
         'fill-myproduct',
         'checkOverride',
-        'regulatorRegistration'
       ].forEach(name => attachPlugin({ name, requiresConf: false }))
 
     // used for some demo
