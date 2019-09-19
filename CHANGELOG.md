@@ -2,20 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.4-rc.23](https://github.com/tradle/mycloud/compare/v2.4.4-rc.22...v2.4.4-rc.23) (2019-09-16)
+## [2.4.4-rc.24](https://github.com/tradle/mycloud/compare/v2.4.4-rc.23...v2.4.4-rc.24) (2019-09-19)
 
 
 ### Bug Fixes
 
-* choose to notify CP or Employee ([980036d](https://github.com/tradle/mycloud/commit/980036d))
-* choose to notify CP or Employee ([3cfecbd](https://github.com/tradle/mycloud/commit/3cfecbd))
+* stub for parentApp didn't have displayName and was displaying ambiguously ([7981f04](https://github.com/tradle/mycloud/commit/7981f04))
+* typo ([a7848cc](https://github.com/tradle/mycloud/commit/a7848cc))
 
 
 ### Features
 
-* code optimizations ([81918cc](https://github.com/tradle/mycloud/commit/81918cc))
-* Code optimizations; Merge branch 'master' of https://github.com/tradle/mycloud ([94ebf6f](https://github.com/tradle/mycloud/commit/94ebf6f))
-* touch tables.yml to force indexes added to Application model to be applied ([8d08d7c](https://github.com/tradle/mycloud/commit/8d08d7c))
+* searchable reviewer/analyst for Application ([96892af](https://github.com/tradle/mycloud/commit/96892af))
 
 
 
