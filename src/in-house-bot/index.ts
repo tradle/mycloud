@@ -872,7 +872,8 @@ const banter = (components: IBotComponents) => {
     bot.debug(`processing simple message: ${message}`)
     if (message[0] === '/') return
     // if (application && application.relationshipManagers && application.relationshipManagers.length)
-    if (application && application.reviewer)
+    // if (application && application.reviewer)
+    if (application && application.analyst)
       return
 
     if (/^(?:hey|hi|hello)$/i.test(message)) {
