@@ -1,7 +1,6 @@
 import fetch from 'node-fetch'
 import _ from 'lodash'
 
-import { buildResourceStub } from '@tradle/build-resource'
 import constants from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
@@ -50,10 +49,8 @@ interface IComplyAdvantageFilter {
   types?: string[]
 }
 interface IComplyCheck {
-  application: IPBApp
   rawData: any
   status: any
-  form: ITradleObject
   req: IPBReq
   aspects: any
 }
@@ -72,10 +69,11 @@ class ComplyAdvantageAPI {
     this.logger = logger
   }
 
-  public async getAndProcessData({ user, pConf, payload, propertyMap, application, req }) {
+  public async getAndProcessData({ pConf, propertyMap, req }) {
     let criteria = pConf.filter
     // let companyName, registrationDate
     // let resource = payload
+    const { application, user, payload } = req
     let map = pConf.propertyMap && pConf.propertyMap[payload[TYPE]]
     if (!map) map = propertyMap && propertyMap[payload[TYPE]]
     // debugger
@@ -133,7 +131,7 @@ class ComplyAdvantageAPI {
           message: !dateOfBirth && 'No date of birth was provided'
           // message: `Sanctions check for "${name}" failed.` + (!dateOfBirth  &&  ' No registration date was provided')
         }
-        await this.createCheck({ application, rawData: {}, status, form: payload, req, aspects })
+        await this.createCheck({ rawData: {}, status, req, aspects })
         return
       }
       if (firstName.length === 1 && lastName.length === 1) {
@@ -143,7 +141,7 @@ class ComplyAdvantageAPI {
           message: 'Bad criteria: one letter first and last names'
           // message: `Sanctions check for "${name}" failed.` + (!dateOfBirth  &&  ' No registration date was provided')
         }
-        await this.createCheck({ application, rawData: {}, status, form: payload, req, aspects })
+        await this.createCheck({ rawData: {}, status, req, aspects })
         return
       }
       name = firstName + ' ' + lastName
@@ -166,7 +164,7 @@ class ComplyAdvantageAPI {
           status: 'fail',
           message: !registrationDate && ' No registration date was provided'
         }
-        await this.createCheck({ application, rawData: {}, status, form: payload, req, aspects })
+        await this.createCheck({ rawData: {}, status, req, aspects })
         return
       }
     }
@@ -176,7 +174,7 @@ class ComplyAdvantageAPI {
     let { rawData, hits, status } = r
     if (rawData.status === 'failure') {
       pchecks.push(
-        this.createCheck({ application, rawData, status: 'fail', form: payload, req, aspects })
+        this.createCheck({ rawData, status: 'fail', req, aspects })
       )
     } else {
       let hasVerification
@@ -186,9 +184,9 @@ class ComplyAdvantageAPI {
         hasVerification = true
         this.logger.debug(`${PROVIDER} creating verification for: ${companyName || name}`)
       }
-      pchecks.push(this.createCheck({ application, rawData, status, form: payload, req, aspects }))
+      pchecks.push(this.createCheck({ rawData, status, req, aspects }))
       if (hasVerification)
-        pchecks.push(this.createVerification({ user, application, form: payload, rawData, req }))
+        pchecks.push(this.createVerification({ rawData, req }))
     }
     let checksAndVerifications = await Promise.all(pchecks)
   }
@@ -272,10 +270,8 @@ class ComplyAdvantageAPI {
   }
 
   public createCheck = async ({
-    application,
     rawData,
     status,
-    form,
     req,
     aspects
   }: IComplyCheck) => {
@@ -284,6 +280,7 @@ class ComplyAdvantageAPI {
     if (dateStr) date = Date.parse(dateStr) - new Date().getTimezoneOffset() * 60 * 1000
     else date = Date.now()
     // debugger
+    const { application, payload } = req
     let resource: any = {
       [TYPE]: SANCTIONS_CHECK,
       status: status.status,
@@ -291,7 +288,7 @@ class ComplyAdvantageAPI {
       application,
       dateChecked: date, //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
       aspects,
-      form
+      form: payload
     }
 
     // resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
@@ -313,7 +310,7 @@ class ComplyAdvantageAPI {
     this.logger.debug(`${PROVIDER} End Creating SanctionsCheck: ${Date.now() - startDate}`)
   }
 
-  public createVerification = async ({ user, application, form, rawData, req }) => {
+  public createVerification = async ({ rawData, req }) => {
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
@@ -324,11 +321,12 @@ class ComplyAdvantageAPI {
       reference: [{ queryId: 'report:' + rawData.id }],
       rawData
     }
+    const { application, payload, user } = req
 
     const verification = this.bot
       .draft({ type: VERIFICATION })
       .set({
-        document: form,
+        document: payload,
         method
       })
       .toJSON()
@@ -337,7 +335,7 @@ class ComplyAdvantageAPI {
     await this.applications.createVerification({ application, verification })
     this.logger.debug(`${PROVIDER} create verification: ${Date.now() - startDate}`)
     if (application.checks)
-      await this.applications.deactivateChecks({ application, type: SANCTIONS_CHECK, form, req })
+      await this.applications.deactivateChecks({ application, type: SANCTIONS_CHECK, form: payload, req })
   }
 }
 // {conf, bot, productsAPI, logger}
@@ -363,11 +361,8 @@ export const createPlugin: CreatePlugin<void> = (
       else if (forms && forms[ptype]) {
         pConf = forms[ptype]
         await complyAdvantage.getAndProcessData({
-          user,
           pConf,
-          application,
           propertyMap: null,
-          payload,
           req
         })
         return
@@ -379,11 +374,8 @@ export const createPlugin: CreatePlugin<void> = (
       // if (!isPersonForm(payload) && payload[TYPE] !== LEGAL_ENTITY) return
 
       await complyAdvantage.getAndProcessData({
-        user,
         pConf,
-        application,
         propertyMap,
-        payload,
         req
       })
     }

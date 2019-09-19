@@ -1,7 +1,6 @@
 import fetch from 'node-fetch'
 
 import _ from 'lodash'
-import { buildResourceStub } from '@tradle/build-resource'
 import constants from '@tradle/constants'
 import { Bot, Logger, IPBApp, IPBReq, ITradleObject, CreatePlugin, Applications } from '../types'
 
@@ -32,10 +31,8 @@ const MAX_EXPIRATION_YEARS_MILLIS = MAX_EXPIRATION_YEARS * ONE_YEAR_MILLIS
 const DISPLAY_NAME = 'Document Validity'
 
 interface IValidityCheck {
-  application: IPBApp
   rawData: any
   status: any
-  form: ITradleObject
   req: IPBReq
 }
 
@@ -49,7 +46,8 @@ class DocumentValidityAPI {
     this.logger = logger
   }
 
-  public async checkDocument({ user, payload, application, req }) {
+  public async checkDocument({ req }) {
+    let { user, payload, application } = req
     let {
       documentType,
       country,
@@ -60,8 +58,6 @@ class DocumentValidityAPI {
       scan,
       nationality
     } = payload
-    // if (await doesCheckExist({bot: this.bot, type: DOCUMENT_VALIDITY, eq: {form: payload._link}, application, provider: PROVIDER}))
-    //   return
 
     let propertiesToCheck = [
       'dateOfExpiry',
@@ -97,10 +93,6 @@ class DocumentValidityAPI {
         rawData['Date Of Expiry'] = 'The document has expired'
         rawData.Status = 'fail'
       }
-      // else if (Date.now() < dateOfExpiry - MAX_EXPIRATION_YEARS_MILLIS) {
-      //   rawData['Date Of Expiry'] = `The expiration date set to more then '${MAX_EXPIRATION_YEARS}' years ahead`
-      //   rawData.Status = 'fail'
-      // }
     }
     if (dateOfBirth) {
       if (dateOfBirth > Date.now() - MIN_AGE_MILLIS) {
@@ -117,8 +109,6 @@ class DocumentValidityAPI {
         rawData.Status = 'fail'
       }
     }
-    // debugger
-    // if (isPassport  &&  (issuer  ||  nationality)) {
     if (isPassport && nationality) {
       let countries = this.bot.models[COUNTRY].enum
       let nationalityCountry
@@ -134,21 +124,6 @@ class DocumentValidityAPI {
           rawData.Nationality = `Country in the nationality field '${nationalityCountry.title}' is not the same as the Country in the form`
         }
       }
-      // let issuerCountry
-      // if (issuer) {
-      //   if (nationality  &&  issuer === nationality)
-      //     issuerCountry = nationalityCountry
-      //   else
-      //     issuerCountry = _.find(countries, (c) => c.cca3 === issuer)
-      //   if (!issuerCountry) {
-      //     rawData.Status = 'fail'
-      //     rawData.Issuer = `Country in the issuer field '${issuer}' is invalid`
-      //   }
-      //   else if (issuerCountry.title !== country.title) {
-      //     rawData.Status = 'fail'
-      //     rawData.Issuer = `Country in the issuer field '${issuer}' is not the same as the Country in the form`
-      //   }
-      // }
     }
     if (!rawData.Status) rawData.Status = 'pass'
     if (rawData.Status === 'fail') {
@@ -173,10 +148,10 @@ class DocumentValidityAPI {
 
     let pchecks = []
     pchecks.push(
-      this.createCheck({ req, application, rawData, status: rawData.Status, form: payload })
+      this.createCheck({ req, rawData, status: rawData.Status })
     )
     if (rawData.Status === 'pass')
-      pchecks.push(this.createVerification({ user, application, form: payload, rawData, req }))
+      pchecks.push(this.createVerification({ rawData, req }))
     let checksAndVerifications = await Promise.all(pchecks)
   }
   public checkTheDifferences(payload, rawData) {
@@ -213,11 +188,13 @@ class DocumentValidityAPI {
     }
     if (hasChanges) rawData['Differences With Scanned Document'] = changes
   }
-  public createCheck = async ({ application, rawData, status, form, req }: IValidityCheck) => {
+  public createCheck = async ({ rawData, status, req }: IValidityCheck) => {
     let dateStr = rawData.updated_at
     let date
     if (dateStr) date = Date.parse(dateStr) - new Date().getTimezoneOffset() * 60 * 1000
     else date = new Date().getTime()
+    let { application, payload } = req
+    let form = payload
     let isPassport = form.documentType.id.indexOf('_passport') !== -1
     let resource: any = {
       [TYPE]: DOCUMENT_VALIDITY,
@@ -247,7 +224,8 @@ class DocumentValidityAPI {
     this.logger.debug(`Created DocumentValidity Check for: ${form.firstName} ${form.lastName}`)
   }
 
-  public createVerification = async ({ user, application, form, rawData, req }) => {
+  public createVerification = async ({ rawData, req }) => {
+    let { user, application, payload } = req
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
@@ -268,7 +246,7 @@ class DocumentValidityAPI {
     const verification = this.bot
       .draft({ type: VERIFICATION })
       .set({
-        document: form,
+        document: payload,
         method
       })
       .toJSON()
@@ -276,10 +254,10 @@ class DocumentValidityAPI {
 
     await this.applications.createVerification({ application, verification })
     this.logger.debug(
-      `Created DocumentValidity Verification for: ${form.firstName} ${form.lastName}`
+      'Created DocumentValidity Verification'
     )
     if (application.checks)
-      await this.applications.deactivateChecks({ application, type: DOCUMENT_VALIDITY, form, req })
+      await this.applications.deactivateChecks({ application, type: DOCUMENT_VALIDITY, form: payload, req })
   }
 }
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger }) => {
@@ -290,7 +268,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       const { user, application, applicant, payload } = req
       if (!application || payload[TYPE] !== PHOTO_ID) return
 
-      await documentValidity.checkDocument({ user, application, payload, req })
+      await documentValidity.checkDocument({ req })
     }
   }
 
