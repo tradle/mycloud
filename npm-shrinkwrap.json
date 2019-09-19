@@ -192,7 +192,7 @@
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
       "from": "tradle/bot-employee-manager",
-      "resolved": "git://github.com/tradle/bot-employee-manager.git#463d29759db1cb67896860e024d6887e40af385e"
+      "resolved": "git://github.com/tradle/bot-employee-manager.git#86a825c879b876efe14b2d2496ab94f2f7267400"
     },
     "@tradle/bot-products": {
       "version": "1.0.0",
@@ -391,7 +391,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#97ca4627c7467e4573717c06bcb0d9e501b4c8f5"
+      "resolved": "git://github.com/tradle/models.git#a58ea35f9468e34aec23ff12c4ff62226a0d8407"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
@@ -6752,8 +6752,7 @@
     "lodash.reduce": {
       "version": "4.6.0",
       "from": "lodash.reduce@>=4.4.0 <5.0.0",
-      "resolved": "https://registry.npmjs.org/lodash.reduce/-/lodash.reduce-4.6.0.tgz",
-      "dev": true
+      "resolved": "https://registry.npmjs.org/lodash.reduce/-/lodash.reduce-4.6.0.tgz"
     },
     "lodash.reject": {
       "version": "4.6.0",
@@ -9056,6 +9055,11 @@
       "from": "reinterval@>=1.0.1 <2.0.0",
       "resolved": "https://registry.npmjs.org/reinterval/-/reinterval-1.1.0.tgz",
       "dev": true
+    },
+    "remap-keys": {
+      "version": "1.0.4",
+      "from": "remap-keys@>=1.0.4 <2.0.0",
+      "resolved": "http://registry.npmjs.org/remap-keys/-/remap-keys-1.0.4.tgz"
     },
     "remedial": {
       "version": "1.0.8",
