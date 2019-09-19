@@ -45,7 +45,7 @@ const PROVIDER = 'https://catalog.data.gov'
 const ASPECTS = 'registration with FINRA'
 // const FORM_ID = 'io.lenka.BSAPI102a'
 
-const FORM_ID_US_firm_sec_feed = 'com.cvb.BSAPI102a'
+const FORM_ID_US_firm_sec_feed = 'com.svb.BSAPI102a'
 const FORM_ID_GB_firms_psd_perm = 'com.svb.BSAPI102FCAPSDFirms'
 const FORM_ID_GB_e_money_firms = 'com.svb.BSAPI102FCAPSDeMoneyInstitutions'
 const FORM_ID_GB_emd_agents = 'com.svb.BSAPI102FCAPSDAgent'
