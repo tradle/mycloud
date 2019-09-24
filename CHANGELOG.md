@@ -2,18 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.4-rc.24](https://github.com/tradle/mycloud/compare/v2.4.4-rc.23...v2.4.4-rc.24) (2019-09-19)
+## [2.4.4-rc.25](https://github.com/tradle/mycloud/compare/v2.4.4-rc.24...v2.4.4-rc.25) (2019-09-24)
 
 
 ### Bug Fixes
 
-* stub for parentApp didn't have displayName and was displaying ambiguously ([7981f04](https://github.com/tradle/mycloud/commit/7981f04))
-* typo ([a7848cc](https://github.com/tradle/mycloud/commit/a7848cc))
+* leading zeroes in company number cause non-matching ([fd5f7f3](https://github.com/tradle/mycloud/commit/fd5f7f3))
 
 
 ### Features
 
-* searchable reviewer/analyst for Application ([96892af](https://github.com/tradle/mycloud/commit/96892af))
+* prefill CP if opencorp PASS check has a list officers in it ([95e49de](https://github.com/tradle/mycloud/commit/95e49de))
+* prefill officers of the company ([f3fedd2](https://github.com/tradle/mycloud/commit/f3fedd2))
 
 
 
