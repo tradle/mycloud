@@ -1,5 +1,5 @@
 import QueryString from 'querystring'
-import { Bot, Logger, CreatePlugin, Applications, ISMS } from '../types'
+import { Bot, Logger, CreatePlugin, Applications, ISMS, IPluginLifecycleMethods } from '../types'
 import * as Templates from '../templates'
 import Errors from '../../errors'
 import * as crypto from '../../crypto'
@@ -16,6 +16,9 @@ const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const AGENCY = 'tradle.Agency'
 const CP_ONBOARDING = 'tradle.legal.ControllingPersonOnboarding'
 const SHORT_TO_LONG_URL_MAPPING = 'tradle.ShortToLongUrlMapping'
+const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
+const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
+const CHECK_STATUS = 'tradle.Status'
 
 const DEAR_CUSTOMER = 'Dear Customer'
 const DEFAULT_SMS_GATEWAY = 'sns'
@@ -205,7 +208,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
   const orgConf = components.conf
   const { org } = orgConf
   const cp = new ControllingPersonRegistrationAPI({ bot, conf, org, logger, applications })
-  const plugin = {
+  const plugin: IPluginLifecycleMethods = {
     async onmessage(req) {
       const { user, application, payload } = req
       if (!application) return
@@ -237,7 +240,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       debugger
       // if (payload.emailAddress) {
       await cp.sendConfirmationEmail({ resource: payload, application, legalEntity })
-      return
+      // return
       // }
       // if (!smsBasedVerifier) {
       //    const sms: ISMS = getSMSClient({ bot, gateway: conf.gateway })
@@ -249,67 +252,131 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       //   })
       // }
       // await cp.sendLinkViaSMS({resource: payload, application, smsBasedVerifier, legalEntity})
+    },
+    async willRequestForm({ application, formRequest }) {
+      let { form } = formRequest
+      if (form !== CONTROLLING_PERSON) return
+
+      // debugger
+      if (!application) return
+
+      let { checks } = application
+      if (!checks) return
+      let openCorporateChecksStubs = checks.filter(check => check[TYPE] === CORPORATION_EXISTS)
+      if (!openCorporateChecksStubs.length) return
+
+      let openCorporateChecks = await Promise.all(
+        openCorporateChecksStubs.map(check => bot.getResource(check))
+      )
+      openCorporateChecks.sort((a, b) => b._time - a._time)
+
+      if (!openCorporateChecks.length) return
+      let check = openCorporateChecks[0]
+      if (check.status.id !== `${CHECK_STATUS}_pass`) return
+      let officers =
+        check.rawData &&
+        check.rawData.length &&
+        check.rawData[0].company &&
+        check.rawData[0].company.officers
+
+      if (officers.length) officers = officers.filter(o => o.officer.position !== 'agent')
+
+      if (!officers.length) return
+
+      let forms = application.forms.filter(form => form.submission[TYPE] === CONTROLLING_PERSON)
+      let officer
+
+      if (!forms.length) officer = officers[0].officer
+      else {
+        let items = await Promise.all(forms.map(f => bot.getResource(f.submission)))
+        if (items.length) {
+          for (let i = 0; i < officers.length && !officer; i++) {
+            let o = officers[i].officer
+            let oldOfficer = items.find(
+              item => o.name.toLowerCase().trim() === (item.name && item.name.toLowerCase().trim())
+            )
+            if (!oldOfficer) officer = o
+          }
+        }
+      }
+      if (!officer) return
+
+      let prefill: any = {
+        name: officer.name,
+        startDate: officer.start_date && new Date(officer.start_date).getTime(),
+        inactive: officer.inactive
+      }
+      if (officer.end_date) prefill.endDate = new Date(officer.end_date).getTime()
+
+      if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
+      formRequest.prefill = {
+        ...formRequest.prefill,
+        ...prefill,
+        typeOfControllingEntity: {
+          id: 'tradle.legal.TypeOfControllingEntity_person'
+        }
+      }
+      formRequest.message = `Please review and correct the data below **for ${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
     }
-
-    //       let personalInfo, legalEntity
-    //       if (payload[TYPE] === CONTROLLING_PERSON) {
-    //         const tasks = [payload.controllingPerson, payload.legalEntity].map(stub => bot.getResource(stub));
-    //         ([personalInfo, legalEntity] = await Promise.all(tasks))
-    //       }
-    //       else
-    //         personalInfo = payload
-
-    //       if (!personalInfo.emailAddress) {
-    //         logger.error(`controlling person: no email address`)
-    //         return
-    //       }
-
-    //       if (!await hasPropertiesChanged({ resource: payload, bot, propertiesToCheck: ['emailAddress'] }))
-    //         return
-
-    //       if (payload[TYPE] === PERSONAL_INFO) {
-    //         const stubs = getLatestForms(application)
-    //         if (!stubs.length)
-    //           return
-    //         let cp = stubs.filter(s => s.type === CONTROLLING_PERSON)
-    //         if (!cp.length)
-    //           return
-    //         const { items } = await bot.db.find({
-    //           filter: {
-    //             EQ: {
-    //              [TYPE]: CONTROLLING_PERSON,
-    //              'controllingPerson._permalink': personalInfo._permalink,
-    //             },
-    //             IN: {
-    //               '_permalink': cp.map(f => f.permalink)
-    //             }
-    //           }
-    //         })
-    //         if (!items.length)
-    //           return
-    //         const controllingPerson = items[0]
-    //         legalEntity = await bot.getResource(controllingPerson.legalEntity)
-    //       }
-    //       logger.error(`controlling person: processing for ${personalInfo.emailAddress}`)
-
-    //       // if (personalInfo._prevlink) {
-    //       //   let prevR = await bot.objects.get(personalInfo._prevlink)
-    //       //   if (prevR  &&  prevR.emailAddress === personalInfo.emailAddress)
-    //       //     return
-    //       // }
-    //       // let invite = await cp._createDraftAndInvite(personalInfo, req)
-
-    //       // const stubs = getLatestForms(application)
-    //       // const legalEntityStub = stubs.filter(({ type }) => type === LEGAL_ENTITY)
-
-    //       // legalEntity = await bot.getResource(legalEntityStub[0])
-    //       // applications.createApplicationSubmission({application: draftApplication, submission: payload})
-    // debugger
-    //       await cp.sendConfirmationEmail({resource: personalInfo, application, legalEntity})
-    //     }
   }
 
   return {
     plugin
   }
 }
+//       let personalInfo, legalEntity
+//       if (payload[TYPE] === CONTROLLING_PERSON) {
+//         const tasks = [payload.controllingPerson, payload.legalEntity].map(stub => bot.getResource(stub));
+//         ([personalInfo, legalEntity] = await Promise.all(tasks))
+//       }
+//       else
+//         personalInfo = payload
+
+//       if (!personalInfo.emailAddress) {
+//         logger.error(`controlling person: no email address`)
+//         return
+//       }
+
+//       if (!await hasPropertiesChanged({ resource: payload, bot, propertiesToCheck: ['emailAddress'] }))
+//         return
+
+//       if (payload[TYPE] === PERSONAL_INFO) {
+//         const stubs = getLatestForms(application)
+//         if (!stubs.length)
+//           return
+//         let cp = stubs.filter(s => s.type === CONTROLLING_PERSON)
+//         if (!cp.length)
+//           return
+//         const { items } = await bot.db.find({
+//           filter: {
+//             EQ: {
+//              [TYPE]: CONTROLLING_PERSON,
+//              'controllingPerson._permalink': personalInfo._permalink,
+//             },
+//             IN: {
+//               '_permalink': cp.map(f => f.permalink)
+//             }
+//           }
+//         })
+//         if (!items.length)
+//           return
+//         const controllingPerson = items[0]
+//         legalEntity = await bot.getResource(controllingPerson.legalEntity)
+//       }
+//       logger.error(`controlling person: processing for ${personalInfo.emailAddress}`)
+
+//       // if (personalInfo._prevlink) {
+//       //   let prevR = await bot.objects.get(personalInfo._prevlink)
+//       //   if (prevR  &&  prevR.emailAddress === personalInfo.emailAddress)
+//       //     return
+//       // }
+//       // let invite = await cp._createDraftAndInvite(personalInfo, req)
+
+//       // const stubs = getLatestForms(application)
+//       // const legalEntityStub = stubs.filter(({ type }) => type === LEGAL_ENTITY)
+
+//       // legalEntity = await bot.getResource(legalEntityStub[0])
+//       // applications.createApplicationSubmission({application: draftApplication, submission: payload})
+// debugger
+//       await cp.sendConfirmationEmail({resource: personalInfo, application, legalEntity})
+//     }
