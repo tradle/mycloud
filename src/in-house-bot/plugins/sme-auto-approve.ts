@@ -207,6 +207,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     onFormsCollected: async ({ req }) => {
       // debugger
       const { application } = req
+      if (!application) return
       const { requestFor } = application
 
       let pairs = conf.pairs.filter(pair => requestFor === pair.parent)
