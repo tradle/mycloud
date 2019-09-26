@@ -359,7 +359,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
         let registration_number = identification && identification.registration_number
 
-        if (items.find(item => item.name === name)) return
+        if (items.find(item => item.name === name)) continue
 
         let isIndividual = kind.startsWith('individual')
         if (isIndividual) {
