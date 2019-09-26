@@ -53,10 +53,7 @@ export class SmeAutoApprove {
   public checkCPs = async application => {
     let aApp,
       checkIfAllFormsSubmitted = true
-    if (application.requestFor === this.conf.parent) {
-      aApp = application
-      checkIfAllFormsSubmitted = false
-    } else {
+    if (application.parent) {
       aApp = await this.getAssociatedResource(application)
       // const pr: ITradleObject = await this.bot.getResource(application.request)
       // const associatedResource = pr.associatedResource
@@ -70,6 +67,10 @@ export class SmeAutoApprove {
       //   }
       // })
       // aApp = associatedApplication && associatedApplication.items && associatedApplication.items[0]
+    } else {
+      //if (application.requestFor === this.conf.parent) {
+      aApp = application
+      checkIfAllFormsSubmitted = false
     }
     const appSubmissions = await this.bot.getResource(aApp, { backlinks: ['submissions'] })
     // debugger
@@ -80,7 +81,7 @@ export class SmeAutoApprove {
     if (!submissions.length) return
 
     if (checkIfAllFormsSubmitted) {
-      let parentProductID = makeMyProductModelID(this.conf.parent)
+      let parentProductID = makeMyProductModelID(aApp.requestFor)
       let appApproved = submissions.filter(f => f.submission[TYPE] === parentProductID)
       if (appApproved.length) {
         this.logger.debug('Parent application was approved. Nothing further to check')
@@ -184,9 +185,12 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let parent = application.parent
       if (!parent) return
       let { requestFor } = application
+      if (!parent.requestFor) {
+        parent = await bot.getResource(parent)
+      }
 
       let pairs = conf.pairs.filter(
-        pair => requestFor === pair.child && parent[TYPE] === pair.parent
+        pair => requestFor === pair.child && parent.requestFor === pair.parent
       )
       if (!pairs.length) return
 
@@ -224,8 +228,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       logger.debug('Child application was submitted')
       let parentApp = await autoApproveAPI.getAssociatedResource(application)
       if (!parentApp) return
-
-      debugger
+      // pairs = pairs.find(pair => pair.parent === parentApp.requestFor)
+      // if (!pairs)
+      //   return
+      // debugger
       // application.parent = parentApp
       application.parent = buildResourceStub({ resource: parentApp, models: bot.models })
       debugger
