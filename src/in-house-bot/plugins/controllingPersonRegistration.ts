@@ -1,4 +1,6 @@
 import QueryString from 'querystring'
+import uniqBy from 'lodash/uniqBy'
+
 import { Bot, Logger, CreatePlugin, Applications, ISMS, IPluginLifecycleMethods } from '../types'
 import * as Templates from '../templates'
 import Errors from '../../errors'
@@ -18,6 +20,7 @@ const CP_ONBOARDING = 'tradle.legal.ControllingPersonOnboarding'
 const CE_ONBOARDING = 'tradle.legal.LegalEntityProduct'
 const SHORT_TO_LONG_URL_MAPPING = 'tradle.ShortToLongUrlMapping'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
+const PSC_CHECK = 'tradle.PscCheck'
 const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
 const CHECK_STATUS = 'tradle.Status'
 
@@ -275,17 +278,22 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       let { checks } = application
       if (!checks) return
-      let openCorporateChecksStubs = checks.filter(check => check[TYPE] === CORPORATION_EXISTS)
-      if (!openCorporateChecksStubs.length) return
 
-      let openCorporateChecks = await Promise.all(
-        openCorporateChecksStubs.map(check => bot.getResource(check))
+      let stubs = checks.filter(
+        check => check[TYPE] === CORPORATION_EXISTS || check[TYPE] === PSC_CHECK
       )
-      openCorporateChecks.sort((a, b) => b._time - a._time)
+      if (!stubs.length) return
 
-      if (!openCorporateChecks.length) return
-      let check = openCorporateChecks[0]
+      let result = await Promise.all(stubs.map(check => bot.getResource(check)))
+
+      result.sort((a, b) => b._time - a._time)
+
+      result = uniqBy(result, TYPE)
+      let check = result.find(c => c[TYPE] === CORPORATION_EXISTS)
+      let pscCheck = result.find(c => c[TYPE] === PSC_CHECK)
+
       if (check.status.id !== `${CHECK_STATUS}_pass`) return
+
       let officers =
         check.rawData &&
         check.rawData.length &&
@@ -294,11 +302,15 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       if (officers.length) officers = officers.filter(o => o.officer.position !== 'agent')
 
-      if (!officers.length) return
-
       let forms = application.forms.filter(form => form.submission[TYPE] === CONTROLLING_PERSON)
-      let officer
       let items
+
+      if (!officers.length) {
+        await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
+        return
+      }
+
+      let officer
       if (!forms.length) officer = officers[0].officer
       else {
         items = await Promise.all(forms.map(f => bot.getResource(f.submission)))
@@ -329,59 +341,64 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           }
         }
         formRequest.message = `Please review and correct the data below **for ${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+      } else await this.prefillBeneficialOwner({ items, forms, officers, formRequest })
+    },
+    async prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck }) {
+      if (!items) items = await Promise.all(forms.map(f => bot.getResource(f.submission)))
+      let beneficialOwners
+      if (pscCheck) {
+        beneficialOwners = pscCheck.rawData.data
+        if (!beneficialOwners) return
+      } else beneficialOwners = beneTest
+
+      for (let i = 0; i < beneficialOwners.length; i++) {
+        let bene = beneTest[i]
+        let { data } = bene
+        let { name, natures_of_control, kind, address, identification } = data
+        debugger
+
+        let registration_number = identification && identification.registration_number
+
+        if (items.find(item => item.name === name)) return
+
+        let isIndividual = kind.startsWith('individual')
+        if (isIndividual) {
+          if (officers && officers.length) {
+            if (
+              officers.find(o => o.officer.name.toLowerCase().trim() === name.toLowerCase().trim())
+            )
+              continue
+          }
+        }
+
+        let prefill: any = {
+          name
+        }
+        if (registration_number) prefill.controllingEntityCompanyNumber = registration_number
+        if (natures_of_control) {
+          let natureOfControl = bot.models['tradle.PercentageOfOwnership'].enum.find(e =>
+            natures_of_control.includes(e.title.toLowerCase().replaceAll(' ', '-'))
+          )
+          if (natureOfControl)
+            prefill.natureOfControl = {
+              id: `tradle.PercentageOfOwnership_${natureOfControl.id}`,
+              title: natureOfControl.title
+            }
+        }
+
+        if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
+        formRequest.prefill = {
+          ...formRequest.prefill,
+          ...prefill,
+          typeOfControllingEntity: {
+            id: kind.startsWith('individual')
+              ? 'tradle.legal.TypeOfControllingEntity_person'
+              : 'tradle.legal.TypeOfControllingEntity_legalEntity'
+          }
+        }
+        formRequest.message = `Please review and correct the data below **for ${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
         return
       }
-
-      //   if (!items) items = await Promise.all(forms.map(f => bot.getResource(f.submission)))
-
-      //   for (let i = 0; i < beneTest.length; i++) {
-      //     let bene = beneTest[i]
-      //     let { data } = bene
-      //     let { name, natures_of_control, kind, address, identification } = data
-      //     debugger
-
-      //     let registration_number = identification && identification.registration_number
-
-      //     if (items.find(item => item.name === name)) return
-
-      //     let isIndividual = kind.startsWith('individual')
-      //     if (isIndividual) {
-      //       if (officers && officers.length) {
-      //         if (
-      //           officers.find(o => o.officer.name.toLowerCase().trim() === name.toLowerCase().trim())
-      //         )
-      //           continue
-      //       }
-      //     }
-
-      //     let prefill: any = {
-      //       name
-      //     }
-      //     if (registration_number) prefill.controllingEntityCompanyNumber = registration_number
-      //     if (natures_of_control) {
-      //       let natureOfControl = bot.models['tradle.PercentageOfOwnership'].enum.find(e =>
-      //         natures_of_control.includes(e.title.toLowerCase().replaceAll(' ', '-'))
-      //       )
-      //       if (natureOfControl)
-      //         prefill.natureOfControl = {
-      //           id: `tradle.PercentageOfOwnership_${natureOfControl.id}`,
-      //           title: natureOfControl.title
-      //         }
-      //     }
-
-      //     if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
-      //     formRequest.prefill = {
-      //       ...formRequest.prefill,
-      //       ...prefill,
-      //       typeOfControllingEntity: {
-      //         id: kind.startsWith('individual')
-      //           ? 'tradle.legal.TypeOfControllingEntity_person'
-      //           : 'tradle.legal.TypeOfControllingEntity_legalEntity'
-      //       }
-      //     }
-      //     formRequest.message = `Please review and correct the data below **for ${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
-      //     return
-      //   }
     }
   }
 
