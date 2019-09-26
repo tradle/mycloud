@@ -1,4 +1,6 @@
 import QueryString from 'querystring'
+import uniqBy from 'lodash/uniqBy'
+
 import { Bot, Logger, CreatePlugin, Applications, ISMS, IPluginLifecycleMethods } from '../types'
 import * as Templates from '../templates'
 import Errors from '../../errors'
@@ -15,8 +17,10 @@ const { APPLICATION, IDENTITY } = TYPES
 const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const AGENCY = 'tradle.Agency'
 const CP_ONBOARDING = 'tradle.legal.ControllingPersonOnboarding'
+const CE_ONBOARDING = 'tradle.legal.LegalEntityProduct'
 const SHORT_TO_LONG_URL_MAPPING = 'tradle.ShortToLongUrlMapping'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
+const PSC_CHECK = 'tradle.PscCheck'
 const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
 const CHECK_STATUS = 'tradle.Status'
 
@@ -131,7 +135,19 @@ class ControllingPersonRegistrationAPI {
       extraQueryParams.legalEntity = legalEntity._permalink
     }
 
-    let product = (application.requestFor === AGENCY && EMPLOYEE_ONBOARDING) || CP_ONBOARDING
+    let product
+    if (application.requestFor === AGENCY) product = EMPLOYEE_ONBOARDING
+    else if (
+      resource.typeOfControllingEntity.id === 'tradle.legal.TypeOfControllingEntity_person'
+    ) {
+      product = CP_ONBOARDING
+      // if (resource.name) extraQueryParams.name = resource.name
+    } else {
+      if (resource.controllingEntityCompanyNumber)
+        extraQueryParams.registrationNumber = resource.controllingEntityCompanyNumber
+      if (resource.name) extraQueryParams.companyName = resource.name
+      product = CE_ONBOARDING
+    }
 
     const body = genConfirmationEmail({
       provider,
@@ -253,7 +269,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       // }
       // await cp.sendLinkViaSMS({resource: payload, application, smsBasedVerifier, legalEntity})
     },
-    async willRequestForm({ application, formRequest }) {
+    async willRequestForm({ req, application, formRequest }) {
       let { form } = formRequest
       if (form !== CONTROLLING_PERSON) return
 
@@ -262,17 +278,22 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       let { checks } = application
       if (!checks) return
-      let openCorporateChecksStubs = checks.filter(check => check[TYPE] === CORPORATION_EXISTS)
-      if (!openCorporateChecksStubs.length) return
 
-      let openCorporateChecks = await Promise.all(
-        openCorporateChecksStubs.map(check => bot.getResource(check))
+      let stubs = checks.filter(
+        check => check[TYPE] === CORPORATION_EXISTS || check[TYPE] === PSC_CHECK
       )
-      openCorporateChecks.sort((a, b) => b._time - a._time)
+      if (!stubs.length) return
 
-      if (!openCorporateChecks.length) return
-      let check = openCorporateChecks[0]
+      let result = await Promise.all(stubs.map(check => bot.getResource(check)))
+
+      result.sort((a, b) => b._time - a._time)
+
+      result = uniqBy(result, TYPE)
+      let check = result.find(c => c[TYPE] === CORPORATION_EXISTS)
+      let pscCheck = result.find(c => c[TYPE] === PSC_CHECK)
+
       if (check.status.id !== `${CHECK_STATUS}_pass`) return
+
       let officers =
         check.rawData &&
         check.rawData.length &&
@@ -281,14 +302,18 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       if (officers.length) officers = officers.filter(o => o.officer.position !== 'agent')
 
-      if (!officers.length) return
-
       let forms = application.forms.filter(form => form.submission[TYPE] === CONTROLLING_PERSON)
-      let officer
+      let items
 
+      if (!officers.length) {
+        await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
+        return
+      }
+
+      let officer
       if (!forms.length) officer = officers[0].officer
       else {
-        let items = await Promise.all(forms.map(f => bot.getResource(f.submission)))
+        items = await Promise.all(forms.map(f => bot.getResource(f.submission)))
         if (items.length) {
           for (let i = 0; i < officers.length && !officer; i++) {
             let o = officers[i].officer
@@ -299,24 +324,81 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           }
         }
       }
-      if (!officer) return
-
-      let prefill: any = {
-        name: officer.name,
-        startDate: officer.start_date && new Date(officer.start_date).getTime(),
-        inactive: officer.inactive
-      }
-      if (officer.end_date) prefill.endDate = new Date(officer.end_date).getTime()
-
-      if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
-      formRequest.prefill = {
-        ...formRequest.prefill,
-        ...prefill,
-        typeOfControllingEntity: {
-          id: 'tradle.legal.TypeOfControllingEntity_person'
+      if (officer) {
+        let prefill: any = {
+          name: officer.name,
+          startDate: officer.start_date && new Date(officer.start_date).getTime(),
+          inactive: officer.inactive
         }
+        if (officer.end_date) prefill.endDate = new Date(officer.end_date).getTime()
+
+        if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
+        formRequest.prefill = {
+          ...formRequest.prefill,
+          ...prefill,
+          typeOfControllingEntity: {
+            id: 'tradle.legal.TypeOfControllingEntity_person'
+          }
+        }
+        formRequest.message = `Please review and correct the data below **for ${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+      } else await this.prefillBeneficialOwner({ items, forms, officers, formRequest })
+    },
+    async prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck }) {
+      if (!items) items = await Promise.all(forms.map(f => bot.getResource(f.submission)))
+      let beneficialOwners
+      if (pscCheck) {
+        beneficialOwners = pscCheck.rawData.data
+        if (!beneficialOwners) return
+      } else beneficialOwners = beneTest
+
+      for (let i = 0; i < beneficialOwners.length; i++) {
+        let bene = beneTest[i]
+        let { data } = bene
+        let { name, natures_of_control, kind, address, identification } = data
+        debugger
+
+        let registration_number = identification && identification.registration_number
+
+        if (items.find(item => item.name === name)) continue
+
+        let isIndividual = kind.startsWith('individual')
+        if (isIndividual) {
+          if (officers && officers.length) {
+            if (
+              officers.find(o => o.officer.name.toLowerCase().trim() === name.toLowerCase().trim())
+            )
+              continue
+          }
+        }
+
+        let prefill: any = {
+          name
+        }
+        if (registration_number) prefill.controllingEntityCompanyNumber = registration_number
+        if (natures_of_control) {
+          let natureOfControl = bot.models['tradle.PercentageOfOwnership'].enum.find(e =>
+            natures_of_control.includes(e.title.toLowerCase().replaceAll(' ', '-'))
+          )
+          if (natureOfControl)
+            prefill.natureOfControl = {
+              id: `tradle.PercentageOfOwnership_${natureOfControl.id}`,
+              title: natureOfControl.title
+            }
+        }
+
+        if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
+        formRequest.prefill = {
+          ...formRequest.prefill,
+          ...prefill,
+          typeOfControllingEntity: {
+            id: kind.startsWith('individual')
+              ? 'tradle.legal.TypeOfControllingEntity_person'
+              : 'tradle.legal.TypeOfControllingEntity_legalEntity'
+          }
+        }
+        formRequest.message = `Please review and correct the data below **for ${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+        return
       }
-      formRequest.message = `Please review and correct the data below **for ${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
     }
   }
 
@@ -324,6 +406,78 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
     plugin
   }
 }
+
+const beneTest = [
+  {
+    company_number: '06415759',
+    data: {
+      address: {
+        address_line_1: '1 Goose Green',
+        country: 'England',
+        locality: 'Altrincham',
+        postal_code: 'WA14 1DW',
+        premises: 'Corpacq House'
+      },
+      etag: 'e5e6a05c5484ce25fca9884bb833d47c1fb1e0b4',
+      identification: {
+        country_registered: 'England',
+        legal_authority: 'Companies Act 2006',
+        legal_form: 'Private Company Limited By Shares',
+        place_registered: 'Register Of Companies For England And Wales',
+        registration_number: '11090838'
+      },
+      kind: 'corporate-entity-person-with-significant-control',
+      links: {
+        self:
+          '/company/06415759/persons-with-significant-control/corporate-entity/c3JdMtrhD9Z17jLydOWsp6YVh9w'
+      },
+      name: 'Beyondnewcol Limited',
+      natures_of_control: [
+        'ownership-of-shares-75-to-100-percent',
+        'voting-rights-75-to-100-percent',
+        'right-to-appoint-and-remove-directors'
+      ],
+      notified_on: '2019-06-27'
+    }
+  },
+  {
+    company_number: '12134701',
+    data: {
+      address: {
+        address_line_1: 'Bell Yard',
+        country: 'United Kingdom',
+        locality: 'London',
+        postal_code: 'WC2A 2JR',
+        premises: '7'
+      },
+      country_of_residence: 'United Kingdom',
+      date_of_birth: {
+        month: 3,
+        year: 1966
+      },
+      etag: 'a46e27e4284b75c2a6a2b6a122df6b1abee4e13d',
+      kind: 'individual-person-with-significant-control',
+      links: {
+        self:
+          '/company/12134701/persons-with-significant-control/individual/fXEREOeTBLPNqrAK3ylzPr3w73Q'
+      },
+      name: 'Miss Joana Castellet',
+      name_elements: {
+        forename: 'Joana',
+        surname: 'Castellet',
+        title: 'Miss'
+      },
+      nationality: 'Spanish',
+      natures_of_control: [
+        'ownership-of-shares-75-to-100-percent',
+        'voting-rights-75-to-100-percent',
+        'right-to-appoint-and-remove-directors'
+      ],
+      notified_on: '2019-08-01'
+    }
+  }
+]
+
 //       let personalInfo, legalEntity
 //       if (payload[TYPE] === CONTROLLING_PERSON) {
 //         const tasks = [payload.controllingPerson, payload.legalEntity].map(stub => bot.getResource(stub));

@@ -100,9 +100,12 @@ export const transformers = {
     }
   },
   [LEGAL_ENTITY]: {
-    [CONTROLLING_PERSON]: source => prefillLegalEntity(source, 'legalEntity'),
-    [LEGAL_DOCUMENT]: source => prefillLegalEntity(source, 'legalEntity'),
-    [CERTIFICATE_OF_INC]: source => prefillLegalEntity(source, 'legalEntity'),
+    [CONTROLLING_PERSON]: (source, application, bot) =>
+      prefillLegalEntity(source, application, bot, 'legalEntity'),
+    [LEGAL_DOCUMENT]: (source, application, bot) =>
+      prefillLegalEntity(source, application, bot, 'legalEntity'),
+    [CERTIFICATE_OF_INC]: (source, application, bot) =>
+      prefillLegalEntity(source, application, bot, 'legalEntity')
   }
   // [LEGAL_ENTITY]: {
   //   [CONTROLLING_PERSON]: source => {
@@ -133,14 +136,15 @@ export const transformers = {
   //   }
   // }
 }
-function prefillLegalEntity(source, prop) {
+function prefillLegalEntity(source, application, bot, prop) {
   return {
     [prop]: {
       [TYPE]: source[TYPE],
       _link: source._link,
       _permalink: source._permalink,
-      _displayName:
-        source.companyName || (source.country && source.country.title) || 'Legal Entity'
+      _displayName: `${bot.models[source[TYPE]].title} - ${source.companyName ||
+        application.applicantName ||
+        (source.country && source.country.title)}`
     }
   }
 }
@@ -185,7 +189,7 @@ export class SmartPrefill {
       const { extractor, transformer } = inputs[i]
       const source = inputSources[i]
       const props = extractor(source)
-      _.defaults(prefill, transformer(props))
+      _.defaults(prefill, transformer(props, application, this.bot))
     }
 
     if (_.size(prefill)) {

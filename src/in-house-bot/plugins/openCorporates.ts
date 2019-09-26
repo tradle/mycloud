@@ -318,6 +318,12 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         hasVerification = true
         logger.debug(`creating verification for: ${resource.companyName}`)
       }
+      // CHECK PASS
+      if (!message && hits.length === 1) {
+        if (!application.applicantName)
+          application.applicantName = payload.companyName
+      }
+
       pchecks.push(
         openCorporates.createCorporateCheck({
           application,

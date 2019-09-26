@@ -6,6 +6,7 @@ import {
   Bot,
   CreatePlugin,
   IWillJudgeAppArg,
+  IPBReq,
   IPluginLifecycleMethods,
   ValidatePluginConf,
   ITradleObject,
@@ -52,10 +53,7 @@ export class SmeAutoApprove {
   public checkCPs = async application => {
     let aApp,
       checkIfAllFormsSubmitted = true
-    if (application.requestFor === this.conf.parent) {
-      aApp = application
-      checkIfAllFormsSubmitted = false
-    } else {
+    if (application.parent) {
       aApp = await this.getAssociatedResource(application)
       // const pr: ITradleObject = await this.bot.getResource(application.request)
       // const associatedResource = pr.associatedResource
@@ -69,6 +67,10 @@ export class SmeAutoApprove {
       //   }
       // })
       // aApp = associatedApplication && associatedApplication.items && associatedApplication.items[0]
+    } else {
+      //if (application.requestFor === this.conf.parent) {
+      aApp = application
+      checkIfAllFormsSubmitted = false
     }
     const appSubmissions = await this.bot.getResource(aApp, { backlinks: ['submissions'] })
     // debugger
@@ -79,7 +81,7 @@ export class SmeAutoApprove {
     if (!submissions.length) return
 
     if (checkIfAllFormsSubmitted) {
-      let parentProductID = makeMyProductModelID(this.conf.parent)
+      let parentProductID = makeMyProductModelID(aApp.requestFor)
       let appApproved = submissions.filter(f => f.submission[TYPE] === parentProductID)
       if (appApproved.length) {
         this.logger.debug('Parent application was approved. Nothing further to check')
@@ -160,6 +162,7 @@ export class SmeAutoApprove {
   public getAssociatedResource = async application => {
     const pr: ITradleObject = await this.bot.getResource(application.request)
     const associatedResource = pr.associatedResource
+    if (!associatedResource) return
     // const asociatedApplication = await this.bot.getResource(associatedResource, {backlinks: ['forms']})
     const associatedApplication = await this.bot.db.find({
       filter: {
@@ -178,13 +181,26 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   // debugger
   const plugin: IPluginLifecycleMethods = {
     didApproveApplication: async (opts: IWillJudgeAppArg, certificate: ITradleObject) => {
-      let childProduct = makeMyProductModelID(conf.child)
+      let { application } = opts
+      let parent = application.parent
+      if (!parent) return
+      let { requestFor } = application
+      if (!parent.requestFor) {
+        parent = await bot.getResource(parent)
+      }
+
+      let pairs = conf.pairs.filter(
+        pair => requestFor === pair.child && parent.requestFor === pair.parent
+      )
+      if (!pairs.length) return
+
+      let childProduct = makeMyProductModelID(pairs[0].child)
       // debugger
       if (certificate[TYPE] === childProduct) {
         logger.debug(
           'New child application was approved. Check if parent application can be auto-approved'
         )
-        await autoApproveAPI.checkCPs(opts.application)
+        await autoApproveAPI.checkCPs(application)
       }
     },
     // check if auto-approve ifvapplication Legal entity product was submitted
@@ -192,16 +208,33 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       // debugger
       const { application } = req
       const { requestFor } = application
-      if (requestFor === conf.parent) {
-        logger.debug('Parent application was submitted. Check if all child applications checked in')
-        await autoApproveAPI.checkCPs(application)
-      } else if (requestFor === conf.child) {
-        logger.debug('Child application was submitted')
-        let parentApp = await autoApproveAPI.getAssociatedResource(application)
-        // application.parent = parentApp
-        application.parent = buildResourceStub({ resource: parentApp, models: bot.models })
-        debugger
-      }
+
+      let pairs = conf.pairs.filter(pair => requestFor === pair.parent)
+
+      if (!pairs.length) return
+      debugger
+      logger.debug('Parent application was submitted. Check if all child applications checked in')
+      await autoApproveAPI.checkCPs(application)
+    },
+    async onmessage(req: IPBReq) {
+      // debugger
+      const { application } = req
+      if (!application || application.parent || !application.forms) return
+      const { requestFor } = application
+
+      let pairs = conf.pairs.filter(pair => requestFor === pair.child)
+
+      if (!pairs.length) return
+      logger.debug('Child application was submitted')
+      let parentApp = await autoApproveAPI.getAssociatedResource(application)
+      if (!parentApp) return
+      // pairs = pairs.find(pair => pair.parent === parentApp.requestFor)
+      // if (!pairs)
+      //   return
+      // debugger
+      // application.parent = parentApp
+      application.parent = buildResourceStub({ resource: parentApp, models: bot.models })
+      debugger
     }
   }
 
@@ -215,14 +248,19 @@ function makeMyProductModelID(modelId) {
 }
 export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
   const { models } = bot
-  // debugger
-  for (let appType in pluginConf as ISmeConf) {
-    let child = pluginConf.child
-    if (!child) throw new Error('missing child')
-    if (!models[child]) throw new Error(`there is no model: ${child}`)
+  debugger
+  if (!pluginConf.pairs) throw new Error(`there is no 'pairs' in conf`)
+  if (!Array.isArray(pluginConf.pairs)) throw new Error(`'pairs' should be an array in conf`)
+  if (!pluginConf.pairs.length) throw new Error(`'pairs' is empty in conf`)
+  pluginConf.pairs.forEach(pair => {
+    for (let appType in pair as ISmeConf) {
+      let child = pair.child
+      if (!child) throw new Error('missing child')
+      if (!models[child]) throw new Error(`there is no model: ${child}`)
 
-    let parent = pluginConf.parent
-    if (!parent) throw new Error('missing parent')
-    if (!models[parent]) throw new Error(`there is no model: ${parent}`)
-  }
+      let parent = pair.parent
+      if (!parent) throw new Error('missing parent')
+      if (!models[parent]) throw new Error(`there is no model: ${parent}`)
+    }
+  })
 }
