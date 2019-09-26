@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "2.4.4-rc.24",
+  "version": "2.4.4-rc.25",
   "dependencies": {
     "@aws/dynamodb-auto-marshaller": {
       "version": "0.4.1",
@@ -406,7 +406,7 @@
     "@tradle/models-corporate-onboarding": {
       "version": "1.0.0",
       "from": "tradle/models-corporate-onboarding",
-      "resolved": "git://github.com/tradle/models-corporate-onboarding.git#8eb5243d3dcde37a543437b5f337d976a8b12c51"
+      "resolved": "git://github.com/tradle/models-corporate-onboarding.git#95ff2e2eb8a40224707852d5fcbfc2faf5ca0a7d"
     },
     "@tradle/models-nz": {
       "version": "1.0.0",

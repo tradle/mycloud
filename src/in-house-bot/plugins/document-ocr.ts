@@ -391,9 +391,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         }
         if (!hasChanges) {
           logger.error(
-            `document-ocr does not send request for correction for ${
-            payload[TYPE]
-            } since the resource didn\'t change`
+            `document-ocr does not send request for correction for ${payload[TYPE]} since the resource didn\'t change`
           )
           return
         }
@@ -435,10 +433,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-    bot: Bot
-    conf: IConfComponents
-    pluginConf: IDocumentOcrConf
-  }) => {
+  bot: Bot
+  conf: IConfComponents
+  pluginConf: IDocumentOcrConf
+}) => {
   const { models } = bot
   Object.keys(pluginConf).forEach(productModelId => {
     const productModel = models[productModelId]
@@ -554,8 +552,7 @@ function convertDateInWords(input, dateProp) {
       if (matches && matches.length > 4) {
         let d = Date.parse(matches[1] + ' ' + matches[3] + ' ' + matches[4])
         input[dateProp] = d
-      }
-      delete input[dateProp]
+      } else delete input[dateProp]
     }
   } else {
     let date = dateProp + '_special'

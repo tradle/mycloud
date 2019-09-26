@@ -128,13 +128,18 @@ class OpenCorporatesAPI {
     companies = companies.filter(c => {
       if (c.company.inactive) return false
       if (c.company.company_number !== registrationNumber) {
-        wrongNumber = true
-        return false
+        let companyNumber = c.company.company_number.replace(/^0+/, '')
+        let regNumber = registrationNumber.replace(/^0+/, '')
+        if (companyNumber !== regNumber) {
+          wrongNumber = true
+          return false
+        }
       }
       foundNumber = true
       if (registrationDate) {
         // &&  new Date(c.company.incorporation_date).getFullYear() !== new Date(registrationDate).getFullYear()) {
-        if (toISODateString(registrationDate) !== c.company.incorporation_date) {
+        let regDate = toISODateString(registrationDate)
+        if (regDate !== c.company.incorporation_date) {
           if (!foundDate) wrongDate = true
           return false
         }
