@@ -207,7 +207,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     onFormsCollected: async ({ req }) => {
       // debugger
       const { application } = req
-      if (!application) return
+      if (!application  ||  !conf.pairs) return
       const { requestFor } = application
 
       let pairs = conf.pairs.filter(pair => requestFor === pair.parent)
@@ -220,7 +220,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     async onmessage(req: IPBReq) {
       // debugger
       const { application } = req
-      if (!application || application.parent || !application.forms) return
+      if (!application  ||  application.parent  ||  !application.forms  ||  conf.pairs) return
       const { requestFor } = application
 
       let pairs = conf.pairs.filter(pair => requestFor === pair.child)

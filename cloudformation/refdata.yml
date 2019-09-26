@@ -86,7 +86,7 @@ Resources:
               field.delim: ","
           BucketColumns: []
           Columns:
-            - Type: bigint
+            - Type: string
               Name: frn
             - Type: string
               Name: firm
@@ -131,7 +131,7 @@ Resources:
         StorageDescriptor:      
           Columns:
             - Name: frn
-              Type: bigint
+              Type: string
             - Name: firm
               Type: string
             - Name: emoney register status
@@ -183,7 +183,7 @@ Resources:
         StorageDescriptor: 
           Columns:
             - Name: frn
-              Type: bigint
+              Type: string
             - Name: firm
               Type: string
             - Name: e-money agent status
@@ -233,7 +233,7 @@ Resources:
         StorageDescriptor:
           Columns:
             - Name: frn
-              Type: bigint
+              Type: string
             - Name: firm
               Type: string
             - Name: authorisation status
@@ -272,4 +272,37 @@ Resources:
             delimiter: ","
             typeOfData: file
         
-  
+  PscGlueTable:
+    Type: 'AWS::Glue::Table'
+    Properties:
+      DatabaseName:
+        Ref: SecGlueDatabase
+      CatalogId:
+        Ref: 'AWS::AccountId'
+      TableInput:
+        Name: psc
+        TableType: EXTERNAL_TABLE
+        StorageDescriptor:
+          Columns:
+            - Name: company_number
+              Type: string
+            - Name: data
+              Type: struct<address:struct<address_line_1:string,address_line_2:string,country:string,locality:string,postal_code:string,premises:string,region:string,care_of:string,po_box:string>,etag:string,identification:struct<country_registered:string,legal_authority:string,legal_form:string,place_registered:string,registration_number:string>,kind:string,links:struct<self:string>,name:string,natures_of_control:array<string>,notified_on:string,country_of_residence:string,date_of_birth:struct<month:int,year:int>,name_elements:struct<forename:string,surname:string,title:string,middle_name:string>,nationality:string,ceased_on:string,statement:string>
+          Location: 
+            Fn::Join:
+              - ''
+              - - 's3://'
+                - Ref: PrivateConfBucket
+                - '/refdata/gb/psc/'
+          InputFormat: org.apache.hadoop.hive.ql.io.orc.OrcInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat
+          Compressed: 'false'
+          NumberOfBuckets: 8
+          StoredAsSubDirectories: 'false'
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.ql.io.orc.OrcSerde
+            Parameters: {}
+          BucketColumns: [company_number]
+          SortColumns: []
+          Parameters:
+            has_encrypted_data: 'false'

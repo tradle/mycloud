@@ -28,7 +28,7 @@ const { sanitize } = validateResource.utils
 
 const POLL_INTERVAL = 250
 
-const PSC_CHECK = 'tradle.PscCheck'
+const REGULATOR_REGISTRATION_CHECK = 'tradle.RegulatorRegistrationCheck'
 const PROVIDER = 'http://download.companieshouse.gov.uk/en_pscdata.html'
 const ASPECTS = 'registration with FINRA'
 
@@ -42,7 +42,7 @@ const FORM_IDS = [FORM_ID_GB_firms_psd_perm, FORM_ID_GB_e_money_firms,
 
 const CHECK_PROP = 'frn' //'companyNumber'
 
-const QUERY = 'select company_number, data from orc_psc where company_number = \'%s\''
+const QUERY = 'select company_number, data from psc where company_number = \'%s\''
 
 interface IPscCheck {
   application: IPBApp
@@ -209,7 +209,7 @@ export class PscCheckAPI {
   public createCheck = async ({ application, status, form, rawData, req }: IPscCheck) => {
     // debugger
     let resource: any = {
-      [TYPE]: PSC_CHECK,
+      [TYPE]: REGULATOR_REGISTRATION_CHECK,
       status: status.status,
       provider: PROVIDER,
       application,
@@ -246,7 +246,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       logger.debug('pscCheck before doesCheckNeedToBeCreated')
       let createCheck = await doesCheckNeedToBeCreated({
         bot,
-        type: PSC_CHECK,
+        type: REGULATOR_REGISTRATION_CHECK,
         application,
         provider: PROVIDER,
         form: payload,
