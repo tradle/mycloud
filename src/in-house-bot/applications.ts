@@ -135,6 +135,8 @@ export class Applications implements IHasModels {
         failedChecks.findIndex(check => check[TYPE] === 'tradle.SanctionsCheck') !== -1
       application.hasFailedDocumentValidityChecks =
         failedChecks.findIndex(check => check[TYPE] === 'tradle.DocumentValidityCheck') !== -1
+      application.hasFailedEntityExistanceChecks = 
+        failedChecks.findIndex(check => check[TYPE] === 'tradle.CorporationExistsCheck') !== -1
     } else {
       if (application.numberOfChecksFailed) {
         application.numberOfChecksFailed = 0
