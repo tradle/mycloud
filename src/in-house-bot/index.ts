@@ -679,13 +679,14 @@ export const loadComponentsAndPlugins = ({
       'finastra',
       'document-ocr',
       'interFormConditionals',
-      'regulatorRegistration'
+      'regulatorRegistration',
+      'pscCheck'
     ].forEach(name => attachPlugin({ name }))
       ;[
         'hand-sig',
         'documentValidity',
         'fill-myproduct',
-        'checkOverride',
+        'checkOverride'
       ].forEach(name => attachPlugin({ name, requiresConf: false }))
 
     // used for some demo
