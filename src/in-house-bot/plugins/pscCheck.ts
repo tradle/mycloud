@@ -288,24 +288,33 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
 function makeValidJSON(a) {
   let s = ''
-  for (let i=0; i<a.length; i++) {
+  let len = a.length
+  for (let i=0; i<len; i++) {
     let ch = a.charAt(i)
-    let ch1 = i<a.length  &&  a.charAt(i + 1)
+    let ch1 = i<len-1  &&  a.charAt(i + 1) || ''
     if (ch === '=') {
       s += '":'
       if (ch1 !== '{'  &&  ch1 !== '[')
         s += '"'
-      else if (ch1 === ' ')
-        i++
+      while (a.charAt(++i) === ' '  &&  i<len);
     }
     else if (ch === ',') {
       let ch0 = a.charAt(i - 1)
       if (ch0 !== '}'  &&  ch0 !== ']')
         s += '"'
       s += ','
-      if (ch1  &&  ch1 === ' ')
-        i++
-      s += '"'
+      while (a.charAt(++i) === ' '  &&  i<len);
+
+      if (a.charAt(i) !== '{')
+        s += '"'
+    }
+    else if (ch === '['  &&  ch1 === '{') {
+      s += ch + ch1 + '"'
+      i++
+    }
+    else if (ch === '}'  &&  ch1 === ']') {
+      s += '"' + ch + ch1
+      i++
     }
     else if (ch === '{'  ||  ch === '[')
       s += `${ch}"`
