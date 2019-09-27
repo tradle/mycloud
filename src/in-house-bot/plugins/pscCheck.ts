@@ -365,6 +365,10 @@ function build(arr, idx): any {
     else if (arr[idx] == '}') {
       return { v: obj, i: idx }
     }
+    else if (arr[idx] == ',') {
+      name = ''
+      idx++
+    }
     else {
       name += arr[idx]
     }
