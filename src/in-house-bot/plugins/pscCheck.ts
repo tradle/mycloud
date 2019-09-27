@@ -32,7 +32,7 @@ const POLL_INTERVAL = 250
 
 const REGULATOR_REGISTRATION_CHECK = 'tradle.RegulatorRegistrationCheck'
 const PROVIDER = 'http://download.companieshouse.gov.uk/en_pscdata.html'
-const ASPECTS = 'registration with FINRA'
+const ASPECTS = 'Beneficial owner'
 
 const FORM_ID_GB_firms_psd_perm = 'com.svb.BSAPI102FCAPSDFirms'
 const FORM_ID_GB_e_money_firms = 'com.svb.BSAPI102FCAPSDeMoneyInstitutions'
@@ -235,7 +235,13 @@ export class PscCheckAPI {
 
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
-    if (rawData) resource.rawData = sanitize(rawData).sanitized
+    if (rawData  &&  Array.isArray(rawData)) {
+      rawData.forEach(rdata => {
+        if (rdata.data  &&  typeof rdata.data === 'string')
+          rdata.data = makeValidJSON(rdata.data)
+      })
+      resource.rawData = sanitize(rawData).sanitized
+    }
 
     this.logger.debug(`${PROVIDER} Creating pscCheck`)
     await this.applications.createCheck(resource, req)
@@ -280,6 +286,42 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   return { plugin }
 }
 
+function makeValidJSON(a) {
+  let s = ''
+  for (let i=0; i<a.length; i++) {
+    let ch = a.charAt(i)
+    let ch1 = i<a.length  &&  a.charAt(i + 1)
+    if (ch === '=') {
+      s += '":'
+      if (ch1 !== '{'  &&  ch1 !== '[')
+        s += '"'
+      else if (ch1 === ' ')
+        i++
+    }
+    else if (ch === ',') {
+      let ch0 = a.charAt(i - 1)
+      if (ch0 !== '}'  &&  ch0 !== ']')
+        s += '"'
+      s += ','
+      if (ch1  &&  ch1 === ' ')
+        i++
+      s += '"'
+    }
+    else if (ch === '{'  ||  ch === '[')
+      s += `${ch}"`
+    else if (ch === '}'  ||  ch === ']')
+      s += `"${ch}`
+    else
+      s += ch
+  }
+console.log(s)
+  let json = JSON.parse(s)
+  for (let p in json)
+    if (json[p] === 'null')
+      json[p] = null
+console.log(JSON.stringify(json, null, 2))
+  return json
+}
 export const validateConf: ValidatePluginConf = async ({
   bot,
   conf,
