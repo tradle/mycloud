@@ -182,6 +182,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   const plugin: IPluginLifecycleMethods = {
     didApproveApplication: async (opts: IWillJudgeAppArg, certificate: ITradleObject) => {
       let { application } = opts
+      if (!application ||  !conf.pairs)
+        return
       let parent = application.parent
       if (!parent) return
       let { requestFor } = application
@@ -207,6 +209,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     onFormsCollected: async ({ req }) => {
       // debugger
       const { application } = req
+      if (!application  ||  !conf.pairs) return
       const { requestFor } = application
 
       let pairs = conf.pairs.filter(pair => requestFor === pair.parent)
@@ -219,7 +222,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     async onmessage(req: IPBReq) {
       // debugger
       const { application } = req
-      if (!application || application.parent || !application.forms) return
+      if (!application  ||  application.parent  ||  !application.forms  ||  !conf.pairs) return
       const { requestFor } = application
 
       let pairs = conf.pairs.filter(pair => requestFor === pair.child)

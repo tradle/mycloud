@@ -20,7 +20,7 @@ const CP_ONBOARDING = 'tradle.legal.ControllingPersonOnboarding'
 const CE_ONBOARDING = 'tradle.legal.LegalEntityProduct'
 const SHORT_TO_LONG_URL_MAPPING = 'tradle.ShortToLongUrlMapping'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
-const PSC_CHECK = 'tradle.PscCheck'
+const REGULATOR_REGISTRATION_CHECK = 'tradle.RegulatorRegistrationCheck'
 const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
 const CHECK_STATUS = 'tradle.Status'
 
@@ -280,7 +280,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (!checks) return
 
       let stubs = checks.filter(
-        check => check[TYPE] === CORPORATION_EXISTS || check[TYPE] === PSC_CHECK
+        check => check[TYPE] === CORPORATION_EXISTS || check[TYPE] === REGULATOR_REGISTRATION_CHECK
       )
       if (!stubs.length) return
 
@@ -290,7 +290,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       result = uniqBy(result, TYPE)
       let check = result.find(c => c[TYPE] === CORPORATION_EXISTS)
-      let pscCheck = result.find(c => c[TYPE] === PSC_CHECK)
+      let pscCheck = result.find(c => c[TYPE] === REGULATOR_REGISTRATION_CHECK)
 
       if (check.status.id !== `${CHECK_STATUS}_pass`) return
 
@@ -347,7 +347,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (!items) items = await Promise.all(forms.map(f => bot.getResource(f.submission)))
       let beneficialOwners
       if (pscCheck) {
-        beneficialOwners = pscCheck.rawData.data
+        beneficialOwners = pscCheck.rawData
         if (!beneficialOwners) return
       } else beneficialOwners = beneTest
 
