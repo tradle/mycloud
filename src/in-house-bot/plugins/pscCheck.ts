@@ -12,6 +12,8 @@ import {
   CreatePlugin,
   Applications,
   IPluginLifecycleMethods,
+  ValidatePluginConf,
+  IConfComponents,
   ITradleObject,
   IPBApp,
   IPBReq,
@@ -40,9 +42,16 @@ const FORM_ID_GB_credit_institutions = 'com.svb.BSAPI102FCAPSDCreditInstitutions
 const FORM_IDS = [FORM_ID_GB_firms_psd_perm, FORM_ID_GB_e_money_firms,
   FORM_ID_GB_emd_agents, FORM_ID_GB_credit_institutions]
 
-const CHECK_PROP = 'frn' //'companyNumber'
-
 const QUERY = 'select company_number, data from psc where company_number = \'%s\''
+
+interface IPscAthenaConf {
+  type: string,
+  check: string,
+}
+
+interface IPscConf {
+  athenaMaps: [IPscAthenaConf]
+}
 
 interface IPscCheck {
   application: IPBApp
@@ -178,10 +187,16 @@ export class PscCheckAPI {
       return { status: false, error: err, data: null }
     }
   }
-
-  public async lookup({ form, application, req, user }) {
+  public mapToSubject = type => {
+    for (let subject of this.conf.athenaMaps) {
+      if (subject.type == type)
+        return subject;
+    }
+    return null
+  }
+  public async lookup({ check, form, application, req, user }) {
     let status
-    let formCompanyNumber = form[CHECK_PROP] //.replace(/-/g, '').replace(/^0+/, '') // '133693';
+    let formCompanyNumber = form[check] //.replace(/-/g, '').replace(/^0+/, '') // '133693';
     this.logger.debug(`pscCheck check() called with number ${formCompanyNumber}`)
     let sql = util.format(QUERY, formCompanyNumber)
     let find = await this.queryAthena(sql)
@@ -233,15 +248,17 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   const pscCheckAPI = new PscCheckAPI({ bot, conf, applications, logger })
   // debugger
   const plugin: IPluginLifecycleMethods = {
-    async validateForm({ req }) {
+    async onmessage(req: IPBReq) {
       logger.debug('pscCheck called onmessage')
       if (req.skipChecks) return
       const { user, application, payload } = req
       if (!application) return
-      if (!FORM_IDS.includes(payload[TYPE])) return
-      logger.debug(`pscCheck called for type ${payload[TYPE]}`)
 
-      if (!payload[CHECK_PROP]) return
+      let subject = pscCheckAPI.mapToSubject(payload[TYPE])
+      if (!subject) return
+      logger.debug(`pscCheck called for type ${payload[TYPE]} to check ${subject.check}`)
+
+      if (!payload[subject.check]) return
 
       logger.debug('pscCheck before doesCheckNeedToBeCreated')
       let createCheck = await doesCheckNeedToBeCreated({
@@ -250,15 +267,38 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         application,
         provider: PROVIDER,
         form: payload,
-        propertiesToCheck: [CHECK_PROP],
+        propertiesToCheck: [subject.check],
         prop: 'form',
         req
       })
       logger.debug(`pscCheck after doesCheckNeedToBeCreated with createCheck=${createCheck}`)
 
       if (!createCheck) return
-      let r = await pscCheckAPI.lookup({ form: payload, application, req, user })
+      let r = await pscCheckAPI.lookup({ check: subject.check, form: payload, application, req, user })
     }
   }
   return { plugin }
+}
+
+export const validateConf: ValidatePluginConf = async ({
+  bot,
+  conf,
+  pluginConf
+}: {
+    bot: Bot
+    conf: IConfComponents
+    pluginConf: IPscConf
+  }) => {
+  const { models } = bot
+  if (!pluginConf.athenaMaps)
+    throw new Errors.InvalidInput('athena maps are not found')
+  pluginConf.athenaMaps.forEach(subject => {
+    const model = models[subject.type]
+    if (!model) {
+      throw new Errors.InvalidInput(`model not found for: ${subject.type}`)
+    }
+    if (!model.properties[subject.check]) {
+      throw new Errors.InvalidInput(`property ${subject.check} was not found in ${subject.type}`)
+    }
+  })
 }
