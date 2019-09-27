@@ -2,18 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.4-rc.25](https://github.com/tradle/mycloud/compare/v2.4.4-rc.24...v2.4.4-rc.25) (2019-09-24)
+## [2.4.4-rc.26](https://github.com/tradle/mycloud/compare/v2.4.4-rc.25...v2.4.4-rc.26) (2019-09-27)
 
 
 ### Bug Fixes
 
-* leading zeroes in company number cause non-matching ([fd5f7f3](https://github.com/tradle/mycloud/commit/fd5f7f3))
+* application is not defined ([c5f7400](https://github.com/tradle/mycloud/commit/c5f7400))
+* application was undefined ([bea7893](https://github.com/tradle/mycloud/commit/bea7893))
+* displayName for LegalEntity ([83ad969](https://github.com/tradle/mycloud/commit/83ad969))
+* looging added ([a83affc](https://github.com/tradle/mycloud/commit/a83affc))
 
 
 ### Features
 
-* prefill CP if opencorp PASS check has a list officers in it ([95e49de](https://github.com/tradle/mycloud/commit/95e49de))
-* prefill officers of the company ([f3fedd2](https://github.com/tradle/mycloud/commit/f3fedd2))
+* allow parent->child for different product ([5c9d676](https://github.com/tradle/mycloud/commit/5c9d676))
+* beneficial owners project ([0a0c02b](https://github.com/tradle/mycloud/commit/0a0c02b))
+* corporate onboarding - beneficial owners ([4bb0c56](https://github.com/tradle/mycloud/commit/4bb0c56))
+* corporate onboarding - beneficial owners ([714f3af](https://github.com/tradle/mycloud/commit/714f3af))
+* corporate onboarding project ([dff92f8](https://github.com/tradle/mycloud/commit/dff92f8))
+* corporate onboarding project ([6851ac7](https://github.com/tradle/mycloud/commit/6851ac7))
 
 
 
