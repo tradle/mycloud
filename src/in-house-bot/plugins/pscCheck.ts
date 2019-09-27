@@ -1,4 +1,3 @@
-import constants from '@tradle/constants'
 import { TYPE } from '@tradle/constants'
 
 // @ts-ignore
@@ -235,12 +234,13 @@ export class PscCheckAPI {
 
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
-    if (rawData  &&  Array.isArray(rawData)) {
+    if (rawData && Array.isArray(rawData)) {
       rawData.forEach(rdata => {
-        if (rdata.data  &&  typeof rdata.data === 'string')
-          rdata.data = makeValidJSON(rdata.data)
+        if (rdata.data && typeof rdata.data === 'string')
+          rdata.data = makeJson(rdata.data) //makeValidJSON(rdata.data)
       })
       resource.rawData = sanitize(rawData).sanitized
+      console.log(JSON.stringify(resource.rawData, null, 2))
     }
 
     this.logger.debug(`${PROVIDER} Creating pscCheck`)
@@ -289,48 +289,121 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 function makeValidJSON(a) {
   let s = ''
   let len = a.length
-  for (let i=0; i<len; i++) {
+  for (let i = 0; i < len; i++) {
     let ch = a.charAt(i)
-    let ch1 = i<len-1  &&  a.charAt(i + 1) || ''
+    let ch1 = i < len - 1 && a.charAt(i + 1) || ''
     if (ch === '=') {
       s += '":'
-      if (ch1 !== '{'  &&  ch1 !== '[')
+      if (ch1 !== '{' && ch1 !== '[')
         s += '"'
-      while (a.charAt(++i) === ' '  &&  i<len);
+      while (a.charAt(++i) === ' ' && i < len);
     }
     else if (ch === ',') {
       let ch0 = a.charAt(i - 1)
-      if (ch0 !== '}'  &&  ch0 !== ']')
+      if (ch0 !== '}' && ch0 !== ']')
         s += '"'
       s += ','
-      while (a.charAt(++i) === ' '  &&  i<len);
+      while (a.charAt(++i) === ' ' && i < len);
 
       if (a.charAt(i) !== '{')
         s += '"'
     }
-    else if (ch === '['  &&  ch1 === '{') {
+    else if (ch === '[' && ch1 === '{') {
       s += ch + ch1 + '"'
       i++
     }
-    else if (ch === '}'  &&  ch1 === ']') {
+    else if (ch === '}' && ch1 === ']') {
       s += '"' + ch + ch1
       i++
     }
-    else if (ch === '{'  ||  ch === '[')
+    else if (ch === '{' || ch === '[')
       s += `${ch}"`
-    else if (ch === '}'  ||  ch === ']')
+    else if (ch === '}' || ch === ']')
       s += `"${ch}`
     else
       s += ch
   }
-console.log(s)
+  console.log(s)
   let json = JSON.parse(s)
   for (let p in json)
     if (json[p] === 'null')
       json[p] = null
-console.log(JSON.stringify(json, null, 2))
+  console.log(JSON.stringify(json, null, 2))
   return json
 }
+
+function makeJson(str: string) {
+  let arr = Array.from(str)
+  let idx = 1;
+  let obj: any = build(arr, idx)
+  return obj.v
+}
+
+function build(arr, idx): any {
+  let name = ''
+  let obj = {}
+  for (; idx < arr.length; idx++) {
+    if (arr[idx] == '=') {
+      if (arr[idx + 1] == '{') {
+        let ret = build(arr, idx + 2)
+        obj[name] = ret.v
+        idx = ret.i
+      }
+      else if (arr[idx + 1] == '[') {
+        let ret = buildStringArray(arr, idx + 2)
+        obj[name] = ret.v
+        name = ''
+        idx = ret.i
+      }
+      else {
+        let ret = buildString(arr, idx + 1)
+        obj[name] = ret.v
+        name = ''
+        idx = ret.i
+      }
+    }
+    else if (arr[idx] == '}') {
+      return { v: obj, i: idx }
+    }
+    else {
+      name += arr[idx]
+    }
+  }
+  return obj
+}
+
+function buildStringArray(arr, idx) {
+  let strArr = []
+  let val = ''
+  while (true) {
+    if (arr[idx] == ',') {
+      strArr.push(val)
+      val = ''
+      idx++; // skip space
+    }
+    else if (arr[idx] == ']') {
+      return { v: strArr, i: idx }
+    }
+    val += arr[idx++]
+  }
+}
+
+function buildString(arr, idx) {
+  let val = ''
+  while (true) {
+    if (arr[idx] == ',') {
+      if (val == 'null') val = ''
+      return { v: val, i: idx + 1 } // skip space
+    }
+    else if (arr[idx] == '}') {
+      if (val == 'null') val = ''
+      return { v: val, i: idx - 1 }
+    }
+    val += arr[idx++]
+  }
+}
+
+
 export const validateConf: ValidatePluginConf = async ({
   bot,
   conf,
