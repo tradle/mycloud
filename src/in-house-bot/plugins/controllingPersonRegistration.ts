@@ -347,7 +347,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (!items) items = await Promise.all(forms.map(f => bot.getResource(f.submission)))
       let beneficialOwners
       if (pscCheck) {
-        beneficialOwners = pscCheck.rawData.data
+        beneficialOwners = pscCheck.rawData
         if (!beneficialOwners) return
       } else beneficialOwners = beneTest
 
