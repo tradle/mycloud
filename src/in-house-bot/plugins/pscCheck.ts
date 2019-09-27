@@ -78,10 +78,10 @@ export class PscCheckAPI {
   }
   public getExecutionId = async sql => {
     return new Promise((resolve, reject) => {
-      const outputLocation = 's3://jacob.gins.athena/temp/' //'s3://' + this.bot.buckets.PrivateConf.id + '/temp'
+      const outputLocation = 's3://' + this.bot.buckets.PrivateConf.id + '/temp'
       this.logger.debug(`pscCheck: ${outputLocation}`)
       this.logger.debug(`pscCheck getExecutionId with ${sql}`)
-      const database = 'sampledb' //this.bot.env.getStackResourceName('sec')
+      const database = this.bot.env.getStackResourceName('sec')
       this.logger.debug(`pscCheck getExecutionId in db ${database}`)
       let params = {
         QueryString: sql,
