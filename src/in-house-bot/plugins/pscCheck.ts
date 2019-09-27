@@ -30,7 +30,7 @@ const { sanitize } = validateResource.utils
 
 const POLL_INTERVAL = 250
 
-const REGULATOR_REGISTRATION_CHECK = 'tradle.RegulatorRegistrationCheck'
+const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const PROVIDER = 'http://download.companieshouse.gov.uk/en_pscdata.html'
 const ASPECTS = 'Beneficial owner'
 
@@ -224,7 +224,7 @@ export class PscCheckAPI {
   public createCheck = async ({ application, status, form, rawData, req }: IPscCheck) => {
     // debugger
     let resource: any = {
-      [TYPE]: REGULATOR_REGISTRATION_CHECK,
+      [TYPE]: BENEFICIAL_OWNER_CHECK,
       status: status.status,
       provider: PROVIDER,
       application,
@@ -269,7 +269,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       logger.debug('pscCheck before doesCheckNeedToBeCreated')
       let createCheck = await doesCheckNeedToBeCreated({
         bot,
-        type: REGULATOR_REGISTRATION_CHECK,
+        type: BENEFICIAL_OWNER_CHECK,
         application,
         provider: PROVIDER,
         form: payload,
