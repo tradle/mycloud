@@ -349,6 +349,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (pscCheck) {
         beneficialOwners = pscCheck.rawData
         if (!beneficialOwners) return
+        logger.debug(beneficialOwners)
       } else beneficialOwners = beneTest
 
       for (let i = 0; i < beneficialOwners.length; i++) {
