@@ -307,7 +307,8 @@ logger.debug('pscCheck found')
       let items
 
       // if (!officers.length) {
-        await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
+      if (await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck }))
+        return
         // return
       // }
 
@@ -357,18 +358,18 @@ logger.debug('pscCheck not found')
       if (pscCheck.status.id !== `${CHECK_STATUS}_pass`)
         return
       let beneficialOwners = pscCheck.rawData  &&  pscCheck.rawData
-logger.debug('pscCheck.rawData: ' + beneficialOwners + '; ' + JSON.stringify(beneficialOwners[0]) + '; length = ' + beneficialOwners.length)
+logger.debug('pscCheck.rawData: ' + beneficialOwners + '; ' + JSON.stringify(beneficialOwners[0], null, 2) + '; length = ' + beneficialOwners.length)
 
       if (!beneficialOwners  ||  !beneficialOwners.length) return
-logger.debug(beneficialOwners)
+logger.debug('beneficialOwners: processing')
 
       for (let i = 0; i < beneficialOwners.length; i++) {
         let bene = beneficialOwners[i]
-logger.debug(bene)
+logger.debug('beneficialOwners: ' + i + ' ' + bene)
         let { data } = bene
         let { name, natures_of_control, kind, address, identification } = data
         debugger
-
+logger.debug('name = ' + name)
         let registration_number = identification && identification.registration_number
 
         if (items.find(item => item.name === name)) continue
@@ -408,8 +409,9 @@ logger.debug(bene)
               : 'tradle.legal.TypeOfControllingEntity_legalEntity'
           }
         }
+logger.debug('prefill = ' + formRequest.prefill)
         formRequest.message = `Please review and correct the data below **for ${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
-        return
+        return true
       }
     }
   }
