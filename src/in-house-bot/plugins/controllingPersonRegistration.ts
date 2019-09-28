@@ -357,7 +357,7 @@ logger.debug('pscCheck not found')
       if (pscCheck.status.id !== `${CHECK_STATUS}_pass`)
         return
       let beneficialOwners = pscCheck.rawData  &&  pscCheck.rawData
-logger.debug('pscCheck.rawDaa: ' + beneficialOwners)
+logger.debug('pscCheck.rawData: ' + beneficialOwners + '; ' + JSON.stringify(beneficialOwners[0]) + '; length = ' + beneficialOwners.length)
 
       if (!beneficialOwners  ||  !beneficialOwners.length) return
 logger.debug(beneficialOwners)
