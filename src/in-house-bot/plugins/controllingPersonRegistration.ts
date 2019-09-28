@@ -381,7 +381,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         if (registration_number) prefill.controllingEntityCompanyNumber = registration_number
         if (natures_of_control) {
           let natureOfControl = bot.models['tradle.PercentageOfOwnership'].enum.find(e =>
-            natures_of_control.includes(e.title.toLowerCase().replaceAll(' ', '-'))
+            natures_of_control.includes(e.title.toLowerCase().replace(/\s/g, '-'))
           )
           if (natureOfControl)
             prefill.natureOfControl = {
