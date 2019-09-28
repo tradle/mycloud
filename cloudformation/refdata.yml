@@ -271,6 +271,64 @@ Resources:
             areColumnsQuoted: 'false'
             delimiter: ","
             typeOfData: file
+
+  BafinGlueTable:
+    Type: 'AWS::Glue::Table'
+    Properties:
+      DatabaseName:
+        Ref: SecGlueDatabase
+      CatalogId:
+        Ref: 'AWS::AccountId'
+      TableInput:
+        Name: bafin
+        TableType: EXTERNAL_TABLE
+        StorageDescriptor:
+          Columns:
+            - Name: referenz
+              Type: string
+            - Name: name
+              Type: string
+            - Name: zip
+              Type: string
+            - Name: city
+              Type: string
+            - Name: street
+              Type: string
+            - Name: country
+              Type: string
+            - Name: type
+              Type: string
+            - Name: dispute resolution entity
+              Type: string
+          Location: 
+            Fn::Join:
+              - ''
+              - - 's3://'
+                - Ref: PrivateConfBucket
+                - '/refdata/de/bafin/'
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          Compressed: 'true'
+          NumberOfBuckets: -1
+          StoredAsSubDirectories: 'false'
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+            Parameters:
+              field.delim: ";"
+          BucketColumns: []
+          SortColumns: []
+          Parameters:
+            skip.header.line.count: '1'
+            sizeKey: '41065'
+            objectCount: '1'
+            recordCount: '9914'
+            averageRecordSize: '137'
+            compressionType: gzip
+            classification: csv
+            columnsOrdered: 'true'
+            areColumnsQuoted: 'false'
+            delimiter: ";"
+            typeOfData: file
         
   PscGlueTable:
     Type: 'AWS::Glue::Table'
