@@ -283,7 +283,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         check => check[TYPE] === CORPORATION_EXISTS || check[TYPE] === BENEFICIAL_OWNER_CHECK
       )
       if (!stubs.length) return
-
+logger.debug('found ' + stubs.length + ' checks')
       let result = await Promise.all(stubs.map(check => bot.getResource(check)))
 
       result.sort((a, b) => b._time - a._time)
@@ -291,7 +291,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       result = uniqBy(result, TYPE)
       let check = result.find(c => c[TYPE] === CORPORATION_EXISTS)
       let pscCheck = result.find(c => c[TYPE] === BENEFICIAL_OWNER_CHECK)
-
+      if (pscCheck)
+logger.debug('pscCheck found')
       if (check.status.id !== `${CHECK_STATUS}_pass`) return
 
       let officers =
@@ -306,7 +307,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let items
 
       // if (!officers.length) {
-      if (pscCheck)
         await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
         // return
       // }
@@ -326,7 +326,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         }
       }
       if (!officer) {
-        // if (pscCheck)
         //   await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
         return
       }
@@ -350,8 +349,11 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
     },
     async prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck }) {
       if (!items) items = await Promise.all(forms.map(f => bot.getResource(f.submission)))
-      if (!pscCheck)
+      if (!pscCheck) {
+logger.debug('pscCheck not found')
+
         return
+      }
       let beneficialOwners = pscCheck.rawData  &&  pscCheck.rawData
       if (!beneficialOwners  ||  !beneficialOwners.length) return
       logger.debug(beneficialOwners)
