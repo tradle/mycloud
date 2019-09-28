@@ -362,7 +362,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         return
       }
 
-      if (payload._prevlink  &&  payload.registrationDate) return
+      if (payload._prevlink && payload.registrationDate) return
 
       let checks: any = req.latestChecks || application.checks
 
@@ -382,24 +382,15 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       }
       let check = result[0]
       let company = check.rawData && check.rawData.length && check.rawData[0].company
-      if (!company)
-        return
+      if (!company) return
       let { registered_address, company_type, incorporation_date, current_status } = company
 
-      let cenum = bot.models[COUNTRY].enum
-      let countryE = cenum.find(e => e.title === registered_address.country)
-      let country = {
-        id: `${COUNTRY}_${countryE.id}`,
-        title: countryE.title
-      }
-
       let prefill = {
-        streetAddress: registered_address.street_address,
-        city: registered_address.locality,
+        streetAddress: registered_address.street_address.trim(),
+        city: registered_address.locality.trim(),
         registrationDate: new Date(incorporation_date).getTime(),
-        postalCode: registered_address.postal_code,
-        country,
-        companyType: company_type
+        postalCode: registered_address.postal_code.trim(),
+        companyType: company_type.trim()
       }
 
       prefill = sanitize(prefill).sanitized
@@ -413,9 +404,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
           if (hasChanges) break
         }
         if (!hasChanges) {
-          logger.error(
-            `Nothing changed`
-          )
+          logger.error(`Nothing changed`)
           return
         }
       } catch (err) {
