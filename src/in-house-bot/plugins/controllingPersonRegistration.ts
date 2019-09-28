@@ -291,26 +291,25 @@ logger.debug('found ' + stubs.length + ' checks')
       result = uniqBy(result, TYPE)
       let check = result.find(c => c[TYPE] === CORPORATION_EXISTS)
       let pscCheck = result.find(c => c[TYPE] === BENEFICIAL_OWNER_CHECK)
-      if (pscCheck)
-logger.debug('pscCheck found')
-      if (check.status.id !== `${CHECK_STATUS}_pass`) return
 
-      let officers =
+      let forms = application.forms.filter(form => form.submission[TYPE] === CONTROLLING_PERSON)
+      let officers, items
+      if (check.status.id !== `${CHECK_STATUS}_pass`) {
+        if (!pscCheck  ||  pscCheck.status.id !== `${CHECK_STATUS}_pass`)
+          return
+        else {
+          await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
+          return
+        }
+      }
+
+      officers =
         check.rawData &&
         check.rawData.length &&
         check.rawData[0].company &&
         check.rawData[0].company.officers
 
       if (officers.length) officers = officers.filter(o => o.officer.position !== 'agent')
-
-      let forms = application.forms.filter(form => form.submission[TYPE] === CONTROLLING_PERSON)
-      let items
-
-      // if (!officers.length) {
-      if (await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck }))
-        return
-        // return
-      // }
 
       let officer
       if (!forms.length) officer = officers[0].officer
@@ -327,7 +326,7 @@ logger.debug('pscCheck found')
         }
       }
       if (!officer) {
-        //   await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
+        await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
         return
       }
 
@@ -350,22 +349,18 @@ logger.debug('pscCheck found')
     },
     async prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck }) {
       if (!items) items = await Promise.all(forms.map(f => bot.getResource(f.submission)))
-      if (!pscCheck) {
-logger.debug('pscCheck not found')
-
+      if (!pscCheck)
         return
-      }
+
       if (pscCheck.status.id !== `${CHECK_STATUS}_pass`)
         return
       let beneficialOwners = pscCheck.rawData  &&  pscCheck.rawData
 logger.debug('pscCheck.rawData: ' + beneficialOwners + '; ' + JSON.stringify(beneficialOwners[0], null, 2) + '; length = ' + beneficialOwners.length)
 
       if (!beneficialOwners  ||  !beneficialOwners.length) return
-logger.debug('beneficialOwners: processing')
 
       for (let i = 0; i < beneficialOwners.length; i++) {
         let bene = beneficialOwners[i]
-logger.debug('beneficialOwners: ' + i + ' ' + bene)
         let { data } = bene
         let { name, natures_of_control, kind, address, identification } = data
         debugger
