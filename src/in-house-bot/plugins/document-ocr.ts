@@ -31,6 +31,8 @@ import { String } from 'aws-sdk/clients/cognitosync'
 const FORM_ID = 'tradle.Form'
 const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 const CERTIFICATE_OF_INC = 'tradle.legal.CertificateOfIncorporation'
+// const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
+
 // export const name = 'document-ocr'
 
 import telcoResponse from '../../../data/in-house-bot/mx-telco-apiResponse'
@@ -284,6 +286,58 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         return
       }
     },
+
+    // async willRequestForm({ req, application, formRequest }) {
+    //   if (!application) return
+
+    //   const productId = application.requestFor
+    //   const formConf = conf[productId]
+    //   if (!formConf) return
+    //   // debugger
+    //   let { form } = formRequest
+
+    //   if (form !== LEGAL_ENTITY) return
+    //   let { checks } = application
+    //   if (!checks) return
+
+    //   let stubs = checks.filter(check => check[TYPE] === CORPORATION_EXISTS)
+    //   if (!stubs || !stubs.length) return
+    //   let result = await Promise.all(stubs.map(check => bot.getResource(check)))
+
+    //   result.sort((a, b) => b._time - a._time)
+
+    //   result = _.uniqBy(result, TYPE)
+    //   if (!result[0].status.id.toLowerCase().endsWith('_pass')) {
+    //     debugger
+    //     return
+    //   }
+    //   const latestForms = getLatestForms(application)
+    //   const certStub = latestForms.find(form => form.type === CERTIFICATE_OF_INC)
+    //   if (!certStub) return
+    //   let cert = await bot.objects.get(certStub.link)
+    //   const { country, companyName, registrationDate, registrationNumber, region } = cert
+    //   // let prefill: any = { [TYPE]: LEGAL_ENTITY }
+    //   if (!registrationNumber) return
+
+    //   let prefill: any = {
+    //     [TYPE]: form,
+    //     country,
+    //     companyName,
+    //     registrationDate,
+    //     registrationNumber
+    //   }
+    //   prefill.document = _.pick(cert, ['_link', '_permalink', '_t'])
+    //   prefill.document._displayName = cert.companyName
+    //   if (region) prefill.region = region
+    //   try {
+    //     prefill = sanitize(prefill).sanitized
+    //   } catch (err) {
+    //     debugger
+    //   }
+    //   if (formRequest.prefill) formRequest.prefill = { ...formRequest.prefill, prefill }
+    //   else formRequest.prefill = prefill
+    // },
+
     async handleLe({ stub, latestForms, req }) {
       let le = await bot.objects.get(stub.link)
       if (le.document) return
