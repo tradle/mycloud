@@ -305,10 +305,11 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let forms = application.forms.filter(form => form.submission[TYPE] === CONTROLLING_PERSON)
       let items
 
-      if (!officers.length) {
+      // if (!officers.length) {
+      if (pscCheck)
         await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
-        return
-      }
+        // return
+      // }
 
       let officer
       if (!forms.length) officer = officers[0].officer
@@ -325,7 +326,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         }
       }
       if (!officer) {
-        await this.prefillBeneficialOwner({ items, forms, officers, formRequest })
+        // if (pscCheck)
+        //   await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
         return
       }
 
