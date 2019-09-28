@@ -2,17 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.4-rc.27](https://github.com/tradle/mycloud/compare/v2.4.4-rc.26...v2.4.4-rc.27) (2019-09-27)
+## [2.4.4-rc.29](https://github.com/tradle/mycloud/compare/v2.4.4-rc.28...v2.4.4-rc.29) (2019-09-28)
 
 
 ### Bug Fixes
 
-* make valid json ([7519100](https://github.com/tradle/mycloud/commit/7519100))
-
-
-### Features
-
-* beneficial owners projec ([14aaf66](https://github.com/tradle/mycloud/commit/14aaf66))
+* country from Check does not need to be prefilled ([c13b2de](https://github.com/tradle/mycloud/commit/c13b2de))
 
 
 

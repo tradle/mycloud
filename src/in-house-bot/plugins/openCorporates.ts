@@ -1,11 +1,12 @@
 import fetch from 'node-fetch'
+import _ from 'lodash'
 
 import { buildResourceStub } from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 import constants from '@tradle/constants'
-import { Bot, Logger, CreatePlugin, Applications, IPBReq } from '../types'
+import { Bot, Logger, CreatePlugin, Applications, IPBReq, IPluginLifecycleMethods } from '../types'
 import {
   toISODateString,
   getCheckParameters,
@@ -14,11 +15,12 @@ import {
   doesCheckNeedToBeCreated
 } from '../utils'
 
-const { TYPE, TYPES } = constants
+const { TYPE, TYPES, PERMALINK, LINK } = constants
 const { VERIFICATION } = TYPES
 // const FORM_ID = 'tradle.legal.LegalEntity'
 const OPEN_CORPORATES = 'Open Corporates'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
+const COUNTRY = 'tradle.Country'
 
 interface IOpenCorporatesConf {
   products: any
@@ -234,9 +236,10 @@ class OpenCorporatesAPI {
       await this.applications.deactivateChecks({ application, type: CORPORATION_EXISTS, form, req })
   }
 }
+
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger, conf }) => {
   const openCorporates = new OpenCorporatesAPI({ bot, conf, applications, logger })
-  const plugin = {
+  const plugin: IPluginLifecycleMethods = {
     name: 'open-corporates',
     async onmessage(req: IPBReq) {
       // debugger
@@ -320,8 +323,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       }
       // CHECK PASS
       if (!message && hits.length === 1) {
-        if (!application.applicantName)
-          application.applicantName = payload.companyName
+        if (!application.applicantName) application.applicantName = payload.companyName
       }
 
       pchecks.push(
@@ -347,6 +349,92 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         )
       // })
       let checksAndVerifications = await Promise.all(pchecks)
+    },
+    async validateForm({ req }) {
+      const { user, application, payload } = req
+      // debugger
+      if (!application) return
+
+      if (payload[TYPE] !== 'tradle.legal.LegalEntity') return
+
+      if (!payload.country || !payload.companyName || !payload.registrationNumber) {
+        logger.debug('skipping prefill"')
+        return
+      }
+
+      if (payload._prevlink && payload.registrationDate) return
+
+      let checks: any = req.latestChecks || application.checks
+
+      if (!checks) return
+
+      let stubs = checks.filter(check => check[TYPE] === CORPORATION_EXISTS)
+      if (!stubs || !stubs.length) return
+
+      let result: any = await Promise.all(stubs.map(check => bot.getResource(check)))
+
+      result.sort((a, b) => b._time - a._time)
+
+      result = _.uniqBy(result, TYPE)
+      if (!result[0].status.id.toLowerCase().endsWith('_pass')) {
+        debugger
+        return
+      }
+      let check = result[0]
+      let company = check.rawData && check.rawData.length && check.rawData[0].company
+      if (!company) return
+      let { registered_address, company_type, incorporation_date, current_status } = company
+
+      let prefill = {
+        streetAddress: registered_address.street_address.trim(),
+        city: registered_address.locality.trim(),
+        registrationDate: new Date(incorporation_date).getTime(),
+        postalCode: registered_address.postal_code.trim(),
+        companyType: company_type.trim()
+      }
+
+      prefill = sanitize(prefill).sanitized
+      try {
+        let hasChanges
+        for (let p in prefill) {
+          if (!payload[p]) hasChanges = true
+          else if (typeof payload[p] === 'object' && !_.isEqual(payload[p], prefill[p]))
+            hasChanges = true
+          else if (payload[p] !== prefill[p]) hasChanges = true
+          if (hasChanges) break
+        }
+        if (!hasChanges) {
+          logger.error(`Nothing changed`)
+          return
+        }
+      } catch (err) {
+        debugger
+        return
+      }
+      const payloadClone = _.cloneDeep(payload)
+      payloadClone[PERMALINK] = payloadClone._permalink
+      payloadClone[LINK] = payloadClone._link
+
+      _.extend(payloadClone, prefill)
+      // debugger
+      let formError: any = {
+        req,
+        user,
+        application
+      }
+      formError.details = {
+        prefill: payloadClone,
+        message: `Please review and correct the data below`
+      }
+      try {
+        await applications.requestEdit(formError)
+        return {
+          message: 'no request edit',
+          exit: true
+        }
+      } catch (err) {
+        debugger
+      }
     }
   }
 

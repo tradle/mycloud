@@ -237,7 +237,7 @@ export class PscCheckAPI {
     if (rawData && Array.isArray(rawData)) {
       rawData.forEach(rdata => {
         if (rdata.data && typeof rdata.data === 'string')
-          rdata.data = makeJson(rdata.data) //makeValidJSON(rdata.data)
+          rdata.data = makeJson(rdata.data)
       })
       resource.rawData = sanitize(rawData).sanitized
       console.log(JSON.stringify(resource.rawData, null, 2))
@@ -286,51 +286,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   return { plugin }
 }
 
-function makeValidJSON(a) {
-  let s = ''
-  let len = a.length
-  for (let i = 0; i < len; i++) {
-    let ch = a.charAt(i)
-    let ch1 = i < len - 1 && a.charAt(i + 1) || ''
-    if (ch === '=') {
-      s += '":'
-      if (ch1 !== '{' && ch1 !== '[')
-        s += '"'
-      while (a.charAt(++i) === ' ' && i < len);
-    }
-    else if (ch === ',') {
-      let ch0 = a.charAt(i - 1)
-      if (ch0 !== '}' && ch0 !== ']')
-        s += '"'
-      s += ','
-      while (a.charAt(++i) === ' ' && i < len);
-
-      if (a.charAt(i) !== '{')
-        s += '"'
-    }
-    else if (ch === '[' && ch1 === '{') {
-      s += ch + ch1 + '"'
-      i++
-    }
-    else if (ch === '}' && ch1 === ']') {
-      s += '"' + ch + ch1
-      i++
-    }
-    else if (ch === '{' || ch === '[')
-      s += `${ch}"`
-    else if (ch === '}' || ch === ']')
-      s += `"${ch}`
-    else
-      s += ch
-  }
-  console.log(s)
-  let json = JSON.parse(s)
-  for (let p in json)
-    if (json[p] === 'null')
-      json[p] = null
-  console.log(JSON.stringify(json, null, 2))
-  return json
-}
 
 function makeJson(str: string) {
   let arr = Array.from(str)
