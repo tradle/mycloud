@@ -324,24 +324,27 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           }
         }
       }
-      if (officer) {
-        let prefill: any = {
-          name: officer.name,
-          startDate: officer.start_date && new Date(officer.start_date).getTime(),
-          inactive: officer.inactive
-        }
-        if (officer.end_date) prefill.endDate = new Date(officer.end_date).getTime()
+      if (!officer) {
+        await this.prefillBeneficialOwner({ items, forms, officers, formRequest })
+        return
+      }
 
-        if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
-        formRequest.prefill = {
-          ...formRequest.prefill,
-          ...prefill,
-          typeOfControllingEntity: {
-            id: 'tradle.legal.TypeOfControllingEntity_person'
-          }
+      let prefill: any = {
+        name: officer.name,
+        startDate: officer.start_date && new Date(officer.start_date).getTime(),
+        inactive: officer.inactive
+      }
+      if (officer.end_date) prefill.endDate = new Date(officer.end_date).getTime()
+
+      if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
+      formRequest.prefill = {
+        ...formRequest.prefill,
+        ...prefill,
+        typeOfControllingEntity: {
+          id: 'tradle.legal.TypeOfControllingEntity_person'
         }
-        formRequest.message = `Please review and correct the data below **for ${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
-      } else await this.prefillBeneficialOwner({ items, forms, officers, formRequest })
+      }
+      formRequest.message = `Please review and correct the data below **for ${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
     },
     async prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck }) {
       if (!items) items = await Promise.all(forms.map(f => bot.getResource(f.submission)))
