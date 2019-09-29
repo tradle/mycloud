@@ -2,24 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.4-rc.28](https://github.com/tradle/mycloud/compare/v2.4.4-rc.27...v2.4.4-rc.28) (2019-09-28)
+## [2.4.4-rc.29](https://github.com/tradle/mycloud/compare/v2.4.4-rc.28...v2.4.4-rc.29) (2019-09-28)
 
 
 ### Bug Fixes
 
-* created separate Check model for BO ([3cf084f](https://github.com/tradle/mycloud/commit/3cf084f))
-* minor change ([8ed1ff2](https://github.com/tradle/mycloud/commit/8ed1ff2))
-* quoting data ([5474f88](https://github.com/tradle/mycloud/commit/5474f88))
-* test data comment out ([d27fced](https://github.com/tradle/mycloud/commit/d27fced))
-* typo ([52897cc](https://github.com/tradle/mycloud/commit/52897cc))
-
-
-### Features
-
-* corporate onboarding ([2b58880](https://github.com/tradle/mycloud/commit/2b58880))
-* new check ([6db852b](https://github.com/tradle/mycloud/commit/6db852b))
-* prefill LE from check ([fc64251](https://github.com/tradle/mycloud/commit/fc64251))
-* sketched possible prefill for LE ([5d537d3](https://github.com/tradle/mycloud/commit/5d537d3))
+* country from Check does not need to be prefilled ([c13b2de](https://github.com/tradle/mycloud/commit/c13b2de))
 
 
 
