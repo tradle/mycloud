@@ -22,8 +22,12 @@
  * 2. if more than one ISIC then we take the one with higher risk 
  * 3. final risk is the minimum of the company's and bene risks
  * 
+ * -- Legal structure --
+ * Public, private, partnership, etc.
+ * 
  * -- Sanctions and other exceptions 
  * not taken into account yet 
+ * 
  * 
  ***/
 import _ from 'lodash'
