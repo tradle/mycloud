@@ -404,7 +404,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   // debugger
   const plugin: IPluginLifecycleMethods = {
     async validateForm({ req }) {
-      logger.debug('regulatorRegistration called onmessage')
+      logger.debug('regulatorRegistration called on validateForm')
       if (req.skipChecks) return
       const { user, application, payload } = req
       if (!application) return
