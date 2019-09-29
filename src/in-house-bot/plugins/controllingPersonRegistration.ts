@@ -146,6 +146,9 @@ class ControllingPersonRegistrationAPI {
       if (resource.controllingEntityCompanyNumber)
         extraQueryParams.registrationNumber = resource.controllingEntityCompanyNumber
       if (resource.name) extraQueryParams.companyName = resource.name
+      if (resource.registrationNumber)
+        extraQueryParams.registrationNumber = resource.registrationNumber
+      if (resource.country) extraQueryParams.country = resource.country
       product = CE_ONBOARDING
     }
 
@@ -283,7 +286,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         check => check[TYPE] === CORPORATION_EXISTS || check[TYPE] === BENEFICIAL_OWNER_CHECK
       )
       if (!stubs.length) return
-logger.debug('found ' + stubs.length + ' checks')
+      logger.debug('found ' + stubs.length + ' checks')
       let result = await Promise.all(stubs.map(check => bot.getResource(check)))
 
       result.sort((a, b) => b._time - a._time)
@@ -295,12 +298,9 @@ logger.debug('found ' + stubs.length + ' checks')
       let forms = application.forms.filter(form => form.submission[TYPE] === CONTROLLING_PERSON)
       let officers, items
       if (check.status.id !== `${CHECK_STATUS}_pass`) {
-        if (!pscCheck  ||  pscCheck.status.id !== `${CHECK_STATUS}_pass`)
-          return
-        else {
+        if (pscCheck && pscCheck.status.id === `${CHECK_STATUS}_pass`)
           await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
-          return
-        }
+        return
       }
 
       officers =
@@ -309,15 +309,17 @@ logger.debug('found ' + stubs.length + ' checks')
         check.rawData[0].company &&
         check.rawData[0].company.officers
 
-      if (officers.length) officers = officers.filter(o => o.officer.position !== 'agent')
+      if (officers.length) officers = officers.filter(o => o.officer.position !== 'agent'  &&  !o.officer.inactive)
 
       let officer
-      if (!forms.length) officer = officers[0].officer
-      else {
+      if (!forms.length) {
+        officer = officers.length && officers[0].officer
+      } else {
         items = await Promise.all(forms.map(f => bot.getResource(f.submission)))
         if (items.length) {
           for (let i = 0; i < officers.length && !officer; i++) {
             let o = officers[i].officer
+            // if (o.inactive) continue
             let oldOfficer = items.find(
               item => o.name.toLowerCase().trim() === (item.name && item.name.toLowerCase().trim())
             )
@@ -349,22 +351,28 @@ logger.debug('found ' + stubs.length + ' checks')
     },
     async prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck }) {
       if (!items) items = await Promise.all(forms.map(f => bot.getResource(f.submission)))
-      if (!pscCheck)
-        return
+      if (!pscCheck) return
 
-      if (pscCheck.status.id !== `${CHECK_STATUS}_pass`)
-        return
-      let beneficialOwners = pscCheck.rawData  &&  pscCheck.rawData
-logger.debug('pscCheck.rawData: ' + beneficialOwners + '; ' + JSON.stringify(beneficialOwners[0], null, 2) + '; length = ' + beneficialOwners.length)
+      if (pscCheck.status.id !== `${CHECK_STATUS}_pass`) return
+      let beneficialOwners = pscCheck.rawData && pscCheck.rawData
+      logger.debug(
+        'pscCheck.rawData: ' +
+          beneficialOwners +
+          '; ' +
+          JSON.stringify(beneficialOwners[0], null, 2) +
+          '; length = ' +
+          beneficialOwners.length
+      )
 
-      if (!beneficialOwners  ||  !beneficialOwners.length) return
+      if (!beneficialOwners || !beneficialOwners.length) return
 
       for (let i = 0; i < beneficialOwners.length; i++) {
         let bene = beneficialOwners[i]
         let { data } = bene
-        let { name, natures_of_control, kind, address, identification } = data
+        let { name, natures_of_control, kind, address, identification, ceased_on } = data
+        if (ceased_on) continue
         debugger
-logger.debug('name = ' + name)
+        logger.debug('name = ' + name)
         let registration_number = identification && identification.registration_number
 
         if (items.find(item => item.name === name)) continue
@@ -377,8 +385,7 @@ logger.debug('name = ' + name)
             )
               continue
           }
-        }
-
+        } else if (!kind.startsWith('corporate-')) return
         let prefill: any = {
           name
         }
@@ -404,7 +411,7 @@ logger.debug('name = ' + name)
               : 'tradle.legal.TypeOfControllingEntity_legalEntity'
           }
         }
-logger.debug('prefill = ' + formRequest.prefill)
+        logger.debug('prefill = ' + formRequest.prefill)
         formRequest.message = `Please review and correct the data below **for ${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
         return true
       }

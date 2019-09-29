@@ -680,7 +680,8 @@ export const loadComponentsAndPlugins = ({
       'document-ocr',
       'interFormConditionals',
       'regulatorRegistration',
-      'pscCheck'
+      'pscCheck',
+      'riskScore'
     ].forEach(name => attachPlugin({ name }))
       ;[
         'hand-sig',
