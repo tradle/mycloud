@@ -1,6 +1,11 @@
 /*** 
+ * Risk Rating follows the Credit score model
+ * - it is a number between 1000 and 0, with 1000 being the least risky
+ * - the pie is divided between the categories below. The weight of each category's pie slice is defineed here
+ *   https://github.com/tradle/mycloud/blob/master/riskFactors.json 
+ * 
  * -- Countries --
- * Officers: PhotoID has nationality
+ * Officers: country of issue from PhotoID (should we look at nationaliy too?)
  * Bene: country of registration
  * final risk is the maximum of company and bene risks across the whole tree
  * 
