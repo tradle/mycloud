@@ -1,3 +1,25 @@
+/*** 
+ * -- Countries --
+ * Officers: PhotoID has nationality
+ * Bene: country of registration
+ * final risk is the maximum of company and bene risks across the whole tree
+ * 
+ * -- Length of relationship --
+ * Officers: 
+ * 1. skip all inactive officers
+ * 2. take length of employment from their government registration
+ * 3. divide the influence over the 'length of relationship' pie across all officers
+ * Bene: do not have a signal on that yet
+ *
+ * -- Industry --
+ * 1. we use international classification ISIC code(s) from their government registration 
+ * 2. if more than one ISIC then we take the one with higher risk 
+ * 3. final risk is the maximum of company and bene risks
+ * 
+ * -- Sanctions and other exceptions 
+ * not taken into account yet 
+ * 
+ ***/
 import _ from 'lodash'
 // import validateResource from '@tradle/validate-resource'
 import { TYPE } from '@tradle/constants'
