@@ -3,11 +3,12 @@
  * - it is a number between 1000 and 0, with 1000 being the least risky
  * - the pie is divided between the categories below. The weight of each category's pie slice is defineed here
  *   https://github.com/tradle/mycloud/blob/master/riskFactors.json 
+ * Note. Beneficial owners that are individuals are treated as officers of the company for now.
  * 
  * -- Countries --
  * Officers: country of issue from PhotoID (should we look at nationaliy too?)
- * Bene: country of registration
- * final risk is the maximum of company and bene risks across the whole tree
+ * Beneficial owners entitites (bene): country of registration
+ * final risk is the minimum of the company's and bene risks across the whole tree
  * 
  * -- Length of relationship --
  * Officers: 
@@ -19,7 +20,7 @@
  * -- Industry --
  * 1. we use international classification ISIC code(s) from their government registration 
  * 2. if more than one ISIC then we take the one with higher risk 
- * 3. final risk is the maximum of company and bene risks
+ * 3. final risk is the minimum of the company's and bene risks
  * 
  * -- Sanctions and other exceptions 
  * not taken into account yet 
