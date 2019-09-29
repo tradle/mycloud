@@ -1,0 +1,38 @@
+{
+  "weights": {
+    "countries": 0.25,
+    "industry": 0.17,
+    "legalStructure": 0.13,
+    "sanctions": 0.25,
+    "lengthOfRelationship": 0.2
+  },
+  "countries": {
+    "UA": 0.5,
+    "RU": 0.4,
+    "SY": 0.8,
+    "IR": 0.9,
+    "GB": 0.3,
+    "US": 0.7
+  },
+  "industries": {
+    "0161": 0.7,
+    "3812": 0.9,
+    "6419": 0.5,
+    "6499": 0.3,
+    "5913": 0.6
+  },
+  "legalStructure": {
+    "limited_company": 0.3,
+    "public_limited_company": 0.5,
+    "us_incorporation": 0.4,
+    "limited_partnership": 0.3
+  },
+  "sanctions": {
+  },
+  "lengthOfRelationship": {
+    "1": 0.9,
+    "2": 0.8,
+    "3": 0.7,
+    "4": 0.2
+  }
+}
