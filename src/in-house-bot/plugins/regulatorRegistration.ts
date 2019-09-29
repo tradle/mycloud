@@ -42,7 +42,8 @@ const Registry = {
 }
 const REGULATOR_REGISTRATION_CHECK = 'tradle.RegulatorRegistrationCheck'
 const PROVIDER = 'https://catalog.data.gov'
-const ASPECTS = 'registration with FINRA'
+const ASPECTS = 'registration with %s'
+const DEFAULT_REGULATOR = 'FINRA'
 // const FORM_ID = 'io.lenka.BSAPI102a'
 
 const FORM_ID_US_firm_sec_feed = 'com.svb.BSAPI102a'
@@ -127,6 +128,7 @@ interface IRegulatorRegistrationAthenaConf {
   map: Object,
   check: string,
   query: string,
+  regulator?: string,
   test?: Object
 }
 
@@ -140,7 +142,9 @@ interface IRegCheck {
   status: any
   form: ITradleObject
   rawData?: any
-  req: IPBReq
+  req: IPBReq,
+
+  aspects: string
 }
 
 export class RegulatorRegistrationAPI {
@@ -311,10 +315,13 @@ export class RegulatorRegistrationAPI {
       status = { status: 'pass' }
     }
 
-    await this.createCheck({ application, status, form, rawData, req })
+    let aspects = subject.regulator ? util.format(ASPECTS, subject.regulator) :
+      util.format(ASPECTS, DEFAULT_REGULATOR)
+
+    await this.createCheck({ application, status, form, rawData, req, aspects })
 
     if (status.status === 'pass') {
-      await this.createVerification({ application, form, req })
+      await this.createVerification({ application, form, req, aspects })
 
       prefill = sanitize(prefill).sanitized
       const payloadClone = _.cloneDeep(form)
@@ -342,7 +349,7 @@ export class RegulatorRegistrationAPI {
       }
     }
   }
-  public createCheck = async ({ application, status, form, rawData, req }: IRegCheck) => {
+  public createCheck = async ({ application, status, form, rawData, req, aspects }: IRegCheck) => {
     // debugger
     let resource: any = {
       [TYPE]: REGULATOR_REGISTRATION_CHECK,
@@ -350,7 +357,7 @@ export class RegulatorRegistrationAPI {
       provider: PROVIDER,
       application,
       dateChecked: new Date().getTime(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
-      aspects: ASPECTS,
+      aspects: aspects,
       form
     }
 
@@ -362,15 +369,15 @@ export class RegulatorRegistrationAPI {
     this.logger.debug(`${PROVIDER} Created RegulatorRegistrationCheck`)
   }
 
-  public createVerification = async ({ application, form, req }) => {
+  public createVerification = async ({ application, form, req, aspects }) => {
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
         [TYPE]: 'tradle.API',
         name: 'https://catalog.data.gov/'
       },
-      reference: [{ queryId: 'registration with FINRA' }],
-      aspect: ASPECTS
+      reference: [{ queryId: aspects }],
+      aspect: aspects
     }
 
     const verification = this.bot
