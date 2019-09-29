@@ -7,7 +7,7 @@
  * -- Length of relationship --
  * Officers: 
  * 1. skip all inactive officers
- * 2. take length of employment from their government registration
+ * 2. take length of employment from their company's government registration
  * 3. divide the influence over the 'length of relationship' pie across all officers
  * Bene: do not have a signal on that yet
  *
