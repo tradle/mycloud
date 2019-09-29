@@ -1,4 +1,4 @@
-// import _ from 'lodash'
+import _ from 'lodash'
 // import validateResource from '@tradle/validate-resource'
 import { TYPE } from '@tradle/constants'
 import { buildResourceStub } from '@tradle/build-resource'
@@ -15,12 +15,10 @@ import {
   Logger
 } from '../types'
 
-const MY_CP_PRODUCT = 'tradle.legal.MyControllingPersonOnboarding'
 const CP = 'tradle.legal.LegalEntityControllingPerson'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const APPLICATION = 'tradle.Application'
 const APPLICATION_SUBMITTED = 'tradle.ApplicationSubmitted'
-const LEGAL_ENTITY_PRODUCT = 'tradle.legal.LegalEntityProduct'
 // const { parseStub } = validateResource.utils
 
 // export const name = 'conditional-auto-approve'
@@ -53,29 +51,14 @@ export class SmeAutoApprove {
   public checkCPs = async application => {
     let aApp,
       checkIfAllFormsSubmitted = true
-    if (application.parent) {
-      aApp = await this.getAssociatedResource(application)
-      // const pr: ITradleObject = await this.bot.getResource(application.request)
-      // const associatedResource = pr.associatedResource
-      // // const asociatedApplication = await this.bot.getResource(associatedResource, {backlinks: ['forms']})
-      // const associatedApplication = await this.bot.db.find({
-      //   filter: {
-      //     EQ: {
-      //       [TYPE]: APPLICATION,
-      //       _permalink: associatedResource
-      //     }
-      //   }
-      // })
-      // aApp = associatedApplication && associatedApplication.items && associatedApplication.items[0]
-    } else {
-      //if (application.requestFor === this.conf.parent) {
+    if (application.parent) aApp = await this.getAssociatedResource(application)
+    else {
       aApp = application
       checkIfAllFormsSubmitted = false
     }
     const appSubmissions = await this.bot.getResource(aApp, { backlinks: ['submissions'] })
     // debugger
 
-    // let forms = aApp.forms
     if (!appSubmissions) return
     const submissions: any[] = appSubmissions.submissions
     if (!submissions.length) return
@@ -182,8 +165,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   const plugin: IPluginLifecycleMethods = {
     didApproveApplication: async (opts: IWillJudgeAppArg, certificate: ITradleObject) => {
       let { application } = opts
-      if (!application ||  !conf.pairs)
-        return
+      if (!application || !conf.pairs) return
       let parent = application.parent
       if (!parent) return
       let { requestFor } = application
@@ -209,20 +191,21 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     onFormsCollected: async ({ req }) => {
       // debugger
       const { application } = req
-      if (!application  ||  !conf.pairs) return
+      if (!application || !conf.pairs) return
       const { requestFor } = application
 
       let pairs = conf.pairs.filter(pair => requestFor === pair.parent)
 
-      if (!pairs.length) return
       debugger
-      logger.debug('Parent application was submitted. Check if all child applications checked in')
-      await autoApproveAPI.checkCPs(application)
+      if (pairs.length) {
+        logger.debug('Parent application was submitted. Check if all child applications checked in')
+        await autoApproveAPI.checkCPs(application)
+      }
     },
     async onmessage(req: IPBReq) {
       // debugger
       const { application } = req
-      if (!application  ||  application.parent  ||  !application.forms  ||  !conf.pairs) return
+      if (!application || application.parent || !application.forms || !conf.pairs) return
       const { requestFor } = application
 
       let pairs = conf.pairs.filter(pair => requestFor === pair.child)
@@ -244,11 +227,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   return { plugin }
 }
 
-function makeMyProductModelID(modelId) {
-  let parts = modelId.split('.')
-  parts[parts.length - 1] = 'My' + parts[parts.length - 1]
-  return parts.join('.')
-}
 export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
   const { models } = bot
   debugger
@@ -266,4 +244,10 @@ export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }
       if (!models[parent]) throw new Error(`there is no model: ${parent}`)
     }
   })
+}
+
+function makeMyProductModelID(modelId) {
+  let parts = modelId.split('.')
+  parts[parts.length - 1] = 'My' + parts[parts.length - 1]
+  return parts.join('.')
 }
