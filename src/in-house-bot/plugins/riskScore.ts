@@ -48,7 +48,6 @@ import {
   Logger
 } from '../types'
 
-import { getLatestForms } from '../utils'
 const riskFactors = require('../../../riskFactors.json')
 const CP_ONBOARDING = 'tradle.legal.ControllingPersonOnboarding'
 const CE_ONBOARDING = 'tradle.legal.LegalEntityProduct'
