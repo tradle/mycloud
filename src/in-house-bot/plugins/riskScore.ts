@@ -2,7 +2,7 @@
  * Risk Rating follows the Credit score model
  * - it is a number between 1000 and 0, with 1000 being the least risky
  * - the pie is divided between the categories below. 
- 8 - the weight of each category's pie slice and each factor's weight is defineed here:
+ * - the weight of each category's pie slice and each factor's weight is defineed here:
  *   https://github.com/tradle/mycloud/blob/master/riskFactors.json 
  * Note. Beneficial owners that are individuals are treated as officers of the company for now.
  * 
