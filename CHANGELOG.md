@@ -2,15 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.4-rc.30](https://github.com/tradle/mycloud/compare/v2.4.4-rc.29...v2.4.4-rc.30) (2019-09-29)
+## [2.4.4-rc.31](https://github.com/tradle/mycloud/compare/v2.4.4-rc.30...v2.4.4-rc.31) (2019-09-30)
+
+
+### Bug Fixes
+
+* not all fields are available for officers ([0af2442](https://github.com/tradle/mycloud/commit/0af2442))
 
 
 ### Features
 
-* corporate onboarding project; better filter out inactive officers and ceased BO ([cac7224](https://github.com/tradle/mycloud/commit/cac7224))
-* risk calc project ([e179ebe](https://github.com/tradle/mycloud/commit/e179ebe))
-* risk calc project ([34c273b](https://github.com/tradle/mycloud/commit/34c273b))
-* risk calc project ([05ce59a](https://github.com/tradle/mycloud/commit/05ce59a))
+* calculate risk score on onmessage event to be able to add/skip forms before application is completed ([30a0a4c](https://github.com/tradle/mycloud/commit/30a0a4c))
 
 
 
