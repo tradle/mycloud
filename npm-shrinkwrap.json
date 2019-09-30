@@ -187,7 +187,7 @@
     "@tradle/biz-plugins": {
       "version": "1.0.0",
       "from": "tradle/biz-plugins",
-      "resolved": "git://github.com/tradle/biz-plugins.git#b663a75b9f81a3de9bfe8be436ca5c75a8bf3859"
+      "resolved": "git://github.com/tradle/biz-plugins.git#091e3826be92dfa186b8d3a5d45b4d4862b76c3f"
     },
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
