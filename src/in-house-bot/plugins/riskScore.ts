@@ -1,35 +1,35 @@
-/*** 
+/***
  * Risk Rating follows the Credit score model
  * - it is a number between 1000 and 0, with 1000 being the least risky
  * - the pie is divided between the categories below. 
  * - the weight of each category's pie slice and each factor's weight is defineed here:
  *   https://github.com/tradle/mycloud/blob/master/riskFactors.json 
  * Note. Beneficial owners that are individuals are treated as officers of the company for now.
- * 
+ *
  * -- Countries --
  * Officers: country of issue from PhotoID (should we look at nationaliy too?)
  * Beneficial owners entitites (bene): country of registration
  * final risk is the minimum of the company's and bene risks across the whole tree
- * 
+ *
  * -- Length of relationship --
- * Officers: 
+ * Officers:
  * 1. skip all inactive officers
  * 2. take length of employment from their company's government registration
  * 3. divide the influence over the 'length of relationship' pie across all officers
  * Bene: do not have a signal on that yet
  *
  * -- Industry --
- * 1. we use international classification ISIC code(s) from their government registration 
- * 2. if more than one ISIC then we take the one with higher risk 
+ * 1. we use international classification ISIC code(s) from their government registration
+ * 2. if more than one ISIC then we take the one with higher risk
  * 3. final risk is the minimum of the company's and bene risks
- * 
+ *
  * -- Legal structure --
  * Public, private, partnership, etc.
- * 
- * -- Sanctions and other exceptions 
- * not taken into account yet 
- * 
- * 
+ *
+ * -- Sanctions and other exceptions
+ * not taken into account yet
+ *
+ *
  ***/
 import _ from 'lodash'
 // import validateResource from '@tradle/validate-resource'
@@ -60,17 +60,15 @@ const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
   const plugin = {
-    async onFormsCollected({ req }) {
-      let { application } = req
-      const stubs = getLatestForms(application)
+    async onmessage(req) {
+      const { user, application, payload } = req
+      if (!application) return
       let { requestFor } = application
-      let { weights, countries, legalStructure, industries, lengthOfRelationship } = riskFactors
-      let stub
-      if (requestFor === CP_ONBOARDING) stub = stubs.find(({ type }) => type === PHOTO_ID)
-      else if (requestFor === CE_ONBOARDING) stub = stubs.find(({ type }) => type === LEGAL_ENTITY)
+      let formType = conf.products[requestFor]
+      if (!formType || payload[TYPE] !== formType) return
 
-      let resource = await bot.getResource(stub)
-      let coef = countries[resource.country.id.split('_')[1]]
+      let { weights, countries, legalStructure, industries, lengthOfRelationship } = riskFactors
+      let coef = countries[payload.country.id.split('_')[1]]
       let initialValue = INITIAL_SCORE
       let score = initialValue
 
@@ -79,7 +77,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         score -= initialValue * weight * coef
         if (requestFor === CP_ONBOARDING) return
       }
-      let checks = application.checks.filter(
+      let { latestChecks } = req
+      let checks = latestChecks || application.checks
+      checks = checks.filter(
         check => check[TYPE] === CORPORATION_EXISTS || check[TYPE] === BENEFICIAL_OWNER_CHECK
       )
       if (!checks) {
@@ -87,22 +87,22 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         this.checkParent(application)
         return
       }
-
-      checks = await Promise.all(checks.map(check => bot.getResource(check)))
-      checks.sort((a, b) => b._time - a._time)
+      if (!latestChecks) {
+        checks = await Promise.all(checks.map(check => bot.getResource(check)))
+        checks.sort((a, b) => b._time - a._time)
+      }
       checks = _.uniqBy(checks, TYPE)
       let corpExistsCheck = checks.find(
         check => check[TYPE] === CORPORATION_EXISTS && check.status.id.endsWith('_pass')
       )
-      if (corpExistsCheck)
-        score = checkOfficers({ score, corpExistsCheck })
+      if (corpExistsCheck) score = checkOfficers({ score, corpExistsCheck })
 
       let beneRiskCheck = checks.find(
         check => check[TYPE] === BENEFICIAL_OWNER_CHECK && check.status.id.endsWith('_pass')
       )
       if (!beneRiskCheck || !beneRiskCheck.rawData || !beneRiskCheck.rawData.length) {
         application.score = Math.round(score)
-        this.checkParent(application)
+        await this.checkParent(application)
         return
       }
       let { rawData } = beneRiskCheck
@@ -128,17 +128,17 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         }
       })
       application.score = Math.round(score)
-      this.checkParent(application, score)
+      await this.checkParent(application)
     },
-    async checkParent(application, score) {
-      application.score = Math.round(score)
+    async checkParent(application) {
+      let { score } = application
       if (score === INITIAL_SCORE || !application.parent) return
       let parentApp = await bot.getResource(application.parent)
       let pscore = parentApp.score
-      if (!pscore || pscore > application.score) {
-        parentApp.score = application.score
-        applications.updateApplication(parentApp)
-      }
+      if (pscore && pscore < score) return
+      parentApp.score = score
+      await applications.updateApplication(parentApp)
+      if (parentApp.parent) await this.checkParent(parentApp)
     }
   }
   return { plugin }
@@ -169,6 +169,7 @@ function checkOfficers({ score, corpExistsCheck }) {
   if (officers && officers.length) {
     if (officers.length)
       officers = officers.filter(o => o.officer.position !== 'agent' && !o.officer.inactive)
+    if (!officers.length) return score
     let weight = weights.lengthOfRelationship
     let part = (score * weight) / officers.length
     let newScore = score - score * weight

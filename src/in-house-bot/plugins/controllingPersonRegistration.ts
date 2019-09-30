@@ -148,7 +148,7 @@ class ControllingPersonRegistrationAPI {
       if (resource.name) extraQueryParams.companyName = resource.name
       if (resource.registrationNumber)
         extraQueryParams.registrationNumber = resource.registrationNumber
-      if (resource.country) extraQueryParams.country = resource.country
+      if (resource.country) extraQueryParams.country = JSON.stringify(resource.country)
       product = CE_ONBOARDING
     }
 
@@ -160,6 +160,7 @@ class ControllingPersonRegistrationAPI {
       extraQueryParams,
       product
     })
+    debugger
 
     try {
       await this.bot.mailer.send({
@@ -256,7 +257,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         return
 
       logger.debug('controlling person: processing started') // for ${payload.emailAddress}`)
-      debugger
       // if (payload.emailAddress) {
       await cp.sendConfirmationEmail({ resource: payload, application, legalEntity })
       // return
@@ -309,7 +309,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         check.rawData[0].company &&
         check.rawData[0].company.officers
 
-      if (officers.length) officers = officers.filter(o => o.officer.position !== 'agent'  &&  !o.officer.inactive)
+      if (officers.length)
+        officers = officers.filter(o => o.officer.position !== 'agent' && !o.officer.inactive)
 
       let officer
       if (!forms.length) {
