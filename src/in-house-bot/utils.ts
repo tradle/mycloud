@@ -515,11 +515,19 @@ export const doesCheckNeedToBeCreated = async ({
   let items = req.checks.filter(check => check.provider === provider)
   // let items = await getChecks({ bot, type, application, provider })
   if (!items.length) return true
-  else {
-    let checks = items.filter(r => r[prop]._link === form._link)
-    if (checks.length) return false
-    return await hasPropertiesChanged({ resource: form, bot, propertiesToCheck, req })
-  }
+  
+  let checks = items.filter(r => r[prop]._link === form._link)
+  if (checks.length) return false
+  let hasChanged =  await hasPropertiesChanged({ resource: form, bot, propertiesToCheck, req })
+  if (hasChanged)
+    return true
+  let checkForThisForm = items.filter(r => r[prop]._permalink === form._permalink)
+  if (!checkForThisForm.length)
+    return true
+  checkForThisForm.sort((a, b) => b._time - a._time)
+  if (checkForThisForm[0].status.id.endsWith('_error'))
+    return true
+  return hasChanged
 }
 export const getChecks = async ({
   bot,
