@@ -4,15 +4,16 @@ import uniqBy from 'lodash/uniqBy'
 import { Bot, Logger, CreatePlugin, Applications, ISMS, IPluginLifecycleMethods } from '../types'
 import * as Templates from '../templates'
 import Errors from '../../errors'
-import * as crypto from '../../crypto'
-import { TYPES } from '../constants'
 import { TYPE } from '../../constants'
 
+import validateResource from '@tradle/validate-resource'
+// @ts-ignore
+const { sanitize } = validateResource.utils
+
+import { getEnumValueId } from '../../utils'
 import { getLatestForms, getAppLinks, hasPropertiesChanged } from '../utils'
 import { appLinks } from '../../app-links'
 import { SMSBasedVerifier } from '../sms-based-verifier'
-
-const { APPLICATION, IDENTITY } = TYPES
 
 const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const AGENCY = 'tradle.Agency'
@@ -23,12 +24,19 @@ const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
 const CHECK_STATUS = 'tradle.Status'
+const COUNTRY = 'tradle.Country'
+
+const countryMap = {
+  England: 'United Kingdom',
+  'England And Wales': 'United Kingdom'
+}
 
 const DEAR_CUSTOMER = 'Dear Customer'
 const DEFAULT_SMS_GATEWAY = 'sns'
 type SMSGatewayName = 'sns'
 
-const ONBOARD_MESSAGE = 'Controlling person onboarding'
+const CP_ONBOARD_MESSAGE = 'Controlling person onboarding'
+const CE_ONBOARD_MESSAGE = 'Controlling entity onboarding'
 
 const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
   template: 'action',
@@ -143,14 +151,21 @@ class ControllingPersonRegistrationAPI {
       product = CP_ONBOARDING
       // if (resource.name) extraQueryParams.name = resource.name
     } else {
-      if (resource.controllingEntityCompanyNumber)
-        extraQueryParams.registrationNumber = resource.controllingEntityCompanyNumber
-      if (resource.name) extraQueryParams.companyName = resource.name
-      if (resource.registrationNumber)
-        extraQueryParams.registrationNumber = resource.registrationNumber
-      if (resource.country) extraQueryParams.country = JSON.stringify(resource.country)
       product = CE_ONBOARDING
     }
+    if (resource.controllingEntityCompanyNumber)
+      extraQueryParams.registrationNumber = resource.controllingEntityCompanyNumber
+    if (resource.name) extraQueryParams.companyName = resource.name
+    if (resource.registrationNumber)
+      extraQueryParams.registrationNumber = resource.registrationNumber
+    if (resource.controllingEntityStreetAddress)
+      extraQueryParams.streetAddress = resource.controllingEntityStreetAddress
+    if (resource.controllingEntityCountry)
+      extraQueryParams.country = JSON.stringify(resource.controllingEntityCountry)
+    if (resource.controllingEntityRegion) extraQueryParams.city = resource.controllingEntityRegion
+    if (resource.controllingEntityPostalCode)
+      extraQueryParams.postalCode = resource.controllingEntityPostalCode
+    if (resource.occupation) extraQueryParams.occupation = resource.occupation
 
     const body = genConfirmationEmail({
       provider,
@@ -160,20 +175,21 @@ class ControllingPersonRegistrationAPI {
       extraQueryParams,
       product
     })
-    debugger
 
     try {
       await this.bot.mailer.send({
         from: this.conf.senderEmail,
         to: [emailAddress],
         format: 'html',
-        subject: ONBOARD_MESSAGE,
+        subject: `${(product === CP_ONBOARDING && CP_ONBOARD_MESSAGE) ||
+          CE_ONBOARD_MESSAGE} - ${resource.name || ''}`,
         body
       })
     } catch (err) {
       Errors.rethrow(err, 'developer')
       this.logger.error('failed to email controlling person', err)
     }
+    debugger
   }
   public async sendLinkViaSMS({ resource, application, smsBasedVerifier, legalEntity }) {
     const host = this.bot.apiBaseUrl
@@ -332,13 +348,15 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
         return
       }
-
+      let { name, inactive, start_date, end_date, occupation } = officer
       let prefill: any = {
-        name: officer.name,
-        startDate: officer.start_date && new Date(officer.start_date).getTime(),
-        inactive: officer.inactive
+        name,
+        startDate: start_date && new Date(start_date).getTime(),
+        inactive,
+        occupation,
+        endDate: end_date && new Date(end_date).getTime()
       }
-      if (officer.end_date) prefill.endDate = new Date(officer.end_date).getTime()
+      prefill = sanitize(prefill).sanitized
 
       if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
       formRequest.prefill = {
@@ -370,7 +388,18 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       for (let i = 0; i < beneficialOwners.length; i++) {
         let bene = beneficialOwners[i]
         let { data } = bene
-        let { name, natures_of_control, kind, address, identification, ceased_on } = data
+        let {
+          name,
+          natures_of_control,
+          kind,
+          address,
+          country_of_residence,
+          date_of_birth,
+          identification,
+          ceased_on,
+          position,
+          occupation
+        } = data
         if (ceased_on) continue
         debugger
         logger.debug('name = ' + name)
@@ -390,7 +419,47 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         let prefill: any = {
           name
         }
-        if (registration_number) prefill.controllingEntityCompanyNumber = registration_number
+        if (isIndividual) {
+          prefill.dateOfBirth =
+            date_of_birth && new Date(date_of_birth.year, date_of_birth.month).getTime()
+          if (country_of_residence) {
+            let country = getCountryByTitle(country_of_residence, bot.models)
+            if (country) {
+              prefill = {
+                ...prefill,
+                controllingEntityCountry: country
+              }
+            }
+          }
+        } else {
+          prefill = {
+            ...prefill,
+            occupation: occupation || position,
+            controllingEntityCompanyNumber: registration_number
+          }
+          if (address) {
+            let { country, locality, postal_code, address_line_1 } = address
+            if (country) {
+              country = getCountryByTitle(country, bot.models)
+              if (country) {
+                prefill = {
+                  ...prefill,
+                  controllingEntityCountry: country
+                }
+              }
+            }
+            prefill = {
+              ...prefill,
+              controllingEntityPostalCode: postal_code,
+              controllingEntityStreetAddress: address_line_1,
+              controllingEntityRegion: locality
+            }
+          }
+        }
+        if (identification) {
+          let { legal_authority, legal_form, country_registered, place_registered } = identification
+          if (legal_form) prefill = { ...prefill, companyType: legal_form }
+        }
         if (natures_of_control) {
           let natureOfControl = bot.models['tradle.PercentageOfOwnership'].enum.find(e =>
             natures_of_control.includes(e.title.toLowerCase().replace(/\s/g, '-'))
@@ -401,7 +470,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
               title: natureOfControl.title
             }
         }
-
+        prefill = sanitize(prefill).sanitized
         if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
         formRequest.prefill = {
           ...formRequest.prefill,
@@ -423,7 +492,17 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
     plugin
   }
 }
-
+function getCountryByTitle(country, models) {
+  let mapCountry = countryMap[country]
+  if (mapCountry) country = mapCountry
+  let countryR = models[COUNTRY].enum.find(val => val.title === country)
+  return (
+    countryR && {
+      id: `${COUNTRY}_${countryR.id}`,
+      title: country
+    }
+  )
+}
 const beneTest = [
   {
     company_number: '06415759',
