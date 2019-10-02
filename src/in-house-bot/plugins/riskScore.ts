@@ -1,9 +1,9 @@
 /***
  * Risk Rating follows the Credit score model
  * - it is a number between 1000 and 0, with 1000 being the least risky
- * - the pie is divided between the categories below. 
+ * - the pie is divided between the categories below.
  * - the weight of each category's pie slice and each factor's weight is defineed here:
- *   https://github.com/tradle/mycloud/blob/master/riskFactors.json 
+ *   https://github.com/tradle/mycloud/blob/master/riskFactors.json
  * Note. Beneficial owners that are individuals are treated as officers of the company for now.
  *
  * -- Countries --
@@ -117,7 +117,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         let isIndividual = kind.startsWith('individual-')
         if (isIndividual) {
         } else {
-          let legalForm = identification.legal_form
+          let legalForm = identification && identification.legal_form
           if (legalForm) {
             let coef = legalStructure[legalForm.toLowerCase().replace(/\s/g, '_')]
             if (coef) {
