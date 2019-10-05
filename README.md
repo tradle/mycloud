@@ -84,6 +84,8 @@ First, install some tools
 #### Git
 
 Make sure you have `git` installed. If you're on `OS X`, you already have it.
+To enforce https access to github run this command:
+  git config --global url."https://".insteadOf git://
 
 #### Node.js
 
