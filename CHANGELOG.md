@@ -2,18 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.4.4-rc.32](https://github.com/tradle/mycloud/compare/v2.4.4-rc.31...v2.4.4-rc.32) (2019-10-02)
-
-
-### Bug Fixes
-
-* decision making about creating a check ([91709c5](https://github.com/tradle/mycloud/commit/91709c5))
-
-
-### Features
-
-* corp onboarding project ([d8a13df](https://github.com/tradle/mycloud/commit/d8a13df))
-* eliminating data entry with prefills ([4b726a4](https://github.com/tradle/mycloud/commit/4b726a4))
+# [2.5.0](https://github.com/tradle/mycloud/compare/v2.4.4-rc.32...v2.5.0) (2019-10-06)
 
 
 
