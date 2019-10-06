@@ -197,8 +197,9 @@ export class RankOneCheckAPI {
 
     let minThreshold = threshold ? threshold : DEFAULT_THRESHOLD
     let status
-    if (rawData.similarity < 0 && rawData.code) status = 'error'
+    if (error) status = 'error'
     else if (rawData.similarity > minThreshold) status = 'pass'
+    // else if (rawData.similarity < 0 && rawData.code) status = 'error'
     else status = 'fail'
     return { status, rawData }
   }
