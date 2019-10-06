@@ -122,10 +122,9 @@ export class IFacetecZoomCheckAPI {
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
     debugger
-    if (status.rawData) {
-      resource.rawData = status.rawData
-    }
-    if (status.rawData.data.livenessScore) {
+    if (status.rawData) resource.rawData = status.rawData
+
+    if (status.rawData.data && status.rawData.data.livenessScore) {
       resource.livenessScore = status.rawData.data.livenessScore
     }
     this.logger.debug(`Creating ${PROVIDER} check for ${ASPECTS}`)
