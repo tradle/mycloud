@@ -85,7 +85,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
               return
             }
           } catch (err) {
-            // debugger
+            if (err.message.indexOf('Cannot read property') === -1)
+              logger.debug(`interFormConditionals: please check formula ${val} for ${formId}`, err)
+            debugger
           }
         })
         if (!hasAction) retForms.push(formId)
@@ -136,8 +138,13 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
           }
           application[propName] = value
         } catch (err) {
-          logger.debug('interFormConditionals: ', err)
-          // debugger
+          // logger.debug('interFormConditionals: ', err)
+          if (err.message.indexOf('Cannot read property') === -1)
+            logger.debug(
+              `interFormConditionals: please check formula ${formula} for ${payload[TYPE]}`,
+              err
+            )
+          debugger
         }
       })
     },
