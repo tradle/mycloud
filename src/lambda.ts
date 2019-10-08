@@ -401,7 +401,7 @@ Previous exit stack: ${this.lastExitStack}`)
       if (this.env.ABORT_REQUESTS_ON_FREEZE) {
         this.logger.warn(`aborting ${pendingHttpRequests.length} pending http requests`)
         requestInterceptor.abortPending()
-      }
+      } else await Promise.delay(15000)
     }
 
     if (err) {
