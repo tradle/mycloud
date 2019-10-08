@@ -51,8 +51,10 @@ export class SmeAutoApprove {
   public checkCPs = async application => {
     let aApp,
       checkIfAllFormsSubmitted = true
-    if (application.parent) aApp = await this.getAssociatedResource(application)
-    else {
+    if (application.parent) {
+      aApp = await getAssociateResources({ application, bot: this.bot, applicationOnly: true })
+      aApp = aApp.parentApplication
+    } else {
       aApp = application
       checkIfAllFormsSubmitted = false
     }
@@ -84,7 +86,7 @@ export class SmeAutoApprove {
       filter: {
         EQ: {
           [TYPE]: PRODUCT_REQUEST,
-          associatedResource: aApp._permalink
+          parentApplication: aApp._permalink
         }
       }
     })
@@ -142,21 +144,6 @@ export class SmeAutoApprove {
 
     await this.applications.approve({ application: aApp })
   }
-  public getAssociatedResource = async application => {
-    const pr: ITradleObject = await this.bot.getResource(application.request)
-    const associatedResource = pr.associatedResource
-    if (!associatedResource) return
-    // const asociatedApplication = await this.bot.getResource(associatedResource, {backlinks: ['forms']})
-    const associatedApplication = await this.bot.db.find({
-      filter: {
-        EQ: {
-          [TYPE]: APPLICATION,
-          _permalink: associatedResource
-        }
-      }
-    })
-    return associatedApplication && associatedApplication.items && associatedApplication.items[0]
-  }
 }
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
@@ -212,14 +199,22 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       if (!pairs.length) return
       logger.debug('Child application was submitted')
-      let parentApp = await autoApproveAPI.getAssociatedResource(application)
+      let { parentApp, associatedRes } = await getAssociateResources({ application, bot })
       if (!parentApp) return
       // pairs = pairs.find(pair => pair.parent === parentApp.requestFor)
       // if (!pairs)
       //   return
       // debugger
       // application.parent = parentApp
-      application.parent = buildResourceStub({ resource: parentApp, models: bot.models })
+      let stub = buildResourceStub({ resource: parentApp, models: bot.models })
+      application.parent = stub
+      application.top = parentApp.top || stub
+
+      application.associatedResource = buildResourceStub({
+        resource: associatedRes,
+        models: bot.models
+      })
+
       debugger
     }
   }
@@ -250,4 +245,38 @@ function makeMyProductModelID(modelId) {
   let parts = modelId.split('.')
   parts[parts.length - 1] = 'My' + parts[parts.length - 1]
   return parts.join('.')
+}
+async function getAssociateResources({
+  application,
+  bot,
+  applicationOnly
+}: {
+  application: IPBApp
+  bot: Bot
+  applicationOnly?: boolean
+}) {
+  const pr: ITradleObject = await bot.getResource(application.request)
+  const { parentApplication, associatedResource } = pr
+  if (!parentApplication) return {}
+  // const asociatedApplication = await this.bot.getResource(associatedResource, {backlinks: ['forms']})
+  let parentApp = await bot.db.findOne({
+    filter: {
+      EQ: {
+        [TYPE]: APPLICATION,
+        _permalink: parentApplication
+      }
+    }
+  })
+  if (applicationOnly) return { parentApp }
+  let [type, hash] = associatedResource.split('_')
+  // const asociatedApplication = await this.bot.getResource(associatedResource, {backlinks: ['forms']})
+  let associatedRes = await bot.db.findOne({
+    filter: {
+      EQ: {
+        [TYPE]: type,
+        _permalink: hash
+      }
+    }
+  })
+  return { associatedRes, parentApp }
 }
