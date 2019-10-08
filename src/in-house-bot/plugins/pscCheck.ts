@@ -110,7 +110,7 @@ export class PscCheckAPI {
         if (err) return reject(err)
         if (data.QueryExecution.Status.State === 'SUCCEEDED') return resolve('SUCCEEDED')
         else if (['FAILED', 'CANCELLED'].includes(data.QueryExecution.Status.State))
-          return reject(new Error(`Query ${data.QueryExecution.Status.State}`))
+          return reject(new Error(`Query status: ${JSON.stringify(data.QueryExecution.Status, null, 2)}`))
         else return resolve('INPROCESS')
       })
     })
@@ -294,7 +294,7 @@ function makeJson(str: string) {
   return obj.v
 }
 
-function build(arr, idx): any {
+function build(arr: Array<string>, idx: number): any {
   let name = ''
   let obj = {}
   for (; idx < arr.length; idx++) {
@@ -331,7 +331,7 @@ function build(arr, idx): any {
   return obj
 }
 
-function buildStringArray(arr, idx) {
+function buildStringArray(arr: Array<string>, idx: number) {
   let strArr = []
   let val = ''
   while (true) {
@@ -347,7 +347,7 @@ function buildStringArray(arr, idx) {
   }
 }
 
-function buildString(arr, idx) {
+function buildString(arr: Array<string>, idx: number) {
   let val = ''
   while (true) {
     if (arr[idx] == ',') {
@@ -368,10 +368,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-    bot: Bot
-    conf: IConfComponents
-    pluginConf: IPscConf
-  }) => {
+  bot: Bot
+  conf: IConfComponents
+  pluginConf: IPscConf
+}) => {
   const { models } = bot
   if (!pluginConf.athenaMaps)
     throw new Errors.InvalidInput('athena maps are not found')
