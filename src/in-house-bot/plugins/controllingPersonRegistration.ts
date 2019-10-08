@@ -137,7 +137,10 @@ class ControllingPersonRegistrationAPI {
     const host = this.bot.apiBaseUrl
     const provider = await this.bot.getMyPermalink()
 
-    const extraQueryParams: any = { application: application._permalink }
+    const extraQueryParams: any = {
+      parentApplication: application._permalink,
+      associatedResource: `${resource[TYPE]}_${resource._permalink}`
+    }
     if (application.requestFor === AGENCY) {
       extraQueryParams.isAgent = true
       extraQueryParams.legalEntity = legalEntity._permalink
@@ -385,6 +388,13 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       if (!beneficialOwners || !beneficialOwners.length) return
 
+      if (beneficialOwners.length > 1) {
+        debugger
+        beneficialOwners.sort(
+          (a, b) => new Date(b.data.notified_on).getTime() - new Date(a.data.notified_on).getTime()
+        )
+        beneficialOwners = uniqBy(beneficialOwners, 'data.name')
+      }
       for (let i = 0; i < beneficialOwners.length; i++) {
         let bene = beneficialOwners[i]
         let { data } = bene
@@ -409,9 +419,18 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
         let isIndividual = kind.startsWith('individual')
         if (isIndividual) {
+          // const prefixes = ['mr', 'ms', 'dr', 'mrs', ]
           if (officers && officers.length) {
+            let boName = name.toLowerCase().trim()
             if (
-              officers.find(o => o.officer.name.toLowerCase().trim() === name.toLowerCase().trim())
+              officers.find(o => {
+                let oName = o.officer.name.toLowerCase().trim()
+                if (oName === boName) return true
+                // Could be something like 'Dr Anna Smith'
+                if (boName.endsWith(' ' + oName)) return true
+                return false
+                // let prefix = boName.substring(0, idx)
+              })
             )
               continue
           }
