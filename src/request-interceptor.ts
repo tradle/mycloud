@@ -1,10 +1,8 @@
 import http from 'http'
 import https from 'https'
 import { EventEmitter } from 'events'
-import util from 'util'
 import url from 'url'
 import _ from 'lodash'
-// import { createLogger, Logger } from './logger'
 
 type HttpModules = {
   http: any
@@ -36,9 +34,11 @@ export interface RequestInfo {
   error?: Error
   freezeId?: string
   req?: http.ClientRequest
+  requestId: string
+  target?: string
 }
 
-const ORIGINALS:HttpModules = {
+const ORIGINALS: HttpModules = {
   http: _.pick(http, 'request'),
   https: _.pick(https, 'request')
 }
@@ -46,12 +46,10 @@ const ORIGINALS:HttpModules = {
 class RequestInterceptor extends EventEmitter {
   private isEnabled: boolean
   private pending: RequestInfo[]
-  // private logger: Logger
   constructor() {
     super()
     this.isEnabled = false
     this.pending = []
-    // this.logger = createLogger('global:http')
   }
 
   public enable = () => {
@@ -79,7 +77,10 @@ class RequestInterceptor extends EventEmitter {
     this.pending.length = 0
   }
 
-  private _watchRequest = (req: http.ClientRequest, options: HttpRequestOptions):http.ClientRequest => {
+  private _watchRequest = (
+    req: http.ClientRequest,
+    options: HttpRequestOptions
+  ): http.ClientRequest => {
     const start = Date.now()
 
     // Extract request logging details
@@ -102,7 +103,16 @@ class RequestInterceptor extends EventEmitter {
       'href'
     ]) as RequestInfo
 
-    reqInfo.stack = new Error('').stack.split('\n').slice(1).join('\n')
+    reqInfo.stack = new Error('').stack
+      .split('\n')
+      .slice(1)
+      .join('\n')
+
+    const target = req.getHeaders()['x-amz-target']
+    if (target) {
+      reqInfo.target = String(target)
+    }
+
     reqInfo.req = req
     this.pending.push(reqInfo)
 
@@ -122,12 +132,13 @@ class RequestInterceptor extends EventEmitter {
     req.once('response', res => {
       reqInfo.response = _.pick(res, [
         'statusCode',
-        'statusText',
+        'statusText'
         // 'headers',
         // 'trailers',
         // 'url',
       ]) as ResponseInfo
 
+      reqInfo.requestId = _.get(res, ['headers', 'x-amzn-requestid'])
       res.once('end', cleanup.bind(null, null))
       res.once('error', cleanup)
     })
@@ -137,11 +148,12 @@ class RequestInterceptor extends EventEmitter {
     return req
   }
 
-  public freeze = (identifier: string) => this.pending.forEach(req => {
-    if (!req.freezeId) {
-      req.freezeId = identifier
-    }
-  })
+  public freeze = (identifier: string) =>
+    this.pending.forEach(req => {
+      if (!req.freezeId) {
+        req.freezeId = identifier
+      }
+    })
 
   public hasPending = () => this.pending.length !== 0
   public getPending = () => this.pending.map(neuter)

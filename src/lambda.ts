@@ -147,6 +147,15 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
 
     bot.aws.events.on('new', ({ name, recordable }) => this._recordService(recordable))
 
+    const logRequest = ({ target, requestId, duration }: RequestInfo) => {
+      if (target && requestId) {
+        this.logger.ridiculous('service call', { target, requestId, duration })
+      }
+    }
+
+    requestInterceptor.on('success', logRequest)
+    requestInterceptor.on('error', logRequest)
+
     this.tasks = bot.tasks
     this.tasks.add({
       name: 'bot:ready',
