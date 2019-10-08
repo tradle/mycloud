@@ -4,27 +4,19 @@
  *
  ***/
 import uniqBy from 'lodash/uniqBy'
-// import validateResource from '@tradle/validate-resource'
 import { TYPE } from '@tradle/constants'
-import { buildResourceStub } from '@tradle/build-resource'
 import {
   Bot,
   CreatePlugin,
-  IWillJudgeAppArg,
   IPBReq,
-  IPluginLifecycleMethods,
   ValidatePluginConf,
-  ITradleObject,
   IPBApp,
   Applications,
   Logger
 } from '../types'
 
-// const CP_ONBOARDING = 'tradle.legal.ControllingPersonOnboarding'
-// const CE_ONBOARDING = 'tradle.legal.LegalEntityProduct'
 const MATCH_CHECK = 'tradle.MatchCheck'
 const PHOTO_ID = 'tradle.PhotoID'
-const CP = 'tradle.legal.LegalEntityControllingPerson'
 const PROVIDER = 'Tradle'
 const ASPECTS = 'controlling person existence'
 
