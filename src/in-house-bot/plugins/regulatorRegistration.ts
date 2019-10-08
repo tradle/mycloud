@@ -46,83 +46,6 @@ const ASPECTS = 'registration with %s'
 const DEFAULT_REGULATOR = 'FINRA'
 // const FORM_ID = 'io.lenka.BSAPI102a'
 
-const FORM_ID_US_firm_sec_feed = 'com.svb.BSAPI102a'
-const FORM_ID_GB_firms_psd_perm = 'com.svb.BSAPI102FCAPSDFirms'
-const FORM_ID_GB_e_money_firms = 'com.svb.BSAPI102FCAPSDeMoneyInstitutions'
-const FORM_ID_GB_emd_agents = 'com.svb.BSAPI102FCAPSDAgent'
-const FORM_ID_GB_credit_institutions = 'com.svb.BSAPI102FCAPSDCreditInstitutions'
-
-const SecGlueTable = {
-  type: FORM_ID_US_firm_sec_feed,
-  map: { firmcrdnb: 'registrationNumber' },
-  check: 'registrationNumber',
-  query: "select info.firmcrdnb from firm_sec_feed where info.firmcrdnb = '%s'"
-}
-
-const FirmsPsdPermGlueTable = {
-  type: FORM_ID_GB_firms_psd_perm,
-  map: {
-    frn: 'frn',
-    firm: 'firm',
-    'psd firm status': 'psdFirmStatus',
-    'psd agent status': 'psdAgentStatus',
-    'authorisation status': 'authorisationStatus',
-    'effective date': 'effectiveDate'
-  },
-  check: 'frn',
-  query: 'select * from firms_psd_perm where frn = %s'
-}
-
-const EMoneyFirmsGlueTable = {
-  type: FORM_ID_GB_e_money_firms,
-  map: {
-    frn: 'frn',
-    firm: 'firm',
-    'emoney register status': 'eMoneyRegisterStatus',
-    'authorisation status': 'authorisationStatus',
-    'effective date': 'effectiveDate'
-  },
-  check: 'frn',
-  query: 'select * from e_money_firms where frn = %s'
-}
-
-const EmdAgentsGlueTable = {
-  type: FORM_ID_GB_emd_agents,
-  map: {
-    frn: 'frn',
-    firm: 'firm',
-    'e-money agent status': 'psdFirmStatus',
-    'e-money agent effective date': 'effectiveDate'
-  },
-  check: 'frn',
-  query: 'select * from emd_agents where frn = %s'
-}
-
-const CreditInstitutionsGlueTable = {
-  type: FORM_ID_GB_credit_institutions,
-  map: {
-    frn: 'frn',
-    firm: 'firm',
-    'authorisation status': 'authorisationStatus',
-    'effective date': 'effectiveDate'
-  },
-  check: 'frn',
-  query: 'select * from credit_institutions where frn = %s',
-  test: {
-    status: true,
-    data: [{ frn: 815220, firm: 'RCI Bank UK Limited', 'authorisation status': 'Authorised', 'effective date': '2019-03-06 00:00:00' }],
-    error: null
-  }
-}
-
-const typeMap = [
-  SecGlueTable,
-  FirmsPsdPermGlueTable,
-  EMoneyFirmsGlueTable,
-  EmdAgentsGlueTable,
-  CreditInstitutionsGlueTable
-]
-
 interface IRegulatorRegistrationAthenaConf {
   type: string,
   map: Object,
@@ -198,7 +121,7 @@ export class RegulatorRegistrationAPI {
         if (err) return reject(err)
         if (data.QueryExecution.Status.State === 'SUCCEEDED') return resolve('SUCCEEDED')
         else if (['FAILED', 'CANCELLED'].includes(data.QueryExecution.Status.State))
-          return reject(new Error(`Query ${data.QueryExecution.Status.State}`))
+          return reject(new Error(`Query status: ${JSON.stringify(data.QueryExecution.Status, null, 2)}`))
         else return resolve('INPROCESS')
       })
     })
@@ -447,10 +370,10 @@ export const validateConf: ValidatePluginConf = async ({
   conf,
   pluginConf
 }: {
-    bot: Bot
-    conf: IConfComponents
-    pluginConf: IRegulatorRegistrationConf
-  }) => {
+  bot: Bot
+  conf: IConfComponents
+  pluginConf: IRegulatorRegistrationConf
+}) => {
   const { models } = bot
   if (!pluginConf.athenaMaps)
     throw new Errors.InvalidInput('athena maps are not found')
