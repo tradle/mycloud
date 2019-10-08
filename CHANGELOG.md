@@ -2,7 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.5.0](https://github.com/tradle/mycloud/compare/v2.4.4-rc.32...v2.5.0) (2019-10-06)
+## [2.5.1-rc.0](https://github.com/tradle/mycloud/compare/v2.5.0...v2.5.1-rc.0) (2019-10-08)
+
+
+### Bug Fixes
+
+* error status only for network problem ([1232188](https://github.com/tradle/mycloud/commit/1232188))
+* exception ([d4f455b](https://github.com/tradle/mycloud/commit/d4f455b))
+
+
+### Features
+
+* application hierarchy ([5778cf0](https://github.com/tradle/mycloud/commit/5778cf0))
+* check name in the document and BO ([f6112bc](https://github.com/tradle/mycloud/commit/f6112bc))
+* hierarchy ([0b54370](https://github.com/tradle/mycloud/commit/0b54370))
+* no need to have the same propertyMap as the default one in bot.conf ([40225a8](https://github.com/tradle/mycloud/commit/40225a8))
+* save associatedResource on child application;  some BO's could have several records. Take the newest one ([bb89941](https://github.com/tradle/mycloud/commit/bb89941))
 
 
 
