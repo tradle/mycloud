@@ -179,7 +179,7 @@ export interface IPBApp extends ITradleObject {
   context: string
   forms?: ApplicationSubmission[]
   verifications?: ApplicationSubmission[]
-  reviewer?: ResourceStub
+  analyst?: ResourceStub
   relationshipManagers?: ResourceStub[]
   checks?: ResourceStub[]
   status: string
