@@ -2,13 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.1](https://github.com/tradle/mycloud/compare/v2.5.1-rc.0...v2.5.1-rc.1) (2019-10-08)
+## [2.5.1-rc.2](https://github.com/tradle/mycloud/compare/v2.5.1-rc.1...v2.5.1-rc.2) (2019-10-10)
+
+
+### Bug Fixes
+
+* if ts-and-cs no product list before ts-and-cs accepted ([21a6522](https://github.com/tradle/mycloud/commit/21a6522))
+* let request a chance to complete if lambda finishes and request is in flight ([be76988](https://github.com/tradle/mycloud/commit/be76988))
+* messages from customer do not get to analyst ([63f65f0](https://github.com/tradle/mycloud/commit/63f65f0))
+* Ts&Cs was broke ([2541d73](https://github.com/tradle/mycloud/commit/2541d73))
 
 
 ### Features
 
-* application hierarchy project ([6470d17](https://github.com/tradle/mycloud/commit/6470d17))
-* prefill forms as much as possible ([b8941a5](https://github.com/tradle/mycloud/commit/b8941a5))
+* analyst added to application ([757ef00](https://github.com/tradle/mycloud/commit/757ef00))
+* more reporting on what went wrong or right in this check ([7e2bb2a](https://github.com/tradle/mycloud/commit/7e2bb2a))
 
 
 
