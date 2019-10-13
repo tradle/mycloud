@@ -280,9 +280,12 @@ export const createPlugin: CreatePlugin<RankOneCheckAPI> = (components, pluginOp
   })
 
   const plugin: IPluginLifecycleMethods = {
-    onFormsCollected: async ({ req, user, application }) => {
+    async onmessage(req: IPBReq) {
+      // debugger
       if (req.skipChecks) return
+      const { user, application, payload } = req
       if (!application) return
+
       let productId = application.requestFor
       //let { products } = conf
       //if (!products  ||  !products[productId])
