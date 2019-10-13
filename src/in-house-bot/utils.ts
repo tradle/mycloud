@@ -515,18 +515,15 @@ export const doesCheckNeedToBeCreated = async ({
   let items = req.checks.filter(check => check.provider === provider)
   // let items = await getChecks({ bot, type, application, provider })
   if (!items.length) return true
-  
+
   let checks = items.filter(r => r[prop]._link === form._link)
   if (checks.length) return false
-  let hasChanged =  await hasPropertiesChanged({ resource: form, bot, propertiesToCheck, req })
-  if (hasChanged)
-    return true
+  let hasChanged = await hasPropertiesChanged({ resource: form, bot, propertiesToCheck, req })
+  if (hasChanged) return true
   let checkForThisForm = items.filter(r => r[prop]._permalink === form._permalink)
-  if (!checkForThisForm.length)
-    return true
+  if (!checkForThisForm.length) return true
   checkForThisForm.sort((a, b) => b._time - a._time)
-  if (checkForThisForm[0].status.id.endsWith('_error'))
-    return true
+  if (checkForThisForm[0].status.id.endsWith('_error')) return true
   return hasChanged
 }
 export const getChecks = async ({
@@ -562,45 +559,6 @@ export const getChecks = async ({
   return items
 }
 
-// export const doesCheckExist = async ({
-//   bot,
-//   type,
-//   eq,
-//   application,
-//   provider
-// }: {
-//   bot: Bot
-//   type: string
-//   eq: any
-//   application: IPBApp
-//   provider: string
-// }) => {
-//   // debugger
-//   let eqClause = {
-//     [TYPE]: type,
-//     'application._permalink': application._permalink,
-//     provider
-//   }
-//   if (eq) {
-//     for (let p in eq) eqClause[`${p}._link`] = eq[p]
-//   }
-//   const { items } = await bot.db.find({
-//     allowScan: true,
-//     limit: 1,
-//     orderBy: {
-//       property: 'dateChecked',
-//       desc: true
-//     },
-//     filter: {
-//       EQ: eqClause,
-//       NEQ: {
-//         'status.id': 'tradle.Status_error'
-//       }
-//     }
-//   })
-//   return items.length
-// }
-
 export const hasPropertiesChanged = async ({
   resource,
   bot,
@@ -616,7 +574,19 @@ export const hasPropertiesChanged = async ({
   if (!resource._prevlink) return true
   let dbRes = req.previousPayloadVersion
   if (!dbRes) {
-    dbRes = await bot.objects.get(resource._prevlink)
+    try {
+      dbRes = await bot.objects.get(resource._prevlink)
+    } catch (err) {
+      bot.logger.debug(
+        `not found previous version for the resource - check if this was refresh: ${JSON.stringify(
+          resource,
+          null,
+          2
+        )}`
+      )
+      debugger
+      return true
+    }
     req.previousPayloadVersion = dbRes
   }
   if (!dbRes) return true
