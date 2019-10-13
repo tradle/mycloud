@@ -566,24 +566,3 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
 //   }
 //   return { resource, rawData: json.results, hits: companies, url }
 // }
-// async getCheckParameters (resource) {
-//   let map = this.conf.propertyMap[resource[TYPE]]
-//   let dbRes = resource._prevlink  &&  await this.bot.objects.get(resource._prevlink)
-//   let runCheck = !dbRes
-
-//   let r:any = {}
-
-//   for (let prop in defaultPropMap) {
-//     let p = map  &&  map[prop]
-//     if (!p)
-//       p = prop
-//     let pValue = resource[p]
-//     if (dbRes  &&  dbRes[p] !== pValue)
-//       runCheck = true
-//     r[prop] = pValue
-//   }
-//   debugger
-//   if (runCheck)
-//     return r
-//   this.logger.debug(`nothing changed for: ${title({resource, models: this.bot.models})}`)
-// }
