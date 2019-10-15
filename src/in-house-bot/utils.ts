@@ -45,6 +45,7 @@ const IDENTIFICATION_OF_BENEFICIAL_OWNER = 'tradle.W8BENE1'
 const DEPLOYMENT_CONFIGURATION = 'tradle.cloud.Configuration'
 const CHECK_STATUS = 'tradle.Status'
 const HAND_SIGNATURE = 'tradle.HandSignature'
+const APPLICATION = 'tradle.Application'
 
 export { isEmployee }
 
@@ -820,4 +821,43 @@ export const didPropChangeTo = ({
   propValue: any
 }) => {
   return value && value[prop] === propValue && didPropChange({ old, value, prop })
+}
+
+export const getAssociateResources = async ({
+  application,
+  bot,
+  applicationOnly,
+  resourceOnly
+}: {
+  application: IPBApp
+  bot: Bot
+  applicationOnly?: boolean
+  resourceOnly?: boolean
+}) => {
+  const pr: ITradleObject = await bot.getResource(application.request)
+  const { parentApplication, associatedResource } = pr
+  if (!parentApplication) return {}
+  // const asociatedApplication = await this.bot.getResource(associatedResource, {backlinks: ['forms']})
+  let parentApp, associatedRes
+  if (!resourceOnly)
+    parentApp = await bot.db.findOne({
+      filter: {
+        EQ: {
+          [TYPE]: APPLICATION,
+          _permalink: parentApplication
+        }
+      }
+    })
+  if (applicationOnly) return { parentApp }
+  let [type, hash] = associatedResource.split('_')
+  // const asociatedApplication = await this.bot.getResource(associatedResource, {backlinks: ['forms']})
+  associatedRes = await bot.db.findOne({
+    filter: {
+      EQ: {
+        [TYPE]: type,
+        _permalink: hash
+      }
+    }
+  })
+  return { associatedRes, parentApp }
 }
