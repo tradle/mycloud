@@ -677,6 +677,7 @@ export const loadComponentsAndPlugins = ({
       'cibiChecker',
       'gdcChecker',
       'sme-auto-approve',
+      'sme-onboarding',
       'controllingEntityValidation',
       'facetecZoom',
       'finastra',
