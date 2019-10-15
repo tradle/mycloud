@@ -14,6 +14,7 @@ import {
   Applications,
   Logger
 } from '../types'
+import { getAssociateResources } from '../utils'
 
 const CP = 'tradle.legal.LegalEntityControllingPerson'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
@@ -245,38 +246,4 @@ function makeMyProductModelID(modelId) {
   let parts = modelId.split('.')
   parts[parts.length - 1] = 'My' + parts[parts.length - 1]
   return parts.join('.')
-}
-async function getAssociateResources({
-  application,
-  bot,
-  applicationOnly
-}: {
-  application: IPBApp
-  bot: Bot
-  applicationOnly?: boolean
-}) {
-  const pr: ITradleObject = await bot.getResource(application.request)
-  const { parentApplication, associatedResource } = pr
-  if (!parentApplication) return {}
-  // const asociatedApplication = await this.bot.getResource(associatedResource, {backlinks: ['forms']})
-  let parentApp = await bot.db.findOne({
-    filter: {
-      EQ: {
-        [TYPE]: APPLICATION,
-        _permalink: parentApplication
-      }
-    }
-  })
-  if (applicationOnly) return { parentApp }
-  let [type, hash] = associatedResource.split('_')
-  // const asociatedApplication = await this.bot.getResource(associatedResource, {backlinks: ['forms']})
-  let associatedRes = await bot.db.findOne({
-    filter: {
-      EQ: {
-        [TYPE]: type,
-        _permalink: hash
-      }
-    }
-  })
-  return { associatedRes, parentApp }
 }
