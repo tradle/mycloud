@@ -1,5 +1,5 @@
-import QueryString from 'querystring'
 import uniqBy from 'lodash/uniqBy'
+import extend from 'lodash/extend'
 
 import { Bot, Logger, CreatePlugin, Applications, ISMS, IPluginLifecycleMethods } from '../types'
 import * as Templates from '../templates'
@@ -10,10 +10,10 @@ import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
-import { getEnumValueId } from '../../utils'
-import { getLatestForms, getAppLinks, hasPropertiesChanged } from '../utils'
+import { hasPropertiesChanged } from '../utils'
 import { appLinks } from '../../app-links'
 import { SMSBasedVerifier } from '../sms-based-verifier'
+// import { compare } from '@tradle/dynamodb/lib/utils'
 
 const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const AGENCY = 'tradle.Agency'
@@ -156,20 +156,6 @@ class ControllingPersonRegistrationAPI {
     } else {
       product = CE_ONBOARDING
     }
-    if (resource.controllingEntityCompanyNumber)
-      extraQueryParams.registrationNumber = resource.controllingEntityCompanyNumber
-    if (resource.name) extraQueryParams.companyName = resource.name
-    if (resource.registrationNumber)
-      extraQueryParams.registrationNumber = resource.registrationNumber
-    if (resource.controllingEntityStreetAddress)
-      extraQueryParams.streetAddress = resource.controllingEntityStreetAddress
-    if (resource.controllingEntityCountry)
-      extraQueryParams.country = JSON.stringify(resource.controllingEntityCountry)
-    if (resource.controllingEntityRegion) extraQueryParams.city = resource.controllingEntityRegion
-    if (resource.controllingEntityPostalCode)
-      extraQueryParams.postalCode = resource.controllingEntityPostalCode
-    if (resource.occupation) extraQueryParams.occupation = resource.occupation
-
     const body = genConfirmationEmail({
       provider,
       host,
@@ -179,6 +165,7 @@ class ControllingPersonRegistrationAPI {
       product
     })
 
+    debugger
     try {
       await this.bot.mailer.send({
         from: this.conf.senderEmail,
@@ -192,7 +179,6 @@ class ControllingPersonRegistrationAPI {
       Errors.rethrow(err, 'developer')
       this.logger.error('failed to email controlling person', err)
     }
-    debugger
   }
   public async sendLinkViaSMS({ resource, application, smsBasedVerifier, legalEntity }) {
     const host = this.bot.apiBaseUrl
@@ -359,6 +345,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         occupation,
         endDate: end_date && new Date(end_date).getTime()
       }
+      this.findAndPrefillBeneficialOwner(pscCheck, officer, prefill)
+
       prefill = sanitize(prefill).sanitized
 
       if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
@@ -370,6 +358,98 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         }
       }
       formRequest.message = `Please review and correct the data below **for ${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+    },
+
+    findAndPrefillBeneficialOwner(pscCheck, officer, prefill) {
+      let beneficialOwners = pscCheck.rawData && pscCheck.rawData
+      if (!beneficialOwners || !beneficialOwners.length) return
+      if (beneficialOwners.length > 1) {
+        debugger
+        beneficialOwners.sort(
+          (a, b) => new Date(b.data.notified_on).getTime() - new Date(a.data.notified_on).getTime()
+        )
+        beneficialOwners = uniqBy(beneficialOwners, 'data.name')
+      }
+      let bo = beneficialOwners.find(bo => this.compare(officer.name, bo))
+      if (!bo) return
+      this.prefillIndividual(prefill, bo)
+    },
+
+    compare(officerName, bo) {
+      let { name, name_elements } = bo.data
+      officerName = officerName.toLowerCase().trim()
+      if (name_elements) {
+        let nameElms: any = {}
+        for (let p in name_elements) nameElms[p] = name_elements[p].toLowerCase()
+        let { forename, surname, middle_name } = nameElms
+        if (
+          officerName.indexOf(`${forename} `) === -1 ||
+          officerName.indexOf(` ${surname}`) === -1 ||
+          (middle_name && officerName.indexOf(` ${middle_name} `) === -1)
+        )
+          return false
+        else return true
+      }
+      name = name.toLowerCase().trim()
+      let idx = name.indexOf(officerName)
+      if (idx !== -1) {
+        if (name.length === officerName.length) return true
+        if (idx && name.charAt(idx - 1) === ' ' && idx + officerName.length === name.length)
+          return true
+      }
+    },
+    prefillIndividual(prefill, bo) {
+      let { country_of_residence, date_of_birth, natures_of_control } = bo.data
+
+      prefill.dateOfBirth =
+        date_of_birth && new Date(date_of_birth.year, date_of_birth.month).getTime()
+      if (country_of_residence) {
+        let country = getCountryByTitle(country_of_residence, bot.models)
+        if (country) prefill.controllingEntityCountry = country
+      }
+      this.addNatureOfControl(prefill, natures_of_control)
+    },
+    prefillCompany(prefill, bo) {
+      let { address, identification, position, occupation, natures_of_control } = bo.data
+
+      prefill.occupation = occupation || position
+      if (address) {
+        let { country, locality, postal_code, address_line_1 } = address
+        if (country) {
+          country = getCountryByTitle(country, bot.models)
+          if (country) prefill.controllingEntityCountry = country
+        }
+        extend(prefill, {
+          controllingEntityPostalCode: postal_code,
+          controllingEntityStreetAddress: address_line_1,
+          controllingEntityRegion: locality
+        })
+      }
+      if (identification) {
+        let {
+          registration_number,
+          legal_authority,
+          legal_form,
+          country_registered,
+          place_registered
+        } = identification
+        extend(prefill, {
+          controllingEntityCompanyNumber: registration_number,
+          companyType: legal_form
+        })
+      }
+      this.addNatureOfControl(prefill, natures_of_control)
+    },
+    addNatureOfControl(prefill, natures_of_control) {
+      if (!natures_of_control) return
+      let natureOfControl = bot.models['tradle.PercentageOfOwnership'].enum.find(e =>
+        natures_of_control.includes(e.title.toLowerCase().replace(/\s/g, '-'))
+      )
+      if (natureOfControl)
+        prefill.natureOfControl = {
+          id: `tradle.PercentageOfOwnership_${natureOfControl.id}`,
+          title: natureOfControl.title
+        }
     },
     async prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck }) {
       if (!items) items = await Promise.all(forms.map(f => bot.getResource(f.submission)))
@@ -398,22 +478,10 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       for (let i = 0; i < beneficialOwners.length; i++) {
         let bene = beneficialOwners[i]
         let { data } = bene
-        let {
-          name,
-          natures_of_control,
-          kind,
-          address,
-          country_of_residence,
-          date_of_birth,
-          identification,
-          ceased_on,
-          position,
-          occupation
-        } = data
+        let { name, kind, ceased_on } = data
         if (ceased_on) continue
         debugger
         logger.debug('name = ' + name)
-        let registration_number = identification && identification.registration_number
 
         if (items.find(item => item.name === name)) continue
 
@@ -422,72 +490,22 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           // const prefixes = ['mr', 'ms', 'dr', 'mrs', ]
           if (officers && officers.length) {
             let boName = name.toLowerCase().trim()
-            if (
-              officers.find(o => {
-                let oName = o.officer.name.toLowerCase().trim()
-                if (oName === boName) return true
-                // Could be something like 'Dr Anna Smith'
-                if (boName.endsWith(' ' + oName)) return true
-                return false
-                // let prefix = boName.substring(0, idx)
-              })
-            )
-              continue
+            if (officers.find(o => this.compare(o.officer.name, bene))) continue
           }
         } else if (!kind.startsWith('corporate-')) return
         let prefill: any = {
           name
         }
         if (isIndividual) {
-          prefill.dateOfBirth =
-            date_of_birth && new Date(date_of_birth.year, date_of_birth.month).getTime()
-          if (country_of_residence) {
-            let country = getCountryByTitle(country_of_residence, bot.models)
-            if (country) {
-              prefill = {
-                ...prefill,
-                controllingEntityCountry: country
-              }
-            }
-          }
+          this.prefillIndividual(prefill, bene)
+          // prefill.dateOfBirth =
+          //   date_of_birth && new Date(date_of_birth.year, date_of_birth.month).getTime()
+          // if (country_of_residence) {
+          //   let country = getCountryByTitle(country_of_residence, bot.models)
+          //   if (country) prefill.controllingEntityCountry = country
+          // }
         } else {
-          prefill = {
-            ...prefill,
-            occupation: occupation || position,
-            controllingEntityCompanyNumber: registration_number
-          }
-          if (address) {
-            let { country, locality, postal_code, address_line_1 } = address
-            if (country) {
-              country = getCountryByTitle(country, bot.models)
-              if (country) {
-                prefill = {
-                  ...prefill,
-                  controllingEntityCountry: country
-                }
-              }
-            }
-            prefill = {
-              ...prefill,
-              controllingEntityPostalCode: postal_code,
-              controllingEntityStreetAddress: address_line_1,
-              controllingEntityRegion: locality
-            }
-          }
-        }
-        if (identification) {
-          let { legal_authority, legal_form, country_registered, place_registered } = identification
-          if (legal_form) prefill = { ...prefill, companyType: legal_form }
-        }
-        if (natures_of_control) {
-          let natureOfControl = bot.models['tradle.PercentageOfOwnership'].enum.find(e =>
-            natures_of_control.includes(e.title.toLowerCase().replace(/\s/g, '-'))
-          )
-          if (natureOfControl)
-            prefill.natureOfControl = {
-              id: `tradle.PercentageOfOwnership_${natureOfControl.id}`,
-              title: natureOfControl.title
-            }
+          this.prefillCompany(prefill, bene)
         }
         prefill = sanitize(prefill).sanitized
         if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
@@ -592,60 +610,3 @@ const beneTest = [
     }
   }
 ]
-
-//       let personalInfo, legalEntity
-//       if (payload[TYPE] === CONTROLLING_PERSON) {
-//         const tasks = [payload.controllingPerson, payload.legalEntity].map(stub => bot.getResource(stub));
-//         ([personalInfo, legalEntity] = await Promise.all(tasks))
-//       }
-//       else
-//         personalInfo = payload
-
-//       if (!personalInfo.emailAddress) {
-//         logger.error(`controlling person: no email address`)
-//         return
-//       }
-
-//       if (!await hasPropertiesChanged({ resource: payload, bot, propertiesToCheck: ['emailAddress'] }))
-//         return
-
-//       if (payload[TYPE] === PERSONAL_INFO) {
-//         const stubs = getLatestForms(application)
-//         if (!stubs.length)
-//           return
-//         let cp = stubs.filter(s => s.type === CONTROLLING_PERSON)
-//         if (!cp.length)
-//           return
-//         const { items } = await bot.db.find({
-//           filter: {
-//             EQ: {
-//              [TYPE]: CONTROLLING_PERSON,
-//              'controllingPerson._permalink': personalInfo._permalink,
-//             },
-//             IN: {
-//               '_permalink': cp.map(f => f.permalink)
-//             }
-//           }
-//         })
-//         if (!items.length)
-//           return
-//         const controllingPerson = items[0]
-//         legalEntity = await bot.getResource(controllingPerson.legalEntity)
-//       }
-//       logger.error(`controlling person: processing for ${personalInfo.emailAddress}`)
-
-//       // if (personalInfo._prevlink) {
-//       //   let prevR = await bot.objects.get(personalInfo._prevlink)
-//       //   if (prevR  &&  prevR.emailAddress === personalInfo.emailAddress)
-//       //     return
-//       // }
-//       // let invite = await cp._createDraftAndInvite(personalInfo, req)
-
-//       // const stubs = getLatestForms(application)
-//       // const legalEntityStub = stubs.filter(({ type }) => type === LEGAL_ENTITY)
-
-//       // legalEntity = await bot.getResource(legalEntityStub[0])
-//       // applications.createApplicationSubmission({application: draftApplication, submission: payload})
-// debugger
-//       await cp.sendConfirmationEmail({resource: personalInfo, application, legalEntity})
-//     }
