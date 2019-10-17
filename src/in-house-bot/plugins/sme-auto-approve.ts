@@ -153,7 +153,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   const plugin: IPluginLifecycleMethods = {
     didApproveApplication: async (opts: IWillJudgeAppArg, certificate: ITradleObject) => {
       let { application } = opts
-      if (!application || !conf.pairs) return
+      if (!application || !conf.length) return
       let parent = application.parent
       if (!parent) return
       let { requestFor } = application
@@ -161,7 +161,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         parent = await bot.getResource(parent)
       }
 
-      let pairs = conf.pairs.filter(
+      let pairs = conf.filter(
         pair => requestFor === pair.child && parent.requestFor === pair.parent
       )
       if (!pairs.length) return
@@ -179,10 +179,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     onFormsCollected: async ({ req }) => {
       // debugger
       const { application } = req
-      if (!application || !conf.pairs) return
+      if (!application || !conf.length) return
       const { requestFor } = application
 
-      let pairs = conf.pairs.filter(pair => requestFor === pair.parent)
+      let pairs = conf.filter(pair => requestFor === pair.parent)
 
       debugger
       if (pairs.length) {
@@ -193,10 +193,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     async onmessage(req: IPBReq) {
       // debugger
       const { application } = req
-      if (!application || application.parent || !application.forms || !conf.pairs) return
+      if (!application || application.parent || !application.forms || !conf.length) return
       const { requestFor } = application
 
-      let pairs = conf.pairs.filter(pair => requestFor === pair.child)
+      let pairs = conf.filter(pair => requestFor === pair.child)
 
       if (!pairs.length) return
       logger.debug('Child application was submitted')
@@ -226,10 +226,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
   const { models } = bot
   debugger
-  if (!pluginConf.pairs) throw new Error(`there is no 'pairs' in conf`)
-  if (!Array.isArray(pluginConf.pairs)) throw new Error(`'pairs' should be an array in conf`)
-  if (!pluginConf.pairs.length) throw new Error(`'pairs' is empty in conf`)
-  pluginConf.pairs.forEach(pair => {
+  if (!pluginConf) throw new Error(`there is no 'pairs' in conf`)
+  if (!Array.isArray(pluginConf)) throw new Error(`'pairs' should be an array in conf`)
+  if (!pluginConf.length) throw new Error(`'pairs' is empty in conf`)
+  pluginConf.forEach(pair => {
     for (let appType in pair as ISmeConf) {
       let child = pair.child
       if (!child) throw new Error('missing child')
