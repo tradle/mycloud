@@ -1,7 +1,6 @@
 import fetch from 'node-fetch'
 import _ from 'lodash'
 
-import { buildResourceStub } from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
@@ -368,7 +367,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         logger.debug(`creating verification for: ${resource.companyName}`)
       }
       // CHECK PASS
-      if (!message && hits.length === 1) {
+      if (status === 'pass' && hits.length === 1) {
         if (!application.applicantName) application.applicantName = payload.companyName
       }
 
