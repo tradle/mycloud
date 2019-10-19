@@ -2,15 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.3](https://github.com/tradle/mycloud/compare/v2.5.1-rc.2...v2.5.1-rc.3) (2019-10-13)
+## [2.5.1-rc.4](https://github.com/tradle/mycloud/compare/v2.5.1-rc.3...v2.5.1-rc.4) (2019-10-19)
 
 
 ### Features
 
-* KYC refresh project ([768c73d](https://github.com/tradle/mycloud/commit/768c73d))
-* KYC refresh project ([cd0b9b6](https://github.com/tradle/mycloud/commit/cd0b9b6))
-* perform face matching not when were the forms submitted but when all the forms needed for matching were ([6ca35a3](https://github.com/tradle/mycloud/commit/6ca35a3))
-* perform face matching not when were the forms submitted but when all the forms needed for matching were ([bdf75ad](https://github.com/tradle/mycloud/commit/bdf75ad))
+* applicatntName from company name ([98ddb89](https://github.com/tradle/mycloud/commit/98ddb89))
+* cleanup conf for this plugin ([bb02667](https://github.com/tradle/mycloud/commit/bb02667))
+* prefill for subsidiary from CP ([fdeb2a3](https://github.com/tradle/mycloud/commit/fdeb2a3))
+* remove prefill props from the email link;  refactor: code optimizations ([fc17fad](https://github.com/tradle/mycloud/commit/fc17fad))
 
 
 
