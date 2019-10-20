@@ -956,7 +956,7 @@ functions:
   genericJobRunner:
     handler: lib/in-house-bot/lambda/job-runner.handler
     memorySize: 1024
-    timeout: 300
+    timeout: 900
     alarms:
       - functionErrors
       - functionInvocations
