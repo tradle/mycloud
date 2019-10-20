@@ -2,13 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.5](https://github.com/tradle/mycloud/compare/v2.5.1-rc.4...v2.5.1-rc.5) (2019-10-20)
+## [2.5.1-rc.6](https://github.com/tradle/mycloud/compare/v2.5.1-rc.5...v2.5.1-rc.6) (2019-10-20)
 
 
-### Bug Fixes
+### Features
 
-* not all components in check data are present ([28a4ed2](https://github.com/tradle/mycloud/commit/28a4ed2))
-* null values are not sanitized ([2bc4ef3](https://github.com/tradle/mycloud/commit/2bc4ef3))
+* Client action check added ([0b2890d](https://github.com/tradle/mycloud/commit/0b2890d))
 
 
 
