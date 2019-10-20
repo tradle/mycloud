@@ -13,14 +13,14 @@ const TYPES_DIR = TEMP + 'types/'
 const accessKeyId = ''
 const secretAccessKey = ''
 const region = 'us-east-1'
-const BUCKET = 'jacob.gins.athena'
+//const BUCKET = 'jacob.gins.athena'
 
 const OBJECTS_BUCKET = 'tdl-svb-ltd-dev-buckets-wza9q831y5q8-objects-m3rienvohb6a'
 const DATADUMP_FOLDER = 'datadump/' //TODO change to data_export 
 const MARKER = 'marker'
 
 const ATHENA_DB = 'sampledb'
-const ATHENA_OUTPUT_LOCATION = `s3://${BUCKET}/temp/`
+//const ATHENA_OUTPUT_LOCATION = `s3://${BUCKET}/temp/`
 
 const POLL_INTERVAL = 1000
 const TIME_LIMIT = 600000 // 10 min
@@ -133,7 +133,7 @@ export class AthenaFeed {
 
     let idx = 0
     if (dump.includes(DATADUMP_FOLDER + MARKER)) {
-      let last = await this.getFile(targetS3, DATADUMP_FOLDER + MARKER, BUCKET)
+      let last = await this.getFile(targetS3, DATADUMP_FOLDER + MARKER, this.outputLocation)
       this.logger.debug(`last marker ${last}`)
       for (; idx < objectFiles.length; idx++) {
         let obj = objectFiles[idx]
