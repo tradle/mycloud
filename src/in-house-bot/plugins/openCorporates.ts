@@ -430,18 +430,18 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       let company = check.rawData && check.rawData.length && check.rawData[0].company
       if (!company) return
       let { registered_address, company_type, incorporation_date, current_status } = company
-      let prefill: any = {
-        registrationDate: incorporation_date && new Date(incorporation_date).getTime()
-      }
+      let prefill: any = {}
+      if (incorporation_date) prefill.registrationDate = new Date(incorporation_date).getTime()
+      if (company_type) prefill.companyType = company_type.trim()
+
       if (registered_address) {
         let { street_address, locality, postal_code } = registered_address
         _.extend(prefill, {
-          streetAddress: street_address && street_address.trim(),
-          city: locality && locality.trim(),
-          postalCode: postal_code && postal_code.trim()
+          streetAddress: street_address ? street_address.trim() : '',
+          city: locality ? locality.trim() : '',
+          postalCode: postal_code ? postal_code.trim() : ''
         })
       }
-      if (company_type) prefill.companyType = company_type.trim()
 
       prefill = sanitize(prefill).sanitized
       if (!_.size(prefill)) return
