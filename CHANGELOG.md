@@ -2,15 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.4](https://github.com/tradle/mycloud/compare/v2.5.1-rc.3...v2.5.1-rc.4) (2019-10-19)
+## [2.5.1-rc.5](https://github.com/tradle/mycloud/compare/v2.5.1-rc.4...v2.5.1-rc.5) (2019-10-20)
 
 
-### Features
+### Bug Fixes
 
-* applicatntName from company name ([98ddb89](https://github.com/tradle/mycloud/commit/98ddb89))
-* cleanup conf for this plugin ([bb02667](https://github.com/tradle/mycloud/commit/bb02667))
-* prefill for subsidiary from CP ([fdeb2a3](https://github.com/tradle/mycloud/commit/fdeb2a3))
-* remove prefill props from the email link;  refactor: code optimizations ([fc17fad](https://github.com/tradle/mycloud/commit/fc17fad))
+* not all components in check data are present ([28a4ed2](https://github.com/tradle/mycloud/commit/28a4ed2))
+* null values are not sanitized ([2bc4ef3](https://github.com/tradle/mycloud/commit/2bc4ef3))
 
 
 
