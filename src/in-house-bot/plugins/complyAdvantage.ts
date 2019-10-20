@@ -43,7 +43,7 @@ interface IComplyAdvantageConf {
   entity_type?: string
   products: any
   credentials: IComplyAdvantageCredentials
-  propertyMap: any
+  propertyMap?: any
 }
 interface IComplyAdvantageFilter {
   types?: string[]
@@ -69,7 +69,15 @@ class ComplyAdvantageAPI {
     this.logger = logger
   }
 
-  public async getAndProcessData({ pConf, propertyMap, req }) {
+  public async getAndProcessData({
+    pConf,
+    propertyMap,
+    req
+  }: {
+    pConf: any
+    propertyMap?: any
+    req: IPBReq
+  }) {
     let criteria = pConf.filter
     // let companyName, registrationDate
     // let resource = payload
@@ -173,9 +181,7 @@ class ComplyAdvantageAPI {
     let pchecks = []
     let { rawData, hits, status } = r
     if (rawData.status === 'failure') {
-      pchecks.push(
-        this.createCheck({ rawData, status: 'fail', req, aspects })
-      )
+      pchecks.push(this.createCheck({ rawData, status: 'fail', req, aspects }))
     } else {
       let hasVerification
       if (hits && hits.length)
@@ -185,8 +191,7 @@ class ComplyAdvantageAPI {
         this.logger.debug(`${PROVIDER} creating verification for: ${companyName || name}`)
       }
       pchecks.push(this.createCheck({ rawData, status, req, aspects }))
-      if (hasVerification)
-        pchecks.push(this.createVerification({ rawData, req }))
+      if (hasVerification) pchecks.push(this.createVerification({ rawData, req }))
     }
     let checksAndVerifications = await Promise.all(pchecks)
   }
@@ -269,12 +274,7 @@ class ComplyAdvantageAPI {
     return hits && { rawData, status, hits }
   }
 
-  public createCheck = async ({
-    rawData,
-    status,
-    req,
-    aspects
-  }: IComplyCheck) => {
+  public createCheck = async ({ rawData, status, req, aspects }: IComplyCheck) => {
     let dateStr = rawData.updated_at
     let date
     if (dateStr) date = Date.parse(dateStr) - new Date().getTimezoneOffset() * 60 * 1000
@@ -335,7 +335,12 @@ class ComplyAdvantageAPI {
     await this.applications.createVerification({ application, verification })
     this.logger.debug(`${PROVIDER} create verification: ${Date.now() - startDate}`)
     if (application.checks)
-      await this.applications.deactivateChecks({ application, type: SANCTIONS_CHECK, form: payload, req })
+      await this.applications.deactivateChecks({
+        application,
+        type: SANCTIONS_CHECK,
+        form: payload,
+        req
+      })
   }
 }
 // {conf, bot, productsAPI, logger}
@@ -362,14 +367,14 @@ export const createPlugin: CreatePlugin<void> = (
         pConf = forms[ptype]
         await complyAdvantage.getAndProcessData({
           pConf,
-          propertyMap: null,
           req
         })
         return
       } else return
 
-      let propertyMap = pConf.propertyMap[ptype]
+      let propertyMap = pConf.propertyMap && pConf.propertyMap[ptype]
       if (!isPersonForm(payload) && !propertyMap) return
+      if (propertyMap && !_.size(propertyMap)) propertyMap = null
 
       // if (!isPersonForm(payload) && payload[TYPE] !== LEGAL_ENTITY) return
 

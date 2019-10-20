@@ -74,7 +74,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (coef) {
         let weight = weights.countries
         score -= initialValue * weight * coef
-        if (requestFor === CP_ONBOARDING) return
+        if (requestFor === CP_ONBOARDING) {
+          application.score = Math.round(score)
+          await this.checkParent(application)
+          return
+        }
       }
       let { latestChecks } = req
       let checks = latestChecks || application.checks
@@ -83,7 +87,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       )
       if (!checks) {
         application.score = Math.round(score)
-        this.checkParent(application)
+        await this.checkParent(application)
         return
       }
       if (!latestChecks) {

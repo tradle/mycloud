@@ -1,7 +1,6 @@
 import fetch from 'node-fetch'
 import _ from 'lodash'
 
-import { buildResourceStub } from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
@@ -125,15 +124,24 @@ class OpenCorporatesAPI {
       companies = json.results.companies
       hasHits = json.results.companies.length
     }
-    let wrongNumber, foundNumber, wrongCountry, foundCountry, wrongDate, foundDate
+    let foundCompanyName, foundNumber, foundCountry, foundDate
+    let rightCompanyName, rightNumber, rightCountry, rightDate
     let message
     companies = companies.filter(c => {
-      if (c.company.inactive) return false
-      if (c.company.company_number !== registrationNumber) {
-        let companyNumber = c.company.company_number.replace(/^0+/, '')
+      let {
+        inactive,
+        incorporation_date,
+        company_number,
+        name,
+        jurisdiction_code,
+        alternative_names
+      } = c.company
+      if (inactive) return false
+      if (company_number !== registrationNumber) {
+        let companyNumber = company_number.replace(/^0+/, '')
         let regNumber = registrationNumber.replace(/^0+/, '')
         if (companyNumber !== regNumber) {
-          wrongNumber = true
+          rightNumber = company_number
           return false
         }
       }
@@ -141,8 +149,8 @@ class OpenCorporatesAPI {
       if (registrationDate) {
         // &&  new Date(c.company.incorporation_date).getFullYear() !== new Date(registrationDate).getFullYear()) {
         let regDate = toISODateString(registrationDate)
-        if (regDate !== c.company.incorporation_date) {
-          if (!foundDate) wrongDate = true
+        if (regDate !== incorporation_date) {
+          if (!foundDate) rightDate = incorporation_date
           return false
         }
       }
@@ -154,39 +162,75 @@ class OpenCorporatesAPI {
       //     return false
       // }
       // else
-      if (c.company.jurisdiction_code.indexOf(countryCode.toLowerCase()) === -1) {
-        wrongCountry = true
+      if (jurisdiction_code.indexOf(countryCode.toLowerCase()) === -1) {
+        rightCountry = jurisdiction_code
         return false
       }
       foundCountry = true
+      let cName = companyName.toLowerCase()
+      if (name.toLowerCase() !== cName) {
+        if (
+          !alternative_names ||
+          !alternative_names.length ||
+          !alternative_names.filter(name => name.toLowerCase === companyName)
+        ) {
+          let rParts = cName.split(' ')
+          let fParts = name.toLowerCase().split(' ')
+          let commonParts = rParts.filter(p => fParts.includes(p))
+          rightCompanyName = name
+          if (!commonParts.length) return false
+        }
+      }
+      foundCompanyName = true
       return true
     })
 
     // no matches for company name XYZ with registration number ABC. Either or both may contain an error
     if (!companies.length) {
-      if (!foundNumber && wrongNumber) {
+      if (!foundNumber && rightNumber) {
         message = `No matches for company name "${companyName}" `
         if (registrationNumber) message += `with the registration number "${registrationNumber}" `
         message += 'were found'
-      } else if (!foundDate && wrongDate)
-        message = `The company with the name "${companyName}" and registration number "${registrationNumber}" has a different registration date`
-      else if (!foundCountry && wrongCountry)
+      } else if (!foundDate && rightDate)
+        message = `The company with the name "${companyName}" and registration number "${registrationNumber}" has a different registration date: ${rightDate}`
+      else if (!foundCountry && rightCountry)
         message = `The company with the name "${companyName}" and registration number "${registrationNumber}" registered on ${toISODateString(
           registrationDate
         )} was not found in "${country}"`
+      else if (!foundCompanyName && rightCompanyName)
+        message = `The company name "${companyName}" is different from the found one ${rightCompanyName} which corresponds to registration number "${registrationNumber}"`
+    } else {
+      if ((foundDate && registrationDate) || foundCountry)
+        message = 'The following aspects matched:'
+      if (foundCompanyName && companyName && !rightCompanyName) message += `\nCompany name`
+      if (foundDate && registrationDate) message += `\nRegistration date`
+      if (foundCountry && !rightCompanyName) message += `\nCountry of registration`
+      if (rightCompanyName) {
+        message += `\n\nWarning: Company name is not the exact match: ${companyName} vs. ${rightCompanyName}`
+      }
     }
     if (companies.length === 1) url = companies[0].company.opencorporates_url
     return {
       rawData: (companies.length && json.results) || json,
       message,
       hits: companies,
+      status: companies.length ? 'pass' : 'fail',
       url
     }
   }
-  public createCorporateCheck = async ({ application, rawData, message, hits, url, form, req }) => {
+  public createCorporateCheck = async ({
+    application,
+    rawData,
+    status,
+    message,
+    hits,
+    url,
+    form,
+    req
+  }) => {
     let checkR: any = {
       [TYPE]: CORPORATION_EXISTS,
-      status: (!message && hits.length === 1 && 'pass') || 'fail',
+      status: status || (!message && hits.length === 1 && 'pass') || 'fail',
       provider: OPEN_CORPORATES,
       application,
       dateChecked: Date.now(),
@@ -306,13 +350,14 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         rawData: object
         message?: string
         hits: any
+        status?: string
         url: string
       } = await openCorporates._fetch(resource, application)
 
       let pchecks = []
 
       // result.forEach((r: {resource:any, rawData:object, message?: string, hits: any, url:string}) => {
-      let { rawData, message, hits, url } = r
+      let { rawData, message, hits, url, status } = r
       let hasVerification
       if (!hits || !hits.length) logger.debug(`found no corporates for: ${resource.companyName}`)
       else if (hits.length > 1)
@@ -322,7 +367,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         logger.debug(`creating verification for: ${resource.companyName}`)
       }
       // CHECK PASS
-      if (!message && hits.length === 1) {
+      if (status === 'pass' && hits.length === 1) {
         if (!application.applicantName) application.applicantName = payload.companyName
       }
 
@@ -334,6 +379,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
           hits,
           url,
           form: payload,
+          status,
           req
         })
       )
@@ -384,18 +430,18 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       let company = check.rawData && check.rawData.length && check.rawData[0].company
       if (!company) return
       let { registered_address, company_type, incorporation_date, current_status } = company
-      let prefill: any = {
-        registrationDate: incorporation_date && new Date(incorporation_date).getTime()
-      }
+      let prefill: any = {}
+      if (incorporation_date) prefill.registrationDate = new Date(incorporation_date).getTime()
+      if (company_type) prefill.companyType = company_type.trim()
+
       if (registered_address) {
         let { street_address, locality, postal_code } = registered_address
         _.extend(prefill, {
-          streetAddress: street_address && street_address.trim(),
-          city: locality && locality.trim(),
-          postalCode: postal_code && postal_code.trim()
+          streetAddress: street_address ? street_address.trim() : '',
+          city: locality ? locality.trim() : '',
+          postalCode: postal_code ? postal_code.trim() : ''
         })
       }
-      if (company_type) prefill.companyType = company_type.trim()
 
       prefill = sanitize(prefill).sanitized
       if (!_.size(prefill)) return
@@ -518,25 +564,4 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
 //     }
 //   }
 //   return { resource, rawData: json.results, hits: companies, url }
-// }
-// async getCheckParameters (resource) {
-//   let map = this.conf.propertyMap[resource[TYPE]]
-//   let dbRes = resource._prevlink  &&  await this.bot.objects.get(resource._prevlink)
-//   let runCheck = !dbRes
-
-//   let r:any = {}
-
-//   for (let prop in defaultPropMap) {
-//     let p = map  &&  map[prop]
-//     if (!p)
-//       p = prop
-//     let pValue = resource[p]
-//     if (dbRes  &&  dbRes[p] !== pValue)
-//       runCheck = true
-//     r[prop] = pValue
-//   }
-//   debugger
-//   if (runCheck)
-//     return r
-//   this.logger.debug(`nothing changed for: ${title({resource, models: this.bot.models})}`)
 // }

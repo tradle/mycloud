@@ -197,11 +197,11 @@ export const loadComponentsAndPlugins = ({
   conf,
   event = ''
 }: {
-    bot: Bot
-    logger: Logger
-    conf: IConfComponents
-    event?: string
-  }): IBotComponents => {
+  bot: Bot
+  logger: Logger
+  conf: IConfComponents
+  event?: string
+}): IBotComponents => {
   const {
     enabled,
     maximumApplications,
@@ -268,11 +268,11 @@ export const loadComponentsAndPlugins = ({
     requiresConf = true,
     prepend
   }: {
-      name: string
-      componentName?: string
-      requiresConf?: boolean
-      prepend?: boolean
-    }) => {
+    name: string
+    componentName?: string
+    requiresConf?: boolean
+    prepend?: boolean
+  }) => {
     const pConf = getPluginConf(name)
     if (requiresConf) {
       const hasConf = !!pConf
@@ -287,7 +287,7 @@ export const loadComponentsAndPlugins = ({
     let api
     let plugin
     try {
-      ; ({ api, plugin } = Plugins.get(name).createPlugin(components, {
+      ;({ api, plugin } = Plugins.get(name).createPlugin(components, {
         conf: pConf,
         logger: logger.sub(`plugin-${name}`)
       }))
@@ -484,24 +484,6 @@ export const loadComponentsAndPlugins = ({
       )
     ) // prepend
 
-    if (
-      plugins.termsAndConditions &&
-      plugins.termsAndConditions.enabled &&
-      conf.termsAndConditions
-    ) {
-      const tcPlugin = createTsAndCsPlugin({
-        termsAndConditions: conf.termsAndConditions,
-        productsAPI,
-        employeeManager,
-        get remediation() {
-          return components.remediation
-        },
-        logger: logger.sub('plugin-ts-and-cs')
-      })
-
-      productsAPI.plugins.use(tcPlugin, true) // prepend
-    }
-
     if (conf.style) {
       const keepStylesFresh = keepFreshPlugin({
         object: conf.style,
@@ -510,6 +492,7 @@ export const loadComponentsAndPlugins = ({
       })
 
       productsAPI.plugins.use(keepStylesFresh, true) // prepend
+      // productsAPI.plugins.use(keepStylesFresh, true) // prepend
     }
 
     const keepProductListFresh = keepFreshPlugin({
@@ -537,6 +520,25 @@ export const loadComponentsAndPlugins = ({
 
     productsAPI.plugins.use(keepProductListFresh, true) // prepend
     productsAPI.plugins.use(keepModelsFresh, true) // prepend
+
+    if (
+      plugins.termsAndConditions &&
+      plugins.termsAndConditions.enabled &&
+      conf.termsAndConditions
+    ) {
+      const tcPlugin = createTsAndCsPlugin({
+        termsAndConditions: conf.termsAndConditions,
+        productsAPI,
+        employeeManager,
+        get remediation() {
+          return components.remediation
+        },
+        logger: logger.sub('plugin-ts-and-cs')
+      })
+
+      productsAPI.plugins.use(tcPlugin, true) // prepend
+    }
+
     productsAPI.plugins.use(approveWhenTheTimeComes(components))
     productsAPI.plugins.use(banter(components))
     productsAPI.plugins.use(sendModelsPackToNewEmployees(components))
@@ -675,6 +677,8 @@ export const loadComponentsAndPlugins = ({
       'cibiChecker',
       'gdcChecker',
       'sme-auto-approve',
+      'sme-onboarding',
+      'controllingEntityValidation',
       'facetecZoom',
       'finastra',
       'document-ocr',
@@ -683,12 +687,9 @@ export const loadComponentsAndPlugins = ({
       'pscCheck',
       'riskScore'
     ].forEach(name => attachPlugin({ name }))
-      ;[
-        'hand-sig',
-        'documentValidity',
-        'fill-myproduct',
-        'checkOverride'
-      ].forEach(name => attachPlugin({ name, requiresConf: false }))
+    ;['hand-sig', 'documentValidity', 'fill-myproduct', 'checkOverride'].forEach(name =>
+      attachPlugin({ name, requiresConf: false })
+    )
 
     // used for some demo
     // ;[
@@ -875,8 +876,7 @@ const banter = (components: IBotComponents) => {
     if (message[0] === '/') return
     // if (application && application.relationshipManagers && application.relationshipManagers.length)
     // if (application && application.reviewer)
-    if (application && application.analyst)
-      return
+    if (application && application.analyst) return
 
     if (/^(?:hey|hi|hello)$/i.test(message)) {
       await productsAPI.send({

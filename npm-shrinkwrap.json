@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "2.5.0",
+  "version": "2.5.1-rc.5",
   "dependencies": {
     "@aws/dynamodb-auto-marshaller": {
       "version": "0.4.1",
@@ -192,7 +192,7 @@
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
       "from": "tradle/bot-employee-manager",
-      "resolved": "git://github.com/tradle/bot-employee-manager.git#86a825c879b876efe14b2d2496ab94f2f7267400"
+      "resolved": "git://github.com/tradle/bot-employee-manager.git#071f089b5f985e3d8fe8668ffe879cc94eff024f"
     },
     "@tradle/bot-products": {
       "version": "1.0.0",
@@ -391,7 +391,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#5bfb3e52a79940c3f9dbfa5059177e9bfdfa1579"
+      "resolved": "git://github.com/tradle/models.git#024c86b4e2e8863aa05bd8e73d7fac2ea8f08e79"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
@@ -406,7 +406,7 @@
     "@tradle/models-corporate-onboarding": {
       "version": "1.0.0",
       "from": "tradle/models-corporate-onboarding",
-      "resolved": "git://github.com/tradle/models-corporate-onboarding.git#01ff3b0571762793e9ccd36c13031a3f4de8329e"
+      "resolved": "git://github.com/tradle/models-corporate-onboarding.git#380e78fa90b9905c9f4385bc4c725f408f641ca5"
     },
     "@tradle/models-nz": {
       "version": "1.0.0",
@@ -513,9 +513,9 @@
       "resolved": "https://registry.npmjs.org/@tradle/utils/-/utils-1.3.0.tgz"
     },
     "@tradle/validate-model": {
-      "version": "7.1.12",
-      "from": "@tradle/validate-model@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/validate-model/-/validate-model-7.1.12.tgz"
+      "version": "7.1.13",
+      "from": "@tradle/validate-model@7.1.13",
+      "resolved": "https://registry.npmjs.org/@tradle/validate-model/-/validate-model-7.1.13.tgz"
     },
     "@tradle/validate-resource": {
       "version": "4.3.4",

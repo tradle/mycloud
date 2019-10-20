@@ -14,6 +14,7 @@ import {
   Applications,
   Logger
 } from '../types'
+import { getAssociateResources } from '../utils'
 
 const CP = 'tradle.legal.LegalEntityControllingPerson'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
@@ -51,8 +52,10 @@ export class SmeAutoApprove {
   public checkCPs = async application => {
     let aApp,
       checkIfAllFormsSubmitted = true
-    if (application.parent) aApp = await this.getAssociatedResource(application)
-    else {
+    if (application.parent) {
+      aApp = await getAssociateResources({ application, bot: this.bot, applicationOnly: true })
+      aApp = aApp.parentApplication
+    } else {
       aApp = application
       checkIfAllFormsSubmitted = false
     }
@@ -84,7 +87,7 @@ export class SmeAutoApprove {
       filter: {
         EQ: {
           [TYPE]: PRODUCT_REQUEST,
-          associatedResource: aApp._permalink
+          parentApplication: aApp._permalink
         }
       }
     })
@@ -142,21 +145,6 @@ export class SmeAutoApprove {
 
     await this.applications.approve({ application: aApp })
   }
-  public getAssociatedResource = async application => {
-    const pr: ITradleObject = await this.bot.getResource(application.request)
-    const associatedResource = pr.associatedResource
-    if (!associatedResource) return
-    // const asociatedApplication = await this.bot.getResource(associatedResource, {backlinks: ['forms']})
-    const associatedApplication = await this.bot.db.find({
-      filter: {
-        EQ: {
-          [TYPE]: APPLICATION,
-          _permalink: associatedResource
-        }
-      }
-    })
-    return associatedApplication && associatedApplication.items && associatedApplication.items[0]
-  }
 }
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
@@ -165,7 +153,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   const plugin: IPluginLifecycleMethods = {
     didApproveApplication: async (opts: IWillJudgeAppArg, certificate: ITradleObject) => {
       let { application } = opts
-      if (!application || !conf.pairs) return
+      if (!application || !conf.length) return
       let parent = application.parent
       if (!parent) return
       let { requestFor } = application
@@ -173,7 +161,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         parent = await bot.getResource(parent)
       }
 
-      let pairs = conf.pairs.filter(
+      let pairs = conf.filter(
         pair => requestFor === pair.child && parent.requestFor === pair.parent
       )
       if (!pairs.length) return
@@ -191,10 +179,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     onFormsCollected: async ({ req }) => {
       // debugger
       const { application } = req
-      if (!application || !conf.pairs) return
+      if (!application || !conf.length) return
       const { requestFor } = application
 
-      let pairs = conf.pairs.filter(pair => requestFor === pair.parent)
+      let pairs = conf.filter(pair => requestFor === pair.parent)
 
       debugger
       if (pairs.length) {
@@ -205,21 +193,29 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     async onmessage(req: IPBReq) {
       // debugger
       const { application } = req
-      if (!application || application.parent || !application.forms || !conf.pairs) return
+      if (!application || application.parent || !application.forms || !conf.length) return
       const { requestFor } = application
 
-      let pairs = conf.pairs.filter(pair => requestFor === pair.child)
+      let pairs = conf.filter(pair => requestFor === pair.child)
 
       if (!pairs.length) return
       logger.debug('Child application was submitted')
-      let parentApp = await autoApproveAPI.getAssociatedResource(application)
+      let { parentApp, associatedRes } = await getAssociateResources({ application, bot })
       if (!parentApp) return
       // pairs = pairs.find(pair => pair.parent === parentApp.requestFor)
       // if (!pairs)
       //   return
       // debugger
       // application.parent = parentApp
-      application.parent = buildResourceStub({ resource: parentApp, models: bot.models })
+      let stub = buildResourceStub({ resource: parentApp, models: bot.models })
+      application.parent = stub
+      application.top = parentApp.top || stub
+
+      application.associatedResource = buildResourceStub({
+        resource: associatedRes,
+        models: bot.models
+      })
+
       debugger
     }
   }
@@ -230,10 +226,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
   const { models } = bot
   debugger
-  if (!pluginConf.pairs) throw new Error(`there is no 'pairs' in conf`)
-  if (!Array.isArray(pluginConf.pairs)) throw new Error(`'pairs' should be an array in conf`)
-  if (!pluginConf.pairs.length) throw new Error(`'pairs' is empty in conf`)
-  pluginConf.pairs.forEach(pair => {
+  if (!pluginConf) throw new Error(`there is no 'pairs' in conf`)
+  if (!Array.isArray(pluginConf)) throw new Error(`'pairs' should be an array in conf`)
+  if (!pluginConf.length) throw new Error(`'pairs' is empty in conf`)
+  pluginConf.forEach(pair => {
     for (let appType in pair as ISmeConf) {
       let child = pair.child
       if (!child) throw new Error('missing child')

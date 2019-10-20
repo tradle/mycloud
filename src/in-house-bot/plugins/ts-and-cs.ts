@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
-import { DatedValue, ValidatePluginConf } from '../types'
+import { DatedValue, ValidatePluginConf, IPBReq } from '../types'
 import Logger from '../../logger'
 import { Remediation } from '../remediation'
 
@@ -12,32 +12,25 @@ const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
 const DATA_CLAIM = 'tradle.DataClaim'
 const UPDATE_RESPONSE = 'tradle.cloud.UpdateResponse'
 const YOU_HAVENT_ACCEPTED = `Please accept our Terms and Conditions before we continue :-)`
-const ALLOW_WITHOUT_ACCEPTING = [
-  DATA_CLAIM,
-  UPDATE_RESPONSE,
-]
+const ALLOW_WITHOUT_ACCEPTING = [DATA_CLAIM, UPDATE_RESPONSE]
 
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
-const TERMS_AND_CONDITIONS_FIRST_TIME = 'Hi! Before we begin this beautiful friendship, please review our Terms and Conditions'
-const TERMS_AND_CONDITIONS_NTH_TIME = 'Our Terms and Conditions have changed. Please review them before continuing'
+const TERMS_AND_CONDITIONS_FIRST_TIME =
+  'Hi! Before we begin this beautiful friendship, please review our Terms and Conditions'
+const TERMS_AND_CONDITIONS_NTH_TIME =
+  'Our Terms and Conditions have changed. Please review them before continuing'
 
 export const name = 'termsAndConditions'
 export const createPlugin = (components: {
-  logger: Logger,
-  productsAPI: any,
-  employeeManager: any,
-  remediation?: Remediation,
+  logger: Logger
+  productsAPI: any
+  employeeManager: any
+  remediation?: Remediation
   termsAndConditions: DatedValue
 }) => {
-  const onmessage = async (req) => {
+  const onmessage = async req => {
     // destructure here instead of in createPlugin, because some may be defined lazily
-    const {
-      logger,
-      productsAPI,
-      employeeManager,
-      remediation,
-      termsAndConditions
-    } = components
+    const { logger, productsAPI, employeeManager, remediation, termsAndConditions } = components
 
     const { user, payload, type, application } = req
     if (user.friend || employeeManager.isEmployee(user)) return
@@ -58,8 +51,10 @@ export const createPlugin = (components: {
 
     // HACKERONI END
 
-    if (type === TERMS_AND_CONDITIONS &&
-      payload.termsAndConditions.trim() === termsAndConditions.value.trim()) {
+    if (
+      type === TERMS_AND_CONDITIONS &&
+      payload.termsAndConditions.trim() === termsAndConditions.value.trim()
+    ) {
       logger.debug(`updating ${user.id}.${DATE_ACCEPTED_PROP}`)
       _.set(user, DATE_ACCEPTED_PROP, Date.now())
       // await productsAPI.send({
@@ -76,6 +71,7 @@ export const createPlugin = (components: {
     }
 
     const accepted = await ensureAccepted({
+      req,
       termsAndConditions,
       user,
       productsAPI,
@@ -105,6 +101,7 @@ export const createPlugin = (components: {
 }
 
 export const ensureAccepted = async ({
+  req,
   termsAndConditions,
   user,
   productsAPI,
@@ -114,6 +111,7 @@ export const ensureAccepted = async ({
   user: any
   productsAPI: any
   logger: Logger
+  req: IPBReq
 }) => {
   const dateAccepted = _.get(user, DATE_ACCEPTED_PROP)
   if (dateAccepted && dateAccepted > termsAndConditions.lastModified) {
@@ -126,6 +124,7 @@ export const ensureAccepted = async ({
   logger.debug(`requesting ${user.id} to accept T's and C's`)
   await productsAPI.requestItem({
     user,
+    req,
     item: {
       form: 'tradle.TermsAndConditions',
       message: dateAccepted ? TERMS_AND_CONDITIONS_NTH_TIME : TERMS_AND_CONDITIONS_FIRST_TIME,
@@ -139,7 +138,7 @@ export const ensureAccepted = async ({
   return false
 }
 
-export const validateConf:ValidatePluginConf = async ({ pluginConf }) => {
+export const validateConf: ValidatePluginConf = async ({ pluginConf }) => {
   if ('enabled' in pluginConf) {
     if (typeof pluginConf.enabled !== 'boolean') {
       throw new Error('expected boolean "enabled"')
