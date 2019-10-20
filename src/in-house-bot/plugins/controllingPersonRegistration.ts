@@ -377,6 +377,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
     compare(officerName, bo) {
       let { name, name_elements } = bo.data
+      if (!name && !name_elements) return false
       officerName = officerName.toLowerCase().trim()
       if (name_elements) {
         let nameElms: any = {}
