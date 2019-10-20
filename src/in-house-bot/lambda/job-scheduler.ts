@@ -59,7 +59,7 @@ const COMMON_JOBS: Job[] = [
   {
     name: 'exportObjectsToAthena',
     function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: 60 * MINUTE,
+    period: 30 * MINUTE,
   },
   // {
   //   name: 'documentChecker',
