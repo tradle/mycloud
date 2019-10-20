@@ -13,6 +13,7 @@ import Errors from '../../errors'
 import { IBotComponents, Seal, Job, LowFundsInput } from '../types'
 import { sendConfirmedSeals } from '../utils'
 import { DEFAULT_WARMUP_EVENT, TYPES } from '../../constants'
+import { AthenaFeed } from './athenafeed'
 // import { Deployment } from '../deployment'
 
 const SAFETY_MARGIN_MILLIS = 20000
@@ -23,6 +24,15 @@ type ExecInput = {
 }
 
 type Executor = (opts: ExecInput) => Promise<any | void>
+
+export const exportObjectsToAthena: Executor = async ({ job, components }) => {
+  let feeder = new AthenaFeed(components.bot)
+  try {
+    await feeder.objectsDump()
+  } catch (err) {
+    components.bot.logger.error('job exportObjectsToAthena failed', err)
+  }
+}
 
 export const warmup: Executor = async ({ job, components }) => {
   await components.bot.lambdaWarmup.warmUp({

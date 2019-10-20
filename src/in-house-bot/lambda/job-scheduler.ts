@@ -17,7 +17,7 @@ const lambda = fromSchedule({ event: LambdaEvents.SCHEDULER })
 const { bot } = lambda
 
 const MINUTE = 60
-const COMMON_JOBS:Job[] = [
+const COMMON_JOBS: Job[] = [
   {
     name: 'warmup',
     function: WARMUP_FUNCTION,
@@ -55,6 +55,11 @@ const COMMON_JOBS:Job[] = [
     name: 'checkFailedSeals',
     function: DEFAULT_JOB_RUNNER_FUNCTION,
     period: 17 * MINUTE,
+  },
+  {
+    name: 'exportObjectsToAthena',
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
+    period: 60 * MINUTE,
   },
   // {
   //   name: 'documentChecker',
