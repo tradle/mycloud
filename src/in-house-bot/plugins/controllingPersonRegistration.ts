@@ -22,6 +22,8 @@ const CE_ONBOARDING = 'tradle.legal.LegalEntityProduct'
 const SHORT_TO_LONG_URL_MAPPING = 'tradle.ShortToLongUrlMapping'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
+const CLIENT_ACTION_REQUIRED_CHECK = 'tradle.ClientActionRequiredCheck'
+
 const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
 const CHECK_STATUS = 'tradle.Status'
 const COUNTRY = 'tradle.Country'
@@ -288,7 +290,10 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (!checks) return
 
       let stubs = checks.filter(
-        check => check[TYPE] === CORPORATION_EXISTS || check[TYPE] === BENEFICIAL_OWNER_CHECK
+        check =>
+          check[TYPE] === CORPORATION_EXISTS ||
+          check[TYPE] === BENEFICIAL_OWNER_CHECK ||
+          check[TYPE] === CLIENT_ACTION_REQUIRED_CHECK
       )
       if (!stubs.length) return
       logger.debug('found ' + stubs.length + ' checks')
@@ -299,12 +304,22 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       result = uniqBy(result, TYPE)
       let check = result.find(c => c[TYPE] === CORPORATION_EXISTS)
       let pscCheck = result.find(c => c[TYPE] === BENEFICIAL_OWNER_CHECK)
+      let carCheck = result.find(c => c[TYPE] === CLIENT_ACTION_REQUIRED_CHECK)
 
       let forms = application.forms.filter(form => form.submission[TYPE] === CONTROLLING_PERSON)
       let officers, items
       if (check.status.id !== `${CHECK_STATUS}_pass`) {
         if (pscCheck && pscCheck.status.id === `${CHECK_STATUS}_pass`)
           await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
+        if (carCheck && carCheck.status.id === `${CHECK_STATUS}_pass`)
+          await this.prefillBeneficialOwner({
+            items,
+            forms,
+            officers,
+            formRequest,
+            pscCheck: carCheck
+          })
+
         return
       }
 
@@ -334,7 +349,16 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         }
       }
       if (!officer) {
-        await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
+        if (pscCheck && pscCheck.status.id === `${CHECK_STATUS}_pass`)
+          await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
+        if (carCheck && carCheck.status.id === `${CHECK_STATUS}_pass`)
+          await this.prefillBeneficialOwner({
+            items,
+            forms,
+            officers,
+            formRequest,
+            pscCheck: carCheck
+          })
         return
       }
       let { name, inactive, start_date, end_date, occupation } = officer

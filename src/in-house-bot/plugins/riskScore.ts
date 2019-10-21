@@ -34,7 +34,6 @@
 import _ from 'lodash'
 // import validateResource from '@tradle/validate-resource'
 import { TYPE } from '@tradle/constants'
-import { buildResourceStub } from '@tradle/build-resource'
 import {
   Bot,
   CreatePlugin,
