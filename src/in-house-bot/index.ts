@@ -678,6 +678,7 @@ export const loadComponentsAndPlugins = ({
       'gdcChecker',
       'sme-auto-approve',
       'sme-onboarding',
+      'new-bo-simulation',
       'controllingEntityValidation',
       'facetecZoom',
       'finastra',
