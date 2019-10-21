@@ -2,12 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.6](https://github.com/tradle/mycloud/compare/v2.5.1-rc.5...v2.5.1-rc.6) (2019-10-20)
-
-
-### Features
-
-* Client action check added ([0b2890d](https://github.com/tradle/mycloud/commit/0b2890d))
+## [2.5.1-rc.7](https://github.com/tradle/mycloud/compare/v2.5.1-rc.6...v2.5.1-rc.7) (2019-10-21)
 
 
 
