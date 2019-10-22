@@ -20,7 +20,6 @@ import validateResource from '@tradle/validate-resource'
 
 import { appLinks } from '../../app-links'
 
-const CE_ONBOARDING = 'tradle.legal.LegalEntityProduct'
 const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 
 const BO_SIMULATION = 'tradle.BeneficialOwnerSimulation'
@@ -33,7 +32,7 @@ const DEAR_CUSTOMER = 'Dear Customer'
 const DEFAULT_SMS_GATEWAY = 'sns'
 type SMSGatewayName = 'sns'
 
-const CE_ONBOARD_MESSAGE = 'New BO onboarding'
+const BO_ONBOARD_MESSAGE = 'New BO onboarding'
 
 const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
   template: 'action',
@@ -126,7 +125,7 @@ class NewBOSimulationAPI {
     this.logger = logger
     this.applications = applications
   }
-  public async sendConfirmationEmail({ resource, payload }) {
+  public async sendConfirmationEmail({ resource, payload, product }) {
     let emailAddress = resource.companyEmail
 
     this.logger.debug('controlling person: preparing to send invite') // to ${emailAddress} from ${this.conf.senderEmail}`)
@@ -139,7 +138,7 @@ class NewBOSimulationAPI {
       host,
       name: DEAR_CUSTOMER,
       orgName: this.org.name,
-      product: CE_ONBOARDING
+      product
     })
 
     debugger
@@ -148,7 +147,7 @@ class NewBOSimulationAPI {
         from: this.conf.senderEmail,
         to: [emailAddress],
         format: 'html',
-        subject: `${CE_ONBOARD_MESSAGE} - ${payload.firstName} ${payload.lastName}`,
+        subject: `${BO_ONBOARD_MESSAGE} - ${payload.firstName} ${payload.lastName}`,
         body
       })
     } catch (err) {
@@ -166,7 +165,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
   const cp = new NewBOSimulationAPI({ bot, conf, org, logger, applications })
   const plugin: IPluginLifecycleMethods = {
     async onmessage(req) {
-      const { user, application, payload } = req
+      const { application, payload } = req
       if (!application) return
       debugger
       let ptype = payload[TYPE]
@@ -223,7 +222,13 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       await applications.createCheck(checkR, req)
 
-      await cp.sendConfirmationEmail({ resource: legalEntity, payload })
+      await cp.sendConfirmationEmail({
+        resource: legalEntity,
+        payload,
+        product: le_application.requestFor
+      })
+      // le_application.status = 'started'
+      // await applications.`updateA`pplication(le_application)
     },
     async willRequestForm({ req, application, formRequest }) {
       if (!application) return
