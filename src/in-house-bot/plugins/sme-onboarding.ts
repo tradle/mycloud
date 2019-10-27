@@ -15,7 +15,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   const plugin: IPluginLifecycleMethods = {
     async willRequestForm({ req, application, formRequest }) {
       if (!application) return
-      debugger
 
       let { form } = formRequest
       if (form !== LEGAL_ENTITY) return
