@@ -61,6 +61,11 @@ const COMMON_JOBS: Job[] = [
     function: DEFAULT_JOB_RUNNER_FUNCTION,
     period: 30 * MINUTE,
   },
+  {
+    name: 'importPsc',
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
+    period: 60 * MINUTE,
+  },
   // {
   //   name: 'documentChecker',
   //   function: DEFAULT_JOB_RUNNER_FUNCTION,

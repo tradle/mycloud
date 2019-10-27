@@ -14,6 +14,7 @@ import { IBotComponents, Seal, Job, LowFundsInput } from '../types'
 import { sendConfirmedSeals } from '../utils'
 import { DEFAULT_WARMUP_EVENT, TYPES } from '../../constants'
 import { AthenaFeed } from './athenafeed'
+import { ImportPsc } from './importPsc'
 // import { Deployment } from '../deployment'
 
 const SAFETY_MARGIN_MILLIS = 20000
@@ -31,6 +32,15 @@ export const exportObjectsToAthena: Executor = async ({ job, components }) => {
     await feeder.objectsDump()
   } catch (err) {
     components.bot.logger.error('job exportObjectsToAthena failed', err)
+  }
+}
+
+export const importPsc: Executor = async ({ job, components }) => {
+  let importer = new ImportPsc(components.bot)
+  try {
+    importer.movePSC()
+  } catch (err) {
+    components.bot.logger.error('job pscImport failed', err)
   }
 }
 

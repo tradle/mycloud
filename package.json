@@ -255,6 +255,7 @@
     "time-require": "^0.1.2",
     "tslib": "^1.9.0",
     "typeforce": "^1.11.1",
+    "unzipper": "^0.10.5",
     "uuid": "^3.1.0",
     "xml2js": "^0.4.19",
     "xml2js-parser": "^1.1.1",
