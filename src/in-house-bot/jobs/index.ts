@@ -15,6 +15,7 @@ import { sendConfirmedSeals } from '../utils'
 import { DEFAULT_WARMUP_EVENT, TYPES } from '../../constants'
 import { AthenaFeed } from './athenafeed'
 import { ImportPsc } from './importPsc'
+import { ImportRefdata } from './importRefdata'
 // import { Deployment } from '../deployment'
 
 const SAFETY_MARGIN_MILLIS = 20000
@@ -40,9 +41,19 @@ export const importPsc: Executor = async ({ job, components }) => {
   try {
     importer.movePSC()
   } catch (err) {
-    components.bot.logger.error('job pscImport failed', err)
+    components.bot.logger.error('job importPsc failed', err)
   }
 }
+
+export const importRefdata: Executor = async ({ job, components }) => {
+  let importer = new ImportRefdata(components.bot)
+  try {
+    importer.move()
+  } catch (err) {
+    components.bot.logger.error('job importRefdata failed', err)
+  }
+}
+
 
 export const warmup: Executor = async ({ job, components }) => {
   await components.bot.lambdaWarmup.warmUp({
