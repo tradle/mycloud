@@ -184,7 +184,10 @@ export class SmartPrefill {
 
     if (!inputs.length) return
 
-    const inputSources = await Promise.all(inputs.map(({ stub }) => this.bot.getResource(stub)))
+    const inputSources = await Promise.all(inputs.map(({ stub }) => {
+      this.bot.logger.debug(`smart-prefill.getResource: ${stub.type}`)
+      return this.bot.getResource(stub)
+    }))
     for (let i = 0; i < inputs.length; i++) {
       const { extractor, transformer } = inputs[i]
       const source = inputSources[i]

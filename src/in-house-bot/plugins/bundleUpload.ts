@@ -6,12 +6,6 @@ const DATA_BUNDLE_SUBMITTED = 'tradle.DataBundleSubmitted'
 
 export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
   const plugin: IPluginLifecycleMethods = {
-    getRequiredForms: async ({ user, application }) => {
-      if (!application || !application.forms || !application.forms.length) return
-
-      // debugger
-      if (application.processingDataBundle) return []
-    },
     async onmessage(req: IPBReq) {
       const { payload, application, user } = req
       if (!application) return

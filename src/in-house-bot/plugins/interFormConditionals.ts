@@ -25,6 +25,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
     getRequiredForms: async ({ user, application }) => {
       if (!application || !application.forms || !application.forms.length) return
 
+      if (application.processingDataBundle) return []
+
+      bot.logger.debug(`interFormConditionals: for ${application.requestFor}`)
       const { requestFor } = application
       let productForms = conf[requestFor]
       if (!productForms) return
@@ -92,6 +95,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
         })
         if (!hasAction) retForms.push(formId)
       })
+      if (application.dataBundle) {
+        bot.logger.debug(`Required forms for ${application.requestFor}`)
+        retForms.forEach(f => bot.logger.debug(f))
+      }
       return retForms
     },
     async onmessage(req: IPBReq) {
