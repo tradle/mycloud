@@ -920,7 +920,7 @@ ${PRODUCT_LIST_MENU_MESSAGE}`
     logger.debug(`Received ${payload[TYPE]}`)
     debugger
     application.processingDataBundle = false
-    productsAPI.requestNextRequiredItem({ req, user, application })
+    await productsAPI.requestNextRequiredItem({ req, user, application })
   }
 
   return {
