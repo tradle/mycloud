@@ -8,7 +8,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
   const plugin: IPluginLifecycleMethods = {
     getRequiredForms: async ({ user, application }) => {
       if (!application || !application.forms || !application.forms.length) return
-
+bot.logger.debug(`bundleUpload: ${new Date()}`)
       // debugger
       if (application.processingDataBundle) return []
     },

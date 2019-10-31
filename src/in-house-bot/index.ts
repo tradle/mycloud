@@ -911,8 +911,13 @@ ${PRODUCT_LIST_MENU_MESSAGE}`
     })
   }
   const handleDataBundleSubmitted = async req => {
-    const { application, user } = req
-    if (!application) return
+    const { application, user, payload } = req
+    if (!application) {
+      bot.logger.debug(`Received ${payload[TYPE]} but no application`)
+      return
+    }
+    let { logger } = bot
+    logger.debug(`Received ${payload[TYPE]}`)
     debugger
     application.processingDataBundle = false
     productsAPI.requestNextRequiredItem({ req, user, application })

@@ -25,6 +25,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
     getRequiredForms: async ({ user, application }) => {
       if (!application || !application.forms || !application.forms.length) return
 
+bot.logger.debug(`interFormConditionals: ${new Date()}`)
       const { requestFor } = application
       let productForms = conf[requestFor]
       if (!productForms) return
