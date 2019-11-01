@@ -355,7 +355,7 @@ Resources:
           InputFormat: org.apache.hadoop.hive.ql.io.orc.OrcInputFormat
           OutputFormat: org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat
           Compressed: 'false'
-          NumberOfBuckets: 4
+          NumberOfBuckets: 8
           StoredAsSubDirectories: 'false'
           SerdeInfo:
             SerializationLibrary: org.apache.hadoop.hive.ql.io.orc.OrcSerde
