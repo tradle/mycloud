@@ -287,7 +287,7 @@ export const loadComponentsAndPlugins = ({
     let api
     let plugin
     try {
-      ; ({ api, plugin } = Plugins.get(name).createPlugin(components, {
+      ;({ api, plugin } = Plugins.get(name).createPlugin(components, {
         conf: pConf,
         logger: logger.sub(`plugin-${name}`)
       }))
@@ -683,15 +683,16 @@ export const loadComponentsAndPlugins = ({
       'facetecZoom',
       'finastra',
       'document-ocr',
+      'bundleUpload',
       'interFormConditionals',
       'regulatorRegistration',
       'pscCheck',
       'riskScore',
       'boSimulator'
     ].forEach(name => attachPlugin({ name }))
-      ;['hand-sig', 'documentValidity', 'fill-myproduct', 'checkOverride'].forEach(name =>
-        attachPlugin({ name, requiresConf: false })
-      )
+    ;['hand-sig', 'documentValidity', 'fill-myproduct', 'checkOverride'].forEach(name =>
+      attachPlugin({ name, requiresConf: false })
+    )
 
     // used for some demo
     // ;[
@@ -909,9 +910,22 @@ ${PRODUCT_LIST_MENU_MESSAGE}`
       }
     })
   }
+  const handleDataBundleSubmitted = async req => {
+    const { application, user, payload } = req
+    if (!application) {
+      bot.logger.debug(`Received ${payload[TYPE]} but no application`)
+      return
+    }
+    let { logger } = bot
+    logger.debug(`Received ${payload[TYPE]}`)
+    debugger
+    application.processingDataBundle = false
+    productsAPI.requestNextRequiredItem({ req, user, application })
+  }
 
   return {
-    'onmessage:tradle.SimpleMessage': handleSimpleMessage
+    'onmessage:tradle.SimpleMessage': handleSimpleMessage,
+    'onmessage:tradle.DataBundleSubmitted': handleDataBundleSubmitted
   }
 }
 

@@ -25,6 +25,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
     getRequiredForms: async ({ user, application }) => {
       if (!application || !application.forms || !application.forms.length) return
 
+      if (application.processingDataBundle) return []
+
+      bot.logger.debug(`interFormConditionals: for ${application.requestFor}`)
       const { requestFor } = application
       let productForms = conf[requestFor]
       if (!productForms) return
@@ -87,11 +90,15 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
           } catch (err) {
             if (err.message.indexOf('Cannot read property') === -1)
               logger.debug(`interFormConditionals: please check formula ${val} for ${formId}`, err)
-            debugger
+            // debugger
           }
         })
         if (!hasAction) retForms.push(formId)
       })
+      if (application.dataBundle) {
+        bot.logger.debug(`Required forms for ${application.requestFor}`)
+        retForms.forEach(f => bot.logger.debug(f))
+      }
       return retForms
     },
     async onmessage(req: IPBReq) {
@@ -253,4 +260,43 @@ async function getAllToExecute({ bot, application, settings, model, logger }) {
   }
 
   return { allForms, allFormulas, forms }
+}
+export const validateConf: ValidatePluginConf = async ({ bot, pluginConf }) => {
+  const { models } = bot
+  debugger
+  for (let modelId in pluginConf) {
+    if (!models[modelId]) throw new Error(`missing model: ${modelId}`)
+    checkConf({ conf: pluginConf[modelId], modelId, models })
+  }
+}
+const checkConf = ({ conf, modelId, models }) => {
+  let settings
+  if (Array.isArray(conf)) {
+    settings = conf
+  } else {
+    for (let p in conf) {
+      let settings = models[p]
+      if (!settings && (p !== 'all' || modelId !== APPLICATION))
+        throw new Error(`missing model: ${modelId}`)
+      if (modelId === APPLICATION && p === 'all') continue
+    }
+  }
+  if (!settings) return
+
+  settings.forEach(formula => {
+    if (typeof formula === 'object') {
+      for (let p in formula) {
+        if (!models[p]) throw new Error(`missing model: ${p}`)
+        formula = formula[p]
+      }
+    } else if (!formula.startsWith('set:')) {
+      if (!models[formula]) throw new Error(`missing model: ${formula}`)
+      return
+    }
+    let forms = getForms(formula)
+    if (!forms.length) return
+    forms.forEach(f => {
+      if (!models[f]) throw new Error(`missing model: ${f}`)
+    })
+  })
 }
