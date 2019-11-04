@@ -21,7 +21,7 @@ const ORIGIN_PREFIX = 'refdata/gb/psc_origin/'
 const NEXT_BUCKETED_PREFIX = 'refdata/gb/psc_next_bucketed/'
 const PREFIX = 'refdata/gb/psc/'
 
-const BUCKET_COUNT = 8
+const BUCKET_COUNT = 4
 const MAX_UPLOAD_TIME = 600000 // 10 min
 
 const athena = new AWS.Athena({ region, accessKeyId, secretAccessKey })
