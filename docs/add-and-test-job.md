@@ -1,3 +1,23 @@
+## Add Job
+
+### in jobs-scheduler.ts
+add your job like this
+```
+  {
+    name: 'jobName',
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
+    period: DAY/HOUR/MINUTE,
+  }
+```
+### in jobs/index.ts  
+add this block
+```
+  export const jobName: Executor = async ({ job, components }) => {
+    ... // check the ones that are there
+  }
+```
+## Test Job locally
+
 ### Just to test your job to see if it responds if it does not need all the server functionality
 ```
 node --inspect ./node_modules/.bin/serverless invoke local --function genericJobRunner  --data '{"name":"youJob"}' 
