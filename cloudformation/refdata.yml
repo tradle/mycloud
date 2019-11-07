@@ -364,3 +364,430 @@ Resources:
           SortColumns: []
           Parameters:
             has_encrypted_data: 'false'
+
+    PitchbookInvestorGlueTable:
+    Type: 'AWS::Glue::Table'
+    Properties:
+      DatabaseName:
+        Ref: SecGlueDatabase
+      CatalogId:
+        Ref: 'AWS::AccountId'
+      TableInput:
+        Name: pitchbook_investor
+        TableType: EXTERNAL_TABLE
+        StorageDescriptor:
+          Columns:
+            - Type: string
+              Name: investor id
+            - Type: string
+              Name: investor name
+            - Type: string
+              Name: investor former name
+            - Type: string
+              Name: "# of investment professionals"
+            - Type: string
+              Name: year founded
+            - Type: string
+              Name: hq address line 1
+            - Type: string  
+              Name: hq address line 2
+            - Type: string  
+              Name: hq city
+            - Type: string  
+              Name: hq state/province
+            - Type: string  
+              Name: hq post code
+            - Type: string  
+              Name: hq country
+            - Type: string  
+              Name: hq phone
+            - Type: string  
+              Name: hq fax
+            - Type: string  
+              Name: hq email
+            - Type: string  
+              Name: hq global region
+            - Type: string  
+              Name: hq global sub region
+            - Type: string  
+              Name: primary contact pbid
+            - Type: string  
+              Name: website
+            - Type: string  
+              Name: investor status
+            - Type: string  
+              Name: parent company
+            - Type: string  
+              Name: dry powder
+            - Type: string  
+              Name: trade association
+            - Type: string  
+              Name: description
+            - Type: string  
+              Name: primary investor type
+            - Type: string  
+              Name: other investor types
+            - Type: string  
+              Name: hq location
+            - Type: string  
+              Name: aum  
+          Location:
+            Fn::Join:
+              - ''
+              - - 's3://'
+                - Ref: PrivateConfBucket
+                - '/refdata/pitchbook/investor/'
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          Compressed: 'false'
+          NumberOfBuckets: "-1"
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.serde2.OpenCSVSerde
+            Parameters:
+              escapeChar: "\\"
+              quoteChar: "\""
+              separatorChar: ","
+              serialization.format: '1'
+          BucketColumns: []
+          SortColumns: []
+          StoredAsSubDirectories: 'false'
+  
+  PitchbookAffiliateGlueTable:
+    Type: 'AWS::Glue::Table'
+    Properties:
+      DatabaseName:
+        Ref: SecGlueDatabase
+      CatalogId:
+        Ref: 'AWS::AccountId'
+      TableInput:
+        Name: pitchbook_affiliate
+        TableType: EXTERNAL_TABLE
+        StorageDescriptor:
+          Columns:
+            - Name: companyid
+              Type: string
+            - Name: affiliateid
+              Type: string
+            - Name: affiliatename
+              Type: string
+            - Name: affiliatetype
+              Type: string
+          Location:
+            Fn::Join:
+              - ''
+              - - 's3://'
+                - Ref: PrivateConfBucket
+                - '/refdata/pitchbook/affiliate/'
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          Compressed: 'false'
+          NumberOfBuckets: "-1"
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.serde2.OpenCSVSerde
+            Parameters:
+              escapeChar: "\\"
+              quoteChar: "\""
+              separatorChar: ","
+              serialization.format: '1'
+          BucketColumns: []
+          SortColumns: []
+          StoredAsSubDirectories: 'false'
+
+  PitchbookFundGlueTable:
+    Type: 'AWS::Glue::Table'
+    Properties:
+      DatabaseName:
+        Ref: SecGlueDatabase
+      CatalogId:
+        Ref: 'AWS::AccountId'
+      TableInput:
+        Name: pitchbook_fund
+        TableType: EXTERNAL_TABLE
+        StorageDescriptor:
+          Columns:
+            - Name: fund id
+              Type: string
+            - Name: fund name
+              Type: string
+            - Name: fund former name
+              Type: string
+            - Name: fund category
+              Type: string
+            - Name: native currency
+              Type: string
+            - Name: time taken to close fund
+              Type: string
+            - Name: fund city
+              Type: string
+            - Name: fund state/province
+              Type: string
+            - Name: fund country
+              Type: string
+            - Name: fund lps
+              Type: string
+            - Name: fund sps1
+              Type: string
+            - Name: fund partners
+              Type: string
+            - Name: fund no.
+              Type: string
+            - Name: first fund
+              Type: string
+            - Name: vintage
+              Type: string
+            - Name: fund status
+              Type: string
+            - Name: fund size
+              Type: string
+            - Name: fund size group
+              Type: string
+            - Name: fund Type
+              Type: string
+            - Name: sbic fund
+              Type: string
+            - Name: close date
+              Type: string
+            - Name: open date
+              Type: string
+            - Name: fund target size low
+              Type: string
+            - Name: fund target size high
+              Type: string
+            - Name: fund target size
+              Type: string
+            - Name: fund location
+              Type: string
+          Location:
+            Fn::Join:
+              - ''
+              - - 's3://'
+                - Ref: PrivateConfBucket
+                - '/refdata/pitchbook/fund/'
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          Compressed: 'false'
+          NumberOfBuckets: "-1"
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.serde2.OpenCSVSerde
+            Parameters:
+              escapeChar: "\\"
+              quoteChar: "\""
+              separatorChar: ","
+              serialization.format: '1'
+          BucketColumns: []
+          SortColumns: []
+          StoredAsSubDirectories: 'false'            
+
+  PitchbookLimitedPartnerGlueTable:
+    Type: 'AWS::Glue::Table'
+    Properties:
+      DatabaseName:
+        Ref: SecGlueDatabase
+      CatalogId:
+        Ref: 'AWS::AccountId'
+      TableInput:
+        Name: pitchbook_limited_partner
+        TableType: EXTERNAL_TABLE
+        StorageDescriptor:
+          Columns:
+            - Name: limited partner id
+              Type: string
+            - Name: limited partner name
+              Type: string
+            - Name: limited partner former name
+              Type: string
+            - Name: limited partner also known as
+              Type: string
+            - Name: hq address line 1
+              Type: string
+            - Name: hq address line 2
+              Type: string
+            - Name: hq city
+              Type: string
+            - Name: hq state/province
+              Type: string
+            - Name: hq post code
+              Type: string
+            - Name: hq country
+              Type: string
+            - Name: hq phone
+              Type: string
+            - Name: hq fax
+              Type: string
+            - Name: hq email
+              Type: string
+            - Name: hq global region
+              Type: string
+            - Name: hq global sub region
+              Type: string
+            - Name: primary contact pbid
+              Type: string
+            - Name: primary contact phone
+              Type: string
+            - Name: last updated date
+              Type: string
+            - Name: description
+              Type: string
+            - Name: limited partner type
+              Type: string
+            - Name: aum
+              Type: string
+            - Name: year founded
+              Type: string
+            - Name: hq location
+              Type: string
+            - Name: primary contact
+              Type: string
+            - Name: primary contact title
+              Type: string
+            - Name: primary contact email
+              Type: string
+            - Name: website
+              Type: string
+          Location:
+            Fn::Join:
+              - ''
+              - - 's3://'
+                - Ref: PrivateConfBucket
+                - '/refdata/pitchbook/limited_partner/'
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          Compressed: 'false'
+          NumberOfBuckets: "-1"
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.serde2.OpenCSVSerde
+            Parameters:
+              escapeChar: "\\"
+              quoteChar: "\""
+              separatorChar: ","
+              serialization.format: '1'
+          BucketColumns: []
+          SortColumns: []
+          StoredAsSubDirectories: 'false'
+
+  PitchbookCompanyGlueTable:
+    Type: 'AWS::Glue::Table'
+    Properties:
+      DatabaseName:
+        Ref: SecGlueDatabase
+      CatalogId:
+        Ref: 'AWS::AccountId'
+      TableInput:
+        Name: pitchbook_company
+        TableType: EXTERNAL_TABLE
+        StorageDescriptor:
+          Columns:
+            - Name: company id
+              Type: string
+            - Name: company name
+              Type: string
+            - Name: company former name
+              Type: string
+            - Name: company also known as
+              Type: string
+            - Name: competitors
+              Type: string
+            - Name: description
+              Type: string
+            - Name: keywords
+              Type: string
+            - Name: company financing status
+              Type: string
+            - Name: total raised
+              Type: string
+            - Name: universe
+              Type: string
+            - Name: website
+              Type: string
+            - Name: employees
+              Type: string
+            - Name: employee history
+              Type: string
+            - Name: exchange
+              Type: string
+            - Name: ticker
+              Type: string
+            - Name: year founded
+              Type: string
+            - Name: parent company
+              Type: string
+            - Name: last updated date
+              Type: string
+            - Name: daily updates
+              Type: string
+            - Name: weekly updates
+              Type: string
+            - Name: revenue
+              Type: string
+            - Name: gross profit
+              Type: string
+            - Name: net income
+              Type: string
+            - Name: enterprise value
+              Type: string
+            - Name: ebitda
+              Type: string
+            - Name: ebit
+              Type: string
+            - Name: net debt
+              Type: string
+            - Name: fiscal period
+              Type: string
+            - Name: primary contact pbid
+              Type: string
+            - Name: primary contact
+              Type: string
+            - Name: primary contact title
+              Type: string
+            - Name: primary contact email
+              Type: string
+            - Name: primary contact phone
+              Type: string
+            - Name: hq location
+              Type: string
+            - Name: hq address line 1
+              Type: string
+            - Name: hq address line 2
+              Type: string
+            - Name: hq city
+              Type: string
+            - Name: hq state/province
+              Type: string
+            - Name: hq post code
+              Type: string
+            - Name: hq phone
+              Type: string
+            - Name: hq fax
+              Type: string
+            - Name: hq email
+              Type: string
+            - Name: hq global region
+              Type: string
+            - Name: hq global sub region
+              Type: string
+            - Name: business status
+              Type: string
+            - Name: ownership status
+              Type: string
+            - Name: hq country
+              Type: string
+          Location:
+            Fn::Join:
+              - ''
+              - - 's3://'
+                - Ref: PrivateConfBucket
+                - '/refdata/pitchbook/company/'
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          Compressed: 'false'
+          NumberOfBuckets: "-1"
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.serde2.OpenCSVSerde
+            Parameters:
+              escapeChar: "\\"
+              quoteChar: "\""
+              separatorChar: ","
+              serialization.format: '1'
+          BucketColumns: []
+          SortColumns: []
+          StoredAsSubDirectories: 'false'
