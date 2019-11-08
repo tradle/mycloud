@@ -17,6 +17,7 @@ const lambda = fromSchedule({ event: LambdaEvents.SCHEDULER })
 const { bot } = lambda
 
 const MINUTE = 60
+
 const COMMON_JOBS: Job[] = [
   {
     name: 'warmup',
@@ -71,6 +72,12 @@ const COMMON_JOBS: Job[] = [
     function: DEFAULT_JOB_RUNNER_FUNCTION,
     period: 12 * 60 * MINUTE,
   },
+  {
+    name: 'chaser',
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
+    period: 30 * MINUTE,
+  },
+
   // {
   //   name: 'documentChecker',
   //   function: DEFAULT_JOB_RUNNER_FUNCTION,
