@@ -69,7 +69,7 @@ const DATA_TEMPLATE = {
       }
     }
   ],
-  signature: '{{fromOrg.name}} Team',
+  signature: '{{fromOrg.name}} Team'
 }
 
 export const TTL = {
@@ -97,17 +97,18 @@ export class EmailBasedVerifier {
     this.senderEmail = senderEmail
   }
 
-  public confirmAndExec = async ({ deferredCommand, confirmationEmail, confirmationPage, expiredPage }: {
+  public confirmAndExec = async ({
+    deferredCommand,
+    confirmationEmail,
+    confirmationPage,
+    expiredPage
+  }: {
     deferredCommand: IDeferredCommandParams
     confirmationEmail: IVerificationEmailOpts
     confirmationPage: IResultPageOpts
     expiredPage?: IResultPageOpts
   }) => {
-    const {
-      senderEmail=this.senderEmail,
-      subject,
-      emailAddress
-    } = confirmationEmail
+    const { senderEmail = this.senderEmail, subject, emailAddress } = confirmationEmail
 
     const code = await this.commands.defer({
       ...deferredCommand,
@@ -130,7 +131,7 @@ export class EmailBasedVerifier {
       from: senderEmail,
       to: emailAddress,
       body,
-      format: 'html',
+      format: 'html'
     })
 
     return code
@@ -155,7 +156,7 @@ export class EmailBasedVerifier {
     const confirmationPage: IResultPageOpts = extra.confirmationPage
     return Templates.page.confirmation({
       title: confirmationPage.title,
-      blocks: textToBlocks(confirmationPage.body),
+      blocks: textToBlocks(confirmationPage.body)
       // signature: `-${this.orgConf.org.name} Team`
     })
   }
@@ -177,9 +178,7 @@ export class EmailBasedVerifier {
 
     return Templates.page.confirmation({
       title: 'Error',
-      blocks: [
-        { body: 'Huh, a paradox...this page does not exist' }
-      ]
+      blocks: [{ body: 'Huh, a paradox...this page does not exist' }]
     })
   }
 
@@ -194,7 +193,10 @@ export class EmailBasedVerifier {
     return !(this.isFree(emailAddress) || this.isDisposable(emailAddress))
   }
 
-  public hasUserVerifiedEmailAddress = async ({ user, emailAddress }: {
+  public hasUserVerifiedEmailAddress = async ({
+    user,
+    emailAddress
+  }: {
     user: IPBUser
     emailAddress: string
   }) => {
@@ -223,7 +225,11 @@ export class EmailBasedVerifier {
     }
   }
 
-  public getLatestCheck = async ({ user, emailAddress, statuses }: {
+  public getLatestCheck = async ({
+    user,
+    emailAddress,
+    statuses
+  }: {
     emailAddress: string
     user: IPBUser
     statuses?: string[]
@@ -232,17 +238,20 @@ export class EmailBasedVerifier {
       throw new Error('expected "user" or "emailAddress"')
     }
 
-    const filter:any = {
+    const filter: any = {
       EQ: {
         [TYPE]: EMAIL_CHECK
       },
       IN: {},
       STARTS_WITH: {}
     }
-
     if (user) {
-      filter.STARTS_WITH['user.id'] = user.identity._permalink
+      filter.EQ['user._permalink'] = user.identity._permalink
     }
+
+    // if (user) {
+    //   filter.STARTS_WITH['user.id'] = user.identity._permalink
+    // }
 
     if (emailAddress) {
       filter.EQ.emailAddress = emailAddress
@@ -273,11 +282,10 @@ export class EmailBasedVerifier {
   }
 }
 
-const textToBlocks = str => str
-  .split('\n')
-  .map(body => ({ body }))
+const textToBlocks = str => str.split('\n').map(body => ({ body }))
 
-const getStatusId = value => buildResource.enumValue({
-  model: STATUS_MODEL,
-  value
-}).id
+const getStatusId = value =>
+  buildResource.enumValue({
+    model: STATUS_MODEL,
+    value
+  }).id
