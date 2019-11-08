@@ -365,7 +365,7 @@ Resources:
           Parameters:
             has_encrypted_data: 'false'
 
-    PitchbookInvestorGlueTable:
+  PitchbookInvestorGlueTable:
     Type: 'AWS::Glue::Table'
     Properties:
       DatabaseName:
