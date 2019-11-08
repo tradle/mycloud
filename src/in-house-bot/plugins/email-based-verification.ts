@@ -1,14 +1,14 @@
 import get from 'lodash/get'
 import { TYPE } from '@tradle/constants'
-import { Conf } from '../configure'
 import { CreatePlugin, ITradleObject, IPBApp, IPluginOpts, ValidatePluginConf } from '../types'
 import { EmailBasedVerifier, TTL } from '../email-based-verifier'
 import { getPropertyTitle } from '../utils'
 import Errors from '../../errors'
 import { topics as EventTopics } from '../../events'
+import { useRealSES } from '../../aws/config'
 
 const EMAIL_CHECK = 'tradle.EmailCheck'
-const BUSINESS_INFORMATION = 'tradle.BusinessInformation'
+const ASPECTS = 'Email verification'
 const CONFIRMATION_PAGE_TEXT = `Your email address have been confirmed
 
 Please continue in the Tradle app`
@@ -139,9 +139,11 @@ export const createPlugin: CreatePlugin<EmailBasedVerifier> = (
       }
     },
     'onmessage:tradle.Form': async req => {
+      // useRealSES(bot)
       const { user, application, payload } = req
       const emailAddress = getEmail(application, payload)
       if (!emailAddress) return
+      debugger
 
       const { property, value } = emailAddress
       const keepGoing = await shouldCreateCheck({
@@ -164,8 +166,10 @@ export const createPlugin: CreatePlugin<EmailBasedVerifier> = (
           [TYPE]: EMAIL_CHECK,
           application,
           emailAddress: value,
+          aspects: ASPECTS,
           // this org
           provider: conf.org.name,
+          dateChecked: Date.now(),
           user: user.identity,
           dateExpires: Date.now() + TTL.ms
         },
@@ -201,7 +205,8 @@ export const createPlugin: CreatePlugin<EmailBasedVerifier> = (
             type: EMAIL_CHECK,
             permalink: value._permalink,
             props: {
-              status: 'pass'
+              status: 'pass',
+              dateChecked: Date.now()
             }
           }
         }
