@@ -167,7 +167,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
     async onmessage(req) {
       const { application, payload } = req
       if (!application) return
-      debugger
+      // debugger
       let ptype = payload[TYPE]
       if (ptype !== BO_SIMULATION) return
 
