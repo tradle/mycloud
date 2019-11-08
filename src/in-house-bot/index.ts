@@ -691,9 +691,13 @@ export const loadComponentsAndPlugins = ({
       'riskScore',
       'boSimulator'
     ].forEach(name => attachPlugin({ name }))
-    ;['hand-sig', 'documentValidity', 'fill-myproduct', 'checkOverride'].forEach(name =>
-      attachPlugin({ name, requiresConf: false })
-    )
+    ;[
+      'hand-sig',
+      'documentValidity',
+      'fill-myproduct',
+      'checkOverride',
+      'prefill-controllingPerson'
+    ].forEach(name => attachPlugin({ name, requiresConf: false }))
 
     // used for some demo
     // ;[
