@@ -21,6 +21,7 @@ const ORIGIN_PREFIX = 'refdata/gb/psc_origin/'
 const NEXT_BUCKETED_PREFIX = 'refdata/gb/psc_next_bucketed/'
 const PREFIX = 'refdata/gb/psc/'
 
+const BUCKET_COUNT = 4
 const MAX_UPLOAD_TIME = 600000 // 10 min
 
 const athena = new AWS.Athena({ region, accessKeyId, secretAccessKey })
@@ -112,8 +113,7 @@ export class ImportPsc {
       }
     }
     let fin = new Date().getTime()
-    this.logger.debug('upload time', (fin - now))
-    this.logger.debug('upload finished')
+    this.logger.debug('upload finished, time', (fin - now))
 
     //**** delete all files in upload/psc_next_bucketed/
     await this.deleteAllInNext()
@@ -127,8 +127,8 @@ export class ImportPsc {
     //***** compare orc_psc_target and orc_psc_next_bucketed tables to extract new records
     let diff = await this.change();
 
-    //***** replace files from upload/psc_next_bucketed/ to upload/target/
-    //await this.copyFromNext()
+    //***** replace files from upload/psc_next_bucketed/ to upload/psc/
+    await this.copyFromNext()
 
     let end = new Date().getTime()
     this.logger.debug(`total time (ms): ${end - begin}`)
@@ -248,15 +248,15 @@ export class ImportPsc {
                     format = \'ORC\', 
                     external_location = \'s3://${this.outputLocation}/${NEXT_BUCKETED_PREFIX}\', 
                     bucketed_by = ARRAY[\'company_number\'], 
-                    bucket_count = 4) 
-                    AS SELECT company_number, data FROM psc_origin`
+                    bucket_count = ${BUCKET_COUNT})
+      AS SELECT company_number, data FROM psc_origin`
     let res = await this.executeDDL(create, 10000, 60000)
     this.logger.debug(JSON.stringify(res, null, 2))
   }
 
   createPscInputTable = async () => {
-    const create = `CREATE EXTERNAL TABLE IF NOT EXISTS psc_origin (
-            \`company_number\` string, 
+    const create = `CREATE EXTERNAL TABLE IF NOT EXISTS psc_origin(
+        \`company_number\` string, 
             data struct<address:struct<\`address_line_1\`:string,\`address_line_2\`:string,country:string,locality:string,\`postal_code\`:string,premises:string,region:string,\`care_of\`:string,po_box:string>,etag:string,identification:struct<\`country_registered\`:string,\`legal_authority\`:string,\`legal_form\`:string,\`place_registered\`:string,\`registration_number\`:string>,kind:string,links:struct<self:string>,name:string,\`natures_of_control\`:array<string>,\`notified_on\`:string,\`country_of_residence\`:string,\`date_of_birth\`:struct<month:int,year:int>,\`name_elements\`:struct<forename:string,surname:string,title:string,\`middle_name\`:string>,nationality:string,\`ceased_on\`:string,statement:string> 
             )
           ROW FORMAT SERDE 

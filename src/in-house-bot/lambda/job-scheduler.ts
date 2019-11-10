@@ -70,7 +70,7 @@ const COMMON_JOBS: Job[] = [
   {
     name: 'importRefdata',
     function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: 12 * 60 * MINUTE,
+    period: 2 * 60 * MINUTE,
   },
   {
     name: 'chaser',
