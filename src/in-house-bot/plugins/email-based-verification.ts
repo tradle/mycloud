@@ -235,6 +235,7 @@ export const createPlugin: CreatePlugin<EmailBasedVerifier> = (
 }
 
 export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
+  // useRealSES(bot)
   const { senderEmail, products = {} } = pluginConf as IEBVPluginConf
   if (!senderEmail) {
     throw new Error('expected "senderEmail"')
