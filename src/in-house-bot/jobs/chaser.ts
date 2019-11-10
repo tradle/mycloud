@@ -20,7 +20,7 @@ export class Chaser {
     let notEqClause = {
       status: `${NOTIFICATION_STATUS}_completed`
     }
-    const { items } = await this.bot.db.find({
+    let { items } = await this.bot.db.find({
       allowScan: true,
       orderBy: {
         property: '_time',
@@ -32,6 +32,7 @@ export class Chaser {
       }
     })
     if (!items.length) return
+    items = items.filter(item => !item.status.id.endsWith('_abandoned'))
     items.sort((a, b) => b._time - a._time)
     let now = Date.now()
     let notify = items.filter(item => now - item.dateLastModified > 2 * 60)
