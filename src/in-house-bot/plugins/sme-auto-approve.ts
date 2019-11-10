@@ -1,7 +1,7 @@
 import _ from 'lodash'
 // import validateResource from '@tradle/validate-resource'
 import { TYPE } from '@tradle/constants'
-import { buildResourceStub } from '@tradle/build-resource'
+import { buildResourceStub, enumValue } from '@tradle/build-resource'
 import {
   Bot,
   CreatePlugin,
@@ -15,18 +15,21 @@ import {
   Logger
 } from '../types'
 import { getAssociateResources } from '../utils'
+import { valueFromAST } from 'graphql'
 
 const CP = 'tradle.legal.LegalEntityControllingPerson'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const APPLICATION = 'tradle.Application'
 const APPLICATION_SUBMITTED = 'tradle.ApplicationSubmitted'
+const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
+const NOTIFICATION = 'tradle.Notification'
 // const { parseStub } = validateResource.utils
 
 // export const name = 'conditional-auto-approve'
 
 const getResourceType = resource => resource[TYPE]
 
-type SmeAutoApproveOpts = {
+type SmeVerifierOpts = {
   bot: Bot
   conf: ISmeConf
   applications: Applications
@@ -37,12 +40,12 @@ interface ISmeConf {
   child: string
 }
 
-export class SmeAutoApprove {
+export class SmeVerifier {
   private bot: Bot
   private conf: ISmeConf
   private applications: Applications
   private logger: Logger
-  constructor({ bot, conf, applications, logger }: SmeAutoApproveOpts) {
+  constructor({ bot, conf, applications, logger }: SmeVerifierOpts) {
     this.bot = bot
     this.conf = conf
     this.applications = applications
@@ -145,10 +148,35 @@ export class SmeAutoApprove {
 
     await this.applications.approve({ application: aApp })
   }
+  public async checkAndUpdateNotification(application) {
+    let { parent, associatedResource } = application
+    let parentNotifications = await this.bot.getResource(parent, {
+      backlinks: ['notifications']
+    })
+    let notifications = parentNotifications.notifications
+    if (!notifications) return
+    debugger
+    notifications = await Promise.all(notifications.map(r => this.bot.getResource(r)))
+    let notification = notifications.find(
+      (r: any) => r.form._permalink === associatedResource._permalink
+    )
+    if (!notification) return
+    let statusId = notification.status.id
+    if (statusId.endsWith('_inProgress')) return
+    let isStarted = application.forms.length === 1
+    let status = (isStarted && 'started') || 'inProgress'
+    let timesNotified = 1
+    await this.bot.versionAndSave({
+      ...notification,
+      dateLastModified: Date.now(),
+      timesNotified,
+      status: enumValue({ model: this.bot.models[NOTIFICATION_STATUS], value: status })
+    })
+  }
 }
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
-  const autoApproveAPI = new SmeAutoApprove({ bot, conf, applications, logger })
+  const smeVerifierAPI = new SmeVerifier({ bot, conf, applications, logger })
   // debugger
   const plugin: IPluginLifecycleMethods = {
     didApproveApplication: async (opts: IWillJudgeAppArg, certificate: ITradleObject) => {
@@ -172,7 +200,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         logger.debug(
           'New child application was approved. Check if parent application can be auto-approved'
         )
-        await autoApproveAPI.checkCPs(application)
+        await smeVerifierAPI.checkCPs(application)
       }
     },
     // check if auto-approve ifvapplication Legal entity product was submitted
@@ -187,13 +215,53 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       debugger
       if (pairs.length) {
         logger.debug('Parent application was submitted. Check if all child applications checked in')
-        await autoApproveAPI.checkCPs(application)
+        await smeVerifierAPI.checkCPs(application)
+        return
       }
+      pairs = conf.filter(pair => requestFor === pair.child && pair.parent !== pair.child)
+      let { parent, associatedResource } = application
+      if (!parent || !associatedResource) return
+      parent = await bot.getResource(parent)
+      let pair = conf.find(pair => requestFor === pair.child && pair.parent === parent.requestFor)
+      if (!pair) return
+
+      let appWithNotifications = await bot.getResource(parent, { backlinks: ['notifications'] })
+      let { notifications } = appWithNotifications
+      if (!notifications || !notifications.length) return
+
+      let notification = await bot.db.findOne({
+        filter: {
+          EQ: {
+            [TYPE]: NOTIFICATION,
+            'application._permalink': parent._permalink,
+            'form._permalink': associatedResource._permalink
+          },
+          NEQ: {
+            status: `${NOTIFICATION_STATUS}_completed`
+          }
+        }
+      })
+
+      // notifications = await Promise.all(notifications.map(r => bot.getResource(r)))
+      // let notification = notifications.find(
+      //   (r: any) => r.form._permalink === associatedResource._permalink
+      // )
+      if (notification)
+        await bot.versionAndSave({
+          ...notification,
+          dateLastModified: Date.now(),
+          status: enumValue({ model: bot.models[NOTIFICATION_STATUS], value: 'completed' })
+        })
     },
     async onmessage(req: IPBReq) {
       // debugger
       const { application } = req
-      if (!application || application.parent || !application.forms || !conf.length) return
+      if (!application || !application.forms || !conf.length) return
+
+      if (application.parent) {
+        await smeVerifierAPI.checkAndUpdateNotification(application)
+        return
+      }
       const { requestFor } = application
 
       let pairs = conf.filter(pair => requestFor === pair.child)
@@ -215,8 +283,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         resource: associatedRes,
         models: bot.models
       })
-
-      debugger
+      await smeVerifierAPI.checkAndUpdateNotification(application)
     }
   }
 
