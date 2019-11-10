@@ -146,7 +146,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
     },
 
     findAndPrefillBeneficialOwner(pscCheck, officer, prefill) {
-      let beneficialOwners = pscCheck.rawData && pscCheck.rawData
+      let beneficialOwners = pscCheck && pscCheck.rawData
       if (!beneficialOwners || !beneficialOwners.length) return
       if (beneficialOwners.length > 1) {
         // debugger
