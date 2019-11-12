@@ -1,6 +1,6 @@
 ## Add Job
 
-### in jobs-scheduler.ts
+### in job-scheduler.ts
 add your job like this
 ```
   {
