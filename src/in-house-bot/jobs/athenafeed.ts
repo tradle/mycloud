@@ -95,7 +95,7 @@ export class AthenaFeed {
       this.logger.debug(`start from ${idx}`)
     }
     else {
-      // marker not found, start fresh
+      this.logger.debug('marker not found, start fresh')
       dump = []
       //TODO delete all export objects
     }
@@ -177,12 +177,14 @@ export class AthenaFeed {
 
     let permalink = json._permalink
     if (TYPE_MESSAGE == type) {
+      this.logger.debug(`tradle.Message for ${json._payloadType}`)
       let payloadTypeModel = this.bot.models[json._payloadType]
       if (!payloadTypeModel)
         return
       if (payloadTypeModel.properties['subClassOf'] != 'tradle.Form')
         return
       permalink = json._payloadLink
+      this.logger.debug(`tradle.Message for ${json._payloadType}, permalink: ${permalink}`)
       delete json.object
       file = JSON.stringify(file)
     }
