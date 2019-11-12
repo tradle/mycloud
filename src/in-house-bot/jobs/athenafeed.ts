@@ -181,7 +181,7 @@ export class AthenaFeed {
       let payloadTypeModel = this.bot.models[json._payloadType]
       if (!payloadTypeModel)
         return
-      if (payloadTypeModel.properties['subClassOf'] != 'tradle.Form')
+      if (payloadTypeModel.subClassOf != 'tradle.Form')
         return
       permalink = json._payloadLink
       this.logger.debug(`tradle.Message for ${json._payloadType}, permalink: ${permalink}`)
