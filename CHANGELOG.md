@@ -2,29 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.10](https://github.com/tradle/mycloud/compare/v2.5.1-rc.9...v2.5.1-rc.10) (2019-11-12)
+## [2.5.1-rc.11](https://github.com/tradle/mycloud/compare/v2.5.1-rc.10...v2.5.1-rc.11) (2019-11-12)
 
 
 ### Bug Fixes
 
-* requestNextRequiredItem is async ([4d48b3b](https://github.com/tradle/mycloud/commit/4d48b3b))
-* search criteria for finding EmailCheck ([d531338](https://github.com/tradle/mycloud/commit/d531338))
-* typo ([7958aa4](https://github.com/tradle/mycloud/commit/7958aa4))
+* models upgrade ([df9de1e](https://github.com/tradle/mycloud/commit/df9de1e))
+* phone verification ([5e4f1fc](https://github.com/tradle/mycloud/commit/5e4f1fc))
 
 
 ### Features
 
-* better email check; allow email testing on local server ([11f5867](https://github.com/tradle/mycloud/commit/11f5867))
-* deploying conf on local server ([5a8395b](https://github.com/tradle/mycloud/commit/5a8395b))
-* KYC chaser ([2f0d870](https://github.com/tradle/mycloud/commit/2f0d870))
-* KYC chaser ([1fc5ce3](https://github.com/tradle/mycloud/commit/1fc5ce3))
-* KYC chaser ([51a2374](https://github.com/tradle/mycloud/commit/51a2374))
-* KYC chaser ([5e0e02f](https://github.com/tradle/mycloud/commit/5e0e02f))
-* KYC chaser ([e2e2414](https://github.com/tradle/mycloud/commit/e2e2414))
-* KYC chaser project ([4bea3c3](https://github.com/tradle/mycloud/commit/4bea3c3))
-* packages upgrade ([a6654f9](https://github.com/tradle/mycloud/commit/a6654f9))
-* testing jobs with local server ([a897f2a](https://github.com/tradle/mycloud/commit/a897f2a))
-* validate-model upgrade ([312fd13](https://github.com/tradle/mycloud/commit/312fd13))
+* KYC chaser ([64331a1](https://github.com/tradle/mycloud/commit/64331a1))
 
 
 
