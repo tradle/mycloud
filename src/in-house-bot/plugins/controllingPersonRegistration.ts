@@ -14,7 +14,7 @@ import {
 import * as Templates from '../templates'
 import Errors from '../../errors'
 import { TYPE } from '../../constants'
-import { useRealSES } from '../../aws/config'
+// import { useRealSES } from '../../aws/config'
 import { enumValue } from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
@@ -282,9 +282,10 @@ class ControllingPersonRegistrationAPI {
 
     let result = await this.getCP({ application, bot: this.bot })
     let seniorManagement = result.filter((r: any) => r.isSeniorManager)
-    if (!seniorManagement.length && result.length > notify)
-      seniorManagement = result.slice(0, notify)
-
+    if (!seniorManagement.length) {
+      if (result.length > notify) seniorManagement = result.slice(0, notify)
+      else seniorManagement = result
+    }
     let sm: any = seniorManagement[0]
     let legalEntity = sm.legalEntity
     let notifyArr
@@ -398,7 +399,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
   const cp = new ControllingPersonRegistrationAPI({ bot, conf, org, logger, applications })
   const plugin: IPluginLifecycleMethods = {
     async onmessage(req) {
-      useRealSES(bot)
+      // useRealSES(bot)
       const { user, application, payload } = req
       if (!application) return
       let productId = application.requestFor
@@ -409,7 +410,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let ptype = payload[TYPE]
 
       if (rules && ptype === NEXT_FORM_REQUEST) {
-        if (application.notifications) return
+        // if (application.notifications) return
         await cp.checkRules({ application, forms: products[productId], rules })
         return
       }
@@ -450,7 +451,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       // await cp.sendLinkViaSMS({resource: payload, application, smsBasedVerifier, legalEntity})
     },
     async onResourceChanged(changes) {
-      useRealSES(bot)
+      // useRealSES(bot)
       let { old, value } = changes
       if (value[TYPE] !== NOTIFICATION) return
       if (

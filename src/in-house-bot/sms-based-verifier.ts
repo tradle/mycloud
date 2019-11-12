@@ -9,7 +9,7 @@ import {
   SNSUtils,
   DB,
   ISendSMSOpts,
-  ISMS,
+  ISMS
 } from './types'
 
 import * as Templates from './templates'
@@ -60,17 +60,20 @@ export class SMSBasedVerifier {
     this.logger = logger
   }
 
-  public confirmAndExec = async ({ deferredCommand, smsOpts }: {
+  public confirmAndExec = async ({
+    deferredCommand,
+    smsOpts
+  }: {
     deferredCommand: IDeferredCommandParams
     smsOpts: ISendSMSOpts
   }) => {
     const code = await this.commands.defer(deferredCommand)
     this.logger.debug('sending SMS to confirm command', { command: deferredCommand })
-    await this.sendSMS({smsOpts})
+    await this.sendSMS({ smsOpts })
     return code
   }
 
-  public sendSMS = async ({smsOpts}) => {
+  public sendSMS = async ({ smsOpts }) => {
     this.logger.debug('sending link via SMS to onboard agent')
     await this.sms.sendSMS(smsOpts)
   }
@@ -82,7 +85,10 @@ export class SMSBasedVerifier {
     }
   }
 
-  public hasUserVerifiedPhoneNumber = async ({ user, phoneNumber }: {
+  public hasUserVerifiedPhoneNumber = async ({
+    user,
+    phoneNumber
+  }: {
     user: IPBUser
     phoneNumber: string
   }) => {
@@ -95,10 +101,7 @@ export class SMSBasedVerifier {
     }
   }
 
-  public isCheckPending = async ({
-    user,
-    phoneNumber
-  }: IsPhoneCheckPendingOpts) => {
+  public isCheckPending = async ({ user, phoneNumber }: IsPhoneCheckPendingOpts) => {
     try {
       const { pending } = await this.getLatestCheck({ user, phoneNumber })
       return pending
@@ -108,7 +111,11 @@ export class SMSBasedVerifier {
     }
   }
 
-  public getLatestCheck = async ({ user, phoneNumber, statuses }: {
+  public getLatestCheck = async ({
+    user,
+    phoneNumber,
+    statuses
+  }: {
     phoneNumber: string
     user: IPBUser
     statuses?: string[]
@@ -117,7 +124,7 @@ export class SMSBasedVerifier {
       throw new Error('expected "user" or "phoneNumber"')
     }
 
-    const filter:any = {
+    const filter: any = {
       EQ: {
         [TYPE]: PHONE_CHECK
       },
@@ -126,15 +133,16 @@ export class SMSBasedVerifier {
     }
 
     if (user) {
-      filter.STARTS_WITH['user.id'] = user.identity._permalink
+      filter.EQ['user._permalink'] = user.identity._permalink
     }
 
     if (phoneNumber) {
-      filter.EQ.phoneNumber = phoneNumber
+      filter.EQ['phone.number'] = phoneNumber
     }
 
     if (statuses) {
-      filter.IN['status.id'] = statuses.map(getStatusId)
+      if (statuses.length === 1) filter.EQ['status.id'] = getStatusId(statuses[0])
+      else filter.IN['status.id'] = statuses.map(getStatusId)
     }
 
     const check = await this.db.findOne({
@@ -158,11 +166,10 @@ export class SMSBasedVerifier {
   }
 }
 
-const textToBlocks = str => str
-  .split('\n')
-  .map(body => ({ body }))
+const textToBlocks = str => str.split('\n').map(body => ({ body }))
 
-const getStatusId = value => buildResource.enumValue({
-  model: STATUS_MODEL,
-  value
-}).id
+const getStatusId = value =>
+  buildResource.enumValue({
+    model: STATUS_MODEL,
+    value
+  }).id

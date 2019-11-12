@@ -242,10 +242,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         }
       })
 
-      // notifications = await Promise.all(notifications.map(r => bot.getResource(r)))
-      // let notification = notifications.find(
-      //   (r: any) => r.form._permalink === associatedResource._permalink
-      // )
       if (notification)
         await bot.versionAndSave({
           ...notification,
