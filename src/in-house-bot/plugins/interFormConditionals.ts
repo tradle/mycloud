@@ -1,3 +1,4 @@
+import cloneDeep from 'lodash/cloneDeep'
 import {
   Bot,
   Logger,
@@ -32,7 +33,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
       let productForms = conf[requestFor]
       if (!productForms) return
 
-      const productModel = bot.models[requestFor]
+      // const productModel = bot.models[requestFor]
       let promises = []
       application.forms
         .map(appSub => parseStub(appSub.submission))
@@ -41,7 +42,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
             promises.push(bot.objects.get(f.link))
         })
 
-      const forms = {}
+      let forms = {}
       if (promises.length) {
         try {
           let result = await Promise.all(promises)
@@ -50,6 +51,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
           logger.error('interFormConditionals', err)
         }
       }
+      forms = normalizeEnums({ forms, models: bot.models })
+
       let retForms = []
       productForms.forEach(f => {
         if (typeof f === 'string') {
@@ -75,7 +78,12 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
           let isAdd = val.startsWith('add: ')
           if (!isAdd && isSet(val)) return
           hasAction = true
-          val = val.slice(5).trim()
+          val = val
+            .slice(5)
+            .trim()
+            .replace(/\s=\s/g, ' === ')
+            .replace(/\s!=\s/g, ' !== ')
+
           try {
             let ret = new Function('forms', 'application', `return ${val}`)(forms, application)
             if (ret) {
@@ -111,10 +119,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
       const conditions = conf[APPLICATION]
       if (!conditions) return
       const all = conditions.all
+      let { models } = bot
       // const { user, application } = req
       const forThisProduct = conditions[application.requestFor]
       if (!all && !forThisProduct) return
-      const model = bot.models[APPLICATION]
+      const model = models[APPLICATION]
       let settings = (all && all.slice()) || []
       if (forThisProduct) settings = settings.concat(forThisProduct)
       let { allForms, allFormulas, forms } = await getAllToExecute({
@@ -124,6 +133,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
         model,
         logger
       })
+      let fArr = normalizeEnums({ forms: { [payload[TYPE]]: payload }, models })
       if (!forms[payload[TYPE]]) forms[payload[TYPE]] = payload
       allFormulas.forEach(async val => {
         let [propName, formula] = val
@@ -134,9 +144,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
           if (
             typeof value === 'string' &&
             prop.type === 'object' &&
-            bot.models[prop.ref].subClassOf === ENUM
+            models[prop.ref].subClassOf === ENUM
           ) {
-            let elm = bot.models[prop.ref].enum.find(e => e.id === value)
+            let elm = models[prop.ref].enum.find(e => e.id === value)
             if (!elm) return
             value = {
               id: `${prop.ref}_${elm.id}`,
@@ -175,14 +185,14 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
       else settings = isSet(formConditions) && [formConditions]
 
       if (!settings || !settings.length) return
-      let { allForms, allFormulas, forms } = await getAllToExecute({
+      let { allForms, allFormulas = [], forms } = await getAllToExecute({
         application,
         bot,
         settings,
         model,
         logger
       })
-
+      allFormulas.forEach(formula => normalizeFormula({ formula }))
       allFormulas.forEach(async val => {
         let [propName, formula] = val
         try {
@@ -261,6 +271,29 @@ async function getAllToExecute({ bot, application, settings, model, logger }) {
 
   return { allForms, allFormulas, forms }
 }
+
+function normalizeEnums({ forms, models }) {
+  let newForms = {}
+  for (let f in forms) {
+    let originalForm = forms[f]
+    let form = cloneDeep(originalForm)
+    let model = models[form[TYPE]]
+    let props = model.properties
+    for (let p in form) {
+      if (!props[p]) continue
+      let { ref } = props[p]
+      if (!ref || models[ref].subClassOf !== ENUM) continue
+      form[p] = form[p].id.split('_')[1]
+    }
+    newForms[form[TYPE]] = form
+  }
+  return newForms
+}
+
+function normalizeFormula({ formula }) {
+  return formula.replace(/\s=\s/g, ' === ').replace(/\s!=\s/g, ' !== ')
+}
+
 export const validateConf: ValidatePluginConf = async ({ bot, pluginConf }) => {
   const { models } = bot
   debugger
