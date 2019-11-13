@@ -34,6 +34,8 @@ const NEXT_FORM_REQUEST = 'tradle.NextFormRequest'
 const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
 const NOTIFICATION = 'tradle.Notification'
 const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
+const NOTIFICATION_PROVIDER = 'Tradle'
+
 const unitCoefMap = {
   minutes: 60000,
   hours: 60000 * 60,
@@ -348,7 +350,7 @@ class ControllingPersonRegistrationAPI {
     return notifyArr
   }
   public async createNewNotification({ application, resource, messages }) {
-    const provider = await this.bot.getMyPermalink()
+    // const provider = await this.bot.getMyPermalink()
     let notification: any = {
       application,
       dateLastNotified: Date.now(),
@@ -357,7 +359,7 @@ class ControllingPersonRegistrationAPI {
       form: resource,
       message: (messages && messages[0]) || 'Please complete the onboarding application',
       timesNotified: 1,
-      provider
+      provider: NOTIFICATION_PROVIDER
     }
     let { emailAddress, phone } = resource
     if (emailAddress) notification.emailAddress = emailAddress
