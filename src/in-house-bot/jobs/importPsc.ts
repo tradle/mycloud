@@ -17,8 +17,8 @@ const region = 'us-east-1'
 //const BUCKET = 'jacob.gins.athena'
 //const ATHENA_DB = 'sampledb'
 
-const ORIGIN_PREFIX = 'refdata/gb/psc_origin/'
-const NEXT_BUCKETED_PREFIX = 'refdata/gb/psc_next_bucketed/'
+const ORIGIN_PREFIX = 'temp/refdata/gb/psc_origin/'
+const NEXT_BUCKETED_PREFIX = 'temp/refdata/gb/psc_next_bucketed/'
 const PREFIX = 'refdata/gb/psc/'
 
 const BUCKET_COUNT = 4

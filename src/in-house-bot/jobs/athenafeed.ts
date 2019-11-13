@@ -177,14 +177,12 @@ export class AthenaFeed {
 
     let permalink = json._permalink
     if (TYPE_MESSAGE == type) {
-      this.logger.debug(`tradle.Message for ${json._payloadType}`)
       let payloadTypeModel = this.bot.models[json._payloadType]
       if (!payloadTypeModel)
         return
       if (payloadTypeModel.subClassOf != 'tradle.Form')
         return
       permalink = json._payloadLink
-      this.logger.debug(`tradle.Message for ${json._payloadType}, permalink: ${permalink}`)
       delete json.object
       file = JSON.stringify(file)
     }
