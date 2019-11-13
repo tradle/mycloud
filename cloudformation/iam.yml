@@ -259,7 +259,7 @@ Resources:
               - s3:DeleteObjectVersion
             Effect: Deny
             Resource:
-               - Fn::Join:
+              - Fn::Join:
                   - ''
                   - - 'arn:aws:s3:::'
                     - Ref: PrivateConfBucket
