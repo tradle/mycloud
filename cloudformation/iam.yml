@@ -259,11 +259,61 @@ Resources:
               - s3:DeleteObjectVersion
             Effect: Deny
             Resource:
-              Fn::Join:
-                - ''
-                - - 'arn:aws:s3:::'
-                  - Ref: PrivateConfBucket
-                  - '/*'
+              - Fn::Join:
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - Ref: PrivateConfBucket
+                    - '/org/*'
+              - Fn::Join:
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - Ref: PrivateConfBucket
+                    - '/refdata/*'
+              - Fn::Join:
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - Ref: PrivateConfBucket
+                    - '/license/*'
+              - Fn::Join:
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - Ref: PrivateConfBucket
+                    - '/assets/*'
+              - Fn::Join:
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - Ref: PrivateConfBucket
+                    - '/conf/*'
+              - Fn::Join:
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - Ref: PrivateConfBucket
+                    - '/derived/*'
+              - Fn::Join:
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - Ref: PrivateConfBucket
+                    - '/data_export/*'
+              - Fn::Join:
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - Ref: PrivateConfBucket
+                    - '/info/*'       
+              - Fn::Join:
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - Ref: PrivateConfBucket
+                    - '/remediation/*'
+              - Fn::Join:
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - Ref: PrivateConfBucket
+                    - '/discovery/*'
+              - Fn::Join:
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - Ref: PrivateConfBucket
+                    - '/identity.json'                                                     
             Principal:
               AWS: "*"
 

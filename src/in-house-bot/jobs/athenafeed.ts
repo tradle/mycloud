@@ -31,7 +31,8 @@ const targetS3 = new AWS.S3({ accessKeyId, secretAccessKey })
 const objectsS3 = new AWS.S3({ accessKeyId, secretAccessKey })
 
 
-const TYPE_FILTER = ['tradle.ModelsPack', 'tradle.Message']
+const TYPE_FILTER = ['tradle.ModelsPack']
+const TYPE_MESSAGE = 'tradle.Message'
 
 interface Structure {
   stream: fs.WriteStream,
@@ -94,7 +95,7 @@ export class AthenaFeed {
       this.logger.debug(`start from ${idx}`)
     }
     else {
-      // marker not found, start freash
+      this.logger.debug('marker not found, start fresh')
       dump = []
       //TODO delete all export objects
     }
@@ -173,7 +174,18 @@ export class AthenaFeed {
       return
     if (!this.bot.models[type])
       return
+
     let permalink = json._permalink
+    if (TYPE_MESSAGE == type) {
+      let payloadTypeModel = this.bot.models[json._payloadType]
+      if (!payloadTypeModel)
+        return
+      if (payloadTypeModel.subClassOf != 'tradle.Form')
+        return
+      permalink = json._payloadLink
+      delete json.object
+      file = JSON.stringify(file)
+    }
 
     let struct = map.get(type)
     let locationsArray: Array<number>
@@ -528,8 +540,9 @@ export class AthenaFeed {
         continue
       if (type == 'object') {
         let ref = element['ref']
-        if (!ref)
+        if (!ref || ref == 'tradle.Object')
           continue
+
         let refModel = this.bot.models[ref]
         if (refModel.subClassOf == 'tradle.Enum')
           dbtype = 'struct<id:string,title:string>'

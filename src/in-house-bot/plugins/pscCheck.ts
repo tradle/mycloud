@@ -33,14 +33,6 @@ const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const PROVIDER = 'http://download.companieshouse.gov.uk/en_pscdata.html'
 const ASPECTS = 'Beneficial owner'
 
-const FORM_ID_GB_firms_psd_perm = 'com.svb.BSAPI102FCAPSDFirms'
-const FORM_ID_GB_e_money_firms = 'com.svb.BSAPI102FCAPSDeMoneyInstitutions'
-const FORM_ID_GB_emd_agents = 'com.svb.BSAPI102FCAPSDAgent'
-const FORM_ID_GB_credit_institutions = 'com.svb.BSAPI102FCAPSDCreditInstitutions'
-
-const FORM_IDS = [FORM_ID_GB_firms_psd_perm, FORM_ID_GB_e_money_firms,
-  FORM_ID_GB_emd_agents, FORM_ID_GB_credit_institutions]
-
 const QUERY = 'select company_number, data from psc where company_number = \'%s\''
 
 interface IPscAthenaConf {
