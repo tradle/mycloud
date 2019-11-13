@@ -220,7 +220,8 @@ export const loadComponentsAndPlugins = ({
   const isLocalAsync = bot.isLocal && event === LambdaEvents.RESOURCE_ASYNC
   const handleMessages = event === LambdaEvents.MESSAGE || isLocalAsync
   const runAsyncHandlers =
-    event === LambdaEvents.RESOURCE_ASYNC || (bot.isLocal && event === LambdaEvents.MESSAGE)
+    event === LambdaEvents.RESOURCE_ASYNC ||
+    (bot.isLocal && (event === LambdaEvents.MESSAGE || event === LambdaEvents.SCHEDULER))
   const mergeModelsOpts = { validate: bot.isLocal }
   const visibleProducts = _.uniq(enabled)
   const productsList = _.uniq(enabled.concat(ALL_HIDDEN_PRODUCTS))
@@ -690,9 +691,13 @@ export const loadComponentsAndPlugins = ({
       'riskScore',
       'boSimulator'
     ].forEach(name => attachPlugin({ name }))
-    ;['hand-sig', 'documentValidity', 'fill-myproduct', 'checkOverride'].forEach(name =>
-      attachPlugin({ name, requiresConf: false })
-    )
+    ;[
+      'hand-sig',
+      'documentValidity',
+      'fill-myproduct',
+      'checkOverride',
+      'prefill-controllingPerson'
+    ].forEach(name => attachPlugin({ name, requiresConf: false }))
 
     // used for some demo
     // ;[
@@ -734,11 +739,7 @@ export const loadComponentsAndPlugins = ({
   }
 
   attachPlugin({ name: 'commands', requiresConf: false })
-  if (
-    handleMessages ||
-    event === LambdaEvents.CONFIRMATION ||
-    event === LambdaEvents.RESOURCE_ASYNC
-  ) {
+  if (handleMessages || event === LambdaEvents.CONFIRMATION || runAsyncHandlers) {
     attachPlugin({ name: 'email-based-verification', componentName: 'emailBasedVerifier' })
     attachPlugin({ name: 'verify-phone-number', componentName: 'smsBasedVerifier' })
     attachPlugin({ name: 'controllingPersonRegistration', componentName: 'smsBasedVerifier' })
@@ -920,7 +921,7 @@ ${PRODUCT_LIST_MENU_MESSAGE}`
     logger.debug(`Received ${payload[TYPE]}`)
     debugger
     application.processingDataBundle = false
-    productsAPI.requestNextRequiredItem({ req, user, application })
+    await productsAPI.requestNextRequiredItem({ req, user, application })
   }
 
   return {

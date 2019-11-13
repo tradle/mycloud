@@ -1,11 +1,21 @@
 import uniqBy from 'lodash/uniqBy'
-import extend from 'lodash/extend'
 
-import { Bot, Logger, CreatePlugin, Applications, ISMS, IPluginLifecycleMethods } from '../types'
+import {
+  Bot,
+  Logger,
+  CreatePlugin,
+  Applications,
+  ISMS,
+  IPBApp,
+  IPluginLifecycleMethods,
+  ValidatePluginConf,
+  ITradleObject
+} from '../types'
 import * as Templates from '../templates'
 import Errors from '../../errors'
 import { TYPE } from '../../constants'
-
+// import { useRealSES } from '../../aws/config'
+import { enumValue } from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
@@ -20,17 +30,14 @@ const AGENCY = 'tradle.Agency'
 const CP_ONBOARDING = 'tradle.legal.ControllingPersonOnboarding'
 const CE_ONBOARDING = 'tradle.legal.LegalEntityProduct'
 const SHORT_TO_LONG_URL_MAPPING = 'tradle.ShortToLongUrlMapping'
-const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
-const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
-const CLIENT_ACTION_REQUIRED_CHECK = 'tradle.ClientActionRequiredCheck'
-
+const NEXT_FORM_REQUEST = 'tradle.NextFormRequest'
 const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
-const CHECK_STATUS = 'tradle.Status'
-const COUNTRY = 'tradle.Country'
-
-const countryMap = {
-  England: 'United Kingdom',
-  'England And Wales': 'United Kingdom'
+const NOTIFICATION = 'tradle.Notification'
+const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
+const unitCoefMap = {
+  minutes: 60000,
+  hours: 60000 * 60,
+  days: 60000 * 60 * 24
 }
 
 const DEAR_CUSTOMER = 'Dear Customer'
@@ -40,11 +47,13 @@ type SMSGatewayName = 'sns'
 const CP_ONBOARD_MESSAGE = 'Controlling person onboarding'
 const CE_ONBOARD_MESSAGE = 'Controlling entity onboarding'
 
+const DEFAULT_MESSAGE = 'Click below to complete your onboarding'
+
 const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
   template: 'action',
   blocks: [
     { body: 'Hello {{name}}' },
-    { body: 'Click below to complete your onboarding' },
+    { body: '{{message}}' }, // 'Click below to complete your onboarding' },
     {
       action: {
         text: 'On Mobile',
@@ -59,6 +68,30 @@ const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
     }
   ],
   signature: '-{{orgName}} Team'
+}
+interface IControllingPersonRegistrationConf {
+  senderEmail: string
+  products: {
+    [product: string]: []
+  }
+  rules?: {
+    low: {
+      score: number
+      notify?: number
+    }
+    medium: {
+      score: number
+      notify?: number
+    }
+    high: {
+      score: number
+      notify?: number
+    }
+    positions?: []
+    messages?: []
+    maxNotifications?: number
+    interval: number
+  }
 }
 const getSMSClient = ({
   bot,
@@ -83,6 +116,7 @@ export const genConfirmationEmail = ({
   name,
   orgName,
   product,
+  message,
   extraQueryParams = {}
 }: GenConfirmationEmailOpts) => {
   const [mobileUrl, webUrl] = ['mobile', 'web'].map(platform => {
@@ -91,11 +125,12 @@ export const genConfirmationEmail = ({
       host,
       product,
       platform,
+      message,
       ...extraQueryParams
     })
   })
 
-  return renderConfirmationEmail({ name, mobileUrl, webUrl, orgName })
+  return renderConfirmationEmail({ name, mobileUrl, webUrl, orgName, message })
 }
 
 interface GenConfirmationEmailOpts {
@@ -105,6 +140,7 @@ interface GenConfirmationEmailOpts {
   orgName: string
   extraQueryParams?: any
   product: string
+  message?: string
 }
 
 interface ConfirmationEmailTemplateData {
@@ -112,6 +148,7 @@ interface ConfirmationEmailTemplateData {
   mobileUrl: string
   webUrl: string
   orgName: string
+  message?: string
 }
 
 interface IControllingPersonConf {
@@ -131,7 +168,17 @@ class ControllingPersonRegistrationAPI {
     this.logger = logger
     this.applications = applications
   }
-  public async sendConfirmationEmail({ resource, application, legalEntity }) {
+  public async sendConfirmationEmail({
+    resource,
+    application,
+    legalEntity,
+    message
+  }: {
+    resource: ITradleObject
+    application: IPBApp
+    legalEntity: ITradleObject
+    message?: string
+  }) {
     let emailAddress = resource.emailAddress
 
     this.logger.debug('controlling person: preparing to send invite') // to ${emailAddress} from ${this.conf.senderEmail}`)
@@ -164,7 +211,8 @@ class ControllingPersonRegistrationAPI {
       name: DEAR_CUSTOMER,
       orgName: this.org.name,
       extraQueryParams,
-      product
+      product,
+      message: message || DEFAULT_MESSAGE
     })
 
     debugger
@@ -227,6 +275,120 @@ class ControllingPersonRegistrationAPI {
       }
     })
   }
+  public async checkRules({ application, forms, rules }) {
+    const { score } = application
+    const { positions, messages } = rules
+    let notify = this.getNotify({ score, rules })
+
+    let result = await this.getCP({ application, bot: this.bot })
+    let seniorManagement = result.filter((r: any) => r.isSeniorManager)
+    if (!seniorManagement.length) {
+      if (result.length > notify) seniorManagement = result.slice(0, notify)
+      else seniorManagement = result
+    }
+    let sm: any = seniorManagement[0]
+    let legalEntity = sm.legalEntity
+    let notifyArr
+    if (seniorManagement.length > notify)
+      notifyArr = this.getSeniorManagement({ notify, positions, seniorManagement })
+    else {
+      notify = seniorManagement.length
+      notifyArr = seniorManagement
+    }
+    // Case when new CP was added or existing CO was changed and the notify number is bigger than the number of notified parties
+    if (application.notifications && application.notifications.length < notifyArr.length) {
+      let notifications = await Promise.all(
+        application.notifications.map(r => this.bot.getResource(r))
+      )
+      debugger
+      notifyArr = notifyArr.filter(resource =>
+        notifications.find((r: any) => r.form._permalink !== resource._permalink)
+      )
+    }
+    await Promise.all(
+      notifyArr.map(resource =>
+        this.sendConfirmationEmail({
+          resource,
+          application,
+          legalEntity,
+          message: messages && messages[0]
+        })
+      )
+    )
+
+    await Promise.all(
+      notifyArr.map(resource => this.createNewNotification({ application, resource, messages }))
+    )
+  }
+  public getSeniorManagement({ notify, positions, seniorManagement }) {
+    let positionsArr
+    let smPosition = this.bot.models['tradle.SeniorManagerPosition']
+    if (positions) positionsArr = positions.map(p => smPosition.enum.find(val => val.id === p))
+    else positionsArr = smPosition
+    let notifyArr = []
+    let dontNotifyArr = []
+    // for (let i = 0; i < positionsArr.length; i++) {
+    for (let position of positionsArr) {
+      let id = `tradle.SeniorManagerPosition_${position.id}`
+      let seniorManager = seniorManagement.find(
+        (sm: any) => sm.seniorManagerPosition && sm.seniorManagerPosition.id === id
+      )
+      if (seniorManager) {
+        notifyArr.push(seniorManager)
+        if (notifyArr.length === notify) break
+      }
+    }
+
+    if (notifyArr.length < notify && seniorManagement.length > notifyArr.length) {
+      for (let j = 0; j < seniorManagement.length && notifyArr.length !== notify; j++) {
+        let sm: ITradleObject = seniorManagement[j]
+        if (!notifyArr.find(r => r._permalink === sm._permalink)) notifyArr.push(sm)
+      }
+    }
+    return notifyArr
+  }
+  public async createNewNotification({ application, resource, messages }) {
+    const provider = await this.bot.getMyPermalink()
+    let notification: any = {
+      application,
+      dateLastNotified: Date.now(),
+      dateLastModified: Date.now(),
+      status: 'notified',
+      form: resource,
+      message: (messages && messages[0]) || 'Please complete the onboarding application',
+      timesNotified: 1,
+      provider
+    }
+    let { emailAddress, phone } = resource
+    if (emailAddress) notification.emailAddress = emailAddress
+    if (phone) notification.mobile = phone
+    await this.bot
+      .draft({ type: NOTIFICATION })
+      .set(notification)
+      .signAndSave()
+  }
+  public getCpStubs(application) {
+    let cpStubs = application.forms.filter(stub => stub.submission[TYPE] === CONTROLLING_PERSON)
+    if (!cpStubs.length) return
+    cpStubs = cpStubs.map(stub => stub.submission).sort((a, b) => (b.time = a.time))
+    return uniqBy(cpStubs, '_permalink')
+  }
+  public async getCP({ application, bot, stubs }: { application: IPBApp; bot: Bot; stubs?: any }) {
+    if (!stubs) stubs = this.getCpStubs(application)
+    return await Promise.all(stubs.map(stub => bot.getResource(stub)))
+  }
+  public getNotify({ score, rules }) {
+    const { low, medium, high, maxNotifications } = rules
+    let notify
+    if (score >= low.score) {
+      notify = low.notify
+      if (!notify) return
+    } else if (score > medium.score) {
+      notify = medium.notify
+      if (!notify) return
+    } else notify = high.notify || maxNotifications || 5
+    return notify
+  }
 }
 
 export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
@@ -237,16 +399,25 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
   const cp = new ControllingPersonRegistrationAPI({ bot, conf, org, logger, applications })
   const plugin: IPluginLifecycleMethods = {
     async onmessage(req) {
+      // useRealSES(bot)
       const { user, application, payload } = req
       if (!application) return
       let productId = application.requestFor
-      let { products } = conf
+
+      let { products, rules } = conf
+      if (!products || !products[productId]) return
 
       let ptype = payload[TYPE]
-      if (!products || !products[productId] || products[productId].indexOf(ptype) === -1) return
+
+      if (rules && ptype === NEXT_FORM_REQUEST) {
+        // if (application.notifications) return
+        await cp.checkRules({ application, forms: products[productId], rules })
+        return
+      }
+
+      if (products[productId].indexOf(ptype) === -1) return
 
       if (!payload.emailAddress) {
-        //  &&  !payload.phone) {
         logger.error(`controlling person: no email address and no phone provided`)
         return
       }
@@ -257,7 +428,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         !(await hasPropertiesChanged({
           resource: payload,
           bot,
-          propertiesToCheck: ['emailAddress', 'phone'],
+          propertiesToCheck: ['emailAddress'],
           req
         }))
       )
@@ -265,7 +436,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       logger.debug('controlling person: processing started') // for ${payload.emailAddress}`)
       // if (payload.emailAddress) {
-      await cp.sendConfirmationEmail({ resource: payload, application, legalEntity })
+      if (!rules) await cp.sendConfirmationEmail({ resource: payload, application, legalEntity })
       // return
       // }
       // if (!smsBasedVerifier) {
@@ -279,359 +450,209 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       // }
       // await cp.sendLinkViaSMS({resource: payload, application, smsBasedVerifier, legalEntity})
     },
-    async willRequestForm({ req, application, formRequest }) {
-      let { form } = formRequest
-      if (form !== CONTROLLING_PERSON) return
-
-      // debugger
-      if (!application) return
-
-      let { checks } = application
-      if (!checks) return
-
-      let stubs = checks.filter(
-        check =>
-          check[TYPE] === CORPORATION_EXISTS ||
-          check[TYPE] === BENEFICIAL_OWNER_CHECK ||
-          check[TYPE] === CLIENT_ACTION_REQUIRED_CHECK
+    async onResourceChanged(changes) {
+      // useRealSES(bot)
+      let { old, value } = changes
+      if (value[TYPE] !== NOTIFICATION) return
+      if (
+        old.status.id !== value.status.id ||
+        value.status.id === `${NOTIFICATION_STATUS}_completed`
       )
-      if (!stubs.length) return
-      logger.debug('found ' + stubs.length + ' checks')
-      let result = await Promise.all(stubs.map(check => bot.getResource(check)))
-
-      result.sort((a, b) => b._time - a._time)
-
-      result = uniqBy(result, TYPE)
-      let check = result.find(c => c[TYPE] === CORPORATION_EXISTS)
-      let pscCheck = result.find(c => c[TYPE] === BENEFICIAL_OWNER_CHECK)
-      let carCheck = result.find(c => c[TYPE] === CLIENT_ACTION_REQUIRED_CHECK)
-
-      let forms = application.forms.filter(form => form.submission[TYPE] === CONTROLLING_PERSON)
-      let officers, items
-      if (check.status.id !== `${CHECK_STATUS}_pass`) {
-        if (pscCheck && pscCheck.status.id === `${CHECK_STATUS}_pass`)
-          await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
-        if (carCheck && carCheck.status.id === `${CHECK_STATUS}_pass`)
-          await this.prefillBeneficialOwner({
-            items,
-            forms,
-            officers,
-            formRequest,
-            pscCheck: carCheck
-          })
-
         return
-      }
+      if (old.timesNotified !== value.timesNotified) return
 
-      officers =
-        check.rawData &&
-        check.rawData.length &&
-        check.rawData[0].company &&
-        check.rawData[0].company.officers
+      let { messages, interval } = conf.rules
 
-      if (officers.length)
-        officers = officers.filter(o => o.officer.position !== 'agent' && !o.officer.inactive)
+      // let { form, dateLastNotified, dateLastModified, timesNotified } = value
+      let { dateLastNotified, dateLastModified, timesNotified } = value
 
-      let officer
-      if (!forms.length) {
-        officer = officers.length && officers[0].officer
-      } else {
-        items = await Promise.all(forms.map(f => bot.getResource(f.submission)))
-        if (items.length) {
-          for (let i = 0; i < officers.length && !officer; i++) {
-            let o = officers[i].officer
-            // if (o.inactive) continue
-            let oldOfficer = items.find(
-              item => o.name.toLowerCase().trim() === (item.name && item.name.toLowerCase().trim())
-            )
-            if (!oldOfficer) officer = o
-          }
-        }
-      }
-      if (!officer) {
-        if (pscCheck && pscCheck.status.id === `${CHECK_STATUS}_pass`)
-          await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
-        if (carCheck && carCheck.status.id === `${CHECK_STATUS}_pass`)
-          await this.prefillBeneficialOwner({
-            items,
-            forms,
-            officers,
-            formRequest,
-            pscCheck: carCheck
-          })
-        return
-      }
-      let { name, inactive, start_date, end_date, occupation } = officer
-      let prefill: any = {
-        name,
-        startDate: start_date && new Date(start_date).getTime(),
-        inactive,
-        occupation,
-        endDate: end_date && new Date(end_date).getTime()
-      }
-      this.findAndPrefillBeneficialOwner(pscCheck, officer, prefill)
+      let delta = Date.now() - dateLastNotified
+      let notifyAfter = interval.number * unitCoefMap[interval.unit]
+      if (delta < notifyAfter) return
+      delta = Date.now() - dateLastModified
+      if (delta < notifyAfter) return
 
-      prefill = sanitize(prefill).sanitized
-
-      if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
-      formRequest.prefill = {
-        ...formRequest.prefill,
-        ...prefill,
-        typeOfControllingEntity: {
-          id: 'tradle.legal.TypeOfControllingEntity_person'
-        }
+      let application = await bot.getResource(value.application, {
+        backlinks: ['notifications', 'forms']
+      })
+      // do we need to choose another participant?
+      let { isNewManager, form, abandon } = await this.getNextManager({
+        application,
+        conf,
+        timesNotified,
+        value
+      })
+      if (form && (abandon || isNewManager)) {
+        await this.abandonManager(form, value)
+        if (abandon) return
       }
-      formRequest.message = `Please review and correct the data below **for ${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+      let formRes = await bot.getResource(form)
+      let message = messages && timesNotified < messages.length && messages[timesNotified]
+      await cp.sendConfirmationEmail({
+        resource: formRes,
+        application,
+        legalEntity: formRes.legalEntity,
+        message
+      })
+      if (isNewManager) {
+        await cp.createNewNotification({ application, resource: formRes, messages })
+      }
+      let now = Date.now()
+
+      let moreProps: any = {
+        timesNotified: timesNotified + 1,
+        dateLastNotified: now
+      }
+      let { emailAddress, phone } = formRes
+      if (emailAddress) moreProps.emailAddress = emailAddress
+      if (phone) moreProps.mobile = phone
+      await bot.versionAndSave({
+        ...value,
+        ...moreProps,
+        dateLastModified: now
+      })
     },
-
-    findAndPrefillBeneficialOwner(pscCheck, officer, prefill) {
-      let beneficialOwners = pscCheck.rawData && pscCheck.rawData
-      if (!beneficialOwners || !beneficialOwners.length) return
-      if (beneficialOwners.length > 1) {
-        debugger
-        beneficialOwners.sort(
-          (a, b) => new Date(b.data.notified_on).getTime() - new Date(a.data.notified_on).getTime()
-        )
-        beneficialOwners = uniqBy(beneficialOwners, 'data.name')
-      }
-      let bo = beneficialOwners.find(bo => this.compare(officer.name, bo))
-      if (!bo) return
-      this.prefillIndividual(prefill, bo)
-    },
-
-    compare(officerName, bo) {
-      let { name, name_elements } = bo.data
-      if (!name && !name_elements) return false
-      officerName = officerName.toLowerCase().trim()
-      if (name_elements) {
-        let nameElms: any = {}
-        for (let p in name_elements) nameElms[p] = name_elements[p].toLowerCase()
-        let { forename, surname, middle_name } = nameElms
-        if (
-          officerName.indexOf(`${forename} `) === -1 ||
-          officerName.indexOf(` ${surname}`) === -1 ||
-          (middle_name && officerName.indexOf(` ${middle_name} `) === -1)
-        )
-          return false
-        else return true
-      }
-      name = name.toLowerCase().trim()
-      let idx = name.indexOf(officerName)
-      if (idx !== -1) {
-        if (name.length === officerName.length) return true
-        if (idx && name.charAt(idx - 1) === ' ' && idx + officerName.length === name.length)
-          return true
-      }
-    },
-    prefillIndividual(prefill, bo) {
-      let { country_of_residence, date_of_birth, natures_of_control } = bo.data
-
-      prefill.dateOfBirth =
-        date_of_birth && new Date(date_of_birth.year, date_of_birth.month).getTime()
-      if (country_of_residence) {
-        let country = getCountryByTitle(country_of_residence, bot.models)
-        if (country) prefill.controllingEntityCountry = country
-      }
-      this.addNatureOfControl(prefill, natures_of_control)
-    },
-    prefillCompany(prefill, bo) {
-      let { address, identification, position, occupation, natures_of_control } = bo.data
-
-      prefill.occupation = occupation || position
-      if (address) {
-        let { country, locality, postal_code, address_line_1 } = address
-        if (country) {
-          country = getCountryByTitle(country, bot.models)
-          if (country) prefill.controllingEntityCountry = country
-        }
-        extend(prefill, {
-          controllingEntityPostalCode: postal_code,
-          controllingEntityStreetAddress: address_line_1,
-          controllingEntityRegion: locality
+    async abandonManager(formRes, value) {
+      let moreProps
+      moreProps = {
+        status: enumValue({
+          model: bot.models[NOTIFICATION_STATUS],
+          value: 'abandoned'
         })
       }
-      if (identification) {
-        let {
-          registration_number,
-          legal_authority,
-          legal_form,
-          country_registered,
-          place_registered
-        } = identification
-        extend(prefill, {
-          controllingEntityCompanyNumber: registration_number,
-          companyType: legal_form
-        })
-      }
-      this.addNatureOfControl(prefill, natures_of_control)
+      let { emailAddress, phone } = formRes
+      if (emailAddress) moreProps.emailAddress = emailAddress
+      if (phone) moreProps.mobile = phone
+      await bot.versionAndSave({
+        ...value,
+        ...moreProps,
+        dateLastModified: Date.now()
+      })
     },
-    addNatureOfControl(prefill, natures_of_control) {
-      if (!natures_of_control) return
-      let natureOfControl = bot.models['tradle.PercentageOfOwnership'].enum.find(e =>
-        natures_of_control.includes(e.title.toLowerCase().replace(/\s/g, '-'))
-      )
-      if (natureOfControl)
-        prefill.natureOfControl = {
-          id: `tradle.PercentageOfOwnership_${natureOfControl.id}`,
-          title: natureOfControl.title
-        }
-    },
-    async prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck }) {
-      if (!items) items = await Promise.all(forms.map(f => bot.getResource(f.submission)))
-      if (!pscCheck) return
+    async getNextManager({ application, conf, timesNotified, value }) {
+      let { notifications, score } = application
+      let { maxNotifications, positions } = conf.rules
+      let notify = cp.getNotify({ score, rules: conf.rules })
+      let notifiedParties: any = await Promise.all(notifications.map(item => bot.getResource(item)))
+      notifiedParties = uniqBy(notifiedParties, 'form._permalink')
 
-      if (pscCheck.status.id !== `${CHECK_STATUS}_pass`) return
-      let beneficialOwners = pscCheck.rawData && pscCheck.rawData
-      logger.debug(
-        'pscCheck.rawData: ' +
-          beneficialOwners +
-          '; ' +
-          JSON.stringify(beneficialOwners[0], null, 2) +
-          '; length = ' +
-          beneficialOwners.length
-      )
+      debugger
+      if (timesNotified < maxNotifications) return { form: value.form }
 
-      if (!beneficialOwners || !beneficialOwners.length) return
-
-      if (beneficialOwners.length > 1) {
+      let stubs = cp.getCpStubs(application)
+      if (stubs.length === notifiedParties.length) {
         debugger
-        beneficialOwners.sort(
-          (a, b) => new Date(b.data.notified_on).getTime() - new Date(a.data.notified_on).getTime()
-        )
-        beneficialOwners = uniqBy(beneficialOwners, 'data.name')
+        return { form: value.form, abandon: true }
       }
-      for (let i = 0; i < beneficialOwners.length; i++) {
-        let bene = beneficialOwners[i]
-        let { data } = bene
-        let { name, kind, ceased_on } = data
-        if (ceased_on) continue
+      let result: any = await cp.getCP({ application, bot, stubs })
+      result = result.filter(r => r.typeOfControllingEntity.id.endsWith('_person'))
+      if (result.length === notifiedParties.length) {
         debugger
-        logger.debug('name = ' + name)
-
-        if (items.find(item => item.name === name)) continue
-
-        let isIndividual = kind.startsWith('individual')
-        if (isIndividual) {
-          // const prefixes = ['mr', 'ms', 'dr', 'mrs', ]
-          if (officers && officers.length) {
-            let boName = name.toLowerCase().trim()
-            if (officers.find(o => this.compare(o.officer.name, bene))) continue
-          }
-        } else if (!kind.startsWith('corporate-')) return
-        let prefill: any = {
-          name
-        }
-        if (isIndividual) {
-          this.prefillIndividual(prefill, bene)
-          // prefill.dateOfBirth =
-          //   date_of_birth && new Date(date_of_birth.year, date_of_birth.month).getTime()
-          // if (country_of_residence) {
-          //   let country = getCountryByTitle(country_of_residence, bot.models)
-          //   if (country) prefill.controllingEntityCountry = country
-          // }
-        } else {
-          this.prefillCompany(prefill, bene)
-        }
-        prefill = sanitize(prefill).sanitized
-        if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
-        formRequest.prefill = {
-          ...formRequest.prefill,
-          ...prefill,
-          typeOfControllingEntity: {
-            id: kind.startsWith('individual')
-              ? 'tradle.legal.TypeOfControllingEntity_person'
-              : 'tradle.legal.TypeOfControllingEntity_legalEntity'
-          }
-        }
-        logger.debug('prefill = ' + formRequest.prefill)
-        formRequest.message = `Please review and correct the data below **for ${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
-        return true
+        return { form: value.form, abandon: true }
       }
+      let seniorManagement = result.filter((r: any) => r.isSeniorManager)
+      let isSeniorManagement = true
+      if (!seniorManagement.length) {
+        isSeniorManagement = false
+        if (result.length > notify) seniorManagement = result.slice(0, notify)
+        else seniorManagement = result
+      } else if (seniorManagement.length < notify && result.length > seniorManagement.length) {
+        if (result.length > notify) {
+          let notNotified: any = result.filter(
+            (item: any) => !notifiedParties.find((r: any) => r._permalink !== item._permalink)
+          )
+
+          seniorManagement = seniorManagement.concat(
+            notNotified.slice(0, notify - seniorManagement.length)
+          )
+        } else seniorManagement = result
+      }
+      // let notifiedParties = await Promise.all(uniqBy(notifications, 'form').map((r:any) => bot.getResource(r.form)))
+      if (seniorManagement.length === notifiedParties.length) {
+        debugger
+        return { form: value.form, abandon: true }
+      }
+      let notNotified: any = seniorManagement.filter(
+        (item: any) => !notifiedParties.find((r: any) => r.form._permalink === item._permalink)
+      )
+      let form
+      if (isSeniorManagement) {
+        let smArr = cp.getSeniorManagement({ notify: 1, positions, seniorManagement: notNotified })
+        if (smArr.length) form = smArr[0]
+      }
+      if (!form) form = notNotified[0]
+
+      return { form, isNewManager: true }
     }
   }
-
   return {
     plugin
   }
 }
-function getCountryByTitle(country, models) {
-  let mapCountry = countryMap[country]
-  if (mapCountry) country = mapCountry
-  let countryR = models[COUNTRY].enum.find(val => val.title === country)
-  return (
-    countryR && {
-      id: `${COUNTRY}_${countryR.id}`,
-      title: country
-    }
-  )
-}
-const beneTest = [
-  {
-    company_number: '06415759',
-    data: {
-      address: {
-        address_line_1: '1 Goose Green',
-        country: 'England',
-        locality: 'Altrincham',
-        postal_code: 'WA14 1DW',
-        premises: 'Corpacq House'
-      },
-      etag: 'e5e6a05c5484ce25fca9884bb833d47c1fb1e0b4',
-      identification: {
-        country_registered: 'England',
-        legal_authority: 'Companies Act 2006',
-        legal_form: 'Private Company Limited By Shares',
-        place_registered: 'Register Of Companies For England And Wales',
-        registration_number: '11090838'
-      },
-      kind: 'corporate-entity-person-with-significant-control',
-      links: {
-        self:
-          '/company/06415759/persons-with-significant-control/corporate-entity/c3JdMtrhD9Z17jLydOWsp6YVh9w'
-      },
-      name: 'Beyondnewcol Limited',
-      natures_of_control: [
-        'ownership-of-shares-75-to-100-percent',
-        'voting-rights-75-to-100-percent',
-        'right-to-appoint-and-remove-directors'
-      ],
-      notified_on: '2019-06-27'
-    }
-  },
-  {
-    company_number: '12134701',
-    data: {
-      address: {
-        address_line_1: 'Bell Yard',
-        country: 'United Kingdom',
-        locality: 'London',
-        postal_code: 'WC2A 2JR',
-        premises: '7'
-      },
-      country_of_residence: 'United Kingdom',
-      date_of_birth: {
-        month: 3,
-        year: 1966
-      },
-      etag: 'a46e27e4284b75c2a6a2b6a122df6b1abee4e13d',
-      kind: 'individual-person-with-significant-control',
-      links: {
-        self:
-          '/company/12134701/persons-with-significant-control/individual/fXEREOeTBLPNqrAK3ylzPr3w73Q'
-      },
-      name: 'Miss Joana Castellet',
-      name_elements: {
-        forename: 'Joana',
-        surname: 'Castellet',
-        title: 'Miss'
-      },
-      nationality: 'Spanish',
-      natures_of_control: [
-        'ownership-of-shares-75-to-100-percent',
-        'voting-rights-75-to-100-percent',
-        'right-to-appoint-and-remove-directors'
-      ],
-      notified_on: '2019-08-01'
-    }
+export const validateConf: ValidatePluginConf = async ({
+  bot,
+  pluginConf
+}: {
+  bot: Bot
+  pluginConf: IControllingPersonRegistrationConf
+}) => {
+  const { models } = bot
+  let { senderEmail, rules, products } = pluginConf
+  if (!senderEmail) throw new Error('missing senderEmail')
+  for (let appType in products) {
+    if (!models[appType]) throw new Error(`model does not exist for ${appType}`)
+    let forms = products[appType]
+    forms.forEach(form => {
+      if (!models[form]) throw new Error(`missing model: ${form}`)
+    })
   }
-]
+  if (!rules) return
+  let { low, high, medium, positions, messages, interval, maxNotifications } = rules
+  if (!low || !high || !medium)
+    throw new Error(`If rules are assigned all 3: "low", "high" and "medium' should be present`)
+  if (!low.score || !high.score || !medium.score)
+    throw new Error(
+      `If rules are assigned all 3: "low", "high" and "medium' should have a "score" attribute`
+    )
+  if (
+    typeof low.score !== 'number' ||
+    typeof high.score !== 'number' ||
+    typeof medium.score !== 'number'
+  )
+    throw new Error(
+      `If rules are assigned all 3: "low", "high" and "medium' should have a "score" as a number`
+    )
+  if (
+    (low.notify && typeof low.notify !== 'number') ||
+    (high.notify && typeof high.notify !== 'number') ||
+    (medium.notify && typeof medium.notify !== 'number')
+  )
+    throw new Error(`If rules are assigned and some have attribute "notify" it should be a number`)
+
+  if (!interval) throw new Error(`If rules are assigned 'interval' should be present`)
+  if (typeof interval !== 'object')
+    throw new Error(
+      '"interval" in the rules should be an object {number, unit}, where unit is minutes, hours or days'
+    )
+  let { number, unit } = interval
+  if (!number || typeof number !== 'number') {
+    throw new Error(`If rules are assigned 'interval.number' should be present and a number`)
+  }
+  if (
+    !unit ||
+    typeof unit !== 'string' ||
+    (unit !== 'minutes' && unit !== 'hours' && unit !== 'days')
+  ) {
+    throw new Error(
+      `If rules are assigned 'interval.unit' should be string and the value could be on of these: minutes, hours or days`
+    )
+  }
+  if (maxNotifications && typeof maxNotifications !== 'number')
+    throw new Error(`If rules are assigned 'maxNotifications' should be a number`)
+  if (positions && !Array.isArray(positions))
+    throw new Error('"positions" in the rules should be an array')
+  if (messages && !Array.isArray(messages))
+    throw new Error(
+      '"messages" in the rules should be an array. Index of the message in array signifies what message will be send depending on what time the message is getting send out'
+    )
+}

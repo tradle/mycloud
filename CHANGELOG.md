@@ -2,20 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.9](https://github.com/tradle/mycloud/compare/v2.5.1-rc.8...v2.5.1-rc.9) (2019-11-01)
+## [2.5.1-rc.11](https://github.com/tradle/mycloud/compare/v2.5.1-rc.10...v2.5.1-rc.11) (2019-11-12)
 
 
 ### Bug Fixes
 
-* was working only for CE onboarding, now for any product ([678aa1e](https://github.com/tradle/mycloud/commit/678aa1e))
+* models upgrade ([df9de1e](https://github.com/tradle/mycloud/commit/df9de1e))
+* phone verification ([5e4f1fc](https://github.com/tradle/mycloud/commit/5e4f1fc))
 
 
 ### Features
 
-* KYC upload ([249c784](https://github.com/tradle/mycloud/commit/249c784))
-* KYC upload ([8e47295](https://github.com/tradle/mycloud/commit/8e47295))
-* optimizing models; KYC upload ([ef0dba5](https://github.com/tradle/mycloud/commit/ef0dba5))
-* validateConf added to check if models used in forms[''] exist ([197fd29](https://github.com/tradle/mycloud/commit/197fd29))
+* KYC chaser ([64331a1](https://github.com/tradle/mycloud/commit/64331a1))
 
 
 

@@ -18,7 +18,6 @@ import Errors from '../../errors'
 import { topics as EventTopics } from '../../events'
 import { randomDigits } from '../../crypto'
 import buildResource from '@tradle/build-resource'
-import { getStatusMessageForCheck } from '../utils'
 
 const PHONE_CHECK = 'tradle.PhoneCheck'
 const OTP = 'tradle.OTP'
@@ -138,7 +137,11 @@ export const createPlugin: CreatePlugin<SMSBasedVerifier> = (
 
   const maybeRequestPhoneCheck = async (opts: RequestPhoneCheckOpts) => {
     const { user, phone } = opts
-    const keepGoing = true || (await shouldCreateCheck({ user, phoneNumber: phone.number }))
+    // const keepGoing = true || (await shouldCreateCheck({ user, phoneNumber: phone.number }))
+    const keepGoing = await shouldCreateCheck({
+      user,
+      phoneNumber: typeof phone === 'string' ? phone : phone.number
+    })
     if (!keepGoing) {
       logger.debug('not creating phone check, already verified or pending', {
         user: user.id,
@@ -179,7 +182,7 @@ export const createPlugin: CreatePlugin<SMSBasedVerifier> = (
     }
     debugger
 
-    resource.message = getStatusMessageForCheck({ models: bot.models, check: resource })
+    // resource.message = getStatusMessageForCheck({ models: bot.models, check: resource })
     const createCheck = applications.createCheck(resource, req)
 
     const requestConfirmationCode = await applications.requestItem({

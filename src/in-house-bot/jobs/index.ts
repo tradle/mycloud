@@ -16,6 +16,7 @@ import { DEFAULT_WARMUP_EVENT, TYPES } from '../../constants'
 import { AthenaFeed } from './athenafeed'
 import { ImportPsc } from './importPsc'
 import { ImportRefdata } from './importRefdata'
+import { Chaser } from './chaser'
 // import { Deployment } from '../deployment'
 
 const SAFETY_MARGIN_MILLIS = 20000
@@ -26,6 +27,12 @@ type ExecInput = {
 }
 
 type Executor = (opts: ExecInput) => Promise<any | void>
+
+export const chaser: Executor = async ({ job, components }) => {
+  const { bot } = components
+  let chaser = new Chaser(bot)
+  await chaser.chase()
+}
 
 export const exportObjectsToAthena: Executor = async ({ job, components }) => {
   let feeder = new AthenaFeed(components.bot)
