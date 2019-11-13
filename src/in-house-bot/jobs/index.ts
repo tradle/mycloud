@@ -37,7 +37,7 @@ export const chaser: Executor = async ({ job, components }) => {
 export const exportObjectsToAthena: Executor = async ({ job, components }) => {
   let feeder = new AthenaFeed(components.bot)
   try {
-    await feeder.objectsDump()
+    // await feeder.objectsDump()
   } catch (err) {
     components.bot.logger.error('job exportObjectsToAthena failed', err)
   }
@@ -46,7 +46,7 @@ export const exportObjectsToAthena: Executor = async ({ job, components }) => {
 export const importPsc: Executor = async ({ job, components }) => {
   let importer = new ImportPsc(components.bot)
   try {
-    importer.movePSC()
+    //  importer.movePSC()
   } catch (err) {
     components.bot.logger.error('job importPsc failed', err)
   }
@@ -55,7 +55,7 @@ export const importPsc: Executor = async ({ job, components }) => {
 export const importRefdata: Executor = async ({ job, components }) => {
   let importer = new ImportRefdata(components.bot)
   try {
-    importer.move()
+    // importer.move()
   } catch (err) {
     components.bot.logger.error('job importRefdata failed', err)
   }
