@@ -192,9 +192,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
         model,
         logger
       })
-      allFormulas.forEach(formula => normalizeFormula({ formula }))
       allFormulas.forEach(async val => {
         let [propName, formula] = val
+        formula = normalizeFormula({ formula })
         try {
           let value = new Function('forms', 'application', `return ${formula}`)(forms, application)
           if (!formRequest.prefill) {
