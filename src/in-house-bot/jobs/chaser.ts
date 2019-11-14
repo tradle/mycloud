@@ -3,6 +3,8 @@ import { Bot, Logger } from '../types'
 const NOTIFICATION = 'tradle.Notification'
 const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
 
+const MINUTE = 60000
+
 export class Chaser {
   private bot: Bot
   private logger: Logger
@@ -35,7 +37,7 @@ export class Chaser {
     items = items.filter(item => !item.status.id.endsWith('_abandoned'))
     items.sort((a, b) => b._time - a._time)
     let now = Date.now()
-    let notify = items.filter(item => now - item.dateLastModified > 2 * 60)
+    let notify = items.filter(item => now - item.dateLastModified > (item.interval || 5 * MINUTE))
     let result = await Promise.all(
       notify.map(item =>
         this.bot.versionAndSave({
