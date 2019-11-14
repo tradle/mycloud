@@ -37,7 +37,7 @@ export class Chaser {
     items = items.filter(item => !item.status.id.endsWith('_abandoned'))
     items.sort((a, b) => b._time - a._time)
     let now = Date.now()
-    let notify = items.filter(item => now - item.dateLastModified > (item.interval || 5 * MINUTE))
+    let notify = items.filter(item => now - item.dateLastNotified > (item.interval || 5 * MINUTE))
     let result = await Promise.all(
       notify.map(item =>
         this.bot.versionAndSave({

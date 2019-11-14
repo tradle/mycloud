@@ -168,7 +168,7 @@ export class SmeVerifier {
     let timesNotified = 1
     await this.bot.versionAndSave({
       ...notification,
-      dateLastModified: Date.now(),
+      dateLastNotified: Date.now(),
       timesNotified,
       status: enumValue({ model: this.bot.models[NOTIFICATION_STATUS], value: status })
     })
@@ -245,7 +245,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (notification)
         await bot.versionAndSave({
           ...notification,
-          dateLastModified: Date.now(),
+          // dateLastModified: Date.now(),
           status: enumValue({ model: bot.models[NOTIFICATION_STATUS], value: 'completed' })
         })
     },
