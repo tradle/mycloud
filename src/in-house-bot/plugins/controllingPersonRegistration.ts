@@ -279,7 +279,7 @@ class ControllingPersonRegistrationAPI {
   }
   public async checkRules({ application, forms, rules }) {
     const { score } = application
-    const { positions, messages } = rules
+    const { positions, messages, interval } = rules
     let notify = this.getNotify({ score, rules })
 
     let result = await this.getCP({ application, bot: this.bot })
@@ -319,7 +319,9 @@ class ControllingPersonRegistrationAPI {
     )
 
     await Promise.all(
-      notifyArr.map(resource => this.createNewNotification({ application, resource, messages }))
+      notifyArr.map(resource =>
+        this.createNewNotification({ application, resource, messages, interval })
+      )
     )
   }
   public getSeniorManagement({ notify, positions, seniorManagement }) {
@@ -349,7 +351,7 @@ class ControllingPersonRegistrationAPI {
     }
     return notifyArr
   }
-  public async createNewNotification({ application, resource, messages }) {
+  public async createNewNotification({ application, resource, messages, interval }) {
     // const provider = await this.bot.getMyPermalink()
     let notification: any = {
       application,
@@ -357,6 +359,7 @@ class ControllingPersonRegistrationAPI {
       dateLastModified: Date.now(),
       status: 'notified',
       form: resource,
+      interval: interval.number * unitCoefMap[interval.unit],
       message: (messages && messages[0]) || 'Please complete the onboarding application',
       timesNotified: 1,
       provider: NOTIFICATION_PROVIDER
@@ -497,12 +500,12 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         message
       })
       if (isNewManager) {
-        await cp.createNewNotification({ application, resource: formRes, messages })
+        await cp.createNewNotification({ application, resource: formRes, messages, interval })
       }
       let now = Date.now()
 
       let moreProps: any = {
-        timesNotified: timesNotified + 1,
+        timesNotified: isNewManager ? 1 : timesNotified + 1,
         dateLastNotified: now
       }
       let { emailAddress, phone } = formRes
