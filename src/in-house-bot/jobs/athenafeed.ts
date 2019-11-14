@@ -177,6 +177,7 @@ export class AthenaFeed {
 
     let permalink = json._permalink
     if (TYPE_MESSAGE == type) {
+      this.logger.debug(`tradle.Message _payloadType = ${json._payloadType}`)
       let payloadTypeModel = this.bot.models[json._payloadType]
       if (!payloadTypeModel)
         return
@@ -184,7 +185,8 @@ export class AthenaFeed {
         return
       permalink = json._payloadLink
       delete json.object
-      file = JSON.stringify(file)
+      file = JSON.stringify(json)
+      this.logger.debug('tradle.Message ready for writing into file system')
     }
 
     let struct = map.get(type)
