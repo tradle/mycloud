@@ -170,6 +170,9 @@ export default class Messages {
       await this.putOutboundMessage({ message, item })
     }
 
+    await this.objects.put(_.omit(message, 'object'))
+    // let msg = await this.objects.get(message._link)
+    debugger
     // await Promise.all([
     //   promiseSaveEnvelope,
     //   promiseSavePayload
@@ -409,9 +412,7 @@ export default class Messages {
       }
 
       if (prev[TIMESTAMP] >= time) {
-        const msg = `TimeTravel: timestamp for message ${link} is <= the previous messages's (${
-          prev._link
-        })`
+        const msg = `TimeTravel: timestamp for message ${link} is <= the previous messages's (${prev._link})`
         this.logger.debug(msg)
         throw new Errors.TimeTravel(msg, link)
       }
