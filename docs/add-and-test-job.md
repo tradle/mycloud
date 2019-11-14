@@ -40,6 +40,11 @@ node --inspect ./node_modules/.bin/serverless invoke local --function genericJob
           cors: ${{self:custom.cors}}
 ```
 
+_Note:_ Don't forget to run 
+```
+npm run build:yml
+```
+
 ### job-runner.ts
 instead of
 ```

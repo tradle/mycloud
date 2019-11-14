@@ -2,18 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.11](https://github.com/tradle/mycloud/compare/v2.5.1-rc.10...v2.5.1-rc.11) (2019-11-12)
+## [2.5.1-rc.12](https://github.com/tradle/mycloud/compare/v2.5.1-rc.11...v2.5.1-rc.12) (2019-11-13)
 
 
 ### Bug Fixes
 
-* models upgrade ([df9de1e](https://github.com/tradle/mycloud/commit/df9de1e))
-* phone verification ([5e4f1fc](https://github.com/tradle/mycloud/commit/5e4f1fc))
+* prop was not set -> not a reason for exception ([d5939f5](https://github.com/tradle/mycloud/commit/d5939f5))
 
 
 ### Features
 
-* KYC chaser ([64331a1](https://github.com/tradle/mycloud/commit/64331a1))
+* in/inter form conditional formulas simplifications ([05f3a5e](https://github.com/tradle/mycloud/commit/05f3a5e))
 
 
 
