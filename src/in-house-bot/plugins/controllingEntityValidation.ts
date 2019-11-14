@@ -38,11 +38,13 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       }
       let propsToMatch = payloadConf.propertiesToMatch
       if (!propsToMatch) return
-      let valuesToMatch = propsToMatch.map(p => payload[p].toLowerCase())
 
       let r = await bot.getResource(associatedResource)
       let name = r.name && r.name.toLowerCase()
       if (!name) return
+
+      let valuesToMatch = []
+      propsToMatch.forEach(p => payload[p]  &&  valuesToMatch.push(payload[p].toLowerCase()))
 
       let comparedValues = []
 
