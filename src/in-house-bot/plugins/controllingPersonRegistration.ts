@@ -356,7 +356,7 @@ class ControllingPersonRegistrationAPI {
     let notification: any = {
       application,
       dateLastNotified: Date.now(),
-      dateLastModified: Date.now(),
+      // dateLastModified: Date.now(),
       status: 'notified',
       form: resource,
       interval: interval.number * unitCoefMap[interval.unit],
@@ -464,18 +464,20 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         value.status.id === `${NOTIFICATION_STATUS}_completed`
       )
         return
+
+      let { timesNotified } = value
       if (old.timesNotified !== value.timesNotified) return
 
       let { messages, interval } = conf.rules
 
       // let { form, dateLastNotified, dateLastModified, timesNotified } = value
-      let { dateLastNotified, dateLastModified, timesNotified } = value
+      // let { dateLastNotified, dateLastModified, timesNotified } = value
 
-      let delta = Date.now() - dateLastNotified
-      let notifyAfter = interval.number * unitCoefMap[interval.unit]
-      if (delta < notifyAfter) return
-      delta = Date.now() - dateLastModified
-      if (delta < notifyAfter) return
+      // let delta = Date.now() - dateLastNotified
+      // let notifyAfter = interval.number * unitCoefMap[interval.unit]
+      // if (delta < notifyAfter) return
+      // delta = Date.now() - dateLastModified
+      // if (delta < notifyAfter) return
 
       let application = await bot.getResource(value.application, {
         backlinks: ['notifications', 'forms']
@@ -511,10 +513,12 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let { emailAddress, phone } = formRes
       if (emailAddress) moreProps.emailAddress = emailAddress
       if (phone) moreProps.mobile = phone
+      if (!value.interval)
+        value.interval = interval.number * unitCoefMap[interval.unit]
       await bot.versionAndSave({
         ...value,
         ...moreProps,
-        dateLastModified: now
+        // dateLastModified: now
       })
     },
     async abandonManager(formRes, value) {
@@ -531,7 +535,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       await bot.versionAndSave({
         ...value,
         ...moreProps,
-        dateLastModified: Date.now()
+        // dateLastModified: Date.now()
       })
     },
     async getNextManager({ application, conf, timesNotified, value }) {
