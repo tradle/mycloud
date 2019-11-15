@@ -465,19 +465,16 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       )
         return
 
-      let { timesNotified } = value
-      if (old.timesNotified !== value.timesNotified) return
+      let { dateLastNotified, timesNotified } = value
+      if (old.timesNotified !== timesNotified) return
 
       let { messages, interval } = conf.rules
 
-      // let { form, dateLastNotified, dateLastModified, timesNotified } = value
-      // let { dateLastNotified, dateLastModified, timesNotified } = value
-
-      // let delta = Date.now() - dateLastNotified
-      // let notifyAfter = interval.number * unitCoefMap[interval.unit]
-      // if (delta < notifyAfter) return
-      // delta = Date.now() - dateLastModified
-      // if (delta < notifyAfter) return
+      let delta = Date.now() - dateLastNotified
+      let notifyAfter = interval.number * unitCoefMap[interval.unit]
+      if (delta < notifyAfter) return
+      delta = Date.now() - dateLastNotified
+      if (delta < notifyAfter) return
 
       let application = await bot.getResource(value.application, {
         backlinks: ['notifications', 'forms']
@@ -505,19 +502,20 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         await cp.createNewNotification({ application, resource: formRes, messages, interval })
       }
       let now = Date.now()
-
+      let newTimesNotified = isNewManager ? 1 : timesNotified + 1
       let moreProps: any = {
-        timesNotified: isNewManager ? 1 : timesNotified + 1,
-        dateLastNotified: now
+        // timesNotified: newTimesNotified,
+        // dateLastNotified: now
       }
       let { emailAddress, phone } = formRes
       if (emailAddress) moreProps.emailAddress = emailAddress
       if (phone) moreProps.mobile = phone
-      if (!value.interval)
-        value.interval = interval.number * unitCoefMap[interval.unit]
+      if (!value.interval) value.interval = notifyAfter
       await bot.versionAndSave({
         ...value,
         ...moreProps,
+        timesNotified: newTimesNotified,
+        dateLastNotified: now
         // dateLastModified: now
       })
     },
@@ -534,7 +532,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (phone) moreProps.mobile = phone
       await bot.versionAndSave({
         ...value,
-        ...moreProps,
+        ...moreProps
         // dateLastModified: Date.now()
       })
     },
