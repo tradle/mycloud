@@ -503,10 +503,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       }
       let now = Date.now()
       let newTimesNotified = isNewManager ? 1 : timesNotified + 1
-      let moreProps: any = {
-        // timesNotified: newTimesNotified,
-        // dateLastNotified: now
-      }
+      let moreProps: any = {}
       let { emailAddress, phone } = formRes
       if (emailAddress) moreProps.emailAddress = emailAddress
       if (phone) moreProps.mobile = phone
@@ -516,7 +513,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         ...moreProps,
         timesNotified: newTimesNotified,
         dateLastNotified: now
-        // dateLastModified: now
       })
     },
     async abandonManager(formRes, value) {
