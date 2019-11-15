@@ -22,7 +22,7 @@ import Errors from '../../errors'
 
 import AWS from 'aws-sdk'
 import _ from 'lodash'
-import util from 'util'
+
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
@@ -30,22 +30,39 @@ const { sanitize } = validateResource.utils
 const POLL_INTERVAL = 250
 
 const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
-const PROVIDER = 'http://download.companieshouse.gov.uk/en_pscdata.html'
+const PROVIDER = 'PitchBook Data, Inc.'
 const ASPECTS = 'Beneficial owner'
-const GOVERNMENTAL = 'governmental'
+const COMMERCIAL = 'commercial'
 
-const QUERY = 'select company_number, data from psc where company_number = \'%s\''
-
-interface IPscAthenaConf {
+interface IPitchbookthenaConf {
   type: string,
-  check: string,
+
+  athenaTable: string,
+
+  checks: Object
 }
 
-interface IPscConf {
-  athenaMaps: [IPscAthenaConf]
+interface IPitchbookConf {
+  athenaMaps: [IPitchbookthenaConf]
 }
 
-interface IPscCheck {
+/*
+  
+  "pitchbookCheck": {
+    "athenaMaps": [
+        {
+          "type": "tradle.legal.LegalEntity",
+          "checks": {
+             "website": "website"
+          },
+          "athenaTable": "pitchbook_investor" 
+        }
+    ]
+  }
+ 
+*/
+
+interface IPitchbookCheck {
   application: IPBApp
   status: any
   form: ITradleObject
@@ -53,7 +70,7 @@ interface IPscCheck {
   req: IPBReq
 }
 
-export class PscCheckAPI {
+export class PitchbookCheckAPI {
   private bot: Bot
   private conf: any
   private applications: Applications
@@ -71,19 +88,16 @@ export class PscCheckAPI {
     this.athena = new AWS.Athena({ region, accessKeyId, secretAccessKey })
   }
 
-  public sleep = async ms => {
+  public sleep = async (ms: number) => {
     await this._sleep(ms)
   }
-  public _sleep = ms => {
+  public _sleep = (ms: number) => {
     return new Promise(resolve => setTimeout(resolve, ms))
   }
-  public getExecutionId = async sql => {
+  public getExecutionId = async (sql: string): Promise<string> => {
     return new Promise((resolve, reject) => {
-      const outputLocation = 's3://' + this.bot.buckets.PrivateConf.id + '/temp'
-      this.logger.debug(`pscCheck: ${outputLocation}`)
-      this.logger.debug(`pscCheck getExecutionId with ${sql}`)
+      const outputLocation = `s3://${this.bot.buckets.PrivateConf.id}/temp`
       const database = this.bot.env.getStackResourceName('sec')
-      this.logger.debug(`pscCheck getExecutionId in db ${database}`)
       let params = {
         QueryString: sql,
         ResultConfiguration: { OutputLocation: outputLocation },
@@ -97,7 +111,7 @@ export class PscCheckAPI {
       })
     })
   }
-  public checkStatus = async (id): Promise<string> => {
+  public checkStatus = async (id: string): Promise<string> => {
     return new Promise<string>((resolve, reject) => {
       this.athena.getQueryExecution({ QueryExecutionId: id }, (err, data) => {
         if (err) return reject(err)
@@ -108,7 +122,7 @@ export class PscCheckAPI {
       })
     })
   }
-  public getResults = async id => {
+  public getResults = async (id: string) => {
     return new Promise((resolve, reject) => {
       this.athena.getQueryResults({ QueryExecutionId: id }, (err, data) => {
         if (err) return reject(err)
@@ -123,14 +137,14 @@ export class PscCheckAPI {
   }
 
   public queryAthena = async (sql: string) => {
-    let id
-    this.logger.debug(`pscCheck queryAthena() called with sql ${sql}`)
+    let id: string
+    this.logger.debug(`pitchbookCheck queryAthena() called with: ${sql}`)
 
     try {
       id = await this.getExecutionId(sql)
-      this.logger.debug('athena execution id', id)
+      this.logger.error('athena execution id', id)
     } catch (err) {
-      this.logger.debug('athena error', err)
+      this.logger.error('athena error', err)
       return { status: false, error: err, data: null }
     }
 
@@ -141,13 +155,13 @@ export class PscCheckAPI {
       try {
         result = await this.checkStatus(id)
       } catch (err) {
-        this.logger.debug('athena error', err)
+        this.logger.error('athena error', err)
         return { status: false, error: err, data: null }
       }
       if (result == 'SUCCEEDED') break
 
       if (timePassed > 10000) {
-        this.logger.debug('athena error', 'result timeout')
+        this.logger.error('athena error', 'result timeout')
         return { status: false, error: 'result timeout', data: null }
       }
       await this.sleep(POLL_INTERVAL)
@@ -175,24 +189,30 @@ export class PscCheckAPI {
       this.logger.debug('athena query result', list)
       return { status: true, error: null, data: list }
     } catch (err) {
-      this.logger.debug('athena error', err)
+      this.logger.error('athena error', err)
       return { status: false, error: err, data: null }
     }
   }
-  public mapToSubject = type => {
+  public mapToSubject = (type: string) => {
     for (let subject of this.conf.athenaMaps) {
       if (subject.type == type)
         return subject;
     }
     return null
   }
-  public async lookup({ check, form, application, req, user }) {
+  public async lookup(subject: IPitchbookthenaConf, form: any, application: IPBApp, req: IPBReq) {
     let status
-    let formCompanyNumber = form[check] //.replace(/-/g, '').replace(/^0+/, '') // '133693';
-    this.logger.debug(`pscCheck check() called with number ${formCompanyNumber}`)
-    let sql = util.format(QUERY, formCompanyNumber)
+    this.logger.debug('pitchbookCheck lookup() called')
+    let cnt = 0;
+    let sql = `select * from ${subject.athenaTable} where `
+    for (let check of Object.keys(subject.checks)) {
+      if (cnt++ > 0)
+        sql += ' and '
+      if (form[check])
+        sql += `"${subject.checks[check]}" = \'${form[check]}\'`
+    }
     let find = await this.queryAthena(sql)
-    let rawData
+    let rawData: Array<any>
     if (find.status == false) {
       status = {
         status: 'error',
@@ -202,10 +222,10 @@ export class PscCheckAPI {
     } else if (find.data.length == 0) {
       status = {
         status: 'fail',
-        message: `Company with provided number ${formCompanyNumber} is not found`
+        message: `No entry for provided checks is found in ${subject.athenaTable}`
       }
     } else {
-      this.logger.debug(`pscCheck check() found ${find.data.length} records`)
+      this.logger.debug(`pitchbookCheck check() found ${find.data.length} records`)
       rawData = find.data
       status = { status: 'pass' }
     }
@@ -213,12 +233,12 @@ export class PscCheckAPI {
     await this.createCheck({ application, status, form, rawData, req })
 
   }
-  public createCheck = async ({ application, status, form, rawData, req }: IPscCheck) => {
+  public createCheck = async ({ application, status, form, rawData, req }: IPitchbookCheck) => {
     // debugger
     let resource: any = {
       [TYPE]: BENEFICIAL_OWNER_CHECK,
       status: status.status,
-      sourceType: GOVERNMENTAL,
+      sourceType: COMMERCIAL,
       provider: PROVIDER,
       application,
       dateChecked: new Date().getTime(),
@@ -229,133 +249,58 @@ export class PscCheckAPI {
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
     if (rawData && Array.isArray(rawData)) {
-      rawData.forEach(rdata => {
-        if (rdata.data && typeof rdata.data === 'string')
-          rdata.data = makeJson(rdata.data)
-      })
       resource.rawData = sanitize(rawData).sanitized
-      console.log(JSON.stringify(resource.rawData, null, 2))
     }
 
-    this.logger.debug(`${PROVIDER} Creating pscCheck`)
+    this.logger.debug(`${PROVIDER} Creating pitchbookCheck`)
     await this.applications.createCheck(resource, req)
-    this.logger.debug(`${PROVIDER} Created pscCheck`)
+    this.logger.debug(`${PROVIDER} Created pitchbookCheck`)
   }
 
 }
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
-  const pscCheckAPI = new PscCheckAPI({ bot, conf, applications, logger })
+  const pitchbookCheckAPI = new PitchbookCheckAPI({ bot, conf, applications, logger })
   // debugger
   const plugin: IPluginLifecycleMethods = {
     async onmessage(req: IPBReq) {
-      logger.debug('pscCheck called onmessage')
+      logger.debug('pitchbookCheck called onmessage')
       if (req.skipChecks) return
-      const { user, application, payload } = req
+      const { application, payload } = req
       if (!application) return
 
-      let subject = pscCheckAPI.mapToSubject(payload[TYPE])
+      let subject = pitchbookCheckAPI.mapToSubject(payload[TYPE])
       if (!subject) return
-      logger.debug(`pscCheck called for type ${payload[TYPE]} to check ${subject.check}`)
+      logger.debug(`pitchbookCheck called for type ${payload[TYPE]} to check ${Object.keys(subject.check)}`)
 
-      if (!payload[subject.check]) return
+      let inpayload = false
+      for (let check of Object.keys(subject.check)) {
+        if (payload[check]) {
+          inpayload = true
+        }
+      }
+      if (!inpayload)
+        return
 
-      logger.debug('pscCheck before doesCheckNeedToBeCreated')
+      logger.debug('pitchbookCheck before doesCheckNeedToBeCreated')
       let createCheck = await doesCheckNeedToBeCreated({
         bot,
         type: BENEFICIAL_OWNER_CHECK,
         application,
         provider: PROVIDER,
         form: payload,
-        propertiesToCheck: [subject.check],
+        propertiesToCheck: Object.keys(subject.checks),
         prop: 'form',
         req
       })
-      logger.debug(`pscCheck after doesCheckNeedToBeCreated with createCheck=${createCheck}`)
+      logger.debug(`pitchbookCheck after doesCheckNeedToBeCreated with createCheck=${createCheck}`)
 
       if (!createCheck) return
-      let r = await pscCheckAPI.lookup({ check: subject.check, form: payload, application, req, user })
+      let r = await pitchbookCheckAPI.lookup(subject, payload, application, req)
     }
   }
   return { plugin }
 }
-
-
-function makeJson(str: string) {
-  let arr = Array.from(str)
-  let idx = 1;
-  let obj: any = build(arr, idx)
-  return obj.v
-}
-
-function build(arr: Array<string>, idx: number): any {
-  let name = ''
-  let obj = {}
-  for (; idx < arr.length; idx++) {
-    if (arr[idx] == '=') {
-      if (arr[idx + 1] == '{') {
-        let ret = build(arr, idx + 2)
-        obj[name] = ret.v
-        idx = ret.i
-      }
-      else if (arr[idx + 1] == '[') {
-        let ret = buildStringArray(arr, idx + 2)
-        obj[name] = ret.v
-        name = ''
-        idx = ret.i
-      }
-      else {
-        let ret = buildString(arr, idx + 1)
-        obj[name] = ret.v
-        name = ''
-        idx = ret.i
-      }
-    }
-    else if (arr[idx] == '}') {
-      return { v: obj, i: idx }
-    }
-    else if (arr[idx] == ',') {
-      name = ''
-      idx++
-    }
-    else {
-      name += arr[idx]
-    }
-  }
-  return obj
-}
-
-function buildStringArray(arr: Array<string>, idx: number) {
-  let strArr = []
-  let val = ''
-  while (true) {
-    if (arr[idx] == ',') {
-      strArr.push(val)
-      val = ''
-      idx++; // skip space
-    }
-    else if (arr[idx] == ']') {
-      return { v: strArr, i: idx }
-    }
-    val += arr[idx++]
-  }
-}
-
-function buildString(arr: Array<string>, idx: number) {
-  let val = ''
-  while (true) {
-    if (arr[idx] == ',') {
-      if (val == 'null') val = ''
-      return { v: val, i: idx + 1 } // skip space
-    }
-    else if (arr[idx] == '}') {
-      if (val == 'null') val = ''
-      return { v: val, i: idx - 1 }
-    }
-    val += arr[idx++]
-  }
-}
-
 
 export const validateConf: ValidatePluginConf = async ({
   bot,
@@ -364,7 +309,7 @@ export const validateConf: ValidatePluginConf = async ({
 }: {
   bot: Bot
   conf: IConfComponents
-  pluginConf: IPscConf
+  pluginConf: IPitchbookConf
 }) => {
   const { models } = bot
   if (!pluginConf.athenaMaps)
@@ -374,8 +319,13 @@ export const validateConf: ValidatePluginConf = async ({
     if (!model) {
       throw new Errors.InvalidInput(`model not found for: ${subject.type}`)
     }
-    if (!model.properties[subject.check]) {
-      throw new Errors.InvalidInput(`property ${subject.check} was not found in ${subject.type}`)
+    let typeProps: Array<string> = Object.keys(subject.checks)
+    for (let prop of typeProps) {
+      if (!model.properties[prop])
+        throw new Errors.InvalidInput(`property ${prop} was not found in ${subject.type}`)
     }
+    if (!subject.athenaTable || typeof subject.athenaTable != 'string')
+      throw new Errors.InvalidInput(`property 'athenaTable' is not set for ${subject.type}`)
   })
+
 }
