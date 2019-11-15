@@ -184,7 +184,7 @@ export class AthenaFeed {
         return
       permalink = json._payloadLink
       delete json.object
-      file = JSON.stringify(file)
+      file = JSON.stringify(json)
     }
 
     let struct = map.get(type)
@@ -533,6 +533,8 @@ export class AthenaFeed {
     let createTable = `CREATE EXTERNAL TABLE IF NOT EXISTS ${table} (\n`
 
     for (let name of Object.keys(model.properties)) {
+      if (name.toLowerCase() == '_time')
+        continue
       let dbtype = 'string' // default
       let element = model.properties[name]
       let type = element['type']
