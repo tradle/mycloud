@@ -2,17 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.12](https://github.com/tradle/mycloud/compare/v2.5.1-rc.11...v2.5.1-rc.12) (2019-11-13)
+## [2.5.1-rc.13](https://github.com/tradle/mycloud/compare/v2.5.1-rc.12...v2.5.1-rc.13) (2019-11-15)
 
 
 ### Bug Fixes
 
-* prop was not set -> not a reason for exception ([d5939f5](https://github.com/tradle/mycloud/commit/d5939f5))
+* formula simplification typo error ([c26b1a1](https://github.com/tradle/mycloud/commit/c26b1a1))
+* times notified for a new SM ([5daf9be](https://github.com/tradle/mycloud/commit/5daf9be))
 
 
 ### Features
 
-* in/inter form conditional formulas simplifications ([05f3a5e](https://github.com/tradle/mycloud/commit/05f3a5e))
+* BO project ([0ae5e63](https://github.com/tradle/mycloud/commit/0ae5e63))
+* KYC chaser ([26e1616](https://github.com/tradle/mycloud/commit/26e1616))
+* KYC chaser ([7d8d70c](https://github.com/tradle/mycloud/commit/7d8d70c))
+* KYC chaser ([19cd19c](https://github.com/tradle/mycloud/commit/19cd19c))
+* KYC chaser optimizations ([3450baa](https://github.com/tradle/mycloud/commit/3450baa))
+* models upgrade ([7c913f3](https://github.com/tradle/mycloud/commit/7c913f3))
+* save messages in S3 ([b2aefdd](https://github.com/tradle/mycloud/commit/b2aefdd))
 
 
 
