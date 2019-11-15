@@ -172,7 +172,7 @@ export default class Messages {
 
     await this.objects.put(_.omit(message, 'object'))
     // let msg = await this.objects.get(message._link)
-    debugger
+    // debugger
     // await Promise.all([
     //   promiseSaveEnvelope,
     //   promiseSavePayload
