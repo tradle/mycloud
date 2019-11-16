@@ -597,7 +597,6 @@ export class AthenaFeed {
      'compressionType'='none',
      'typeOfData'='file')`
 
-    this.logger.debug(createTable)
     return { drop, ddl: createTable }
   }
 
@@ -639,7 +638,6 @@ export class AthenaFeed {
   }
 
   getExecutionId = async (sql: string): Promise<string> => {
-
     return new Promise((resolve, reject) => {
       let outputLocation = `s3://${this.outputLocation}/temp`
       let params = {
@@ -648,6 +646,7 @@ export class AthenaFeed {
         QueryExecutionContext: { Database: this.database }
       }
 
+      this.logger.debug('executing sql', sql)
       /* Make API call to start the query execution */
       athena.startQueryExecution(params, (err, results) => {
         if (err) return reject(err)
