@@ -147,14 +147,23 @@ export class AthenaFeed {
     this.logger.debug('datadump refreshed');
 
     // create athena tables
+    let existingTables: Set<string> = await this.showTables()
+
     let num = 0
     for (let [type, stream] of map) {
       let model = this.bot.models[type]
       if (model) {
-        let sql: string = this.genCreateTable(type, model)
-        if (!sql)
-          continue
-        await this.executeDDL(sql, 500)
+        let table = type.toLowerCase().replace(/\./g, '_')
+        let columns: Set<string>
+        if (existingTables.has(table)) {
+          columns = await this.currentColumns(table);
+        }
+
+        let { drop, ddl } = this.genCreateTable(table, model, columns)
+        if (drop) {
+          await this.executeDDL(`DROP TABLE ${table}`, 500)
+        }
+        await this.executeDDL(ddl, 500)
         this.logger.debug(`${++num} tables created`)
       }
       else {
@@ -164,7 +173,6 @@ export class AthenaFeed {
 
     let time = new Date().getTime();
     this.logger.debug(`job run total time(sec): ${(time - start) / 1000}`);
-    // 
   }
 
   consumeFile = (map: Map<string, Structure>, file: string) => {
@@ -527,11 +535,9 @@ export class AthenaFeed {
     })
   }
 
-  genCreateTable = (type: string, model: any) => {
-    let table = type.toLowerCase().replace(/\./g, '_')
-
-    let createTable = `CREATE EXTERNAL TABLE IF NOT EXISTS ${table} (\n`
-
+  genCreateTable = (table: string, model: any, existingColumns: Set<string>): { drop: boolean, ddl: string } => {
+    let createTable = `CREATE EXTERNAL TABLE ${table} (\n`
+    let drop = false
     for (let name of Object.keys(model.properties)) {
       if (name.toLowerCase() == '_time')
         continue
@@ -553,7 +559,10 @@ export class AthenaFeed {
       }
       else if (type == 'date')
         dbtype = 'bigint'
-      createTable += `  \`${name.toLowerCase()}\` ${dbtype},\n`
+      let column = name.toLowerCase()
+      if (existingColumns && !existingColumns.has(column))
+        drop = true
+      createTable += `  \`${column}\` ${dbtype},\n`
     }
     createTable +=
       `\`_s\` string,
@@ -589,7 +598,36 @@ export class AthenaFeed {
      'typeOfData'='file')`
 
     this.logger.debug(createTable)
-    return createTable
+    return { drop, ddl: createTable }
+  }
+
+  showTables = async (): Promise<Set<string>> => {
+    let show = 'SHOW TABLES'
+    let result: any = await this.executeDDL(show, 250)
+    let rows: [] = result.ResultSet.Rows
+    let tables = new Set<string>()
+    for (let i = 1; i < rows.length; i++) {
+      let str: string = rows[i]['Data'][0]['VarCharValue']
+      tables.add(str)
+    }
+    return tables
+  }
+
+  currentColumns = async (table: string): Promise<Set<string>> => {
+    let show = `SHOW CREATE TABLE ${table}`
+    let result: any = await this.executeDDL(show, 250)
+    let rows: [] = result.ResultSet.Rows
+    let columns = new Set<string>()
+    for (let i = 1; i < rows.length; i++) {
+      let str: string = rows[i]['Data'][0]['VarCharValue']
+      let idx1 = str.indexOf('`')
+      let idx2 = str.indexOf('`', idx1 + 1)
+      let column = str.substring(idx1 + 1, idx2)
+      if (column == '_s')
+        break
+      columns.add(column)
+    }
+    return columns
   }
 
   sleep = async (ms: number) => {
