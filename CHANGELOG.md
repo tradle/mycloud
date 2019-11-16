@@ -2,17 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.12](https://github.com/tradle/mycloud/compare/v2.5.1-rc.11...v2.5.1-rc.12) (2019-11-13)
-
-
-### Bug Fixes
-
-* prop was not set -> not a reason for exception ([d5939f5](https://github.com/tradle/mycloud/commit/d5939f5))
+## [2.5.1-rc.15](https://github.com/tradle/mycloud/compare/v2.5.1-rc.14...v2.5.1-rc.15) (2019-11-15)
 
 
 ### Features
 
-* in/inter form conditional formulas simplifications ([05f3a5e](https://github.com/tradle/mycloud/commit/05f3a5e))
+* upgrade models ([ca51817](https://github.com/tradle/mycloud/commit/ca51817))
 
 
 
