@@ -38,7 +38,7 @@ export class ImportPsc {
     this.bot = bot
     this.logger = bot.logger
     this.outputLocation = this.bot.buckets.PrivateConf.id //BUCKET //
-    this.database = this.bot.env.getStackResourceName('sec') //ATHENA_DB // 
+    this.database = this.bot.env.getStackResourceName('sec').replace(/\-/g, '_') //ATHENA_DB // 
   }
 
   movePSC = async () => {

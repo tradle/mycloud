@@ -53,7 +53,7 @@ export class AthenaFeed {
     this.logger = bot.logger
     this.outputLocation = this.bot.buckets.PrivateConf.id //
     this.inputLocation = this.bot.buckets.Objects.id //
-    this.database = this.bot.env.getStackResourceName('sec') // ATHENA_DB
+    this.database = this.bot.env.getStackResourceName('sec').replace(/\-/g, '_') // ATHENA_DB
   }
 
   public objectsDump = async () => {

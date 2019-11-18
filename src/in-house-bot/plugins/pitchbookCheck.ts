@@ -97,7 +97,7 @@ export class PitchbookCheckAPI {
   public getExecutionId = async (sql: string): Promise<string> => {
     return new Promise((resolve, reject) => {
       const outputLocation = `s3://${this.bot.buckets.PrivateConf.id}/temp`
-      const database = this.bot.env.getStackResourceName('sec')
+      const database = this.bot.env.getStackResourceName('sec').replace(/\-/g, '_')
       let params = {
         QueryString: sql,
         ResultConfiguration: { OutputLocation: outputLocation },
