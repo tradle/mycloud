@@ -13,7 +13,11 @@ Resources:
     Properties:
       DatabaseInput:
         Name: 
-          Fn::Sub: '${Namespace}-sec'
+          Fn::Join:
+            - "_"
+            - Fn::Split:
+              - "-"
+              - Fn::Sub: '${Namespace}-sec'
         Description: gov sec data
       CatalogId:
         Ref: 'AWS::AccountId'
