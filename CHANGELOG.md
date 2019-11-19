@@ -2,12 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.15](https://github.com/tradle/mycloud/compare/v2.5.1-rc.14...v2.5.1-rc.15) (2019-11-15)
+## [2.5.1-rc.16](https://github.com/tradle/mycloud/compare/v2.5.1-rc.15...v2.5.1-rc.16) (2019-11-19)
+
+
+### Bug Fixes
+
+* don't run check if corporation extists (CE) check failed ([ef290b2](https://github.com/tradle/mycloud/commit/ef290b2))
+* don't run check if corporation extists (CE) check failed; if it passed but no registration date, extract it from the CE check ([71dc249](https://github.com/tradle/mycloud/commit/71dc249))
+* new models added ([8eb6b7e](https://github.com/tradle/mycloud/commit/8eb6b7e))
 
 
 ### Features
 
-* upgrade models ([ca51817](https://github.com/tradle/mycloud/commit/ca51817))
+* all checks should also have reference to the top application if there is an applications hierarchy ([5cfb1f7](https://github.com/tradle/mycloud/commit/5cfb1f7))
+* getLatestCheck added ([beb1bef](https://github.com/tradle/mycloud/commit/beb1bef))
+* set property 'owns' for BO entity ([db4b7cb](https://github.com/tradle/mycloud/commit/db4b7cb))
 
 
 
