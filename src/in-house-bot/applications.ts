@@ -107,6 +107,11 @@ export class Applications implements IHasModels {
     if (!(type && props.application)) {
       throw new Error('expected type and "application"')
     }
+    let { application, latestChecks, checks } = req
+    if (application.top) {
+      let checkModel = models[type]
+      if (checkModel.properties.top) props.top = application.top
+    }
 
     let check = await bot
       .draft({ type })
@@ -115,7 +120,6 @@ export class Applications implements IHasModels {
 
     let checkResource = check.toJSON()
 
-    let { application, latestChecks, checks } = req
     if (!latestChecks) {
       if (checks) {
         const timeDesc = req.checks.slice().sort((a, b) => b._time - a._time)
@@ -135,7 +139,7 @@ export class Applications implements IHasModels {
         failedChecks.findIndex(check => check[TYPE] === 'tradle.SanctionsCheck') !== -1
       application.hasFailedDocumentValidityChecks =
         failedChecks.findIndex(check => check[TYPE] === 'tradle.DocumentValidityCheck') !== -1
-      application.hasFailedEntityExistanceChecks = 
+      application.hasFailedEntityExistanceChecks =
         failedChecks.findIndex(check => check[TYPE] === 'tradle.CorporationExistsCheck') !== -1
     } else {
       if (application.numberOfChecksFailed) {
