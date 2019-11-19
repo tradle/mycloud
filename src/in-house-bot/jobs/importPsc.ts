@@ -68,7 +68,7 @@ export class ImportPsc {
       //**** delete files in gb/psc/ except preserve 
       await this.deleteInBucket(inbucket, preserve)
 
-      this.logger.debug('links', links);
+      this.logger.debug(`links: ${links}`);
 
       if (links.length == 0) {
         // nothing changed
@@ -196,10 +196,10 @@ export class ImportPsc {
         Objects: toDelete
       }
     }
-
+    this.logger.debug(`deleting inBucket ${toDelete}`)
     try {
       let res = await s3.deleteObjects(params).promise();
-      this.logger.debug('deleted inBucket', res)
+      this.logger.debug(`deleted inBucket ${res}`)
     } catch (err) {
       this.logger.debug(err);
     }
