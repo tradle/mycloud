@@ -64,6 +64,10 @@ export class ImportPsc {
         }
       }
 
+
+      //**** delete files in gb/psc/ except preserve 
+      await this.deleteInBucket(inbucket, preserve)
+
       this.logger.debug('links', links);
 
       if (links.length == 0) {
@@ -71,9 +75,6 @@ export class ImportPsc {
         this.logger.debug('no new files, exiting')
         return;
       }
-
-      //**** delete files in gb/psc/ except preserve 
-      await this.deleteInBucket(inbucket, preserve)
 
     }
     else
