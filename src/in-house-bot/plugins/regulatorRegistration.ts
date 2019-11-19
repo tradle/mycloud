@@ -7,7 +7,9 @@ import {
   // getLatestForms,
   // isSubClassOf,
   getStatusMessageForCheck,
-  doesCheckNeedToBeCreated
+  doesCheckNeedToBeCreated,
+  getLatestCheck,
+  isPassedCheck
 } from '../utils'
 
 import { get } from '../../utils'
@@ -20,7 +22,6 @@ import {
   IConfComponents,
   IPluginLifecycleMethods,
   ITradleObject,
-  ITradleCheck,
   IPBApp,
   IPBReq,
   Logger
@@ -41,17 +42,19 @@ const Registry = {
   FINRA: 'https://s3.eu-west-2.amazonaws.com/tradle.io/FINRA.json'
 }
 const REGULATOR_REGISTRATION_CHECK = 'tradle.RegulatorRegistrationCheck'
+const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
+const STATUS = 'tradle.Status'
 const PROVIDER = 'https://catalog.data.gov'
 const ASPECTS = 'registration with %s'
 const DEFAULT_REGULATOR = 'FINRA'
 // const FORM_ID = 'io.lenka.BSAPI102a'
 
 interface IRegulatorRegistrationAthenaConf {
-  type: string,
-  map: Object,
-  check: string,
-  query: string,
-  regulator?: string,
+  type: string
+  map: Object
+  check: string
+  query: string
+  regulator?: string
   test?: Object
 }
 
@@ -65,7 +68,7 @@ interface IRegCheck {
   status: any
   form: ITradleObject
   rawData?: any
-  req: IPBReq,
+  req: IPBReq
 
   aspects: string
 }
@@ -121,7 +124,9 @@ export class RegulatorRegistrationAPI {
         if (err) return reject(err)
         if (data.QueryExecution.Status.State === 'SUCCEEDED') return resolve('SUCCEEDED')
         else if (['FAILED', 'CANCELLED'].includes(data.QueryExecution.Status.State))
-          return reject(new Error(`Query status: ${JSON.stringify(data.QueryExecution.Status, null, 2)}`))
+          return reject(
+            new Error(`Query status: ${JSON.stringify(data.QueryExecution.Status, null, 2)}`)
+          )
         else return resolve('INPROCESS')
       })
     })
@@ -200,8 +205,7 @@ export class RegulatorRegistrationAPI {
 
   public mapToSubject = type => {
     for (let subject of this.conf.athenaMaps) {
-      if (subject.type == type)
-        return subject;
+      if (subject.type == type) return subject
     }
     return null
   }
@@ -230,7 +234,7 @@ export class RegulatorRegistrationAPI {
       // date convert from string
       for (let propertyName in prefill) {
         if (propertyName.endsWith('Date')) {
-          let val = prefill[propertyName];
+          let val = prefill[propertyName]
           prefill[propertyName] = new Date(val).getTime()
         }
       }
@@ -238,8 +242,9 @@ export class RegulatorRegistrationAPI {
       status = { status: 'pass' }
     }
 
-    let aspects = subject.regulator ? util.format(ASPECTS, subject.regulator) :
-      util.format(ASPECTS, DEFAULT_REGULATOR)
+    let aspects = subject.regulator
+      ? util.format(ASPECTS, subject.regulator)
+      : util.format(ASPECTS, DEFAULT_REGULATOR)
 
     await this.createCheck({ application, status, form, rawData, req, aspects })
 
@@ -334,14 +339,17 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let payloadType = payload[TYPE]
       let subject = regulatorRegistrationAPI.mapToSubject(payload[TYPE])
       if (!subject) return
-      logger.debug(`regulatorRegistration called for type ${payload[TYPE]} to check ${subject.check}`)
+      logger.debug(
+        `regulatorRegistration called for type ${payload[TYPE]} to check ${subject.check}`
+      )
 
       if (!payload[subject.check]) return
+      let corpCheck: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, bot })
+      if (!corpCheck || isPassedCheck(corpCheck.status)) return
 
       if (payload._prevlink) {
         let dbRes = await bot.objects.get(payload._prevlink)
-        if (dbRes[subject.check] == payload[subject.check])
-          return
+        if (dbRes[subject.check] == payload[subject.check]) return
       }
 
       logger.debug('regulatorRegistration before doesCheckNeedToBeCreated')
@@ -355,15 +363,22 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         prop: 'form',
         req
       })
-      logger.debug(`regulatorRegistration after doesCheckNeedToBeCreated with createCheck=${createCheck}`)
+      logger.debug(
+        `regulatorRegistration after doesCheckNeedToBeCreated with createCheck=${createCheck}`
+      )
 
       if (!createCheck) return
-      let r = await regulatorRegistrationAPI.check({ subject, form: payload, application, req, user })
+      let r = await regulatorRegistrationAPI.check({
+        subject,
+        form: payload,
+        application,
+        req,
+        user
+      })
     }
   }
   return { plugin }
 }
-
 
 export const validateConf: ValidatePluginConf = async ({
   bot,
@@ -375,14 +390,13 @@ export const validateConf: ValidatePluginConf = async ({
   pluginConf: IRegulatorRegistrationConf
 }) => {
   const { models } = bot
-  if (!pluginConf.athenaMaps)
-    throw new Errors.InvalidInput('athena maps are not found')
+  if (!pluginConf.athenaMaps) throw new Errors.InvalidInput('athena maps are not found')
   pluginConf.athenaMaps.forEach(subject => {
     const model = models[subject.type]
     if (!model) {
       throw new Errors.InvalidInput(`model not found for: ${subject.type}`)
     }
-    let mapValues = Object.values(subject.map);
+    let mapValues = Object.values(subject.map)
     for (let prop of mapValues) {
       if (!model.properties[prop]) {
         throw new Errors.InvalidInput(`property ${prop} was not found in ${subject.type}`)
