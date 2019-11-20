@@ -266,7 +266,7 @@ Resources:
                   - '/temp/*'
             Principal:
               AWS:
-                - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
+                - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:role/${Namespace}-${AWS::Region}-lambdaRole'
 
           - Sid: PreventDeleteObjects
             Action:
