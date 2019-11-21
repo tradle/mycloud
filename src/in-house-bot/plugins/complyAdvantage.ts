@@ -165,11 +165,19 @@ class ComplyAdvantageAPI {
     } else {
       this.logger.debug(`${PROVIDER} for: ${companyName}`)
       if (companyName && !registrationDate) {
-        let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, bot: this.bot })
-        let date = check.rawData[0] && check.rawData[0].company.incorporation_date
-
-        registrationDate = parseScannedDate(date)
-        resource.registrationDate = registrationDate
+        let check: any = await getLatestCheck({
+          type: CORPORATION_EXISTS,
+          req,
+          application,
+          bot: this.bot
+        })
+        if (check.rawData[0]) {
+          let date = check.rawData[0].company.incorporation_date
+          if (date) {
+            registrationDate = parseScannedDate(date)
+            resource.registrationDate = registrationDate
+          }
+        }
       }
 
       if (!companyName || !registrationDate) {
@@ -395,7 +403,7 @@ export const createPlugin: CreatePlugin<void> = (
 
       // Check that corporation exists otherwise no need to run
       if (!isPerson) {
-        let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, bot })
+        let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, application, req, bot })
         if (!check || isPassedCheck(check.status)) return
       }
       if (propertyMap && !_.size(propertyMap)) propertyMap = null
