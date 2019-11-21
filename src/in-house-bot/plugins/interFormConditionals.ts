@@ -19,7 +19,6 @@ const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const FORM_REQUEST = 'tradle.FormRequest'
 const APPLICATION = 'tradle.Application'
 const ENUM = 'tradle.Enum'
-const CHECK_OVERRIDE = 'tradle.CheckOverride'
 export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
   const plugin: IPluginLifecycleMethods = {
     name: 'interFormConditionals',
@@ -112,10 +111,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
     async onmessage(req: IPBReq) {
       const { payload, application, user } = req
       if (!application || !application.forms || !application.forms.length) return
-      //   if (bot.models[payload[TYPE]].subClassOf !== CHECK_OVERRIDE) return
-      //   await this.onFormsCollected({ req })
-      // },
-      // async onFormsCollected({ req }) {
       const conditions = conf[APPLICATION]
       if (!conditions) return
       const all = conditions.all
@@ -133,7 +128,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
         model,
         logger
       })
-      let fArr = normalizeEnums({ forms: { [payload[TYPE]]: payload }, models })
+      forms = normalizeEnums({ forms: { [payload[TYPE]]: payload }, models })
       if (!forms[payload[TYPE]]) forms[payload[TYPE]] = payload
       allFormulas.forEach(async val => {
         let [propName, formula] = val
@@ -282,8 +277,17 @@ function normalizeEnums({ forms, models }) {
     for (let p in form) {
       if (!props[p]) continue
       let { ref } = props[p]
-      if (!ref || models[ref].subClassOf !== ENUM) continue
-      form[p] = form[p].id.split('_')[1]
+      if (ref) {
+        if (models[ref].subClassOf !== ENUM) continue
+        form[p] = form[p].id.split('_')[1]
+        continue
+      }
+      if (!props[p].items || !props[p].items.ref) continue
+
+      ref = props[p].items.ref
+      if (models[ref].subClassOf !== ENUM) continue
+
+      form[p] = form[p].map(r => r.id.split('_')[1])
     }
     newForms[form[TYPE]] = form
   }
