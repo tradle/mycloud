@@ -3,7 +3,9 @@ import { TYPE } from '@tradle/constants'
 // @ts-ignore
 import {
   getStatusMessageForCheck,
-  doesCheckNeedToBeCreated
+  doesCheckNeedToBeCreated,
+  getLatestCheck,
+  isPassedCheck
 } from '../utils'
 
 import {
@@ -30,15 +32,18 @@ const { sanitize } = validateResource.utils
 const POLL_INTERVAL = 250
 
 const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
+const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
+const STATUS = 'tradle.Status'
+
 const PROVIDER = 'http://download.companieshouse.gov.uk/en_pscdata.html'
 const ASPECTS = 'Beneficial owner'
 const GOVERNMENTAL = 'governmental'
 
-const QUERY = 'select company_number, data from psc where company_number = \'%s\''
+const QUERY = "select company_number, data from psc where company_number = '%s'"
 
 interface IPscAthenaConf {
-  type: string,
-  check: string,
+  type: string
+  check: string
 }
 
 interface IPscConf {
@@ -103,7 +108,9 @@ export class PscCheckAPI {
         if (err) return reject(err)
         if (data.QueryExecution.Status.State === 'SUCCEEDED') return resolve('SUCCEEDED')
         else if (['FAILED', 'CANCELLED'].includes(data.QueryExecution.Status.State))
-          return reject(new Error(`Query status: ${JSON.stringify(data.QueryExecution.Status, null, 2)}`))
+          return reject(
+            new Error(`Query status: ${JSON.stringify(data.QueryExecution.Status, null, 2)}`)
+          )
         else return resolve('INPROCESS')
       })
     })
@@ -181,8 +188,7 @@ export class PscCheckAPI {
   }
   public mapToSubject = type => {
     for (let subject of this.conf.athenaMaps) {
-      if (subject.type == type)
-        return subject;
+      if (subject.type == type) return subject
     }
     return null
   }
@@ -211,7 +217,6 @@ export class PscCheckAPI {
     }
 
     await this.createCheck({ application, status, form, rawData, req })
-
   }
   public createCheck = async ({ application, status, form, rawData, req }: IPscCheck) => {
     // debugger
@@ -230,18 +235,16 @@ export class PscCheckAPI {
     if (status.message) resource.resultDetails = status.message
     if (rawData && Array.isArray(rawData)) {
       rawData.forEach(rdata => {
-        if (rdata.data && typeof rdata.data === 'string')
-          rdata.data = makeJson(rdata.data)
+        if (rdata.data && typeof rdata.data === 'string') rdata.data = makeJson(rdata.data)
       })
       resource.rawData = sanitize(rawData).sanitized
-      console.log(JSON.stringify(resource.rawData, null, 2))
+      this.logger.debug(JSON.stringify(resource.rawData, null, 2))
     }
 
     this.logger.debug(`${PROVIDER} Creating pscCheck`)
     await this.applications.createCheck(resource, req)
     this.logger.debug(`${PROVIDER} Created pscCheck`)
   }
-
 }
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
@@ -260,6 +263,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       if (!payload[subject.check]) return
 
+      let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, bot })
+      if (!check || isPassedCheck(check.status)) return
+
       logger.debug('pscCheck before doesCheckNeedToBeCreated')
       let createCheck = await doesCheckNeedToBeCreated({
         bot,
@@ -274,16 +280,21 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       logger.debug(`pscCheck after doesCheckNeedToBeCreated with createCheck=${createCheck}`)
 
       if (!createCheck) return
-      let r = await pscCheckAPI.lookup({ check: subject.check, form: payload, application, req, user })
+      let r = await pscCheckAPI.lookup({
+        check: subject.check,
+        form: payload,
+        application,
+        req,
+        user
+      })
     }
   }
   return { plugin }
 }
 
-
 function makeJson(str: string) {
   let arr = Array.from(str)
-  let idx = 1;
+  let idx = 1
   let obj: any = build(arr, idx)
   return obj.v
 }
@@ -297,28 +308,23 @@ function build(arr: Array<string>, idx: number): any {
         let ret = build(arr, idx + 2)
         obj[name] = ret.v
         idx = ret.i
-      }
-      else if (arr[idx + 1] == '[') {
+      } else if (arr[idx + 1] == '[') {
         let ret = buildStringArray(arr, idx + 2)
         obj[name] = ret.v
         name = ''
         idx = ret.i
-      }
-      else {
+      } else {
         let ret = buildString(arr, idx + 1)
         obj[name] = ret.v
         name = ''
         idx = ret.i
       }
-    }
-    else if (arr[idx] == '}') {
+    } else if (arr[idx] == '}') {
       return { v: obj, i: idx }
-    }
-    else if (arr[idx] == ',') {
+    } else if (arr[idx] == ',') {
       name = ''
       idx++
-    }
-    else {
+    } else {
       name += arr[idx]
     }
   }
@@ -332,9 +338,8 @@ function buildStringArray(arr: Array<string>, idx: number) {
     if (arr[idx] == ',') {
       strArr.push(val)
       val = ''
-      idx++; // skip space
-    }
-    else if (arr[idx] == ']') {
+      idx++ // skip space
+    } else if (arr[idx] == ']') {
       return { v: strArr, i: idx }
     }
     val += arr[idx++]
@@ -347,15 +352,13 @@ function buildString(arr: Array<string>, idx: number) {
     if (arr[idx] == ',') {
       if (val == 'null') val = ''
       return { v: val, i: idx + 1 } // skip space
-    }
-    else if (arr[idx] == '}') {
+    } else if (arr[idx] == '}') {
       if (val == 'null') val = ''
       return { v: val, i: idx - 1 }
     }
     val += arr[idx++]
   }
 }
-
 
 export const validateConf: ValidatePluginConf = async ({
   bot,
@@ -367,8 +370,7 @@ export const validateConf: ValidatePluginConf = async ({
   pluginConf: IPscConf
 }) => {
   const { models } = bot
-  if (!pluginConf.athenaMaps)
-    throw new Errors.InvalidInput('athena maps are not found')
+  if (!pluginConf.athenaMaps) throw new Errors.InvalidInput('athena maps are not found')
   pluginConf.athenaMaps.forEach(subject => {
     const model = models[subject.type]
     if (!model) {

@@ -5,17 +5,26 @@ import constants from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
-import { Bot, Logger, IPBApp, IPBReq, ITradleObject, CreatePlugin, Applications } from '../types'
+import { Bot, Logger, IPBApp, IPBReq, CreatePlugin, Applications } from '../types'
 
-import { getCheckParameters, getStatusMessageForCheck, doesCheckNeedToBeCreated } from '../utils'
+import {
+  getCheckParameters,
+  doesCheckNeedToBeCreated,
+  getLatestCheck,
+  isPassedCheck,
+  parseScannedDate
+} from '../utils'
 
 const { TYPE } = constants
-const VERIFICATION = 'tradle.Verification'
 const BASE_URL = 'https://api.complyadvantage.com/searches'
 // const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
+const VERIFICATION = 'tradle.Verification'
 const PHOTO_ID = 'tradle.PhotoID'
 const PERSONAL_INFO = 'tradle.PersonalInfo'
 const SANCTIONS_CHECK = 'tradle.SanctionsCheck'
+const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
+const STATUS = 'tradle.Status'
+
 let ASPECTS = 'screening: '
 
 const PROVIDER = 'Comply Advantage'
@@ -155,6 +164,13 @@ class ComplyAdvantageAPI {
       name = firstName + ' ' + lastName
     } else {
       this.logger.debug(`${PROVIDER} for: ${companyName}`)
+      if (companyName && !registrationDate) {
+        let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, bot: this.bot })
+        let date = check.rawData[0] && check.rawData[0].company.incorporation_date
+
+        registrationDate = parseScannedDate(date)
+        resource.registrationDate = registrationDate
+      }
 
       if (!companyName || !registrationDate) {
         let props = this.bot.models[payload[TYPE]].properties
@@ -373,7 +389,15 @@ export const createPlugin: CreatePlugin<void> = (
       } else return
 
       let propertyMap = pConf.propertyMap && pConf.propertyMap[ptype]
-      if (!isPersonForm(payload) && !propertyMap) return
+
+      let isPerson = isPersonForm(payload)
+      if (!isPerson && !propertyMap) return
+
+      // Check that corporation exists otherwise no need to run
+      if (!isPerson) {
+        let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, bot })
+        if (!check || isPassedCheck(check.status)) return
+      }
       if (propertyMap && !_.size(propertyMap)) propertyMap = null
 
       // if (!isPersonForm(payload) && payload[TYPE] !== LEGAL_ENTITY) return

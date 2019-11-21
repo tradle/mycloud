@@ -292,6 +292,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           // }
         } else {
           this.prefillCompany(prefill, bene)
+          if (formRequest.prefill) prefill.owns = formRequest.prefill.legalEntity
         }
         prefill = sanitize(prefill).sanitized
         if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }

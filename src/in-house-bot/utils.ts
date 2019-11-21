@@ -486,7 +486,17 @@ export const getCheckParameters = async ({
   if (!Object.keys(r).length) return { error: `no criteria to run ${plugin} checks` }
   return runCheck && { resource: r }
 }
+export const getLatestCheck = async ({ type, req, bot }) => {
+  if (req.latestChecks) {
+    let check = req.latestChecks.find(check => check[TYPE] === type)
+    return check
+  }
+  let corpChecks = req.application.checks.filter(checkStub => checkStub[TYPE] === type)
 
+  let checks: any = await Promise.all(corpChecks.map(checkStub => bot.getResource(checkStub)))
+  const timeDesc = checks.slice().sort((a, b) => b._time - a._time)
+  return _.uniqBy(timeDesc, TYPE)[0]
+}
 export const doesCheckNeedToBeCreated = async ({
   bot,
   type,
@@ -511,6 +521,9 @@ export const doesCheckNeedToBeCreated = async ({
   if (!req.checks) {
     let startTime = Date.now()
     req.checks = await Promise.all(application.checks.map(checkStub => bot.getResource(checkStub)))
+    const timeDesc = req.checks.slice().sort((a, b) => b._time - a._time)
+    req.latestChecks = _.uniqBy(timeDesc, TYPE)
+
     bot.logger.debug(`getChecks took: ${Date.now() - startTime}`)
   }
   let items = req.checks.filter(check => check.provider === provider)
