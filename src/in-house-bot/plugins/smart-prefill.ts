@@ -2,12 +2,7 @@ import _ from 'lodash'
 import validateResource from '@tradle/validate-resource'
 import { TYPE } from '@tradle/constants'
 import { Conf } from '../configure'
-import {
-  getNameFromForm,
-  getDateOfBirthFromForm,
-  getCountryFromForm,
-  getParsedFormStubs
-} from '../utils'
+import { getNameFromForm, getCountryFromForm, getParsedFormStubs, parseScannedDate } from '../utils'
 import {
   Bot,
   ResourceStub,
@@ -184,10 +179,12 @@ export class SmartPrefill {
 
     if (!inputs.length) return
 
-    const inputSources = await Promise.all(inputs.map(({ stub }) => {
-      this.bot.logger.debug(`smart-prefill.getResource: ${stub.type}`)
-      return this.bot.getResource(stub)
-    }))
+    const inputSources = await Promise.all(
+      inputs.map(({ stub }) => {
+        this.bot.logger.debug(`smart-prefill.getResource: ${stub.type}`)
+        return this.bot.getResource(stub)
+      })
+    )
     for (let i = 0; i < inputs.length; i++) {
       const { extractor, transformer } = inputs[i]
       const source = inputSources[i]
@@ -231,6 +228,29 @@ export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }
       sources.forEach(source => {
         if (!models[source]) throw new Error(`missing model: ${source}`)
       })
+    }
+  }
+}
+function getDateOfBirthFromForm(form: any): number | void {
+  const type = form[TYPE]
+  if (type === PHOTO_ID) {
+    const { scanJson = {} } = form
+    const { personal = {} } = scanJson
+    let { dateOfBirth } = personal
+    if (typeof dateOfBirth === 'number') {
+      return dateOfBirth
+    }
+
+    if (form.documentType.id.endsWith('license')) {
+      // "birthData": "03/11/1976 UNITED KINGOOM"
+      const { birthData } = personal
+      if (!birthData) return
+
+      dateOfBirth = birthData.split(' ')[0]
+    }
+
+    if (typeof dateOfBirth === 'string') {
+      return parseScannedDate(dateOfBirth)
     }
   }
 }
