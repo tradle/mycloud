@@ -38,7 +38,7 @@ export class ImportPsc {
     this.bot = bot
     this.logger = bot.logger
     this.outputLocation = this.bot.buckets.PrivateConf.id //BUCKET //
-    this.database = this.bot.env.getStackResourceName('sec') //ATHENA_DB // 
+    this.database = this.bot.env.getStackResourceName('sec').replace(/\-/g, '_') //ATHENA_DB // 
   }
 
   movePSC = async () => {
@@ -64,16 +64,17 @@ export class ImportPsc {
         }
       }
 
-      this.logger.debug('links', links);
+
+      //**** delete files in gb/psc/ except preserve 
+      await this.deleteInBucket(inbucket, preserve)
+
+      this.logger.debug(`links: ${links}`);
 
       if (links.length == 0) {
         // nothing changed
         this.logger.debug('no new files, exiting')
         return;
       }
-
-      //**** delete files in gb/psc/ except preserve 
-      await this.deleteInBucket(inbucket, preserve)
 
     }
     else
@@ -195,10 +196,10 @@ export class ImportPsc {
         Objects: toDelete
       }
     }
-
+    this.logger.debug(`deleting inBucket ${toDelete}`)
     try {
       let res = await s3.deleteObjects(params).promise();
-      this.logger.debug('deleted inBucket', res)
+      this.logger.debug(`deleted inBucket ${res}`)
     } catch (err) {
       this.logger.debug(err);
     }

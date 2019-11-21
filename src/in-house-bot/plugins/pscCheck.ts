@@ -87,7 +87,7 @@ export class PscCheckAPI {
       const outputLocation = 's3://' + this.bot.buckets.PrivateConf.id + '/temp'
       this.logger.debug(`pscCheck: ${outputLocation}`)
       this.logger.debug(`pscCheck getExecutionId with ${sql}`)
-      const database = this.bot.env.getStackResourceName('sec')
+      const database = this.bot.env.getStackResourceName('sec').replace(/\-/g, '_')
       this.logger.debug(`pscCheck getExecutionId in db ${database}`)
       let params = {
         QueryString: sql,

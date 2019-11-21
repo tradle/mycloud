@@ -253,6 +253,21 @@ Resources:
             Principal:
               AWS: "*"
 
+          - Sid: AllowDeleteObjects
+            Action:
+              - s3:DeleteObject
+              - s3:DeleteObjectVersion
+            Effect: Allow
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: PrivateConfBucket
+                  - '/temp/*'
+            Principal:
+              AWS:
+                - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:role/${Namespace}-${AWS::Region}-lambdaRole'
+
           - Sid: PreventDeleteObjects
             Action:
               - s3:DeleteObject
