@@ -2,21 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.16](https://github.com/tradle/mycloud/compare/v2.5.1-rc.15...v2.5.1-rc.16) (2019-11-19)
+## [2.5.1-rc.17](https://github.com/tradle/mycloud/compare/v2.5.1-rc.16...v2.5.1-rc.17) (2019-11-22)
 
 
 ### Bug Fixes
 
-* don't run check if corporation extists (CE) check failed ([ef290b2](https://github.com/tradle/mycloud/commit/ef290b2))
-* don't run check if corporation extists (CE) check failed; if it passed but no registration date, extract it from the CE check ([71dc249](https://github.com/tradle/mycloud/commit/71dc249))
-* new models added ([8eb6b7e](https://github.com/tradle/mycloud/commit/8eb6b7e))
+* call signature changed ([61b7cfd](https://github.com/tradle/mycloud/commit/61b7cfd))
+* function signature change; function moved out ([9758b40](https://github.com/tradle/mycloud/commit/9758b40))
+* run sanctions check if IDV check passed and if there is no reg date in the form, get it from IDV check if present ([2d64a66](https://github.com/tradle/mycloud/commit/2d64a66))
 
 
 ### Features
 
-* all checks should also have reference to the top application if there is an applications hierarchy ([5cfb1f7](https://github.com/tradle/mycloud/commit/5cfb1f7))
-* getLatestCheck added ([beb1bef](https://github.com/tradle/mycloud/commit/beb1bef))
-* set property 'owns' for BO entity ([db4b7cb](https://github.com/tradle/mycloud/commit/db4b7cb))
+* formula simplifiction for multientry enum props ([2b46486](https://github.com/tradle/mycloud/commit/2b46486))
+* if the check didn't pass, request to enter other fields of the form ([98185a1](https://github.com/tradle/mycloud/commit/98185a1))
+* set top application property in check ([b38f049](https://github.com/tradle/mycloud/commit/b38f049))
 
 
 
