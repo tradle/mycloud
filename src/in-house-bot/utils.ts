@@ -46,6 +46,7 @@ const DEPLOYMENT_CONFIGURATION = 'tradle.cloud.Configuration'
 const CHECK_STATUS = 'tradle.Status'
 const HAND_SIGNATURE = 'tradle.HandSignature'
 const APPLICATION = 'tradle.Application'
+const SANCTIONS_CHECK = 'tradle.SanctionsCheck'
 
 export { isEmployee }
 
@@ -509,6 +510,10 @@ export const doesCheckNeedToBeCreated = async ({
     req.checks = await Promise.all(application.checks.map(checkStub => bot.getResource(checkStub)))
     const timeDesc = req.checks.slice().sort((a, b) => b._time - a._time)
     req.latestChecks = _.uniqBy(timeDesc, TYPE)
+    let sanctionsChecks = timeDesc.filter(check => check[TYPE] === SANCTIONS_CHECK)
+    sanctionsChecks = _.uniqBy(sanctionsChecks, 'propertyName')
+
+    req.latestChecks = req.latestChecks.concat(sanctionsChecks)
 
     bot.logger.debug(`getChecks took: ${Date.now() - startTime}`)
   }
