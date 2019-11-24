@@ -1,4 +1,6 @@
 import cloneDeep from 'lodash/cloneDeep'
+import size from 'lodash/size'
+import extend from 'lodash/extend'
 import {
   Bot,
   Logger,
@@ -12,7 +14,8 @@ import {
 } from '../types'
 import { TYPE } from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
-const { parseStub } = validateResource.utils
+// @ts-ignore
+const { parseStub, sanitize } = validateResource.utils
 
 export const name = 'interFormConditionals'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
@@ -77,11 +80,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
           let isAdd = val.startsWith('add: ')
           if (!isAdd && isSet(val)) return
           hasAction = true
-          val = val
-            .slice(5)
-            .trim()
-            .replace(/\s=\s/g, ' === ')
-            .replace(/\s!=\s/g, ' !== ')
+          val = normalizeFormula({ formula: val.slice(5) })
 
           try {
             let ret = new Function('forms', 'application', `return ${val}`)(forms, application)
@@ -187,21 +186,24 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
         model,
         logger
       })
+      let prefill = {}
       allFormulas.forEach(async val => {
         let [propName, formula] = val
-        formula = normalizeFormula({ formula })
         try {
           let value = new Function('forms', 'application', `return ${formula}`)(forms, application)
-          if (!formRequest.prefill) {
-            formRequest.prefill = {
-              [TYPE]: ftype,
-              [propName]: value
-            }
-          } else formRequest.prefill[propName] = value
+          prefill[propName] = value
         } catch (err) {
           debugger
         }
       })
+      prefill = sanitize(prefill).sanitized
+      if (!size(prefill)) return
+      if (!formRequest.prefill) {
+        formRequest.prefill = {
+          [TYPE]: ftype
+        }
+      }
+      extend(formRequest.prefill, prefill)
     }
   }
   return {
@@ -233,11 +235,10 @@ async function getAllToExecute({ bot, application, settings, model, logger }) {
   let allFormulas = []
 
   settings.forEach(async val => {
-    let [propName, formula] = val
-      .slice(5)
-      .split('=')
-      .map(s => s.trim())
-
+    let value = val.slice(5)
+    let idx = value.indexOf('=')
+    let propName = value.slice(0, idx).trim()
+    let formula = normalizeFormula({ formula: value })
     if (!model.properties[propName]) {
       debugger
       return
@@ -295,7 +296,10 @@ function normalizeEnums({ forms, models }) {
 }
 
 function normalizeFormula({ formula }) {
-  return formula.replace(/\s=\s/g, ' === ').replace(/\s!=\s/g, ' !== ')
+  return formula
+    .trim()
+    .replace(/\s=\s/g, ' === ')
+    .replace(/\s!=\s/g, ' !== ')
 }
 
 export const validateConf: ValidatePluginConf = async ({ bot, pluginConf }) => {
