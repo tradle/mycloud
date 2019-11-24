@@ -2,21 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.17](https://github.com/tradle/mycloud/compare/v2.5.1-rc.16...v2.5.1-rc.17) (2019-11-22)
+## [2.5.1-rc.18](https://github.com/tradle/mycloud/compare/v2.5.1-rc.17...v2.5.1-rc.18) (2019-11-24)
 
 
 ### Bug Fixes
 
-* call signature changed ([61b7cfd](https://github.com/tradle/mycloud/commit/61b7cfd))
-* function signature change; function moved out ([9758b40](https://github.com/tradle/mycloud/commit/9758b40))
-* run sanctions check if IDV check passed and if there is no reg date in the form, get it from IDV check if present ([2d64a66](https://github.com/tradle/mycloud/commit/2d64a66))
+* sanitize prefill; formulas normalization fix ([7836535](https://github.com/tradle/mycloud/commit/7836535))
 
 
 ### Features
 
-* formula simplifiction for multientry enum props ([2b46486](https://github.com/tradle/mycloud/commit/2b46486))
-* if the check didn't pass, request to enter other fields of the form ([98185a1](https://github.com/tradle/mycloud/commit/98185a1))
-* set top application property in check ([b38f049](https://github.com/tradle/mycloud/commit/b38f049))
+* models upgrade ([7ed4163](https://github.com/tradle/mycloud/commit/7ed4163))
+* run check for all the company names: former name, known as, etc. ([ffab68c](https://github.com/tradle/mycloud/commit/ffab68c))
+* sanctions check needs to be ran for all the company names: former name, known as, etc. ([d56084a](https://github.com/tradle/mycloud/commit/d56084a))
+* sanctions coef added ([cc4f45b](https://github.com/tradle/mycloud/commit/cc4f45b))
 
 
 
