@@ -35,7 +35,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
       let productForms = conf[requestFor]
       if (!productForms) return
 
-      // const productModel = bot.models[requestFor]
       let promises = []
       application.forms
         .map(appSub => parseStub(appSub.submission))
