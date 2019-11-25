@@ -209,7 +209,7 @@ export class PitchbookCheckAPI {
       if (cnt++ > 0)
         sql += ' and '
       if (form[check])
-        sql += `"${subject.checks[check]}" = \'${form[check]}\'`
+        sql += `lower("${subject.checks[check]}") = \'${form[check].toLowerCase()}\'`
     }
     let find = await this.queryAthena(sql)
     let rawData: Array<any>
