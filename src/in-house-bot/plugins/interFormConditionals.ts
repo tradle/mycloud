@@ -1,4 +1,6 @@
 import cloneDeep from 'lodash/cloneDeep'
+import size from 'lodash/size'
+import extend from 'lodash/extend'
 import {
   Bot,
   Logger,
@@ -12,14 +14,14 @@ import {
 } from '../types'
 import { TYPE } from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
-const { parseStub } = validateResource.utils
+// @ts-ignore
+const { parseStub, sanitize } = validateResource.utils
 
 export const name = 'interFormConditionals'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const FORM_REQUEST = 'tradle.FormRequest'
 const APPLICATION = 'tradle.Application'
 const ENUM = 'tradle.Enum'
-const CHECK_OVERRIDE = 'tradle.CheckOverride'
 export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
   const plugin: IPluginLifecycleMethods = {
     name: 'interFormConditionals',
@@ -33,7 +35,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
       let productForms = conf[requestFor]
       if (!productForms) return
 
-      // const productModel = bot.models[requestFor]
       let promises = []
       application.forms
         .map(appSub => parseStub(appSub.submission))
@@ -78,11 +79,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
           let isAdd = val.startsWith('add: ')
           if (!isAdd && isSet(val)) return
           hasAction = true
-          val = val
-            .slice(5)
-            .trim()
-            .replace(/\s=\s/g, ' === ')
-            .replace(/\s!=\s/g, ' !== ')
+          val = normalizeFormula({ formula: val.slice(5) })
 
           try {
             let ret = new Function('forms', 'application', `return ${val}`)(forms, application)
@@ -112,10 +109,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
     async onmessage(req: IPBReq) {
       const { payload, application, user } = req
       if (!application || !application.forms || !application.forms.length) return
-      //   if (bot.models[payload[TYPE]].subClassOf !== CHECK_OVERRIDE) return
-      //   await this.onFormsCollected({ req })
-      // },
-      // async onFormsCollected({ req }) {
       const conditions = conf[APPLICATION]
       if (!conditions) return
       const all = conditions.all
@@ -133,7 +126,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
         model,
         logger
       })
-      let fArr = normalizeEnums({ forms: { [payload[TYPE]]: payload }, models })
+      forms = normalizeEnums({ forms: { [payload[TYPE]]: payload }, models })
       if (!forms[payload[TYPE]]) forms[payload[TYPE]] = payload
       allFormulas.forEach(async val => {
         let [propName, formula] = val
@@ -192,21 +185,24 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
         model,
         logger
       })
+      let prefill = {}
       allFormulas.forEach(async val => {
         let [propName, formula] = val
-        formula = normalizeFormula({ formula })
         try {
           let value = new Function('forms', 'application', `return ${formula}`)(forms, application)
-          if (!formRequest.prefill) {
-            formRequest.prefill = {
-              [TYPE]: ftype,
-              [propName]: value
-            }
-          } else formRequest.prefill[propName] = value
+          prefill[propName] = value
         } catch (err) {
           debugger
         }
       })
+      prefill = sanitize(prefill).sanitized
+      if (!size(prefill)) return
+      if (!formRequest.prefill) {
+        formRequest.prefill = {
+          [TYPE]: ftype
+        }
+      }
+      extend(formRequest.prefill, prefill)
     }
   }
   return {
@@ -238,11 +234,10 @@ async function getAllToExecute({ bot, application, settings, model, logger }) {
   let allFormulas = []
 
   settings.forEach(async val => {
-    let [propName, formula] = val
-      .slice(5)
-      .split('=')
-      .map(s => s.trim())
-
+    let value = val.slice(5)
+    let idx = value.indexOf('=')
+    let propName = value.slice(0, idx).trim()
+    let formula = normalizeFormula({ formula: value })
     if (!model.properties[propName]) {
       debugger
       return
@@ -282,8 +277,17 @@ function normalizeEnums({ forms, models }) {
     for (let p in form) {
       if (!props[p]) continue
       let { ref } = props[p]
-      if (!ref || models[ref].subClassOf !== ENUM) continue
-      form[p] = form[p].id.split('_')[1]
+      if (ref) {
+        if (models[ref].subClassOf !== ENUM) continue
+        form[p] = form[p].id.split('_')[1]
+        continue
+      }
+      if (!props[p].items || !props[p].items.ref) continue
+
+      ref = props[p].items.ref
+      if (models[ref].subClassOf !== ENUM) continue
+
+      form[p] = form[p].map(r => r.id.split('_')[1])
     }
     newForms[form[TYPE]] = form
   }
@@ -291,7 +295,10 @@ function normalizeEnums({ forms, models }) {
 }
 
 function normalizeFormula({ formula }) {
-  return formula.replace(/\s=\s/g, ' === ').replace(/\s!=\s/g, ' !== ')
+  return formula
+    .trim()
+    .replace(/\s=\s/g, ' === ')
+    .replace(/\s!=\s/g, ' !== ')
 }
 
 export const validateConf: ValidatePluginConf = async ({ bot, pluginConf }) => {

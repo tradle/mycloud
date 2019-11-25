@@ -263,7 +263,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       if (!payload[subject.check]) return
 
-      let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, bot })
+      let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, application, bot })
       if (!check || isPassedCheck(check.status)) return
 
       logger.debug('pscCheck before doesCheckNeedToBeCreated')

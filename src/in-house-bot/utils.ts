@@ -46,6 +46,7 @@ const DEPLOYMENT_CONFIGURATION = 'tradle.cloud.Configuration'
 const CHECK_STATUS = 'tradle.Status'
 const HAND_SIGNATURE = 'tradle.HandSignature'
 const APPLICATION = 'tradle.Application'
+const SANCTIONS_CHECK = 'tradle.SanctionsCheck'
 
 export { isEmployee }
 
@@ -159,30 +160,6 @@ const sealToSendOpts = seal => {
   return {
     to: seal.counterparty,
     object
-  }
-}
-
-export const getDateOfBirthFromForm = (form: any): number | void => {
-  const type = form[TYPE]
-  if (type === PHOTO_ID) {
-    const { scanJson = {} } = form
-    const { personal = {} } = scanJson
-    let { dateOfBirth } = personal
-    if (typeof dateOfBirth === 'number') {
-      return dateOfBirth
-    }
-
-    if (form.documentType.id.endsWith('license')) {
-      // "birthData": "03/11/1976 UNITED KINGOOM"
-      const { birthData } = personal
-      if (!birthData) return
-
-      dateOfBirth = birthData.split(' ')[0]
-    }
-
-    if (typeof dateOfBirth === 'string') {
-      return parseScannedDate(dateOfBirth)
-    }
   }
 }
 
@@ -486,12 +463,22 @@ export const getCheckParameters = async ({
   if (!Object.keys(r).length) return { error: `no criteria to run ${plugin} checks` }
   return runCheck && { resource: r }
 }
-export const getLatestCheck = async ({ type, req, bot }) => {
-  if (req.latestChecks) {
+export const getLatestCheck = async ({
+  type,
+  req,
+  application,
+  bot
+}: {
+  type: string
+  req?: IPBReq
+  application: IPBApp
+  bot: Bot
+}) => {
+  if (req && req.latestChecks) {
     let check = req.latestChecks.find(check => check[TYPE] === type)
     return check
   }
-  let corpChecks = req.application.checks.filter(checkStub => checkStub[TYPE] === type)
+  let corpChecks = application.checks.filter(checkStub => checkStub[TYPE] === type)
 
   let checks: any = await Promise.all(corpChecks.map(checkStub => bot.getResource(checkStub)))
   const timeDesc = checks.slice().sort((a, b) => b._time - a._time)
@@ -523,6 +510,10 @@ export const doesCheckNeedToBeCreated = async ({
     req.checks = await Promise.all(application.checks.map(checkStub => bot.getResource(checkStub)))
     const timeDesc = req.checks.slice().sort((a, b) => b._time - a._time)
     req.latestChecks = _.uniqBy(timeDesc, TYPE)
+    let sanctionsChecks = timeDesc.filter(check => check[TYPE] === SANCTIONS_CHECK)
+    sanctionsChecks = _.uniqBy(sanctionsChecks, 'propertyName')
+
+    req.latestChecks = req.latestChecks.concat(sanctionsChecks)
 
     bot.logger.debug(`getChecks took: ${Date.now() - startTime}`)
   }

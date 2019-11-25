@@ -111,6 +111,9 @@ export class Applications implements IHasModels {
     if (application.top) {
       let checkModel = models[type]
       if (checkModel.properties.top) props.top = application.top
+    } else {
+      let checkModel = models[type]
+      if (checkModel.properties.top) props.top = application
     }
 
     let check = await bot

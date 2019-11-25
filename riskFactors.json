@@ -28,6 +28,9 @@
     "limited_partnership": 0.3
   },
   "sanctions": {
+    "pep": 0.2,
+    "sanctions": 0.9,
+    "adversePress": 0.3
   },
   "lengthOfRelationship": {
     "1": 0.9,

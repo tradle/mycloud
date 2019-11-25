@@ -344,7 +344,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       )
 
       if (!payload[subject.check]) return
-      let corpCheck: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, bot })
+      let corpCheck: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, application, bot })
       if (!corpCheck || isPassedCheck(corpCheck.status)) return
 
       if (payload._prevlink) {

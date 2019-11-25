@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "2.5.1-rc.16",
+  "version": "2.5.1-rc.19",
   "main": "index.js",
   "private": true,
   "repository": "https://github.com/tradle/mycloud",
@@ -187,7 +187,7 @@
     "@tradle/schema-graphql": "github:tradle/schema-graphql",
     "@tradle/schema-joi": "github:tradle/schema-joi",
     "@tradle/test-helpers": "github:tradle/test-helpers",
-    "@tradle/validate-model": "^7.1.17",
+    "@tradle/validate-model": "^7.1.18",
     "@tradle/validate-resource": "^4.3.4",
     "amazon-s3-uri": "0.0.3",
     "aws-sdk": "2.437.0",

@@ -5,11 +5,21 @@ import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 import constants from '@tradle/constants'
-import { Bot, Logger, CreatePlugin, Applications, IPBReq, IPluginLifecycleMethods } from '../types'
+import {
+  Bot,
+  Logger,
+  CreatePlugin,
+  Applications,
+  IPBReq,
+  IPluginLifecycleMethods,
+  ITradleObject,
+  IPBUser
+} from '../types'
 import {
   toISODateString,
   getCheckParameters,
   getStatusMessageForCheck,
+  getEnumValueId,
   // doesCheckExist,
   doesCheckNeedToBeCreated
 } from '../utils'
@@ -19,7 +29,7 @@ const { VERIFICATION } = TYPES
 // const FORM_ID = 'tradle.legal.LegalEntity'
 const OPEN_CORPORATES = 'Open Corporates'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
-const COUNTRY = 'tradle.Country'
+const STATUS = 'tradle.Status'
 
 interface IOpenCorporatesConf {
   products: any
@@ -422,46 +432,71 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       result.sort((a, b) => b._time - a._time)
 
       result = _.uniqBy(result, TYPE)
-      if (!result[0].status.id.toLowerCase().endsWith('_pass')) {
-        debugger
-        return
-      }
-      let check = result[0]
-      let company = check.rawData && check.rawData.length && check.rawData[0].company
-      if (!company) return
-      let { registered_address, company_type, incorporation_date, current_status } = company
+      let message
       let prefill: any = {}
-      if (incorporation_date) prefill.registrationDate = new Date(incorporation_date).getTime()
-      if (company_type) prefill.companyType = company_type.trim()
+      if (getEnumValueId({ model: bot.models[STATUS], value: result[0].status }) !== 'pass')
+        message = 'The company was not found. Please enter fill out the form'
+      else {
+        let check = result[0]
+        let company = check.rawData && check.rawData.length && check.rawData[0].company
+        if (!company) return
+        let { registered_address, company_type, incorporation_date, current_status } = company
+        if (incorporation_date) prefill.registrationDate = new Date(incorporation_date).getTime()
+        if (company_type) prefill.companyType = company_type.trim()
 
-      if (registered_address) {
-        let { street_address, locality, postal_code } = registered_address
-        _.extend(prefill, {
-          streetAddress: street_address ? street_address.trim() : '',
-          city: locality ? locality.trim() : '',
-          postalCode: postal_code ? postal_code.trim() : ''
-        })
-      }
-
-      prefill = sanitize(prefill).sanitized
-      if (!_.size(prefill)) return
-      try {
-        let hasChanges
-        for (let p in prefill) {
-          if (!payload[p]) hasChanges = true
-          else if (typeof payload[p] === 'object' && !_.isEqual(payload[p], prefill[p]))
-            hasChanges = true
-          else if (payload[p] !== prefill[p]) hasChanges = true
-          if (hasChanges) break
+        if (registered_address) {
+          let { street_address, locality, postal_code } = registered_address
+          _.extend(prefill, {
+            streetAddress: street_address ? street_address.trim() : '',
+            city: locality ? locality.trim() : '',
+            postalCode: postal_code ? postal_code.trim() : ''
+          })
         }
-        if (!hasChanges) {
-          logger.error(`Nothing changed`)
+
+        prefill = sanitize(prefill).sanitized
+        if (!_.size(prefill)) return
+        try {
+          let hasChanges
+          for (let p in prefill) {
+            if (!payload[p]) hasChanges = true
+            else if (typeof payload[p] === 'object' && !_.isEqual(payload[p], prefill[p]))
+              hasChanges = true
+            else if (payload[p] !== prefill[p]) hasChanges = true
+            if (hasChanges) break
+          }
+          if (!hasChanges) {
+            logger.error(`Nothing changed`)
+            return
+          }
+        } catch (err) {
+          debugger
           return
         }
+        message = 'Please review and correct the data below'
+      }
+      try {
+        return await this.sendFormError({
+          req,
+          payload,
+          prefill,
+          message
+        })
       } catch (err) {
         debugger
-        return
       }
+    },
+    async sendFormError({
+      payload,
+      prefill,
+      req,
+      message
+    }: {
+      req: IPBReq
+      prefill?: any
+      payload: ITradleObject
+      message: string
+    }) {
+      let { application, user } = req
       const payloadClone = _.cloneDeep(payload)
       payloadClone[PERMALINK] = payloadClone._permalink
       payloadClone[LINK] = payloadClone._link
@@ -475,7 +510,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       }
       formError.details = {
         prefill: payloadClone,
-        message: `Please review and correct the data below`
+        message
       }
       try {
         await applications.requestEdit(formError)
