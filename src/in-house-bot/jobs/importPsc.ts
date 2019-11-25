@@ -4,10 +4,17 @@ import unzipper from 'unzipper'
 import fetch from 'node-fetch'
 import AWS from 'aws-sdk'
 import { Readable } from 'stream'
+import { TYPE } from '@tradle/constants'
+import Errors from '../../errors'
+import * as Templates from '../templates'
+import { appLinks } from '../../app-links'
 
 import {
   Bot,
   Logger,
+  ISMS,
+  Applications,
+  IOrganization
 } from '../types'
 
 const accessKeyId = ''
@@ -27,18 +34,137 @@ const MAX_UPLOAD_TIME = 600000 // 10 min
 const athena = new AWS.Athena({ region, accessKeyId, secretAccessKey })
 const s3 = new AWS.S3({ accessKeyId, secretAccessKey });
 
+const ASPECTS = 'New BO'
+const PROVIDER = 'PSC registry'
+const CLIENT_ACTION_REQUIRED_CHECK = 'tradle.ClientActionRequiredCheck'
+
+const DEAR_CUSTOMER = 'Dear Customer'
+const DEFAULT_SMS_GATEWAY = 'sns'
+type SMSGatewayName = 'sns'
+
+const SENDER_EMAIL = 'support@tradle.io' // TODO
+
+const BO_ONBOARD_MESSAGE = 'New BO onboarding'
+
+const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
+  template: 'action',
+  blocks: [
+    { body: 'Hello {{name}}' },
+    { body: 'Click below to start a new BO onboarding' },
+    {
+      action: {
+        text: 'On Mobile',
+        href: '{{mobileUrl}}'
+      }
+    },
+    {
+      action: {
+        text: 'On Web',
+        href: '{{webUrl}}'
+      }
+    }
+  ],
+  signature: '-{{orgName}} Team'
+}
+const getSMSClient = ({
+  bot,
+  gateway = DEFAULT_SMS_GATEWAY
+}: {
+  bot: Bot
+  gateway: SMSGatewayName
+}): ISMS => {
+  if (gateway.toLowerCase() === 'sns') {
+    return bot.snsUtils
+  }
+
+  throw new Errors.InvalidInput(`SMS gateway "${gateway}" not found`)
+}
+
+const renderConfirmationEmail = (data: ConfirmationEmailTemplateData) =>
+  Templates.email.action(Templates.renderData(CONFIRMATION_EMAIL_DATA_TEMPLATE, data))
+
+const genConfirmationEmail = ({
+  provider,
+  host,
+  name,
+  orgName,
+  product,
+  extraQueryParams = {}
+}: GenConfirmationEmailOpts) => {
+  const [mobileUrl, webUrl] = ['mobile', 'web'].map(platform => {
+    return appLinks.getApplyForProductLink({
+      provider,
+      host,
+      product,
+      platform,
+      ...extraQueryParams
+    })
+  })
+
+  return renderConfirmationEmail({ name, mobileUrl, webUrl, orgName })
+}
+
+interface GenConfirmationEmailOpts {
+  provider: string
+  host: string
+  name: string
+  orgName: string
+  extraQueryParams?: any
+  product: string
+}
+
+interface ConfirmationEmailTemplateData {
+  name: string
+  mobileUrl: string
+  webUrl: string
+  orgName: string
+}
+
 export class ImportPsc {
 
   private bot: Bot
+  private applications: Applications
+  private org: IOrganization
   private logger: Logger
   private outputLocation: string
   private database: string
 
-  constructor(bot: Bot) {
+  constructor(bot: Bot, applications: Applications, org: IOrganization) {
     this.bot = bot
+    this.applications = applications
+    this.org = org
     this.logger = bot.logger
     this.outputLocation = this.bot.buckets.PrivateConf.id //BUCKET //
     this.database = this.bot.env.getStackResourceName('sec').replace(/\-/g, '_') //ATHENA_DB // 
+  }
+
+  sendConfirmationEmail = async (record: any, product: string) => {
+    this.logger.debug('controlling person: preparing to send invite')
+
+    const host = this.bot.apiBaseUrl
+    const provider = await this.bot.getMyPermalink()
+
+    const body = genConfirmationEmail({
+      provider,
+      host,
+      name: DEAR_CUSTOMER,
+      orgName: this.org.name,
+      product
+    })
+
+    debugger
+    try {
+      await this.bot.mailer.send({
+        from: SENDER_EMAIL,
+        to: [record.companyemail],
+        format: 'html',
+        subject: `${BO_ONBOARD_MESSAGE} - ${record.name_elements.forename} ${record.name_elements.surname}`,
+        body
+      })
+    } catch (err) {
+      Errors.rethrow(err, 'developer')
+      this.logger.error('failed to email controlling person', err)
+    }
   }
 
   movePSC = async () => {
@@ -125,8 +251,10 @@ export class ImportPsc {
     //**** drop table orc_psc_next_bucketed and create as select from psc  
     await this.dropAndCreateNextTable()
 
-    //***** compare orc_psc_target and orc_psc_next_bucketed tables to extract new records
-    let diff = await this.change();
+    //*****find legalentity to notify about new psc records by 
+    // comparing psc and orc_psc_next_bucketed tables
+    // create checks and notify admin
+    await this.notifyAdmin();
 
     //***** replace files from upload/psc_next_bucketed/ to upload/psc/
     await this.copyFromNext()
@@ -368,15 +496,8 @@ export class ImportPsc {
     }
   }
 
-  change = async () => {
-    let changeQuery = `SELECT r.company_number, r.data, c.legalentity, c.emailaddress 
-        FROM tradle_legal_legalentitycontrollingperson c 
-          inner join orc_psc_next_bucketed r on (c.controllingentitycompanynumber = r.company_number)
-          left join psc l on (r.company_number = l.company_number and  r.data.name = l.data.name)
-        WHERE r.company_number is not null and r.data.name is not null and l.company_number is null`
+  processQueryResult = (data: AWS.Athena.GetQueryResultsOutput) => {
     var list = []
-
-    let data: AWS.Athena.GetQueryResultsOutput = await this.executeDDL(changeQuery, 10000)
     if (!data || (data.ResultSet.ResultSetMetadata.ColumnInfo.length == 0)) {
       this.logger.debug('no records')
     }
@@ -388,10 +509,108 @@ export class ImportPsc {
       resultSet.forEach((item) => {
         list.push(_.zipObject(header, _.map(item.Data, (n) => { return n.VarCharValue })))
       })
-      this.logger.debug(JSON.stringify(list, null, 2))
-
     }
     return list
+  }
+
+  newBO = async () => {
+    let changeQuery = `SELECT r.company_number, r.data.name_elements, r.data.natures_of_control,
+                       c.companyemail, c._link, c._author 
+        FROM tradle_legal_legalentity c 
+          inner join orc_psc_next_bucketed r on (c.registrationnumber = r.company_number)
+          left join psc l on (r.company_number = l.company_number and  r.data.name = l.data.name)
+        WHERE r.company_number is not null and r.data.name is not null and l.company_number is null
+                    and c.companyemail is not null`
+
+    let data: AWS.Athena.GetQueryResultsOutput = await this.executeDDL(changeQuery, 10000)
+    let list = this.processQueryResult(data)
+    for (let rdata of list) {
+      rdata.name_elements = makeJson(rdata.name_elements)
+      rdata.natures_of_control = makeJson(rdata.natures_of_control)
+    }
+    let newPersons = await this.filterOutKnown(list)
+    return newPersons
+  }
+
+  filterOutKnown = async (list: Array<any>) => {
+    let newPersons = []
+    for (let rdata of list) {
+      let sql = `select name from tradle_legal_legalentitycontrollingperson 
+                 where controllingentitycompanynumber = '${rdata.company_number}'`
+      let data: AWS.Athena.GetQueryResultsOutput = await this.executeDDL(sql, 1000)
+      let names = this.processQueryResult(data);
+      for (let rec of names) {
+        let name: string = rec.name.toLowerCase()
+        let firstname: string = rdata.name_elements.forename.toLowerCase()
+        let lastname: string = rdata.name_elements.surname.toLowerCase()
+        if (!name.includes(firstname) || !name.includes(lastname)) {
+          newPersons.push(rdata)
+          break
+        }
+      }
+    }
+    return newPersons
+  }
+
+  notifyAdmin = async () => {
+    let data: Array<any> = await this.newBO()
+    if (data.length == 0)
+      return
+    this.logger.debug(`notifyAdmin about new ${data.length} BO's found in PSC`)
+    for (let rdata of data) {
+
+      let le_application = await this.getLeProductApplication(rdata)
+
+      let checkR: any = {
+        [TYPE]: CLIENT_ACTION_REQUIRED_CHECK,
+        status: 'pass',
+        provider: PROVIDER,
+        application: le_application,
+        dateChecked: Date.now(),
+        aspects: ASPECTS,
+        rawData: [
+          {
+            company_number: rdata.company_number,
+            data: {
+              kind: 'individual-person-with-significant-control',
+              name: `${rdata.name_elements.firstName} ${rdata.name_elements.surname}`,
+              name_elements: {
+                forename: rdata.name_elements.forename,
+                surname: rdata.name_elements.surname
+              },
+              natures_of_control: rdata.natures_of_control
+            }
+          }
+        ]
+      }
+      const type = checkR[TYPE]
+      let check = await this.bot
+        .draft({ type })
+        .set(checkR)
+        .signAndSave()
+
+      await this.sendConfirmationEmail(rdata, le_application.requestFor)
+
+    }
+
+  }
+
+  getLeProductApplication = async (record) => {
+    let msg = await this.bot.getMessageWithPayload({
+      select: ['context', 'payload'],
+      link: record._link,
+      author: record._author,
+      inbound: true
+    })
+    let { items } = await this.bot.db.find({
+      filter: {
+        EQ: {
+          [TYPE]: 'tradle.Application',
+          context: msg.context
+        }
+      }
+    })
+    return items && items[0]
   }
 
   copyFromNext = async () => {
@@ -438,4 +657,72 @@ export class ImportPsc {
       arr.slice(i * size, i * size + size)
     )
 
+}
+
+function makeJson(str: string) {
+  let arr = Array.from(str)
+  let idx = 1
+  let obj: any = build(arr, idx)
+  return obj.v
+}
+
+function build(arr: Array<string>, idx: number): any {
+  let name = ''
+  let obj = {}
+  for (; idx < arr.length; idx++) {
+    if (arr[idx] == '=') {
+      if (arr[idx + 1] == '{') {
+        let ret = build(arr, idx + 2)
+        obj[name] = ret.v
+        idx = ret.i
+      } else if (arr[idx + 1] == '[') {
+        let ret = buildStringArray(arr, idx + 2)
+        obj[name] = ret.v
+        name = ''
+        idx = ret.i
+      } else {
+        let ret = buildString(arr, idx + 1)
+        obj[name] = ret.v
+        name = ''
+        idx = ret.i
+      }
+    } else if (arr[idx] == '}') {
+      return { v: obj, i: idx }
+    } else if (arr[idx] == ',') {
+      name = ''
+      idx++
+    } else {
+      name += arr[idx]
+    }
+  }
+  return obj
+}
+
+function buildStringArray(arr: Array<string>, idx: number) {
+  let strArr = []
+  let val = ''
+  while (true) {
+    if (arr[idx] == ',') {
+      strArr.push(val)
+      val = ''
+      idx++ // skip space
+    } else if (arr[idx] == ']') {
+      return { v: strArr, i: idx }
+    }
+    val += arr[idx++]
+  }
+}
+
+function buildString(arr: Array<string>, idx: number) {
+  let val = ''
+  while (true) {
+    if (arr[idx] == ',') {
+      if (val == 'null') val = ''
+      return { v: val, i: idx + 1 } // skip space
+    } else if (arr[idx] == '}') {
+      if (val == 'null') val = ''
+      return { v: val, i: idx - 1 }
+    }
+    val += arr[idx++]
+  }
 }

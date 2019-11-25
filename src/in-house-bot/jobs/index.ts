@@ -44,7 +44,9 @@ export const exportObjectsToAthena: Executor = async ({ job, components }) => {
 }
 
 export const importPsc: Executor = async ({ job, components }) => {
-  let importer = new ImportPsc(components.bot)
+  const orgConf = components.conf
+  const { org } = orgConf
+  let importer = new ImportPsc(components.bot, components.applications, org)
   try {
     importer.movePSC()
   } catch (err) {
