@@ -2,20 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.18](https://github.com/tradle/mycloud/compare/v2.5.1-rc.17...v2.5.1-rc.18) (2019-11-24)
-
-
-### Bug Fixes
-
-* sanitize prefill; formulas normalization fix ([7836535](https://github.com/tradle/mycloud/commit/7836535))
+## [2.5.1-rc.19](https://github.com/tradle/mycloud/compare/v2.5.1-rc.18...v2.5.1-rc.19) (2019-11-25)
 
 
 ### Features
 
-* models upgrade ([7ed4163](https://github.com/tradle/mycloud/commit/7ed4163))
-* run check for all the company names: former name, known as, etc. ([ffab68c](https://github.com/tradle/mycloud/commit/ffab68c))
-* sanctions check needs to be ran for all the company names: former name, known as, etc. ([d56084a](https://github.com/tradle/mycloud/commit/d56084a))
-* sanctions coef added ([cc4f45b](https://github.com/tradle/mycloud/commit/cc4f45b))
+* models upgrade ([566b6f7](https://github.com/tradle/mycloud/commit/566b6f7))
 
 
 
