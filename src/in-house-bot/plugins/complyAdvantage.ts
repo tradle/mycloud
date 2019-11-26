@@ -36,7 +36,8 @@ const defaultPropMap: any = {
   companyName: 'companyName',
   registrationDate: 'registrationDate',
   formerlyKnownAs: 'formerlyKnownAs',
-  DBAName: 'DBAName'
+  DBAName: 'DBAName',
+  alsoKnownAs: 'alsoKnownAs'
 }
 const defaultPersonPropMap: any = {
   firstName: 'firstName',
