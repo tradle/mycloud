@@ -66,6 +66,7 @@ interface IComplyCheck {
   req: IPBReq
   aspects: any
   propertyName?: string
+  companyNameProperty?: string
 }
 
 class ComplyAdvantageAPI {
@@ -86,12 +87,14 @@ class ComplyAdvantageAPI {
     pConf,
     propertyMap,
     req,
-    propertyName
+    propertyName,
+    companyNameProperty
   }: {
     pConf: any
     propertyMap?: any
     req: IPBReq
     propertyName?: string
+    companyNameProperty?: string
   }) {
     let criteria = pConf.filter
     // let companyName, registrationDate
@@ -228,7 +231,9 @@ class ComplyAdvantageAPI {
         hasVerification = true
         this.logger.debug(`${PROVIDER} creating verification for: ${companyName || name}`)
       }
-      pchecks.push(this.createCheck({ rawData, status, req, aspects, propertyName }))
+      pchecks.push(
+        this.createCheck({ rawData, status, req, aspects, propertyName, companyNameProperty })
+      )
       if (hasVerification) pchecks.push(this.createVerification({ rawData, req }))
     }
     let checksAndVerifications = await Promise.all(pchecks)
@@ -312,7 +317,14 @@ class ComplyAdvantageAPI {
     return hits && { rawData, status, hits }
   }
 
-  public createCheck = async ({ rawData, status, req, aspects, propertyName }: IComplyCheck) => {
+  public createCheck = async ({
+    rawData,
+    status,
+    req,
+    aspects,
+    propertyName,
+    companyNameProperty
+  }: IComplyCheck) => {
     let dateStr = rawData.updated_at
     let date
     if (dateStr) date = Date.parse(dateStr) - new Date().getTimezoneOffset() * 60 * 1000
@@ -330,7 +342,8 @@ class ComplyAdvantageAPI {
     }
     if (propertyName) {
       resource.propertyName = propertyName
-      resource.searchTerm = payload[propertyName]
+      resource.secondaryName = payload[propertyName]
+      if (companyNameProperty !== propertyName) resource.name = payload[companyNameProperty]
     }
     // resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.status === 'fail' && rawData.hits) {
@@ -444,6 +457,7 @@ export const createPlugin: CreatePlugin<void> = (
           pConf,
           propertyMap: partialMap,
           propertyName: names[i],
+          companyNameProperty: propertyMap.companyName,
           req
         })
       }
