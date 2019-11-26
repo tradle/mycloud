@@ -328,7 +328,10 @@ class ComplyAdvantageAPI {
       aspects,
       form: payload
     }
-    if (propertyName) resource.propertyName = propertyName
+    if (propertyName) {
+      resource.propertyName = propertyName
+      resource.searchTerm = payload[propertyName]
+    }
     // resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.status === 'fail' && rawData.hits) {
       let prefix = ''
