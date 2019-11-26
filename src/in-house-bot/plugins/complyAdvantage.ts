@@ -323,12 +323,11 @@ class ComplyAdvantageAPI {
       status: status.status,
       provider: PROVIDER,
       application,
-      propertyName,
       dateChecked: date, //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
       aspects,
       form: payload
     }
-
+    if (propertyName) resource.propertyName = propertyName
     // resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.status === 'fail' && rawData.hits) {
       let prefix = ''
