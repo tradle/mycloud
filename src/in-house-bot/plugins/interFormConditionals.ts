@@ -33,7 +33,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
       bot.logger.debug(`interFormConditionals: for ${application.requestFor}`)
       const { requestFor } = application
       let productForms = conf[requestFor]
-      if (!productForms) return
+      if (!productForms) {
+        if (!application.maxFormTypesCount)
+          application.maxFormTypesCount = bot.models[requestFor].forms.length
+        return
+      }
 
       let promises = []
       application.forms
@@ -104,6 +108,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
         bot.logger.debug(`Required forms for ${application.requestFor}`)
         retForms.forEach(f => bot.logger.debug(f))
       }
+
+      if (!application.maxFormTypesCount || application.maxFormTypesCount !== retForms.length)
+        application.maxFormTypesCount = retForms.length
       return retForms
     },
     async onmessage(req: IPBReq) {
