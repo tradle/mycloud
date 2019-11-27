@@ -603,6 +603,7 @@ export const loadComponentsAndPlugins = ({
       {
         onmessage: async req => {
           let { application, payload } = req
+          if (!application) return
           let m = bot.models[payload[TYPE]]
           if (m.subClassOf !== FORM || !application.forms) return
 
