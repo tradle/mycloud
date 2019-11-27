@@ -63,6 +63,9 @@ const {
 } = TYPES
 
 const PRUNABLE_FORMS = [ASSIGN_RELATIONSHIP_MANAGER, PRODUCT_REQUEST]
+const SANCTIONS_CHECK = 'tradle.SanctionsCheck'
+const CORPORATION_EXISTS_CHECK = 'tradle.CorporationExistsCheck'
+const DOCUMENT_VALIDITY_CHECK = 'tradle.DocumentValidityCheck'
 
 type AppInfo = {
   application: IPBApp
@@ -139,11 +142,11 @@ export class Applications implements IHasModels {
       application.numberOfChecksFailed = failedChecks.length
       application.hasFailedChecks = true
       application.hasFailedSanctionsChecks =
-        failedChecks.findIndex(check => check[TYPE] === 'tradle.SanctionsCheck') !== -1
+        failedChecks.findIndex(check => check[TYPE] === SANCTIONS_CHECK) !== -1
       application.hasFailedDocumentValidityChecks =
-        failedChecks.findIndex(check => check[TYPE] === 'tradle.DocumentValidityCheck') !== -1
+        failedChecks.findIndex(check => check[TYPE] === DOCUMENT_VALIDITY_CHECK) !== -1
       application.hasFailedEntityExistanceChecks =
-        failedChecks.findIndex(check => check[TYPE] === 'tradle.CorporationExistsCheck') !== -1
+        failedChecks.findIndex(check => check[TYPE] === CORPORATION_EXISTS_CHECK) !== -1
     } else {
       if (application.numberOfChecksFailed) {
         application.numberOfChecksFailed = 0
@@ -152,7 +155,14 @@ export class Applications implements IHasModels {
         application.hasFailedChecks = false
       }
     }
-
+    if (check[TYPE] === SANCTIONS_CHECK) {
+      let sanctionsChecks = latestChecks.filter(check => check[TYPE] === SANCTIONS_CHECK)
+      if (sanctionsChecks.length) {
+        sanctionsChecks = uniqBy(sanctionsChecks, 'propertyName')
+        if (application.sanctionsCheckCount !== sanctionsChecks.length)
+          application.sanctionsCheckCount = sanctionsChecks.length
+      }
+    }
     return check
   }
 
