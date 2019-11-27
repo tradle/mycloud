@@ -32,12 +32,15 @@ const PERSON_FORMS = [PHOTO_ID, PERSONAL_INFO]
 
 const isPersonForm = form => PERSON_FORMS.includes(form[TYPE])
 
-const defaultPropMap: any = {
+const defaultNamesMap: any = {
   companyName: 'companyName',
-  registrationDate: 'registrationDate',
   formerlyKnownAs: 'formerlyKnownAs',
   DBAName: 'DBAName',
   alsoKnownAs: 'alsoKnownAs'
+}
+const defaultPropMap: any = {
+  ...defaultNamesMap,
+  registrationDate: 'registrationDate'
 }
 const defaultPersonPropMap: any = {
   firstName: 'firstName',
@@ -444,20 +447,22 @@ export const createPlugin: CreatePlugin<void> = (
       for (let p in propertyMap) {
         if (props[p] && props[p].type === 'date') dateProp = p
       }
-      let pMap = _.cloneDeep(propertyMap)
+
+      let namesMap = propertyMap || defaultPropMap
+      let pMap = _.cloneDeep(namesMap)
       delete pMap[dateProp]
       let names: any = Object.values(pMap)
 
       for (let i = 0; i < names.length; i++) {
         if (!payload[names[i]]) continue
-        let partialMap = { ...propertyMap }
+        let partialMap = { ...namesMap }
         for (let j = 0; j < i; j++) delete partialMap[names[j]]
         for (let j = i + 1; j < names.length; j++) delete partialMap[names[j]]
         await complyAdvantage.getAndProcessData({
           pConf,
           propertyMap: partialMap,
           propertyName: names[i],
-          companyNameProperty: propertyMap.companyName,
+          companyNameProperty: namesMap.companyName,
           req
         })
       }
