@@ -32,11 +32,15 @@ const PERSON_FORMS = [PHOTO_ID, PERSONAL_INFO]
 
 const isPersonForm = form => PERSON_FORMS.includes(form[TYPE])
 
-const defaultPropMap: any = {
+const defaultNamesMap: any = {
   companyName: 'companyName',
-  registrationDate: 'registrationDate',
   formerlyKnownAs: 'formerlyKnownAs',
-  DBAName: 'DBAName'
+  DBAName: 'DBAName',
+  alsoKnownAs: 'alsoKnownAs'
+}
+const defaultPropMap: any = {
+  ...defaultNamesMap,
+  registrationDate: 'registrationDate'
 }
 const defaultPersonPropMap: any = {
   firstName: 'firstName',
@@ -65,6 +69,7 @@ interface IComplyCheck {
   req: IPBReq
   aspects: any
   propertyName?: string
+  companyNameProperty?: string
 }
 
 class ComplyAdvantageAPI {
@@ -85,12 +90,14 @@ class ComplyAdvantageAPI {
     pConf,
     propertyMap,
     req,
-    propertyName
+    propertyName,
+    companyNameProperty
   }: {
     pConf: any
     propertyMap?: any
     req: IPBReq
     propertyName?: string
+    companyNameProperty?: string
   }) {
     let criteria = pConf.filter
     // let companyName, registrationDate
@@ -227,7 +234,9 @@ class ComplyAdvantageAPI {
         hasVerification = true
         this.logger.debug(`${PROVIDER} creating verification for: ${companyName || name}`)
       }
-      pchecks.push(this.createCheck({ rawData, status, req, aspects, propertyName }))
+      pchecks.push(
+        this.createCheck({ rawData, status, req, aspects, propertyName, companyNameProperty })
+      )
       if (hasVerification) pchecks.push(this.createVerification({ rawData, req }))
     }
     let checksAndVerifications = await Promise.all(pchecks)
@@ -311,7 +320,14 @@ class ComplyAdvantageAPI {
     return hits && { rawData, status, hits }
   }
 
-  public createCheck = async ({ rawData, status, req, aspects, propertyName }: IComplyCheck) => {
+  public createCheck = async ({
+    rawData,
+    status,
+    req,
+    aspects,
+    propertyName,
+    companyNameProperty
+  }: IComplyCheck) => {
     let dateStr = rawData.updated_at
     let date
     if (dateStr) date = Date.parse(dateStr) - new Date().getTimezoneOffset() * 60 * 1000
@@ -323,12 +339,15 @@ class ComplyAdvantageAPI {
       status: status.status,
       provider: PROVIDER,
       application,
-      propertyName,
       dateChecked: date, //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
       aspects,
       form: payload
     }
-
+    if (propertyName) {
+      resource.propertyName = propertyName
+      resource.secondaryName = payload[propertyName]
+      if (companyNameProperty !== propertyName) resource.name = payload[companyNameProperty]
+    }
     // resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.status === 'fail' && rawData.hits) {
       let prefix = ''
@@ -428,19 +447,22 @@ export const createPlugin: CreatePlugin<void> = (
       for (let p in propertyMap) {
         if (props[p] && props[p].type === 'date') dateProp = p
       }
-      let pMap = _.cloneDeep(propertyMap)
+
+      let namesMap = propertyMap || defaultPropMap
+      let pMap = _.cloneDeep(namesMap)
       delete pMap[dateProp]
       let names: any = Object.values(pMap)
 
       for (let i = 0; i < names.length; i++) {
         if (!payload[names[i]]) continue
-        let partialMap = { ...propertyMap }
+        let partialMap = { ...namesMap }
         for (let j = 0; j < i; j++) delete partialMap[names[j]]
         for (let j = i + 1; j < names.length; j++) delete partialMap[names[j]]
         await complyAdvantage.getAndProcessData({
           pConf,
           propertyMap: partialMap,
           propertyName: names[i],
+          companyNameProperty: namesMap.companyName,
           req
         })
       }

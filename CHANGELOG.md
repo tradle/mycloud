@@ -2,12 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.19](https://github.com/tradle/mycloud/compare/v2.5.1-rc.18...v2.5.1-rc.19) (2019-11-25)
+## [2.5.1-rc.21](https://github.com/tradle/mycloud/compare/v2.5.1-rc.20...v2.5.1-rc.21) (2019-11-27)
 
 
-### Features
+### Bug Fixes
 
-* models upgrade ([566b6f7](https://github.com/tradle/mycloud/commit/566b6f7))
+* models not recorded ([bd5d78a](https://github.com/tradle/mycloud/commit/bd5d78a))
+* no property map ([6ee2c65](https://github.com/tradle/mycloud/commit/6ee2c65))
 
 
 

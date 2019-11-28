@@ -6,7 +6,8 @@ import createEmployeeManager from '@tradle/bot-employee-manager'
 import validateResource from '@tradle/validate-resource'
 import buildResource from '@tradle/build-resource'
 import mergeModels from '@tradle/merge-models'
-import { TYPE, ORG } from '@tradle/constants'
+import { TYPE, ORG, TYPES } from '@tradle/constants'
+const { FORM } = TYPES
 import { Plugins } from './plugins'
 // import { models as onfidoModels } from '@tradle/plugin-onfido'
 import { createPlugin as setNamePlugin } from './plugins/set-name'
@@ -288,7 +289,7 @@ export const loadComponentsAndPlugins = ({
     let api
     let plugin
     try {
-      ; ({ api, plugin } = Plugins.get(name).createPlugin(components, {
+      ;({ api, plugin } = Plugins.get(name).createPlugin(components, {
         conf: pConf,
         logger: logger.sub(`plugin-${name}`)
       }))
@@ -601,6 +602,27 @@ export const loadComponentsAndPlugins = ({
     productsAPI.plugins.use(
       {
         onmessage: async req => {
+          let { application, payload } = req
+          if (!application) return
+          let m = bot.models[payload[TYPE]]
+          if (m.subClassOf !== FORM || !application.forms) return
+
+          let forms = []
+          application.forms.forEach(stub => {
+            let sub = stub.submission
+            if (sub[TYPE] === PRODUCT_REQUEST) return
+            if (bot.models[sub[TYPE]].subClassOf === FORM) forms.push(sub)
+          })
+          if (forms.length) forms = _.uniqBy(forms, '_permalink')
+
+          application.submittedFormTypesCount = _.uniqBy(forms, TYPE).length
+        }
+      } as PluginLifecycle.Methods,
+      true
+    )
+    productsAPI.plugins.use(
+      {
+        onmessage: async req => {
           let { user, payload } = req
           if (!payload[ORG]) return
 
@@ -692,13 +714,13 @@ export const loadComponentsAndPlugins = ({
       'boSimulator',
       'pitchbookCheck'
     ].forEach(name => attachPlugin({ name }))
-      ;[
-        'hand-sig',
-        'documentValidity',
-        'fill-myproduct',
-        'checkOverride',
-        'prefill-controllingPerson'
-      ].forEach(name => attachPlugin({ name, requiresConf: false }))
+    ;[
+      'hand-sig',
+      'documentValidity',
+      'fill-myproduct',
+      'checkOverride',
+      'prefill-controllingPerson'
+    ].forEach(name => attachPlugin({ name, requiresConf: false }))
 
     // used for some demo
     // ;[

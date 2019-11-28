@@ -9,7 +9,8 @@ import {
   IPBApp,
   IPluginLifecycleMethods,
   ValidatePluginConf,
-  ITradleObject
+  ITradleObject,
+  ITradleCheck
 } from '../types'
 import * as Templates from '../templates'
 import Errors from '../../errors'
@@ -20,7 +21,7 @@ import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
-import { hasPropertiesChanged } from '../utils'
+import { hasPropertiesChanged, getEnumValueId, getLatestCheck } from '../utils'
 import { appLinks } from '../../app-links'
 import { SMSBasedVerifier } from '../sms-based-verifier'
 // import { compare } from '@tradle/dynamodb/lib/utils'
@@ -29,11 +30,15 @@ const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const AGENCY = 'tradle.Agency'
 const CP_ONBOARDING = 'tradle.legal.ControllingPersonOnboarding'
 const CE_ONBOARDING = 'tradle.legal.LegalEntityProduct'
+const CP_PERSON = 'tradle.legal.TypeOfControllingEntity_person'
 const SHORT_TO_LONG_URL_MAPPING = 'tradle.ShortToLongUrlMapping'
 const NEXT_FORM_REQUEST = 'tradle.NextFormRequest'
 const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
+const CE_NOTIFICATION = 'tradle.CENotification'
 const NOTIFICATION = 'tradle.Notification'
 const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
+const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
+
 const NOTIFICATION_PROVIDER = 'Tradle'
 
 const unitCoefMap = {
@@ -77,6 +82,7 @@ interface IControllingPersonRegistrationConf {
     [product: string]: []
   }
   rules?: {
+    noAutoNotification?: boolean
     low: {
       score: number
       notify?: number
@@ -92,7 +98,10 @@ interface IControllingPersonRegistrationConf {
     positions?: []
     messages?: []
     maxNotifications?: number
-    interval: number
+    interval: {
+      number: number
+      unit: string
+    }
   }
 }
 const getSMSClient = ({
@@ -153,15 +162,11 @@ interface ConfirmationEmailTemplateData {
   message?: string
 }
 
-interface IControllingPersonConf {
-  senderEmail: string
-}
-
 class ControllingPersonRegistrationAPI {
   private bot: Bot
   private logger: Logger
   private org: any
-  private conf: IControllingPersonConf
+  private conf: IControllingPersonRegistrationConf
   private applications: Applications
   constructor({ bot, org, conf, logger, applications }) {
     this.bot = bot
@@ -199,9 +204,7 @@ class ControllingPersonRegistrationAPI {
 
     let product
     if (application.requestFor === AGENCY) product = EMPLOYEE_ONBOARDING
-    else if (
-      resource.typeOfControllingEntity.id === 'tradle.legal.TypeOfControllingEntity_person'
-    ) {
+    else if (resource.typeOfControllingEntity.id === CP_PERSON) {
       product = CP_ONBOARDING
       // if (resource.name) extraQueryParams.name = resource.name
     } else {
@@ -279,10 +282,11 @@ class ControllingPersonRegistrationAPI {
   }
   public async checkRules({ application, forms, rules }) {
     const { score } = application
-    const { positions, messages, interval } = rules
+    const { positions, messages, interval, noAutoNotification } = rules
     let notify = this.getNotify({ score, rules })
 
     let result = await this.getCP({ application, bot: this.bot })
+
     let seniorManagement = result.filter((r: any) => r.isSeniorManager)
     if (!seniorManagement.length) {
       if (result.length > notify) seniorManagement = result.slice(0, notify)
@@ -297,6 +301,11 @@ class ControllingPersonRegistrationAPI {
       notify = seniorManagement.length
       notifyArr = seniorManagement
     }
+    if (!noAutoNotification) {
+      let cpEntities = result.filter((r: any) => r.typeOfControllingEntity.id !== CP_PERSON)
+      notifyArr = notifyArr.concat(cpEntities)
+    }
+
     // Case when new CP was added or existing CO was changed and the notify number is bigger than the number of notified parties
     if (application.notifications && application.notifications.length < notifyArr.length) {
       let notifications = await Promise.all(
@@ -394,6 +403,54 @@ class ControllingPersonRegistrationAPI {
     } else notify = high.notify || maxNotifications || 5
     return notify
   }
+  async handleClientRequestForNotification({ payload, application }) {
+    if (!payload.emailAddress) {
+      this.logger.error(`controlling person: no email address and no phone provided`)
+      return
+    }
+    let form = await this.bot.getResource(payload.form)
+    await this.sendConfirmationEmail({
+      resource: form,
+      application,
+      legalEntity: form.legalEntity
+    })
+    if (!this.conf.rules) return
+
+    let notification
+    if (application.notifications) {
+      notification = await this.bot.db.findOne({
+        filter: {
+          EQ: {
+            [TYPE]: NOTIFICATION,
+            'form._permalink': form._permalink
+          }
+        }
+      })
+    }
+    let { messages, interval } = this.conf.rules
+    if (!notification) {
+      await this.createNewNotification({ application, resource: form, messages, interval })
+      return
+    }
+    let { emailAddress, phone, timesNotified } = notification
+
+    let moreProps: any = { emailAddress }
+    if (phone) moreProps.mobile = phone
+
+    let notifyAfter = interval.number * unitCoefMap[interval.unit]
+
+    if (!notification.interval) notification.interval = notifyAfter
+    let model = this.bot.models[NOTIFICATION_STATUS]
+    let statusId = getEnumValueId({ model, value: notification.status })
+    let newTimesNotified = timesNotified + 1
+    if (statusId === 'abandoned') moreProps.status = enumValue({ model, value: 'notified' })
+    await this.bot.versionAndSave({
+      ...notification,
+      ...moreProps,
+      timesNotified: newTimesNotified,
+      dateLastNotified: Date.now()
+    })
+  }
 }
 
 export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
@@ -405,7 +462,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
   const plugin: IPluginLifecycleMethods = {
     async onmessage(req) {
       // useRealSES(bot)
-      const { user, application, payload } = req
+      const { application, payload } = req
       if (!application) return
       let productId = application.requestFor
 
@@ -415,8 +472,12 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let ptype = payload[TYPE]
 
       if (rules && ptype === NEXT_FORM_REQUEST) {
-        // if (application.notifications) return
         await cp.checkRules({ application, forms: products[productId], rules })
+        return
+      }
+
+      if (ptype === CE_NOTIFICATION) {
+        await cp.handleClientRequestForNotification({ application, payload })
         return
       }
 
@@ -455,6 +516,34 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       // }
       // await cp.sendLinkViaSMS({resource: payload, application, smsBasedVerifier, legalEntity})
     },
+    // async onResourceCreated(payload) {
+    //   if (payload[TYPE] === CONTROLLING_PERSON) {
+    //     if (getEnumValueId(payload.typeOfControllingEntity) === 'person') return
+    //     let {
+    //       name,
+    //       emailAddress,
+    //       controllingEntityCompanyNumber,
+    //       controllingEntityCountry,
+    //       controllingEntityRegion,
+    //       controllingEntityPostalCode,
+    //       controllingEntityStreetAddress
+    //     } = payload
+    //     let le = sanitize({
+    //       [TYPE]: 'tradle.legal.LegalEntity',
+    //       companyName: name,
+    //       registrationNumber: controllingEntityCompanyNumber,
+    //       country: controllingEntityCountry,
+    //       region: controllingEntityRegion,
+    //       emailAddress,
+    //       streetAddress: controllingEntityStreetAddress,
+    //       postalCode: controllingEntityPostalCode
+    //     }).sanitized
+    //     let legalEntity = await bot
+    //       .draft({ [TYPE]: 'tradle.legal.LegalEntity' })
+    //       .set(le)
+    //       .signAndSave()
+    //   }
+    // },
     async onResourceChanged(changes) {
       // useRealSES(bot)
       let { old, value } = changes
@@ -479,6 +568,21 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let application = await bot.getResource(value.application, {
         backlinks: ['notifications', 'forms']
       })
+
+      let now = Date.now()
+      // let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, application, bot })
+      // if (getEnumValueId(check.status) !== 'pass') {
+      //   await bot.versionAndSave({
+      //     ...value,
+      //     status: enumValue({
+      //       model: bot.models[NOTIFICATION_STATUS],
+      //       value: 'stopped'
+      //     }),
+      //     dateLastNotified: now
+      //   })
+      //   return
+      // }
+
       // do we need to choose another participant?
       let { isNewManager, form, abandon } = await this.getNextManager({
         application,
@@ -501,7 +605,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (isNewManager) {
         await cp.createNewNotification({ application, resource: formRes, messages, interval })
       }
-      let now = Date.now()
       let newTimesNotified = isNewManager ? 1 : timesNotified + 1
       let moreProps: any = {}
       let { emailAddress, phone } = formRes
@@ -610,7 +713,19 @@ export const validateConf: ValidatePluginConf = async ({
     })
   }
   if (!rules) return
-  let { low, high, medium, positions, messages, interval, maxNotifications } = rules
+  let {
+    noAutoNotification,
+    low,
+    high,
+    medium,
+    positions,
+    messages,
+    interval,
+    maxNotifications
+  } = rules
+  if (noAutoNotification && typeof noAutoNotification !== 'boolean')
+    throw new Error('"noAutoNotification" in the rules should be a boolean')
+
   if (!low || !high || !medium)
     throw new Error(`If rules are assigned all 3: "low", "high" and "medium' should be present`)
   if (!low.score || !high.score || !medium.score)
