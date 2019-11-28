@@ -158,7 +158,7 @@ export class ImportPsc {
         from: SENDER_EMAIL,
         to: [record.companyemail],
         format: 'html',
-        subject: `${BO_ONBOARD_MESSAGE} - ${record.name_elements.forename} ${record.name_elements.surname}`,
+        subject: `${BO_ONBOARD_MESSAGE} - ${record.name}`,
         body
       })
     } catch (err) {
@@ -514,8 +514,8 @@ export class ImportPsc {
   }
 
   newBO = async () => {
-    let changeQuery = `SELECT r.company_number, r.data.name_elements, r.data.natures_of_control,
-                       c.companyemail, c._link, c._author 
+    let changeQuery = `SELECT r.company_number, r.data.name, r.data.name_elements, r.data.natures_of_control,
+                       r.data.kind, c.companyemail, c._link, c._author 
         FROM tradle_legal_legalentity c 
           inner join orc_psc_next_bucketed r on (c.registrationnumber = r.company_number)
           left join psc l on (r.company_number = l.company_number and  r.data.name = l.data.name)
@@ -528,28 +528,51 @@ export class ImportPsc {
       rdata.name_elements = makeJson(rdata.name_elements)
       rdata.natures_of_control = makeJson(rdata.natures_of_control)
     }
-    let newPersons = await this.filterOutKnown(list)
-    return newPersons
+    let newEntiites = await this.filterOutKnown(list)
+    return newEntiites
   }
 
   filterOutKnown = async (list: Array<any>) => {
-    let newPersons = []
+    let newEntities = []
     for (let rdata of list) {
+      if (!rdata.kind)
+        continue;
       let sql = `select name from tradle_legal_legalentitycontrollingperson 
                  where controllingentitycompanynumber = '${rdata.company_number}'`
       let data: AWS.Athena.GetQueryResultsOutput = await this.executeDDL(sql, 1000)
       let names = this.processQueryResult(data);
+
       for (let rec of names) {
         let name: string = rec.name.toLowerCase()
-        let firstname: string = rdata.name_elements.forename.toLowerCase()
-        let lastname: string = rdata.name_elements.surname.toLowerCase()
-        if (!name.includes(firstname) || !name.includes(lastname)) {
-          newPersons.push(rdata)
-          break
+
+        if (rdata.kind == 'individual-person-with-significant-control') {
+          let firstname: string = rdata.name_elements.forename.toLowerCase()
+          let lastname: string = rdata.name_elements.surname.toLowerCase()
+          if (this.notIncludesAny([firstname, lastname], name)) {
+            newEntities.push(rdata)
+            break
+          }
+        }
+        else if (rdata.kind == 'corporate-entity-person-with-significant-control') {
+          let corporate: string = rdata.name.toLowerCase()
+          let words: Array<string> = corporate.split(' ')
+          if (this.notIncludesAny(words, name)) {
+            newEntities.push(rdata)
+            break
+          }
         }
       }
     }
-    return newPersons
+    return newEntities
+  }
+
+  notIncludesAny = (tokens: Array<string>, inStr: string): boolean => {
+    for (let token of tokens) {
+      if (!inStr.includes(token)) {
+        return false
+      }
+    }
+    return true
   }
 
   notifyAdmin = async () => {
@@ -572,12 +595,8 @@ export class ImportPsc {
           {
             company_number: rdata.company_number,
             data: {
-              kind: 'individual-person-with-significant-control',
-              name: `${rdata.name_elements.firstName} ${rdata.name_elements.surname}`,
-              name_elements: {
-                forename: rdata.name_elements.forename,
-                surname: rdata.name_elements.surname
-              },
+              kind: rdata.kind,
+              name: rdata.name,
               natures_of_control: rdata.natures_of_control
             }
           }
