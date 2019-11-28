@@ -23,7 +23,7 @@ const region = 'us-east-1'
 
 //const BUCKET = 'jacob.gins.athena'
 //const ATHENA_DB = 'sampledb'
-
+const ATHENA_OUTPUT = 'temp/athena'
 const ORIGIN_PREFIX = 'temp/refdata/gb/psc_origin/'
 const NEXT_BUCKETED_PREFIX = 'temp/refdata/gb/psc_next_bucketed/'
 const PREFIX = 'refdata/gb/psc/'
@@ -419,7 +419,7 @@ export class ImportPsc {
   getExecutionId = async (sql: string): Promise<string> => {
     this.logger.debug("start query", sql)
     return new Promise((resolve, reject) => {
-      let outputLocation = `s3://${this.outputLocation}/temp`
+      let outputLocation = `s3://${this.outputLocation}/${ATHENA_OUTPUT}`
       let params = {
         QueryString: sql,
         ResultConfiguration: { OutputLocation: outputLocation },

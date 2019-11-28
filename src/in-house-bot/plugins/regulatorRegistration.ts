@@ -37,6 +37,7 @@ const { sanitize } = validateResource.utils
 import remapKeys from 'remap-keys'
 
 const POLL_INTERVAL = 250
+const ATHENA_OUTPUT = 'temp/athena'
 
 const Registry = {
   FINRA: 'https://s3.eu-west-2.amazonaws.com/tradle.io/FINRA.json'
@@ -100,8 +101,7 @@ export class RegulatorRegistrationAPI {
   }
   public getExecutionId = async sql => {
     return new Promise((resolve, reject) => {
-      const outputLocation = 's3://' + this.bot.buckets.PrivateConf.id + '/temp'
-      this.logger.debug(`regulatorRegistration: ${outputLocation}`)
+      const outputLocation = `s3://${this.bot.buckets.PrivateConf.id}/${ATHENA_OUTPUT}`
       this.logger.debug(`regulatorRegistration getExecutionId with ${sql}`)
       const database = this.bot.env.getStackResourceName('sec').replace(/\-/g, '_')
       this.logger.debug(`regulatorRegistration getExecutionId in db ${database}`)

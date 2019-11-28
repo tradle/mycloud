@@ -18,6 +18,7 @@ const region = 'us-east-1'
 
 const DATADUMP_FOLDER = 'data_export/'
 const MARKER = 'marker'
+const ATHENA_OUTPUT = 'temp/athena'
 
 //const BUCKET = 'jacob.gins.athena'
 //const OBJECTS_BUCKET = 'tdl-svb-ltd-dev-buckets-wza9q831y5q8-objects-m3rienvohb6a'
@@ -639,7 +640,7 @@ export class AthenaFeed {
 
   getExecutionId = async (sql: string): Promise<string> => {
     return new Promise((resolve, reject) => {
-      let outputLocation = `s3://${this.outputLocation}/temp`
+      let outputLocation = `s3://${this.outputLocation}/${ATHENA_OUTPUT}`
       let params = {
         QueryString: sql,
         ResultConfiguration: { OutputLocation: outputLocation },

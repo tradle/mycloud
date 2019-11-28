@@ -28,6 +28,7 @@ import validateResource from '@tradle/validate-resource'
 const { sanitize } = validateResource.utils
 
 const POLL_INTERVAL = 250
+const ATHENA_OUTPUT = 'temp/athena'
 
 const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const PROVIDER = 'PitchBook Data, Inc.'
@@ -96,7 +97,7 @@ export class PitchbookCheckAPI {
   }
   public getExecutionId = async (sql: string): Promise<string> => {
     return new Promise((resolve, reject) => {
-      const outputLocation = `s3://${this.bot.buckets.PrivateConf.id}/temp`
+      const outputLocation = `s3://${this.bot.buckets.PrivateConf.id}/${ATHENA_OUTPUT}`
       const database = this.bot.env.getStackResourceName('sec').replace(/\-/g, '_')
       let params = {
         QueryString: sql,
