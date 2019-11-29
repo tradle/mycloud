@@ -2,25 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.20](https://github.com/tradle/mycloud/compare/v2.5.1-rc.19...v2.5.1-rc.20) (2019-11-27)
+## [2.5.1-rc.21](https://github.com/tradle/mycloud/compare/v2.5.1-rc.20...v2.5.1-rc.21) (2019-11-27)
 
 
 ### Bug Fixes
 
-* reference to property is not yet needed for person check ([c906aa7](https://github.com/tradle/mycloud/commit/c906aa7))
-
-
-### Features
-
-* calc progress project ([2ff9d2c](https://github.com/tradle/mycloud/commit/2ff9d2c))
-* fresh models ([f3ca9c5](https://github.com/tradle/mycloud/commit/f3ca9c5))
-* let employee nudge the CP to onboard; fix: notify CEs ([fcc7f4b](https://github.com/tradle/mycloud/commit/fcc7f4b))
-* multiple sanction checks ([5f0acaa](https://github.com/tradle/mycloud/commit/5f0acaa))
-* run check for all company names this company and it's formerly known names ([40e661f](https://github.com/tradle/mycloud/commit/40e661f))
-* search term added to Check ([78d35e2](https://github.com/tradle/mycloud/commit/78d35e2))
-* show the progress of application submission ([dcca325](https://github.com/tradle/mycloud/commit/dcca325))
-* show the progress of application submission ([928a62b](https://github.com/tradle/mycloud/commit/928a62b))
-* supply more info to display a comprehensive check in RL ([7d08bac](https://github.com/tradle/mycloud/commit/7d08bac))
+* models not recorded ([bd5d78a](https://github.com/tradle/mycloud/commit/bd5d78a))
+* no property map ([6ee2c65](https://github.com/tradle/mycloud/commit/6ee2c65))
 
 
 

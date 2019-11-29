@@ -30,6 +30,7 @@ import validateResource from '@tradle/validate-resource'
 const { sanitize } = validateResource.utils
 
 const POLL_INTERVAL = 250
+const ATHENA_OUTPUT = 'temp/athena'
 
 const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
@@ -84,8 +85,7 @@ export class PscCheckAPI {
   }
   public getExecutionId = async sql => {
     return new Promise((resolve, reject) => {
-      const outputLocation = 's3://' + this.bot.buckets.PrivateConf.id + '/temp'
-      this.logger.debug(`pscCheck: ${outputLocation}`)
+      const outputLocation = `s3://${this.bot.buckets.PrivateConf.id}/${ATHENA_OUTPUT}`
       this.logger.debug(`pscCheck getExecutionId with ${sql}`)
       const database = this.bot.env.getStackResourceName('sec').replace(/\-/g, '_')
       this.logger.debug(`pscCheck getExecutionId in db ${database}`)
