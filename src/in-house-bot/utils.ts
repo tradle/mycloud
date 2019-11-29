@@ -513,7 +513,7 @@ export const doesCheckNeedToBeCreated = async ({
     let sanctionsChecks = timeDesc.filter(check => check[TYPE] === SANCTIONS_CHECK)
     sanctionsChecks = _.uniqBy(sanctionsChecks, 'propertyName')
 
-    req.latestChecks = req.latestChecks.concat(sanctionsChecks)
+    req.latestChecks = _.uniqBy(req.latestChecks.concat(sanctionsChecks), '_permalink')
 
     bot.logger.debug(`getChecks took: ${Date.now() - startTime}`)
   }
