@@ -29,6 +29,7 @@
  * -- Sanctions and other exceptions
  * not taken into account yet
  *
+ * finalScore = countriesScore + industryScore + sanctionsScore + peopleScore + legalStructureScore
  *
  ***/
 import _ from 'lodash'
@@ -115,7 +116,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       } else {
         sanctionsChecks = latestChecks.filter(check => check[TYPE] === 'tradle.SanctionsCheck')
       }
-
+      const models = bot.models
       if (sanctionsChecks) {
         let failedCheck = sanctionsChecks.find(
           check => getEnumValueId({ model: bot.models[STATUS], value: check.status }) !== 'pass'
@@ -130,14 +131,14 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let corpExistsCheck = checks.find(
         check =>
           check[TYPE] === CORPORATION_EXISTS &&
-          getEnumValueId({ model: bot.models[STATUS], value: check.status }) === 'pass'
+          getEnumValueId({ model: models[STATUS], value: check.status }) === 'pass'
       )
       if (corpExistsCheck) checkOfficers({ scoreDetails, corpExistsCheck, riskFactors })
 
       let beneRiskCheck = checks.find(
         check =>
           check[TYPE] === BENEFICIAL_OWNER_CHECK &&
-          getEnumValueId({ model: bot.models[STATUS], value: check.status }) === 'pass'
+          getEnumValueId({ model: models[STATUS], value: check.status }) === 'pass'
       )
       if (!beneRiskCheck || !beneRiskCheck.rawData || !beneRiskCheck.rawData.length) {
         let score = getScore(scoreDetails, riskFactors)
