@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "2.5.1-rc.21",
+  "version": "2.5.1-rc.22",
   "dependencies": {
     "@aws/dynamodb-auto-marshaller": {
       "version": "0.4.1",
@@ -391,7 +391,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#4569ed57c7d29c4f3ac1b9c96f5283eb477287eb"
+      "resolved": "git://github.com/tradle/models.git#bec3b527e05c15c24f6478a558e07179e6efe9ec"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",

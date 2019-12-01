@@ -1,10 +1,18 @@
 {
+  "defaultValue": 100,
+  "low": 33.59,
+  "medium": 47.09,
+  "high": 99.99,
+  "autoHigh": 100,
   "weights": {
-    "countries": 0.25,
-    "industry": 0.17,
-    "legalStructure": 0.13,
-    "sanctions": 0.25,
-    "lengthOfRelationship": 0.2
+    "baseRisk": 17.95,
+    "countryOfRegistration": 11.61,
+    "countryOfOperation": 11.61,
+    "industry": 34.41,
+    "legalStructure": 3.64,
+    "historicalBehaviorRisk": 8.77,
+    "lengthOfRelationship": 4.32,
+    "transactionalRisk": 11.47
   },
   "countries": {
     "UA": 0.5,
@@ -27,7 +35,7 @@
     "us_incorporation": 0.4,
     "limited_partnership": 0.3
   },
-  "sanctions": {
+  "historicalBehaviorRisk": {
     "pep": 0.2,
     "sanctions": 0.9,
     "adversePress": 0.3
@@ -37,5 +45,11 @@
     "2": 0.8,
     "3": 0.7,
     "4": 0.2
+  },
+  "baseRisk": {
+    "default": 100
+  },
+  "transactionalRisk": {
+    "default": 50
   }
 }
