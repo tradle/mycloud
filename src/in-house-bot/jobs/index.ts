@@ -16,6 +16,7 @@ import { DEFAULT_WARMUP_EVENT, TYPES } from '../../constants'
 import { AthenaFeed } from './athenafeed'
 import { ImportPsc } from './importPsc'
 import { ImportRefdata } from './importRefdata'
+import { ImportMaxmindDb } from './importMaxmindDb'
 import { Chaser } from './chaser'
 // import { Deployment } from '../deployment'
 
@@ -60,6 +61,15 @@ export const importRefdata: Executor = async ({ job, components }) => {
     importer.move()
   } catch (err) {
     components.bot.logger.error('job importRefdata failed', err)
+  }
+}
+
+export const importMaxmindDb: Executor = async ({ job, components }) => {
+  let importer = new ImportMaxmindDb(components.bot)
+  try {
+    importer.execute()
+  } catch (err) {
+    components.bot.logger.error('job importMaxmindDb failed', err)
   }
 }
 
