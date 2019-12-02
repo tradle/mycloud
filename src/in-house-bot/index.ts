@@ -615,7 +615,7 @@ export const loadComponentsAndPlugins = ({
           })
           if (forms.length) forms = _.uniqBy(forms, '_permalink')
 
-          application.submittedFormTypesCount = _.uniqBy(forms, TYPE).length
+          application.submittedFormTypesCount = _.uniqBy(forms, TYPE).length + 1
         }
       } as PluginLifecycle.Methods,
       true
