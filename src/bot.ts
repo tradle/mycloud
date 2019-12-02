@@ -1134,6 +1134,15 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   //   })
   // }
 
+  public getLatestResource = async (
+    props: GetResourceIdentifierInput,
+    opts: GetResourceOpts = {}
+  ): Promise<ITradleObject> => {
+    let propsCopy = { ...props }
+    if (propsCopy._link) delete propsCopy._link
+    return await this.getResource(propsCopy, opts)
+  }
+
   public getResource = async (
     props: GetResourceIdentifierInput,
     opts: GetResourceOpts = {}
