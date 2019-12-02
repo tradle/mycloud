@@ -735,7 +735,7 @@
       }
     },
     "@tradle/models": {
-      "version": "github:tradle/models#72da8d7091d80ae4fc02bb23fdcd1e9bb01f968b",
+      "version": "github:tradle/models#34d4fb4ea149132cc281ef18f093f563ec2cd471",
       "from": "github:tradle/models"
     },
     "@tradle/models-cloud": {
@@ -747,7 +747,7 @@
       "from": "tradle/models-cloud-services"
     },
     "@tradle/models-corporate-onboarding": {
-      "version": "github:tradle/models-corporate-onboarding#5841635d5e90daed8541c3ce05590cd8ef27f1cb",
+      "version": "github:tradle/models-corporate-onboarding#0594dc4d295bd0bab35e549becf2bba4ba45264c",
       "from": "github:tradle/models-corporate-onboarding"
     },
     "@tradle/models-nz": {
