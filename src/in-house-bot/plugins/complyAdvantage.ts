@@ -120,7 +120,7 @@ class ComplyAdvantageAPI {
     let propertiesToCheck
     if (isPerson) propertiesToCheck = ['firstName', 'lastName', 'dateOfBirth']
     else propertiesToCheck = Object.values(map) // ['companyName', 'registrationDate']
-    debugger
+    // debugger
     let createCheck = await doesCheckNeedToBeCreated({
       bot: this.bot,
       type: SANCTIONS_CHECK,
@@ -449,9 +449,14 @@ export const createPlugin: CreatePlugin<void> = (
       }
 
       let namesMap = propertyMap || defaultPropMap
-      let pMap = _.cloneDeep(namesMap)
-      delete pMap[dateProp]
-      let names: any = Object.values(pMap)
+
+      let names = []
+      for (let p in defaultNamesMap) {
+        if (namesMap[p]) names.push(namesMap[p])
+      }
+      // let pMap = _.cloneDeep(namesMap)
+      // delete pMap[dateProp]
+      // let names: any = Object.values(pMap)
 
       for (let i = 0; i < names.length; i++) {
         if (!payload[names[i]]) continue

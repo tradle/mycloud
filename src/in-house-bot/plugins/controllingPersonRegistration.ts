@@ -301,10 +301,10 @@ class ControllingPersonRegistrationAPI {
       notify = seniorManagement.length
       notifyArr = seniorManagement
     }
-    if (!noAutoNotification) {
-      let cpEntities = result.filter((r: any) => r.typeOfControllingEntity.id !== CP_PERSON)
-      notifyArr = notifyArr.concat(cpEntities)
-    }
+    // if (!noAutoNotification) {
+    let cpEntities = result.filter((r: any) => r.typeOfControllingEntity.id !== CP_PERSON)
+    notifyArr = notifyArr.concat(cpEntities)
+    // }
 
     // Case when new CP was added or existing CO was changed and the notify number is bigger than the number of notified parties
     if (application.notifications && application.notifications.length < notifyArr.length) {

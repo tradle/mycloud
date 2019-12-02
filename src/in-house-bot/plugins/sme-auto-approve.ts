@@ -18,6 +18,7 @@ import { getAssociateResources } from '../utils'
 import { valueFromAST } from 'graphql'
 
 const CP = 'tradle.legal.LegalEntityControllingPerson'
+// const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const APPLICATION = 'tradle.Application'
 const APPLICATION_SUBMITTED = 'tradle.ApplicationSubmitted'
@@ -57,7 +58,7 @@ export class SmeVerifier {
       checkIfAllFormsSubmitted = true
     if (application.parent) {
       aApp = await getAssociateResources({ application, bot: this.bot, applicationOnly: true })
-      aApp = aApp.parentApplication
+      aApp = aApp.parentApp
     } else {
       aApp = application
       checkIfAllFormsSubmitted = false
@@ -155,7 +156,7 @@ export class SmeVerifier {
     })
     let notifications = parentNotifications.notifications
     if (!notifications) return
-    debugger
+    // debugger
     notifications = await Promise.all(notifications.map(r => this.bot.getResource(r)))
     let notification = notifications.find(
       (r: any) => r.form._permalink === associatedResource._permalink
@@ -251,7 +252,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     },
     async onmessage(req: IPBReq) {
       // debugger
-      const { application } = req
+      const { application, payload } = req
       if (!application || !application.forms || !conf.length) return
 
       if (application.parent) {
@@ -265,7 +266,13 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!pairs.length) return
       logger.debug('Child application was submitted')
       let { parentApp, associatedRes } = await getAssociateResources({ application, bot })
-      if (!parentApp) return
+      if (!parentApp) {
+        if (!application.tree) {
+          application.tree = buildResourceStub({ resource: application, models: bot.models })
+          application.tree.top = buildResourceStub({ resource: payload, models: bot.models })
+        }
+        return
+      }
       // pairs = pairs.find(pair => pair.parent === parentApp.requestFor)
       // if (!pairs)
       //   return
@@ -275,14 +282,41 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       application.parent = stub
       application.top = parentApp.top || stub
 
+      await this.findAndInsertTreeNode({
+        application,
+        parentApp,
+        payload
+      })
+
       application.associatedResource = buildResourceStub({
         resource: associatedRes,
         models: bot.models
       })
       await smeVerifierAPI.checkAndUpdateNotification(application)
+    },
+    async findAndInsertTreeNode({ application, parentApp, payload }) {
+      let { top, parent } = application
+
+      let topApp = await bot.getLatestResource(top)
+      debugger
+      const models = bot.models
+      let appStub = buildResourceStub({ resource: application, models })
+      let payloadStub = buildResourceStub({ resource: payload, models })
+      let node
+      let nodes
+      if (topApp.tree.top && topApp.tree.top.nodes) node = findNode(topApp.tree.top.nodes, parent)
+      if (!node) node = topApp.tree
+      if (!node.top.nodes) node.top.nodes = {}
+      nodes = node.top.nodes
+
+      nodes[application._permalink] = {
+        ...appStub,
+        top: payloadStub
+      }
+      topApp.tree = { ...topApp.tree }
+      await applications.updateApplication(topApp)
     }
   }
-
   return { plugin }
 }
 
@@ -309,4 +343,19 @@ function makeMyProductModelID(modelId) {
   let parts = modelId.split('.')
   parts[parts.length - 1] = 'My' + parts[parts.length - 1]
   return parts.join('.')
+}
+
+function findNode(tree, node) {
+  for (let p in tree) {
+    if (p === 'nodes') {
+      let n = findNode(tree[p], node)
+      if (n) return n
+      continue
+    }
+    if (tree[p]._permalink === node._permalink) return tree[p]
+    if (typeof tree[p] === 'object') {
+      let n = findNode(tree[p], node)
+      if (n) return n
+    }
+  }
 }
