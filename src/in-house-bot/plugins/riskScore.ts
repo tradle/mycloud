@@ -88,7 +88,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           scoreDetails.countryOfRegistration.score = scoreDetails.countryOfRegistration[cid].score
           if (requestFor === CP_ONBOARDING) {
             application.score = getScore(scoreDetails, riskFactors)
-            await this.checkParent(application, defaultValue)
             return
           }
         }
@@ -103,7 +102,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       )
       if (!checks) {
         application.score = getScore(scoreDetails, riskFactors)
-        await this.checkParent(application, defaultValue)
         return
       }
       let sanctionsChecks
@@ -143,7 +141,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!beneRiskCheck || !beneRiskCheck.rawData || !beneRiskCheck.rawData.length) {
         let score = getScore(scoreDetails, riskFactors)
         application.score = Math.round(score)
-        await this.checkParent(application, defaultValue)
         return
       }
       let { rawData } = beneRiskCheck
@@ -174,17 +171,34 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       if (_.size(boScore)) scoreDetails.boScore = boScore
       application.score = getScore(scoreDetails, riskFactors)
-      await this.checkParent(application, defaultValue)
     },
     async checkParent(application, defaultValue) {
       let { score } = application
       if (score === defaultValue || !application.parent) return
-      let parentApp = await bot.getResource(application.parent)
+      let parentApp = await bot.getResource({
+        [TYPE]: application[TYPE],
+        _permalink: application.parent._permalink
+      })
       let pscore = parentApp.score
       if (pscore && pscore < score) return
       parentApp.score = score
       await applications.updateApplication(parentApp)
       if (parentApp.parent) await this.checkParent(parentApp, defaultValue)
+    },
+    onFormsCollected: async ({ req }) => {
+      // debugger
+      const { user, application, payload } = req
+      if (!application) return
+      let { requestFor } = application
+      let formType = conf.products[requestFor]
+      if (!formType) return
+      let ptype = payload[TYPE]
+
+      if (typeof formType === 'string') {
+        if (ptype !== formType) return
+      } else if (!formType[ptype]) return
+      let { defaultValue } = riskFactors
+      await this.checkParent(application, defaultValue)
     }
   }
   return { plugin }
