@@ -8,7 +8,6 @@ installSourceMapSupport()
 
 // @ts-ignore
 import Promise from 'bluebird'
-import debug from 'debug'
 
 global.Promise = Promise
 
@@ -43,7 +42,6 @@ if (!process.env.IS_OFFLINE) {
 // process.on('unhandledRejection', function (reason, promise) {
 //   console.error('possibly unhandled rejection', reason)
 // })
-debug.useColor = true
 
 mockery.enable({
   warnOnReplace: false,
