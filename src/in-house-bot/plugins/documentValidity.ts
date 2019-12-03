@@ -1,4 +1,5 @@
 import fetch from 'node-fetch'
+const postal = require('node-postal')
 
 import _ from 'lodash'
 import constants from '@tradle/constants'
@@ -147,11 +148,8 @@ class DocumentValidityAPI {
     }
 
     let pchecks = []
-    pchecks.push(
-      this.createCheck({ req, rawData, status: rawData.Status })
-    )
-    if (rawData.Status === 'pass')
-      pchecks.push(this.createVerification({ rawData, req }))
+    pchecks.push(this.createCheck({ req, rawData, status: rawData.Status }))
+    if (rawData.Status === 'pass') pchecks.push(this.createVerification({ rawData, req }))
     let checksAndVerifications = await Promise.all(pchecks)
   }
   public checkTheDifferences(payload, rawData) {
@@ -253,11 +251,14 @@ class DocumentValidityAPI {
     // debugger
 
     await this.applications.createVerification({ application, verification })
-    this.logger.debug(
-      'Created DocumentValidity Verification'
-    )
+    this.logger.debug('Created DocumentValidity Verification')
     if (application.checks)
-      await this.applications.deactivateChecks({ application, type: DOCUMENT_VALIDITY, form: payload, req })
+      await this.applications.deactivateChecks({
+        application,
+        type: DOCUMENT_VALIDITY,
+        form: payload,
+        req
+      })
   }
 }
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger }) => {
@@ -267,6 +268,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       if (req.skipChecks) return
       const { user, application, applicant, payload } = req
       if (!application || payload[TYPE] !== PHOTO_ID) return
+      if (payload.full) {
+        let parts = postal.parser.parse_address(payload.full)
+        debugger
+      }
 
       await documentValidity.checkDocument({ req })
     }

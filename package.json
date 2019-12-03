@@ -240,6 +240,7 @@
     "nkey-ethereum": "github:tradle/nkey-ethereum",
     "node-fetch": "^1.7.3",
     "node-gs": "^0.1.1",
+    "node-postal": "github:openvenues/node-postal",
     "nodecredstash": "github:tradle/credstash",
     "nunjucks": "^3.1.2",
     "pify": "^2.3.0",

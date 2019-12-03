@@ -7835,6 +7835,11 @@
       "dev": true,
       "optional": true
     },
+    "node-postal": {
+      "version": "1.0.0",
+      "from": "openvenues/node-postal",
+      "resolved": "git://github.com/openvenues/node-postal.git#7b6b167b27cf0c071da000a5bd13170f22fb9e18"
+    },
     "node-pre-gyp": {
       "version": "0.10.3",
       "from": "node-pre-gyp@>=0.10.0 <0.11.0",
