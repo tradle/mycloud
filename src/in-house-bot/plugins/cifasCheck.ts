@@ -2,7 +2,7 @@ import https from 'https'
 import fs from 'fs'
 import path from 'path'
 import nunjucks from 'nunjucks'
-import xml2js from 'xml2js'
+import xml2js from 'xml2js-parser'
 import dateformat from 'dateformat'
 
 import { TYPE } from '@tradle/constants'
@@ -186,19 +186,19 @@ export class CifasCheckAPI {
     let status: any
     let rawData: any
     let res = await this.queryCifra(q)
-    if (!res.error) {
+    if (res.error) {
       status = {
         status: 'error',
         message: res.error
       }
     }
     else {
-      var parser = new xml2js.Parser(/* options */);
-      let jsonObj = await parser.parseStringPromise(res.xml)
+      let parser = new xml2js.Parser({ explicitArray: false, trim: true });
+      let jsonObj = parser.parseStringSync(res.xml)
       this.logger.debug(JSON.stringify(jsonObj, null, 2))
       rawData = jsonObj
 
-      if (jsonObj["soap:Envelope"]["soap:Body"][0].BasicSearchResponse[0].BasicSearchResult) {
+      if (jsonObj["soap:Envelope"]["soap:Body"].BasicSearchResponse.BasicSearchResult) {
         // fraud suspect
         status = {
           status: 'fail',
@@ -215,6 +215,7 @@ export class CifasCheckAPI {
   }
 
   public createCheck = async ({ application, status, form, rawData, req }: ICifasCheck) => {
+    let model = this.bot.models[FRAUD_PREVENTION_CHECK]
     // debugger
     let resource: any = {
       [TYPE]: FRAUD_PREVENTION_CHECK,
