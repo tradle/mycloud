@@ -2,6 +2,7 @@ import decompress from 'decompress'
 import decompressTargz from 'decompress-targz'
 import fs from 'fs-extra'
 import fetch from 'node-fetch'
+import zlib from 'zlib'
 
 import AWS from 'aws-sdk'
 
@@ -79,6 +80,12 @@ export class ImportMaxmindDb {
       if (stat && stat.isDirectory() && oneof.startsWith('GeoLite2-City_')) {
         let db = file + '/GeoLite2-City.mmdb'
         if (fs.existsSync(db)) {
+          let gzip = zlib.createGzip();
+          let inp = fs.createReadStream(db);
+          var out = fs.createWriteStream(db + '.gz');
+          let writePromise = this.writeStreamToPromise(out)
+          inp.pipe(gzip).pipe(out);
+          await writePromise
           await this.upload(db)
           break;
         }
@@ -90,7 +97,7 @@ export class ImportMaxmindDb {
     let stream = fs.createReadStream(path)
     let contentToPost = {
       Bucket: this.outputLocation,
-      Key: 'maxmind/GeoLite2-City.mmdb',
+      Key: 'maxmind/GeoLite2-City.mmdb.gz',
       Body: stream
     }
     let res = await s3.upload(contentToPost).promise()
@@ -98,6 +105,12 @@ export class ImportMaxmindDb {
 
   cleanup = () => {
     fs.removeSync(MAXMIND_DIR)
+  }
+
+  writeStreamToPromise = (stream: any) => {
+    return new Promise((resolve, reject) => {
+      stream.on('finish', resolve).on('error', reject)
+    })
   }
 
 }

@@ -289,7 +289,7 @@ export const loadComponentsAndPlugins = ({
     let api
     let plugin
     try {
-      ;({ api, plugin } = Plugins.get(name).createPlugin(components, {
+      ; ({ api, plugin } = Plugins.get(name).createPlugin(components, {
         conf: pConf,
         logger: logger.sub(`plugin-${name}`)
       }))
@@ -712,15 +712,16 @@ export const loadComponentsAndPlugins = ({
       'pscCheck',
       'riskScore',
       'boSimulator',
-      'pitchbookCheck'
+      'pitchbookCheck',
+      'cifasCheck'
     ].forEach(name => attachPlugin({ name }))
-    ;[
-      'hand-sig',
-      'documentValidity',
-      'fill-myproduct',
-      'checkOverride',
-      'prefill-controllingPerson'
-    ].forEach(name => attachPlugin({ name, requiresConf: false }))
+      ;[
+        'hand-sig',
+        'documentValidity',
+        'fill-myproduct',
+        'checkOverride',
+        'prefill-controllingPerson'
+      ].forEach(name => attachPlugin({ name, requiresConf: false }))
 
     // used for some demo
     // ;[
