@@ -29,7 +29,7 @@ const unmarshallDBItem = item => fixUnmarshallItem(unmarshall(item))
 const fixUnmarshallItem = item =>
   traverse(item).map(function(value) {
     // unwrap Set instances
-    if (value && value.values && value.constructor !== Object) {
+    if (value && value.values && !Array.isArray(value) && value.constructor !== Object) {
       this.update(value.values)
     }
   })

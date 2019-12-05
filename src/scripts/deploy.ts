@@ -11,10 +11,18 @@ import _proc from 'child_process'
 import serverlessYml from '../cli/serverless-yml'
 
 const proc = promisify(_proc)
-const expectedNodeVersion = serverlessYml.provider.nodeVersion
-if (process.version !== expectedNodeVersion) {
-  throw new Error(`expected Node.js ${expectedNodeVersion}, you're running ${process.version}`)
+
+const versionMatches = (actual, range) => {
+  const pa = actual.split('.')
+  const pr = range.split('.')
+  return pr.every((expected, i) => {
+    return expected === 'x' || expected === pa[i]
+  })
 }
+const expectedNodeVersion = serverlessYml.provider.nodeVersion
+// if (versionMatches(process.version, expectedNodeVersion)) {
+//   throw new Error(`expected Node.js ${expectedNodeVersion}, you're running ${process.version}`)
+// }
 
 // some bug, otherwise you could just run sls deploy
 // https://forum.serverless.com/t/feature-branching-and-aws-apigateway-name/1890
@@ -47,7 +55,6 @@ const notify = (msg: string) => {
     } catch (err) {}
   }
 }
-
 ;(async () => {
   console.log(command)
   proc.execSync(command, {
@@ -56,8 +63,7 @@ const notify = (msg: string) => {
   })
 
   notify(`deployed ${stackName}`)
-})()
-.catch(async (err) => {
+})().catch(async err => {
   console.error(err)
   notify(`failed to deploy ${stackName}`)
   process.exitCode = 1

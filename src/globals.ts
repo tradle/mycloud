@@ -28,7 +28,6 @@ const warn = (...args) => {
 
 if (!process.env.IS_OFFLINE) {
   const logger = createLogger('global:http')
-
   requestInterceptor.disable()
   requestInterceptor.enable()
   requestInterceptor.on('error', reqInfo => {

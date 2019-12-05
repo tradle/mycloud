@@ -2,15 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.22](https://github.com/tradle/mycloud/compare/v2.5.1-rc.21...v2.5.1-rc.22) (2019-11-29)
+## [2.5.1-rc.23](https://github.com/tradle/mycloud/compare/v2.5.1-rc.22...v2.5.1-rc.23) (2019-12-05)
+
+
+### Bug Fixes
+
+* color in debug logging ([fefdc1f](https://github.com/tradle/mycloud/commit/fefdc1f))
+* logger colors restore ([cee2e22](https://github.com/tradle/mycloud/commit/cee2e22))
+* not all parties notified ([0fec8d2](https://github.com/tradle/mycloud/commit/0fec8d2))
+* rollback previous commit ([b8337ec](https://github.com/tradle/mycloud/commit/b8337ec))
+* score is known at the end of application ([fa063f1](https://github.com/tradle/mycloud/commit/fa063f1))
+* set of props to run check ([e03be36](https://github.com/tradle/mycloud/commit/e03be36))
+* submitted forms tracking ([0be8634](https://github.com/tradle/mycloud/commit/0be8634))
 
 
 ### Features
 
-* new sanctions check per company name ([e7cb166](https://github.com/tradle/mycloud/commit/e7cb166))
-* revise the risk score calculations ([d51c828](https://github.com/tradle/mycloud/commit/d51c828))
-* revised policy ([e9b001a](https://github.com/tradle/mycloud/commit/e9b001a))
-* scoreDetails ([43147f9](https://github.com/tradle/mycloud/commit/43147f9))
+* added get latest resource ([2eda07d](https://github.com/tradle/mycloud/commit/2eda07d))
+* switching to node 10 ([e44b6d2](https://github.com/tradle/mycloud/commit/e44b6d2))
+* tree view ([49c81ac](https://github.com/tradle/mycloud/commit/49c81ac))
+* tree view ([4a0f8ba](https://github.com/tradle/mycloud/commit/4a0f8ba))
+* tree view ([3c0296a](https://github.com/tradle/mycloud/commit/3c0296a))
 
 
 
