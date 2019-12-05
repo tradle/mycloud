@@ -301,6 +301,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       debugger
       const models = bot.models
       let appStub = buildResourceStub({ resource: application, models })
+      appStub.requestFor = application.requestFor
       let payloadStub = buildResourceStub({ resource: payload, models })
       let node
       let nodes
