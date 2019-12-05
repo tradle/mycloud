@@ -24,9 +24,6 @@ const APPLICATION = 'tradle.Application'
 const APPLICATION_SUBMITTED = 'tradle.ApplicationSubmitted'
 const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
 const NOTIFICATION = 'tradle.Notification'
-// const { parseStub } = validateResource.utils
-
-// export const name = 'conditional-auto-approve'
 
 const getResourceType = resource => resource[TYPE]
 
