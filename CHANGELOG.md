@@ -2,23 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.24](https://github.com/tradle/mycloud/compare/v2.5.1-rc.22...v2.5.1-rc.24) (2019-12-06)
+## [2.5.1-rc.25](https://github.com/tradle/mycloud/compare/v2.5.1-rc.24...v2.5.1-rc.25) (2019-12-06)
 
 
 ### Bug Fixes
 
-* not all parties notified ([0fec8d2](https://github.com/tradle/mycloud/commit/0fec8d2))
-* score is known at the end of application ([fa063f1](https://github.com/tradle/mycloud/commit/fa063f1))
-* set of props to run check ([e03be36](https://github.com/tradle/mycloud/commit/e03be36))
-* submitted forms tracking ([0be8634](https://github.com/tradle/mycloud/commit/0be8634))
+* next form after multientry not working ([86d186e](https://github.com/tradle/mycloud/commit/86d186e))
 
 
 ### Features
 
-* added get latest resource ([2eda07d](https://github.com/tradle/mycloud/commit/2eda07d))
-* Fatca/Crs ([f64e401](https://github.com/tradle/mycloud/commit/f64e401))
-* tree view ([4a0f8ba](https://github.com/tradle/mycloud/commit/4a0f8ba))
-* tree view ([3c0296a](https://github.com/tradle/mycloud/commit/3c0296a))
+* node 10 ([ccdc2c6](https://github.com/tradle/mycloud/commit/ccdc2c6))
 
 
 
