@@ -2,15 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.23](https://github.com/tradle/mycloud/compare/v2.5.1-rc.22...v2.5.1-rc.23) (2019-12-05)
+## [2.5.1-rc.24](https://github.com/tradle/mycloud/compare/v2.5.1-rc.22...v2.5.1-rc.24) (2019-12-06)
 
 
 ### Bug Fixes
 
-* color in debug logging ([fefdc1f](https://github.com/tradle/mycloud/commit/fefdc1f))
-* logger colors restore ([cee2e22](https://github.com/tradle/mycloud/commit/cee2e22))
 * not all parties notified ([0fec8d2](https://github.com/tradle/mycloud/commit/0fec8d2))
-* rollback previous commit ([b8337ec](https://github.com/tradle/mycloud/commit/b8337ec))
 * score is known at the end of application ([fa063f1](https://github.com/tradle/mycloud/commit/fa063f1))
 * set of props to run check ([e03be36](https://github.com/tradle/mycloud/commit/e03be36))
 * submitted forms tracking ([0be8634](https://github.com/tradle/mycloud/commit/0be8634))
@@ -19,8 +16,7 @@ All notable changes to this project will be documented in this file. See [standa
 ### Features
 
 * added get latest resource ([2eda07d](https://github.com/tradle/mycloud/commit/2eda07d))
-* switching to node 10 ([e44b6d2](https://github.com/tradle/mycloud/commit/e44b6d2))
-* tree view ([49c81ac](https://github.com/tradle/mycloud/commit/49c81ac))
+* Fatca/Crs ([f64e401](https://github.com/tradle/mycloud/commit/f64e401))
 * tree view ([4a0f8ba](https://github.com/tradle/mycloud/commit/4a0f8ba))
 * tree view ([3c0296a](https://github.com/tradle/mycloud/commit/3c0296a))
 
