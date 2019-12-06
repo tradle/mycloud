@@ -510,7 +510,7 @@
     "@tradle/centrix": {
       "version": "1.0.0",
       "resolved": "git://github.com/tradle/centrix.git#a6b234e114b8fd24d576913a4e8cacc10bf024b7",
-      "integrity": "sha1-QfZFU09EnuxnESYjZBOjugwfyfk=",
+      "integrity": "sha1-vf9SBmRlv7gfi0+oLuthcDaTyl4=",
       "optional": true,
       "requires": {
         "co": "^4.6.0",
@@ -541,7 +541,7 @@
       "from": "tradle/countries"
     },
     "@tradle/custom-models": {
-      "version": "git://github.com/tradle/custom-models.git#69930a25466d0ec8896d636dfe2640aecb45c5f2",
+      "version": "github:tradle/custom-models#b319d14d1b0c1b3965e6e3a8a9a585e54621f86d",
       "from": "github:tradle/custom-models",
       "requires": {
         "@tradle/validate-model": "^7.1.18"
@@ -735,7 +735,7 @@
       }
     },
     "@tradle/models": {
-      "version": "git://github.com/tradle/models.git#34d4fb4ea149132cc281ef18f093f563ec2cd471",
+      "version": "github:tradle/models#34d4fb4ea149132cc281ef18f093f563ec2cd471",
       "from": "github:tradle/models"
     },
     "@tradle/models-cloud": {
@@ -1214,7 +1214,7 @@
         "boom": {
           "version": "5.2.0",
           "resolved": "https://registry.npmjs.org/boom/-/boom-5.2.0.tgz",
-          "integrity": "sha1-XdnabuOl8wIHdDYpDLcX0/SlTgI=",
+          "integrity": "sha512-Z5BTk6ZRe4tXXQlkqftmsAUANpXmuwlsF5Oov8ThoMbQRzdGTA1ngYRW160GexgOgjsFOKJz0LYhoNi+2AMBUw==",
           "dev": true,
           "requires": {
             "hoek": "4.x.x"
@@ -1358,7 +1358,7 @@
         "boom": {
           "version": "5.2.0",
           "resolved": "https://registry.npmjs.org/boom/-/boom-5.2.0.tgz",
-          "integrity": "sha1-XdnabuOl8wIHdDYpDLcX0/SlTgI=",
+          "integrity": "sha512-Z5BTk6ZRe4tXXQlkqftmsAUANpXmuwlsF5Oov8ThoMbQRzdGTA1ngYRW160GexgOgjsFOKJz0LYhoNi+2AMBUw==",
           "dev": true,
           "requires": {
             "hoek": "4.x.x"
@@ -2076,7 +2076,7 @@
     "b64": {
       "version": "3.0.3",
       "resolved": "https://registry.npmjs.org/b64/-/b64-3.0.3.tgz",
-      "integrity": "sha1-Nq/u4Nk0XwRjh85t6KZwKv5btW4=",
+      "integrity": "sha512-Pbeh0i6OLubPJdIdCepn8ZQHwN2MWznZHbHABSTEfQ706ie+yuxNSaPdqX1xRatT6WanaS1EazMiSg0NUW2XxQ==",
       "dev": true
     },
     "babel-code-frame": {
@@ -4090,7 +4090,7 @@
     "content": {
       "version": "3.0.7",
       "resolved": "https://registry.npmjs.org/content/-/content-3.0.7.tgz",
-      "integrity": "sha1-DLuI6CcC01zPWYALit1gm7XB38I=",
+      "integrity": "sha512-LXtnSnvE+Z1Cjpa3P9gh9kb396qV4MqpfwKy777BOSF8n6nw2vAi03tHNl0/XRqZUyzVzY/+nMXOZVnEapWzdg==",
       "dev": true,
       "requires": {
         "boom": "5.x.x"
@@ -4099,7 +4099,7 @@
         "boom": {
           "version": "5.2.0",
           "resolved": "https://registry.npmjs.org/boom/-/boom-5.2.0.tgz",
-          "integrity": "sha1-XdnabuOl8wIHdDYpDLcX0/SlTgI=",
+          "integrity": "sha512-Z5BTk6ZRe4tXXQlkqftmsAUANpXmuwlsF5Oov8ThoMbQRzdGTA1ngYRW160GexgOgjsFOKJz0LYhoNi+2AMBUw==",
           "dev": true,
           "requires": {
             "hoek": "4.x.x"
@@ -4617,7 +4617,7 @@
     "cryptiles": {
       "version": "3.1.4",
       "resolved": "https://registry.npmjs.org/cryptiles/-/cryptiles-3.1.4.tgz",
-      "integrity": "sha1-dppoyVYStW+q386/V6yGR5y+gyI=",
+      "integrity": "sha512-8I1sgZHfVwcSOY6mSGpVU3lw/GSIZvusg8dD2+OGehCJpOhQRLNcH0qb9upQnOH4XhgxxFJSg6E2kx95deb1Tw==",
       "dev": true,
       "requires": {
         "boom": "5.x.x"
@@ -4626,7 +4626,7 @@
         "boom": {
           "version": "5.2.0",
           "resolved": "https://registry.npmjs.org/boom/-/boom-5.2.0.tgz",
-          "integrity": "sha1-XdnabuOl8wIHdDYpDLcX0/SlTgI=",
+          "integrity": "sha512-Z5BTk6ZRe4tXXQlkqftmsAUANpXmuwlsF5Oov8ThoMbQRzdGTA1ngYRW160GexgOgjsFOKJz0LYhoNi+2AMBUw==",
           "dev": true,
           "requires": {
             "hoek": "4.x.x"
@@ -5412,7 +5412,7 @@
     "ecdsa-sig-formatter": {
       "version": "1.0.11",
       "resolved": "https://registry.npmjs.org/ecdsa-sig-formatter/-/ecdsa-sig-formatter-1.0.11.tgz",
-      "integrity": "sha1-rg8PothQRe8UqBfao86azQSJ5b8=",
+      "integrity": "sha512-nagl3RYrbNv6kQkeJIpt6NJZy8twLB/2vtz6yN9Z4vRKHN4/QZJIEbqohALSgwKdnksuY3k5Addp5lg8sVoVcQ==",
       "dev": true,
       "requires": {
         "safe-buffer": "^5.0.1"
@@ -7802,7 +7802,7 @@
     "hapi-cors-headers": {
       "version": "1.0.3",
       "resolved": "https://registry.npmjs.org/hapi-cors-headers/-/hapi-cors-headers-1.0.3.tgz",
-      "integrity": "sha1-hWsKmHD0NSSUksWlLSdEMXqMwf0=",
+      "integrity": "sha512-U/y+kpVLUJ0y86fEk8yleou9C1T5wFopcWQjuxKdMXzCcymTjfSqGz59waqvngUs1SbeXav/y8Ga9C0G0L1MGg==",
       "dev": true
     },
     "har-schema": {
@@ -7953,7 +7953,7 @@
         "boom": {
           "version": "5.2.0",
           "resolved": "https://registry.npmjs.org/boom/-/boom-5.2.0.tgz",
-          "integrity": "sha1-XdnabuOl8wIHdDYpDLcX0/SlTgI=",
+          "integrity": "sha512-Z5BTk6ZRe4tXXQlkqftmsAUANpXmuwlsF5Oov8ThoMbQRzdGTA1ngYRW160GexgOgjsFOKJz0LYhoNi+2AMBUw==",
           "dev": true,
           "requires": {
             "hoek": "4.x.x"
@@ -8478,7 +8478,7 @@
         "boom": {
           "version": "5.2.0",
           "resolved": "https://registry.npmjs.org/boom/-/boom-5.2.0.tgz",
-          "integrity": "sha1-XdnabuOl8wIHdDYpDLcX0/SlTgI=",
+          "integrity": "sha512-Z5BTk6ZRe4tXXQlkqftmsAUANpXmuwlsF5Oov8ThoMbQRzdGTA1ngYRW160GexgOgjsFOKJz0LYhoNi+2AMBUw==",
           "dev": true,
           "requires": {
             "hoek": "4.x.x"
@@ -9340,7 +9340,7 @@
         "ms": {
           "version": "2.1.2",
           "resolved": "https://registry.npmjs.org/ms/-/ms-2.1.2.tgz",
-          "integrity": "sha1-0J0fNXtEP0kzgqjrPM0YOHKuYAk=",
+          "integrity": "sha512-sGkPx+VjMtmA6MX27oA4FBFELFCZZ4S4XqeGOXCv68tT+jb3vk/RyaKWP0PTKyWtmLSM0b+adUTEvbs1PEaH2w==",
           "dev": true
         },
         "topo": {
@@ -9469,7 +9469,7 @@
     "jwa": {
       "version": "1.4.1",
       "resolved": "https://registry.npmjs.org/jwa/-/jwa-1.4.1.tgz",
-      "integrity": "sha1-dDwymFy56YZVUw1TZBtmyGRbA5o=",
+      "integrity": "sha512-qiLX/xhEEFKUAJ6FiBMbes3w9ATzyk5W7Hvzpa/SLYdxNtng+gcurvrI7TbACjIXlsJyr05/S1oUhZrc63evQA==",
       "dev": true,
       "requires": {
         "buffer-equal-constant-time": "1.0.1",
@@ -9480,7 +9480,7 @@
     "jws": {
       "version": "3.2.2",
       "resolved": "https://registry.npmjs.org/jws/-/jws-3.2.2.tgz",
-      "integrity": "sha1-ABCZ82OUaMlBQADpmZX6UvtHgwQ=",
+      "integrity": "sha512-YHlZCB6lMTllWDtSPHz/ZXTsi8S00usEV6v1tjq8tOUZzw7DpSDWVXjXDre6ed1w/pd495ODpHZYSdkRTsa0HA==",
       "dev": true,
       "requires": {
         "jwa": "^1.4.1",
@@ -12946,7 +12946,7 @@
         "boom": {
           "version": "5.2.0",
           "resolved": "https://registry.npmjs.org/boom/-/boom-5.2.0.tgz",
-          "integrity": "sha1-XdnabuOl8wIHdDYpDLcX0/SlTgI=",
+          "integrity": "sha512-Z5BTk6ZRe4tXXQlkqftmsAUANpXmuwlsF5Oov8ThoMbQRzdGTA1ngYRW160GexgOgjsFOKJz0LYhoNi+2AMBUw==",
           "dev": true,
           "requires": {
             "hoek": "4.x.x"
@@ -14511,7 +14511,7 @@
       }
     },
     "serverless-offline": {
-      "version": "git://github.com/tradle/serverless-offline.git#f13f0af877b54a0557b94ca9185c63222a29091e",
+      "version": "github:tradle/serverless-offline#f13f0af877b54a0557b94ca9185c63222a29091e",
       "from": "github:tradle/serverless-offline",
       "dev": true,
       "requires": {
@@ -15829,7 +15829,7 @@
         "boom": {
           "version": "5.2.0",
           "resolved": "https://registry.npmjs.org/boom/-/boom-5.2.0.tgz",
-          "integrity": "sha1-XdnabuOl8wIHdDYpDLcX0/SlTgI=",
+          "integrity": "sha512-Z5BTk6ZRe4tXXQlkqftmsAUANpXmuwlsF5Oov8ThoMbQRzdGTA1ngYRW160GexgOgjsFOKJz0LYhoNi+2AMBUw==",
           "dev": true,
           "requires": {
             "hoek": "4.x.x"
@@ -15838,7 +15838,7 @@
         "wreck": {
           "version": "12.5.1",
           "resolved": "https://registry.npmjs.org/wreck/-/wreck-12.5.1.tgz",
-          "integrity": "sha1-zS/84WdEnh8CQu2c+AVS4g+2kCo=",
+          "integrity": "sha512-l5DUGrc+yDyIflpty1x9XuMj1ehVjC/dTbF3/BasOO77xk0EdEa4M/DuOY8W88MQDAD0fEDqyjc8bkIMHd2E9A==",
           "dev": true,
           "requires": {
             "boom": "5.x.x",
