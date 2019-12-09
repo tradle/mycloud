@@ -24,9 +24,6 @@ const APPLICATION = 'tradle.Application'
 const APPLICATION_SUBMITTED = 'tradle.ApplicationSubmitted'
 const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
 const NOTIFICATION = 'tradle.Notification'
-// const { parseStub } = validateResource.utils
-
-// export const name = 'conditional-auto-approve'
 
 const getResourceType = resource => resource[TYPE]
 
@@ -301,6 +298,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       debugger
       const models = bot.models
       let appStub = buildResourceStub({ resource: application, models })
+      appStub.requestFor = application.requestFor
       let payloadStub = buildResourceStub({ resource: payload, models })
       let node
       let nodes

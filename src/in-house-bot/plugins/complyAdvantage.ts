@@ -400,12 +400,10 @@ class ComplyAdvantageAPI {
       })
   }
 }
-// {conf, bot, productsAPI, logger}
 export const createPlugin: CreatePlugin<void> = (
   { bot, productsAPI, applications },
   { conf, logger }
 ) => {
-  // const complyAdvantage = new ComplyAdvantageAPI({ bot, apiKey: conf.credentials.apiKey, productsAPI, logger })
   const complyAdvantage = new ComplyAdvantageAPI({ bot, productsAPI, applications, conf, logger })
   const plugin = {
     name: 'complyAdvantage',

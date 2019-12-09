@@ -2,15 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.22](https://github.com/tradle/mycloud/compare/v2.5.1-rc.21...v2.5.1-rc.22) (2019-11-29)
+## [2.5.1-rc.25](https://github.com/tradle/mycloud/compare/v2.5.1-rc.24...v2.5.1-rc.25) (2019-12-06)
+
+
+### Bug Fixes
+
+* next form after multientry not working ([86d186e](https://github.com/tradle/mycloud/commit/86d186e))
 
 
 ### Features
 
-* new sanctions check per company name ([e7cb166](https://github.com/tradle/mycloud/commit/e7cb166))
-* revise the risk score calculations ([d51c828](https://github.com/tradle/mycloud/commit/d51c828))
-* revised policy ([e9b001a](https://github.com/tradle/mycloud/commit/e9b001a))
-* scoreDetails ([43147f9](https://github.com/tradle/mycloud/commit/43147f9))
+* node 10 ([ccdc2c6](https://github.com/tradle/mycloud/commit/ccdc2c6))
 
 
 

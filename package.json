@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "2.5.1-rc.22",
+  "version": "2.5.1-rc.25",
   "main": "index.js",
   "private": true,
   "repository": "https://github.com/tradle/mycloud",
@@ -121,7 +121,7 @@
     "reshrink": "npm dedupe && npm prune && npm shrinkwrap --dev",
     "start": "./src/scripts/start.sh",
     "start:fast": "nodemon --nolazy --preserve-symlinks ./node_modules/.bin/sls offline start",
-    "debug": "nodemon --nolazy --preserve-symlinks --inspect ./node_modules/.bin/sls offline start",
+    "debug": "DEBUG_COLORS=yes nodemon --nolazy --preserve-symlinks --inspect ./node_modules/.bin/sls offline start",
     "debug-brk": "nodemon --nolazy --preserve-symlinks --inspect-brk ./node_modules/.bin/sls offline start",
     "warmup": "sls warmup run",
     "postinstall": "./src/scripts/postinstall.sh",
