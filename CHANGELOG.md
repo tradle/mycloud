@@ -2,17 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.25](https://github.com/tradle/mycloud/compare/v2.5.1-rc.24...v2.5.1-rc.25) (2019-12-06)
-
-
-### Bug Fixes
-
-* next form after multientry not working ([86d186e](https://github.com/tradle/mycloud/commit/86d186e))
-
-
-### Features
-
-* node 10 ([ccdc2c6](https://github.com/tradle/mycloud/commit/ccdc2c6))
+## [2.5.1-rc.26](https://github.com/tradle/mycloud/compare/v2.5.1-rc.25...v2.5.1-rc.26) (2019-12-09)
 
 
 
