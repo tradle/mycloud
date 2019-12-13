@@ -16,9 +16,12 @@ const promiseNative = getNativeModules()
 
 process.stdin
   .on('data', paths => {
-    paths.toString().split('\n').forEach(filePath => {
-      modules.push(filePath.split('node_modules/').pop())
-    })
+    paths
+      .toString()
+      .split('\n')
+      .forEach(filePath => {
+        modules.push(filePath.split('node_modules/').pop())
+      })
   })
   .on('end', async () => {
     const native = await promiseNative
@@ -29,7 +32,7 @@ process.stdin
     fs.writeFile(output, prodNative.join(' '), rethrow)
   })
 
-process.on('unhandledRejection', err => {
+process.on('unhandledRejection', (err: Error) => {
   process.exitCode = 1
   console.error(err.stack)
 })
