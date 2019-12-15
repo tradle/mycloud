@@ -41,6 +41,7 @@ export class ImportRefdata {
   }
 
   move = async () => {
+    this.logger.debug("ImportRefData called")
     let current: Array<string> = await this.list()
     await this.moveBafin(current)
     await this.moveUKFile('EMDAgents', 'emd_agents', current)
@@ -50,6 +51,7 @@ export class ImportRefdata {
   }
 
   moveBafin = async (current: Array<string>) => {
+    this.logger.debug('ImportRefData: moveBufin called')
     var response = await fetch('https://portal.mvp.bafin.de/database/InstInfo/sucheForm.do', {
       method: 'post',
       body: 'sucheButtonInstitut=Search',
@@ -71,14 +73,16 @@ export class ImportRefdata {
     let promise = this.writeStreamToPromise(fout)
     get.body.pipe(zlib.createGzip()).pipe(fout)
     await promise
+    this.logger.debug('ImportRefData: moveBufin downloded into temp')
     let md5: string = await this.checksumFile('MD5', file)
-
+    this.logger.debug(`ImportRefData: computed md5 ${md5}`)
     if (current.includes(name)) {
       // check md5
       let hash = await this.currentMD5(name)
+      this.logger.debug(`ImportRefData: current md5 ${hash}`)
       if (md5 == hash) {
         fs.unlinkSync(file)
-        this.logger.debug(`do not import Bafin data, no change`)
+        this.logger.debug('ImportRefData: do not import Bafin data, no change')
         return
       }
     }
@@ -91,10 +95,10 @@ export class ImportRefdata {
       Metadata: { md5 },
       Body: rstream
     }
-
+    this.logger.debug('ImportRefData: uploading BaFIN data')
     let res = await s3.upload(contentToPost).promise()
     await this.createDataSourceRefresh('bafin')
-    this.logger.debug('imported BaFIN data')
+    this.logger.debug('ImportRefData: imported BaFIN data')
     fs.unlinkSync(file)
   }
 

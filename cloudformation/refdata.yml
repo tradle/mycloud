@@ -497,6 +497,85 @@ Resources:
           SortColumns: []
           StoredAsSubDirectories: 'false'
 
+  PitchbookCompanyToFundRelationGlueTable:
+    Type: 'AWS::Glue::Table'
+    Properties:
+      DatabaseName:
+        Ref: SecGlueDatabase
+      CatalogId:
+        Ref: 'AWS::AccountId'
+      TableInput:
+        Name: pitchbook_company_fund_relation
+        TableType: EXTERNAL_TABLE
+        StorageDescriptor:
+          Columns:
+            - Name: company id
+              Type: string
+            - Name: fund id
+              Type: string
+            - Name: procent
+              Type: string
+          Location:
+            Fn::Join:
+              - ''
+              - - 's3://'
+                - Ref: PrivateConfBucket
+                - '/refdata/pitchbook/company_fund_relation/'
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          Compressed: 'false'
+          NumberOfBuckets: "-1"
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.serde2.OpenCSVSerde
+            Parameters:
+              escapeChar: "\\"
+              quoteChar: "\""
+              separatorChar: ","
+              serialization.format: '1'
+          BucketColumns: []
+          SortColumns: []
+          StoredAsSubDirectories: 'false'        
+  
+  PitchbookFundToLimitedPartnerRelationGlueTable:
+    Type: 'AWS::Glue::Table'
+    Properties:
+      DatabaseName:
+        Ref: SecGlueDatabase
+      CatalogId:
+        Ref: 'AWS::AccountId'
+      TableInput:
+        Name: pitchbook_fund_lp_relation
+        TableType: EXTERNAL_TABLE
+        StorageDescriptor:
+          Columns:
+            - Name: fund id
+              Type: string
+            - Name: limited partner id
+              Type: string
+            - Name: procent
+              Type: string
+          Location:
+            Fn::Join:
+              - ''
+              - - 's3://'
+                - Ref: PrivateConfBucket
+                - '/refdata/pitchbook/fund_lp_relation/'
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          Compressed: 'false'
+          NumberOfBuckets: "-1"
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.serde2.OpenCSVSerde
+            Parameters:
+              escapeChar: "\\"
+              quoteChar: "\""
+              separatorChar: ","
+              serialization.format: '1'
+          BucketColumns: []
+          SortColumns: []
+          StoredAsSubDirectories: 'false'        
+
+
   PitchbookFundGlueTable:
     Type: 'AWS::Glue::Table'
     Properties:
