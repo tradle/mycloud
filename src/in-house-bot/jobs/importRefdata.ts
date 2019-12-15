@@ -43,11 +43,11 @@ export class ImportRefdata {
   move = async () => {
     this.logger.debug("ImportRefData called")
     let current: Array<string> = await this.list()
-    await this.moveBafin(current)
     await this.moveUKFile('EMDAgents', 'emd_agents', current)
     await this.moveUKFile('EMoneyFirms', 'e_money_firms', current)
     await this.moveUKFile('CreditInstitutions', 'credit_institutions', current)
     await this.moveUKFile('PSDFirms', 'firms_psd_perm', current)
+    await this.moveBafin(current)
   }
 
   moveBafin = async (current: Array<string>) => {
