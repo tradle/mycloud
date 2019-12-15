@@ -92,7 +92,7 @@ export class ImportMaxmindDb {
 
   download = async () => {
     // prepare directory in temp
-    !fs.existsSync(MAXMIND_DIR) && fs.mkdirSync(MAXMIND_DIR);
+    fs.ensureDirSync(MAXMIND_DIR)
 
     let link = 'https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz'
     const fileStream = fs.createWriteStream(MAXMIND_DIR + '/GeoLite2-City.tar.gz');

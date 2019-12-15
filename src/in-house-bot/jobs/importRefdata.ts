@@ -1,4 +1,4 @@
-import fs from 'fs'
+import fs from 'fs-extra'
 import zlib from 'zlib'
 import crypto from 'crypto'
 import fetch from 'node-fetch'
@@ -52,6 +52,9 @@ export class ImportRefdata {
 
   moveBafin = async (current: Array<string>) => {
     this.logger.debug('ImportRefData: moveBufin called')
+
+    fs.ensureDirSync(TEMP + DE_PREFIX)
+
     var response = await fetch('https://portal.mvp.bafin.de/database/InstInfo/sucheForm.do', {
       method: 'post',
       body: 'sucheButtonInstitut=Search',
@@ -103,6 +106,9 @@ export class ImportRefdata {
   }
 
   moveUKFile = async (name: string, table: string, current: Array<string>) => {
+
+    fs.ensureDirSync(TEMP + GB_PREFIX + table)
+
     let get = await fetch(`https://register.fca.org.uk/ShPo_registerdownload?file=${name}`)
     let html = await get.text()
     let idx1 = html.indexOf('.handleRedirect(')
