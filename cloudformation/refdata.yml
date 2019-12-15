@@ -513,8 +513,8 @@ Resources:
               Type: string
             - Name: fund id
               Type: string
-            - Name: procent
-              Type: string
+            - Name: percent
+              Type: tinyint
           Location:
             Fn::Join:
               - ''
@@ -552,8 +552,8 @@ Resources:
               Type: string
             - Name: limited partner id
               Type: string
-            - Name: procent
-              Type: string
+            - Name: percent
+              Type: tinyint
           Location:
             Fn::Join:
               - ''

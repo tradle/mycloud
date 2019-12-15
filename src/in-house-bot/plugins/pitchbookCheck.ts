@@ -47,6 +47,18 @@ interface IPitchbookConf {
   athenaMaps: [IPitchbookthenaConf]
 }
 
+const companyChecks = {
+  companyWebsite: 'website',
+  companyName: 'company name',
+  formerlyKnownAs: 'company former name',
+  alsoKnownAs: 'company also known as'
+}
+
+const fundChecks = {
+  companyName: 'fund name',
+  formerlyKnownAs: 'fund former name'
+}
+
 /*
   
   "pitchbookCheck": {
@@ -55,8 +67,7 @@ interface IPitchbookConf {
           "type": "tradle.legal.LegalEntity",
           "checks": {
              "website": "website"
-          },
-          "athenaTable": "pitchbook_investor" 
+          }
         }
     ]
   }
@@ -205,30 +216,56 @@ export class PitchbookCheckAPI {
     let status
     this.logger.debug('pitchbookCheck lookup() called')
     let cnt = 0;
-    let sql = `select * from ${subject.athenaTable} where `
-    for (let check of Object.keys(subject.checks)) {
-      if (cnt++ > 0)
-        sql += ' and '
+    // first check funds in company
+    let sql = `select cf.percent, f.* from pitchbook_company c, pitchbook_fund f, pitchbook_company_fund_relation cf
+               where c."company id" = cf."company id" and cf."fund id" = f."fund id" and cf.percent >= 25`
+    for (let check of Object.keys(companyChecks)) {
       if (form[check])
-        sql += `lower("${subject.checks[check]}") = \'${form[check].toLowerCase()}\'`
+        sql += ` and lower(c."${companyChecks[check]}") = \'${form[check].toLowerCase()}\'`
     }
     let find = await this.queryAthena(sql)
     let rawData: Array<any>
-    if (find.status == false) {
+    if (find.status && find.data.length > 0) {
+      this.logger.debug(`pitchbookCheck check() found ${find.data.length} records for company funds`)
+      rawData = find.data
+      status = { status: 'pass' }
+      // convert into psc
+    }
+    else if (!find.status) {
       status = {
         status: 'error',
         message: (typeof find.error === 'string' && find.error) || find.error.message
       }
       rawData = typeof find.error === 'object' && find.error
     } else if (find.data.length == 0) {
-      status = {
-        status: 'fail',
-        message: `No entry for provided checks is found in ${subject.athenaTable}`
+      // lets try fund lp
+      let sql = `select flp.percent, lp.* from pitchbook_fund f, pitchbook_limited_partner lp,
+                 pitchbook_fund_lp_relation flp
+                 where f."fund id" = flp."fund id" and flp."limited partner id" = lp."limited partner id" 
+                 and flp.percent >= 25`
+      for (let check of Object.keys(fundChecks)) {
+        if (form[check])
+          sql += ` and lower(f."${fundChecks[check]}") = \'${form[check].toLowerCase()}\'`
       }
-    } else {
-      this.logger.debug(`pitchbookCheck check() found ${find.data.length} records`)
-      rawData = find.data
-      status = { status: 'pass' }
+      let find = await this.queryAthena(sql)
+      if (!find.status) {
+        status = {
+          status: 'error',
+          message: (typeof find.error === 'string' && find.error) || find.error.message
+        }
+      }
+      else if (find.data.length == 0) {
+        status = {
+          status: 'fail',
+          message: 'No entry for provided checks is found in fund lp\''
+        }
+      }
+      else {
+        this.logger.debug(`pitchbookCheck check() found ${find.data.length} records for fund lp's`)
+        // convert into psc
+        rawData = find.data
+        status = { status: 'pass' }
+      }
     }
 
     await this.createCheck({ application, status, form, rawData, req })
@@ -290,7 +327,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         application,
         provider: PROVIDER,
         form: payload,
-        propertiesToCheck: Object.keys(subject.checks),
+        propertiesToCheck: ['companyName'],
         prop: 'form',
         req
       })
@@ -302,7 +339,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   }
   return { plugin }
 }
-
+/*
 export const validateConf: ValidatePluginConf = async ({
   bot,
   conf,
@@ -330,3 +367,4 @@ export const validateConf: ValidatePluginConf = async ({
   })
 
 }
+*/
