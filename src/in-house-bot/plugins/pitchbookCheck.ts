@@ -30,6 +30,7 @@ const { sanitize } = validateResource.utils
 const POLL_INTERVAL = 250
 const ATHENA_OUTPUT = 'temp/athena'
 
+const FORM_TYPE = 'tradle.legal.LegalEntity'
 const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const PROVIDER = 'PitchBook Data, Inc.'
 const ASPECTS = 'Beneficial owner'
@@ -205,14 +206,8 @@ export class PitchbookCheckAPI {
       return { status: false, error: err, data: null }
     }
   }
-  public mapToSubject = (type: string) => {
-    for (let subject of this.conf.athenaMaps) {
-      if (subject.type == type)
-        return subject;
-    }
-    return null
-  }
-  public async lookup(subject: IPitchbookthenaConf, form: any, application: IPBApp, req: IPBReq) {
+
+  public async lookup(form: any, application: IPBApp, req: IPBReq) {
     let status
     this.logger.debug('pitchbookCheck lookup() called')
     let cnt = 0;
@@ -227,9 +222,8 @@ export class PitchbookCheckAPI {
     let rawData: Array<any>
     if (find.status && find.data.length > 0) {
       this.logger.debug(`pitchbookCheck check() found ${find.data.length} records for company funds`)
-      rawData = find.data
+      rawData = this.mapFunds(find.data)
       status = { status: 'pass' }
-      // convert into psc
     }
     else if (!find.status) {
       status = {
@@ -271,6 +265,62 @@ export class PitchbookCheckAPI {
     await this.createCheck({ application, status, form, rawData, req })
 
   }
+
+  mapLimitedPartners = (find: Array<any>): Array<any> => {
+    let list = []
+    return list
+  }
+
+  mapFunds = (find: Array<any>): Array<any> => {
+    let list = []
+    for (let row of find) {
+      let pscLike = {
+        data: {
+          address: {
+            country: row["fund country"],
+            locality: row["fund city"],
+            region: row["fund state/province"]
+          },
+          identification: {
+            country_registered: row["fund country"],
+            place_registered: row["fund location"],
+          },
+          kind: "corporate-entity-person-with-significant-control",
+          name: row["fund name"],
+          natures_of_control: []
+        }
+      }
+
+      let natures_of_control: string
+      if (row.percent < 50)
+        natures_of_control = 'ownership-of-shares-25-to-50-percent'
+      else if (row.percent >= 50 && row.percent < 75)
+        natures_of_control = 'ownership-of-shares-50-to-75-percent'
+      else
+        natures_of_control = 'ownership-of-shares-75-to-100-percent'
+      pscLike.data.natures_of_control.push(natures_of_control)
+
+      pscLike["lps"] = row["lps"]
+      pscLike["fund sps"] = row["fund sps"]
+      pscLike["fund partners"] = row["fund partners"]
+      pscLike["fund no."] = row["fund no."]
+      pscLike["first fund"] = row["first fund"]
+      pscLike["vintage"] = row["vintage"]
+      pscLike["fund status"] = row["fund status"]
+      pscLike["fund size"] = row["fund size"]
+      pscLike["fund size group"] = row["fund size group"]
+      pscLike["fund type"] = row["fund type"]
+      pscLike["fund type"] = row["fund type"]
+      pscLike["close date"] = row["close date"]
+      pscLike["open date"] = row["open date"]
+      pscLike["fund target size low"] = row["fund target size low"]
+      pscLike["fund target size high"] = row["fund target size high"]
+      pscLike["fund target size"] = row["fund target size"]
+
+      list.push(pscLike)
+    }
+    return list
+  }
   public createCheck = async ({ application, status, form, rawData, req }: IPitchbookCheck) => {
     // debugger
     let resource: any = {
@@ -307,12 +357,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const { application, payload } = req
       if (!application) return
 
-      let subject = pitchbookCheckAPI.mapToSubject(payload[TYPE])
-      if (!subject) return
-      logger.debug(`pitchbookCheck called for type ${payload[TYPE]} to check ${Object.keys(subject.check)}`)
+      if (FORM_TYPE != payload[TYPE]) return
+      logger.debug(`pitchbookCheck called for type ${payload[TYPE]} to check ${Object.keys(companyChecks)}`)
 
       let inpayload = false
-      for (let check of Object.keys(subject.check)) {
+      for (let check of Object.keys(companyChecks)) {
         if (payload[check]) {
           inpayload = true
         }
@@ -334,7 +383,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       logger.debug(`pitchbookCheck after doesCheckNeedToBeCreated with createCheck=${createCheck}`)
 
       if (!createCheck) return
-      let r = await pitchbookCheckAPI.lookup(subject, payload, application, req)
+      let r = await pitchbookCheckAPI.lookup(payload, application, req)
     }
   }
   return { plugin }
