@@ -18,6 +18,9 @@ AWS.config.setPromisesDependency(Promise)
 import mockery from 'mockery'
 import { createLogger } from './logger'
 import { requestInterceptor } from './request-interceptor'
+import tls from 'tls'
+// @ts-ignore
+tls.DEFAULT_MAX_VERSION = 'TLSv1.2'
 
 const warn = (...args) => {
   // no need to pollute with this anymore

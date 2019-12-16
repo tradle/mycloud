@@ -120,48 +120,51 @@ export class ImportRefdata {
   }
 
   moveUKFile = async (name: string, table: string, current: Array<string>) => {
+    try {
+      fs.ensureDirSync(TEMP + GB_PREFIX + table)
 
-    fs.ensureDirSync(TEMP + GB_PREFIX + table)
+      let get = await fetch(`https://register.fca.org.uk/ShPo_registerdownload?file=${name}`)
+      let html = await get.text()
+      let idx1 = html.indexOf('.handleRedirect(')
+      let idx2 = html.indexOf('\'', idx1 + 18)
+      get = await fetch('https://register.fca.org.uk' + html.substring(idx1 + 17, idx2))
 
-    let get = await fetch(`https://register.fca.org.uk/ShPo_registerdownload?file=${name}`)
-    let html = await get.text()
-    let idx1 = html.indexOf('.handleRedirect(')
-    let idx2 = html.indexOf('\'', idx1 + 18)
-    get = await fetch('https://register.fca.org.uk' + html.substring(idx1 + 17, idx2))
+      let key = `${GB_PREFIX}${table}/${name}.csv.gz`
+      let file = TEMP + key
 
-    let key = `${GB_PREFIX}${table}/${name}.csv.gz`
-    let file = TEMP + key
+      let fout: fs.WriteStream = fs.createWriteStream(file)
+      let promise = this.writeStreamToPromise(fout)
+      get.body.pipe(zlib.createGzip()).pipe(fout)
+      await promise
+      let md5: string = await this.checksumFile('MD5', file)
 
-    let fout: fs.WriteStream = fs.createWriteStream(file)
-    let promise = this.writeStreamToPromise(fout)
-    get.body.pipe(zlib.createGzip()).pipe(fout)
-    await promise
-    let md5: string = await this.checksumFile('MD5', file)
-
-    if (current.includes(key)) {
-      // check md5
-      let hash = await this.currentMD5(key)
-      if (md5 == hash) {
-        fs.unlinkSync(file)
-        this.logger.debug(`do not import ${name} data, no change`)
-        return
+      if (current.includes(key)) {
+        // check md5
+        let hash = await this.currentMD5(key)
+        if (md5 == hash) {
+          fs.unlinkSync(file)
+          this.logger.debug(`do not import ${name} data, no change`)
+          return
+        }
       }
+
+      let rstream: fs.ReadStream = fs.createReadStream(file)
+
+      let contentToPost = {
+        Bucket: this.outputLocation,
+        Key: key,
+        Metadata: { md5 },
+        Body: rstream
+      }
+      let res = await s3.upload(contentToPost).promise()
+
+      await this.createDataSourceRefresh(`fca.${name}`)
+
+      this.logger.debug(`imported ${name} data`)
+      fs.unlinkSync(file)
+    } catch (err) {
+      this.logger.error(`moveUKFile for ${name}`, err)
     }
-
-    let rstream: fs.ReadStream = fs.createReadStream(file)
-
-    let contentToPost = {
-      Bucket: this.outputLocation,
-      Key: key,
-      Metadata: { md5 },
-      Body: rstream
-    }
-    let res = await s3.upload(contentToPost).promise()
-
-    await this.createDataSourceRefresh(`fca.${name}`)
-
-    this.logger.debug(`imported ${name} data`)
-    fs.unlinkSync(file)
   }
 
   checksumFile = (algorithm: string, path: string): Promise<string> => {
