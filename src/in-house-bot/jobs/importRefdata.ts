@@ -67,8 +67,22 @@ export class ImportRefdata {
     let csvidx = html.indexOf('\"><span class=\"export csv\"')
     let qidx = html.lastIndexOf('?', csvidx)
     let u = html.substring(qidx, csvidx).replace(/&amp;/g, '&');
-
-    let get = await fetch('https://portal.mvp.bafin.de/database/InstInfo/sucheForm.do' + u)
+    let path = 'https://portal.mvp.bafin.de/database/InstInfo/sucheForm.do' + u
+    this.logger.debug(`ImportRefData: moveBufin get ${path}`)
+    let get = await fetch(path, {
+      method: 'get',
+      headers: {
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
+        'Accept- Encoding': 'gzip, deflate, br',
+        'Accept- Language': 'en-US,en;q=0.9',
+        'Cache - Control': 'no-cache',
+        Host: 'portal.mvp.bafin.de',
+        Pragma: 'no-cache',
+        'Sec - Fetch - Site': 'none',
+        'Upgrade - Insecure - Requests': '1',
+        'User - Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36'
+      }
+    })
     let name = `${DE_PREFIX}export.csv.gz`
     let file = TEMP + name
 
