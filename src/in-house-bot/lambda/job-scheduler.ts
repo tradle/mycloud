@@ -75,7 +75,7 @@ const COMMON_JOBS: Job[] = [
   {
     name: 'importMaxmindDb',
     function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: 24 * 60 * MINUTE,
+    period: 1 * 60 * MINUTE,
   },
   {
     name: 'chaser',

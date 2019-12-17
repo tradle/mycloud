@@ -18,7 +18,7 @@ import { enumValue } from '@tradle/build-resource'
 const TEMP = '/tmp/' // use lambda temp dir
 const MAXMIND_DIR = TEMP + 'maxmind'
 
-const MAXMIND = 'maxmind/GeoLite2-City.mmdb.gz'
+const MAXMIND = 'refdata/maxmind/GeoLite2-City.mmdb.gz'
 
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
@@ -44,12 +44,15 @@ export class ImportMaxmindDb {
   }
 
   execute = async () => {
+    this.logger.debug('importMaxmindDb start')
     let nextMD5 = await this.MD5OfLink()
     let currentMD5 = await this.MD5OfUploaded(MAXMIND)
     if (currentMD5 == nextMD5)
       return
+    this.logger.debug('importMaxmindDb start download')
     await this.download()
     await this.decomp()
+    this.logger.debug('importMaxmindDb start upload')
     await this.findAndupload(nextMD5)
     await this.createDataSourceRefresh()
     this.cleanup()

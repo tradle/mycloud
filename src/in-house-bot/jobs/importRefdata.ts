@@ -106,11 +106,13 @@ export class ImportRefdata {
   }
 
   moveUKFile = async (name: string, table: string, current: Array<string>) => {
+    this.logger.debug('moveUKFile ' + name)
     try {
       fs.ensureDirSync(TEMP + GB_PREFIX + table)
 
       let get = await fetch(`https://register.fca.org.uk/ShPo_registerdownload?file=${name}`)
       let html = await get.text()
+      this.logger.debug('moveUKFile fetched html for ' + name)
       let idx1 = html.indexOf('.handleRedirect(')
       let idx2 = html.indexOf('\'', idx1 + 18)
       get = await fetch('https://register.fca.org.uk' + html.substring(idx1 + 17, idx2))
@@ -122,8 +124,9 @@ export class ImportRefdata {
       let promise = this.writeStreamToPromise(fout)
       get.body.pipe(zlib.createGzip()).pipe(fout)
       await promise
+      this.logger.debug('moveUKFile downloaded into file for ' + name)
       let md5: string = await this.checksumFile('MD5', file)
-
+      this.logger.debug('moveUKFile calculated md5 for ' + name + ', md5=' + md5)
       if (current.includes(key)) {
         // check md5
         let hash = await this.currentMD5(key)
@@ -142,14 +145,15 @@ export class ImportRefdata {
         Metadata: { md5 },
         Body: rstream
       }
+      this.logger.debug('moveUKFile about to upload for ' + name)
       let res = await s3.upload(contentToPost).promise()
 
       await this.createDataSourceRefresh(`fca.${name}`)
 
-      this.logger.debug(`imported ${name} data`)
+      this.logger.debug(`moveUKFile imported ${name} data`)
       fs.unlinkSync(file)
     } catch (err) {
-      this.logger.error(`moveUKFile for ${name}`, err)
+      this.logger.error(`moveUKFile failed for ${name}`, err)
     }
   }
 
