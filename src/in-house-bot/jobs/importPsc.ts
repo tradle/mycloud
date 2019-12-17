@@ -17,6 +17,8 @@ import {
   IOrganization
 } from '../types'
 
+import { enumValue, buildResourceStub } from '@tradle/build-resource'
+
 const accessKeyId = ''
 const secretAccessKey = ''
 const region = 'us-east-1'
@@ -33,6 +35,13 @@ const MAX_UPLOAD_TIME = 600000 // 10 min
 
 const athena = new AWS.Athena({ region, accessKeyId, secretAccessKey })
 const s3 = new AWS.S3({ accessKeyId, secretAccessKey });
+
+const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
+const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
+const ORDER_BY_TIMESTAMP_DESC = {
+  property: 'timestamp',
+  desc: true
+}
 
 const ASPECTS = 'New BO'
 const PROVIDER = 'PSC registry'
@@ -136,6 +145,34 @@ export class ImportPsc {
     this.logger = bot.logger
     this.outputLocation = this.bot.buckets.PrivateConf.id //BUCKET //
     this.database = this.bot.env.getStackResourceName('sec').replace(/\-/g, '_') //ATHENA_DB // 
+  }
+
+  getDataSource = async () => {
+    return await this.bot.db.findOne({
+      filter: {
+        EQ: {
+          [TYPE]: DATA_SOURCE_REFRESH,
+          name: enumValue({
+            model: this.bot.models[REFERENCE_DATA_SOURCES],
+            value: 'psc'
+          })
+        },
+        orderBy: ORDER_BY_TIMESTAMP_DESC
+      }
+    });
+  }
+
+  createDataSourceRefresh = async () => {
+    let provider = enumValue({
+      model: this.bot.models[REFERENCE_DATA_SOURCES],
+      value: 'psc'
+    })
+    let resource = {
+      [TYPE]: DATA_SOURCE_REFRESH,
+      name: provider,
+      timestamp: Date.now()
+    }
+    await this.bot.signAndSave(resource)
   }
 
   sendConfirmationEmail = async (record: any, product: string) => {
@@ -250,6 +287,9 @@ export class ImportPsc {
 
     //**** drop table orc_psc_next_bucketed and create as select from psc  
     await this.dropAndCreateNextTable()
+
+    //*** create data source refresh resource */
+    await this.createDataSourceRefresh()
 
     //*****find legalentity to notify about new psc records by 
     // comparing psc and orc_psc_next_bucketed tables
@@ -579,6 +619,9 @@ export class ImportPsc {
     let data: Array<any> = await this.newBO()
     if (data.length == 0)
       return
+
+    let dataSourceLink = await this.getDataSource()
+
     this.logger.debug(`notifyAdmin about new ${data.length} BO's found in PSC`)
     for (let rdata of data) {
 

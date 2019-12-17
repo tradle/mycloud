@@ -11,8 +11,17 @@ import {
   Logger,
 } from '../types'
 
+import { TYPE } from '@tradle/constants'
+
+import { enumValue } from '@tradle/build-resource'
+
 const TEMP = '/tmp/' // use lambda temp dir
 const MAXMIND_DIR = TEMP + 'maxmind'
+
+const MAXMIND = 'maxmind/GeoLite2-City.mmdb.gz'
+
+const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
+const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
 
 const accessKeyId = ''
 const secretAccessKey = ''
@@ -35,10 +44,50 @@ export class ImportMaxmindDb {
   }
 
   execute = async () => {
+    let nextMD5 = await this.MD5OfLink()
+    let currentMD5 = await this.MD5OfUploaded(MAXMIND)
+    if (currentMD5 == nextMD5)
+      return
     await this.download()
     await this.decomp()
-    await this.findAndupload()
+    await this.findAndupload(nextMD5)
+    await this.createDataSourceRefresh()
     this.cleanup()
+  }
+
+  createDataSourceRefresh = async () => {
+    let provider = enumValue({
+      model: this.bot.models[REFERENCE_DATA_SOURCES],
+      value: 'maxmind'
+    })
+    let resource = {
+      [TYPE]: DATA_SOURCE_REFRESH,
+      name: provider,
+      timestamp: Date.now()
+    }
+    await this.bot.signAndSave(resource)
+  }
+
+  MD5OfLink = async () => {
+    let link = 'https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz.md5'
+    try {
+      const res = await fetch(link);
+      let md5 = await res.text()
+      return md5
+    } catch (err) {
+      if (err.statusCode == 404)
+        return undefined
+      throw err
+    }
+  }
+
+  MD5OfUploaded = async (key: string) => {
+    var params = {
+      Bucket: this.outputLocation,
+      Key: key
+    }
+    let resp = await s3.headObject(params).promise()
+    return resp.Metadata.md5
   }
 
   download = async () => {
@@ -70,7 +119,7 @@ export class ImportMaxmindDb {
     })
   }
 
-  findAndupload = async () => {
+  findAndupload = async (md5: string) => {
     let dist = MAXMIND_DIR + '/dist'
     let list: Array<string> = fs.readdirSync(dist)
 
@@ -86,18 +135,19 @@ export class ImportMaxmindDb {
           let writePromise = this.writeStreamToPromise(out)
           inp.pipe(gzip).pipe(out);
           await writePromise
-          await this.upload(db)
+          await this.upload(db, md5)
           break;
         }
       }
     }
   }
 
-  upload = async (path: string) => {
+  upload = async (path: string, md5: string) => {
     let stream = fs.createReadStream(path)
     let contentToPost = {
       Bucket: this.outputLocation,
-      Key: 'maxmind/GeoLite2-City.mmdb.gz',
+      Key: MAXMIND,
+      Metadata: { md5 },
       Body: stream
     }
     let res = await s3.upload(contentToPost).promise()

@@ -27,10 +27,10 @@ import {
   Logger
 } from '../types'
 import Errors from '../../errors'
-
 import AWS from 'aws-sdk'
 import _ from 'lodash'
 import util from 'util'
+import { enumValue, buildResourceStub } from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
@@ -44,7 +44,14 @@ const Registry = {
 }
 const REGULATOR_REGISTRATION_CHECK = 'tradle.RegulatorRegistrationCheck'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
-const STATUS = 'tradle.Status'
+
+const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
+const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
+const ORDER_BY_TIMESTAMP_DESC = {
+  property: 'timestamp',
+  desc: true
+}
+
 const PROVIDER = 'https://catalog.data.gov'
 const ASPECTS = 'registration with %s'
 const DEFAULT_REGULATOR = 'FINRA'
@@ -68,6 +75,7 @@ interface IRegCheck {
   application: IPBApp
   status: any
   form: ITradleObject
+  dataSourceLink: any
   rawData?: any
   req: IPBReq
 
@@ -91,6 +99,21 @@ export class RegulatorRegistrationAPI {
     const secretAccessKey = ''
     const region = 'us-east-1'
     this.athena = new AWS.Athena({ region, accessKeyId, secretAccessKey })
+  }
+
+  getDataSource = async (id: string) => {
+    return await this.bot.db.findOne({
+      filter: {
+        EQ: {
+          [TYPE]: DATA_SOURCE_REFRESH,
+          name: enumValue({
+            model: this.bot.models[REFERENCE_DATA_SOURCES],
+            value: id
+          })
+        },
+        orderBy: ORDER_BY_TIMESTAMP_DESC
+      }
+    });
   }
 
   public sleep = async ms => {
@@ -246,7 +269,11 @@ export class RegulatorRegistrationAPI {
       ? util.format(ASPECTS, subject.regulator)
       : util.format(ASPECTS, DEFAULT_REGULATOR)
 
-    await this.createCheck({ application, status, form, rawData, req, aspects })
+    let dataSourceLink = subject.dataSource
+      ? await this.getDataSource(subject.dataSource)
+      : undefined
+
+    await this.createCheck({ application, status, form, dataSourceLink, rawData, req, aspects })
 
     if (status.status === 'pass') {
       await this.createVerification({ application, form, req, aspects })
@@ -277,19 +304,21 @@ export class RegulatorRegistrationAPI {
       }
     }
   }
-  public createCheck = async ({ application, status, form, rawData, req, aspects }: IRegCheck) => {
+  public createCheck = async ({ application, status, form, dataSourceLink, rawData, req, aspects }: IRegCheck) => {
     // debugger
     let resource: any = {
       [TYPE]: REGULATOR_REGISTRATION_CHECK,
       status: status.status,
       provider: PROVIDER,
       application,
-      dateChecked: new Date().getTime(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
+      dateChecked: new Date().getTime(),
       aspects: aspects,
       form
     }
-
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
+
+    if (dataSourceLink) resource.dataSource = buildResourceStub({ resource: dataSourceLink, models: this.bot.models })
+
     if (status.message) resource.resultDetails = status.message
     if (rawData) resource.rawData = rawData
     this.logger.debug(`${PROVIDER} Creating RegulatorRegistrationCheck`)

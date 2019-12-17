@@ -21,7 +21,7 @@ import {
   Logger
 } from '../types'
 import Errors from '../../errors'
-
+import { enumValue, buildResourceStub } from '@tradle/build-resource'
 import AWS from 'aws-sdk'
 import _ from 'lodash'
 import util from 'util'
@@ -31,6 +31,13 @@ const { sanitize } = validateResource.utils
 
 const POLL_INTERVAL = 250
 const ATHENA_OUTPUT = 'temp/athena'
+
+const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
+const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
+const ORDER_BY_TIMESTAMP_DESC = {
+  property: 'timestamp',
+  desc: true
+}
 
 const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
@@ -75,6 +82,21 @@ export class PscCheckAPI {
     const secretAccessKey = ''
     const region = 'us-east-1'
     this.athena = new AWS.Athena({ region, accessKeyId, secretAccessKey })
+  }
+
+  getLinkToDataSource = async () => {
+    return await this.bot.db.findOne({
+      filter: {
+        EQ: {
+          [TYPE]: DATA_SOURCE_REFRESH,
+          name: enumValue({
+            model: this.bot.models[REFERENCE_DATA_SOURCES],
+            value: 'psc'
+          })
+        },
+        orderBy: ORDER_BY_TIMESTAMP_DESC
+      }
+    });
   }
 
   public sleep = async ms => {
@@ -220,6 +242,8 @@ export class PscCheckAPI {
   }
   public createCheck = async ({ application, status, form, rawData, req }: IPscCheck) => {
     // debugger
+    let dataSourceLink = await this.getLinkToDataSource()
+
     let resource: any = {
       [TYPE]: BENEFICIAL_OWNER_CHECK,
       status: status.status,
@@ -230,6 +254,7 @@ export class PscCheckAPI {
       aspects: ASPECTS,
       form
     }
+    if (dataSourceLink) resource.dataSource = buildResourceStub({ resource: dataSourceLink, models: this.bot.models })
 
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
