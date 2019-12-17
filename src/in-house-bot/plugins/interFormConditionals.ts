@@ -161,7 +161,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
               `interFormConditionals: please check formula ${formula} for ${payload[TYPE]}`,
               err
             )
-          debugger
+          // debugger
         }
       })
     },
@@ -302,10 +302,30 @@ function normalizeEnums({ forms, models }) {
 }
 
 function normalizeFormula({ formula }) {
-  return formula
+  formula = formula
     .trim()
     .replace(/\s=\s/g, ' === ')
     .replace(/\s!=\s/g, ' !== ')
+  let idx = 0
+  let hasChanges
+  while (true) {
+    idx = formula.indexOf('.includes(', idx)
+    if (idx === -1) break
+    let idx1 = formula.indexOf(')', idx)
+    let idxOr = formula.indexOf(' || ', idx)
+    if (idxOr === -1 || idxOr > idx1) break
+    hasChanges = true
+    let start = idx
+    for (; start >= 0 && formula.charAt(start) !== ' '; start--);
+    let vals = formula.slice(idx + 10, idx1).split(' || ')
+    // console.log(vals)
+    let fStart = formula.slice(start + 1, idx + 10)
+    let f = `${formula.slice(0, start)}(${vals.map(val => `${fStart}${val.trim()})`).join(' || ')}`
+    idx = f.length
+    formula = `${f}${formula.slice(idx1)}`
+  }
+  if (hasChanges) console.log(formula)
+  return formula
 }
 
 export const validateConf: ValidatePluginConf = async ({ bot, pluginConf }) => {
