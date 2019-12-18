@@ -257,7 +257,7 @@ export class PitchbookCheckAPI {
       else {
         this.logger.debug(`pitchbookCheck check() found ${find.data.length} records for fund lp's`)
         // convert into psc
-        rawData = find.data
+        rawData = rawData = this.mapLimitedPartners(find.data)
         status = { status: 'pass' }
       }
     }
@@ -268,6 +268,41 @@ export class PitchbookCheckAPI {
 
   mapLimitedPartners = (find: Array<any>): Array<any> => {
     let list = []
+    for (let row of find) {
+      let pscLike = {
+        data: {
+          address:
+          {
+            address_line_1: row["hq address line 1"],
+            address_line_2: row["hq address line 2"],
+            country: row["hq country"],
+            locality: row["hq city"],
+            postal_code: row["hq post code"],
+            region: row["hq state/province"],
+          },
+          identification:
+          {
+            country_registered: row["hq country"],
+            place_registered: row["hq location"],
+          },
+          kind: "corporate-entity-person-with-significant-control",
+          name: row["limited partner name"],
+          natures_of_control: []
+        }
+      }
+      let natures_of_control: string
+      if (row.percent < 50)
+        natures_of_control = 'ownership-of-shares-25-to-50-percent'
+      else if (row.percent >= 50 && row.percent < 75)
+        natures_of_control = 'ownership-of-shares-50-to-75-percent'
+      else
+        natures_of_control = 'ownership-of-shares-75-to-100-percent'
+      pscLike.data.natures_of_control.push(natures_of_control)
+
+
+
+      list.push(pscLike)
+    }
     return list
   }
 
