@@ -287,7 +287,7 @@ class ControllingPersonRegistrationAPI {
 
     let result = await this.getCP({ application, bot: this.bot })
 
-    let seniorManagement = result.filter((r: any) => r.isSeniorManager)
+    let seniorManagement = result.filter((r: any) => r.isSeniorManager  &&  !r.doNotReachOut)
     if (!seniorManagement.length) {
       if (result.length > notify) seniorManagement = result.slice(0, notify)
       else seniorManagement = result
@@ -302,7 +302,7 @@ class ControllingPersonRegistrationAPI {
       notifyArr = seniorManagement
     }
     // if (!noAutoNotification) {
-    let cpEntities = result.filter((r: any) => r.typeOfControllingEntity.id !== CP_PERSON)
+    let cpEntities = result.filter((r: any) => r.typeOfControllingEntity.id !== CP_PERSON  &&  !r.doNotReachOutToMembers)
     notifyArr = notifyArr.concat(cpEntities)
     // }
 
@@ -619,6 +619,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         timesNotified: newTimesNotified,
         dateLastNotified: now
       })
+      let notificationsCount = application.notificationsCount
+      application.notificationsCount = (notificationsCount && ++notificationsCount) || 1
     },
     async abandonManager(formRes, value) {
       let moreProps
