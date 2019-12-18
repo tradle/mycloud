@@ -1,35 +1,33 @@
-import { EventEmitter} from 'events'
+import { EventEmitter } from 'events'
 import _ from 'lodash'
 import Pack from '@tradle/models-pack'
-import { TYPE } from '@tradle/constants'
-import {
-  createModelStore as createStore,
-  ModelStore as DBModelStore
-} from '@tradle/dynamodb'
+import { TYPE, TYPES } from '@tradle/constants'
+const FORM = TYPES.FORM
+
+import { createModelStore as createStore, ModelStore as DBModelStore } from '@tradle/dynamodb'
 
 import { CacheableBucketItem } from './cacheable-bucket-item'
 import Errors from './errors'
-import {
-  Bucket,
-  Friends,
-  Logger,
-  ModelsPack,
-  Models,
-  Identities
-} from './types'
+import { Bucket, Friends, Logger, ModelsPack, Models, Identities } from './types'
 
-import {
-  PRIVATE_CONF_BUCKET
-} from './constants'
+import { PRIVATE_CONF_BUCKET } from './constants'
 
-import {
-  toModelsMap
-} from './utils'
+import { toModelsMap } from './utils'
 
 const parseJSON = obj => JSON.parse(obj)
 const MODELS_PACK = 'tradle.ModelsPack'
 const MODELS_PACK_CACHE_MAX_AGE = 60000
 const MINUTE = 60000
+const modificationHistory = {
+  type: 'array',
+  internalUse: true,
+  readOnly: true,
+  items: {
+    ref: 'tradle.Modification',
+    backlink: 'form'
+  }
+}
+
 const getDomain = pack => {
   if (typeof pack === 'object') {
     pack = { ...pack, [TYPE]: MODELS_PACK }
@@ -79,9 +77,13 @@ export class ModelStore extends EventEmitter {
   private baseModels: any
   private baseModelsIds: string[]
   private components: ModelStoreOpts
-  private get friends() { return this.components.friends }
-  private get identities() { return this.components.identities }
-  constructor (components:ModelStoreOpts) {
+  private get friends() {
+    return this.components.friends
+  }
+  private get identities() {
+    return this.components.identities
+  }
+  constructor(components: ModelStoreOpts) {
     super()
 
     const { models, logger, bucket } = components
@@ -122,7 +124,7 @@ export class ModelStore extends EventEmitter {
     })
   }
 
-  public get = async (id) => {
+  public get = async id => {
     const namespace = Pack.getNamespace(id)
     let model = this.cache.models[id]
     if (!model) {
@@ -137,11 +139,11 @@ export class ModelStore extends EventEmitter {
     return model
   }
 
-  public get models () {
+  public get models() {
     return this.cache.models
   }
 
-  public getMyCustomModels () {
+  public getMyCustomModels() {
     return _.clone(this.myCustomModels)
   }
 
@@ -151,7 +153,7 @@ export class ModelStore extends EventEmitter {
    */
   public addModelsPack = async ({
     modelsPack,
-    validateAuthor=true,
+    validateAuthor = true,
     allowRemoveModels,
     // validateUpdate=true,
     key
@@ -196,7 +198,7 @@ export class ModelStore extends EventEmitter {
     const assetKey = getModelsPackConfKey(modelsPack)
     const puts = [
       this.bucket.gzipAndPut(assetKey, modelsPack),
-      this.bucket.gzipAndPut(this.cumulativePackKey, cumulative),
+      this.bucket.gzipAndPut(this.cumulativePackKey, cumulative)
     ]
 
     if (key && key !== assetKey) {
@@ -209,7 +211,7 @@ export class ModelStore extends EventEmitter {
     return cumulative
   }
 
-  public updateGraphqlSchema = async (opts:any={}) => {
+  public updateGraphqlSchema = async (opts: any = {}) => {
     let { cumulativeModelsPack } = opts
     if (!cumulativeModelsPack) cumulativeModelsPack = await this.getCumulativeModelsPack()
 
@@ -229,9 +231,12 @@ export class ModelStore extends EventEmitter {
     }
   }
 
-  public getCumulativeModelsPack = async (opts?:any) => {
+  public getCumulativeModelsPack = async (opts?: any) => {
     try {
-      return await this.cumulativePackItem.get(opts)
+      let modelsPack = await this.cumulativePackItem.get(opts)
+      let { models } = modelsPack
+      models.forEach(m => m.subClassOf === FORM && _.extend(m.properties, { modificationHistory }))
+      return modelsPack
     } catch (err) {
       Errors.ignoreNotFound(err)
       return null
@@ -254,16 +259,19 @@ export class ModelStore extends EventEmitter {
     }
   }
 
-  public getModelsForNamespace = (namespace:string) => {
+  public getModelsForNamespace = (namespace: string) => {
     const prefix = namespace + '.'
-    const models = _.filter(this.models, (value:any, key:string) => key.startsWith(prefix))
+    const models = _.filter(this.models, (value: any, key: string) => key.startsWith(prefix))
     return Pack.pack({ namespace, models })
   }
 
   public saveCustomModels = async ({
     modelsPack,
     key
-  }: { modelsPack:ModelsPack, key?:string }) => {
+  }: {
+    modelsPack: ModelsPack
+    key?: string
+  }) => {
     modelsPack = Pack.pack(modelsPack)
     const { namespace, models, lenses } = modelsPack
     if (namespace) {
@@ -273,8 +281,8 @@ export class ModelStore extends EventEmitter {
     this.setCustomModels(modelsPack)
 
     await this.addModelsPack({
-      validateAuthor: false,           // our own models, no need to validate
-      allowRemoveModels: false,        // missing models can break the UI
+      validateAuthor: false, // our own models, no need to validate
+      allowRemoveModels: false, // missing models can break the UI
       modelsPack: this.myModelsPack,
       key
     })
@@ -282,15 +290,13 @@ export class ModelStore extends EventEmitter {
 
   public setCustomModels = (modelsPack: ModelsPack) => {
     modelsPack = Pack.pack(modelsPack)
-    const {
-      namespace=getNamespace(modelsPack),
-      models=[],
-      lenses=[]
-    } = modelsPack
+    const { namespace = getNamespace(modelsPack), models = [], lenses = [] } = modelsPack
 
     if (!namespace) {
       throw new Error('expected "namespace"')
     }
+
+    models.forEach(m => m.subClassOf === FORM && _.extend(m.properties, { modificationHistory }))
 
     this.cache.removeModels(this.myCustomModels)
     this.addModels(models)
@@ -303,12 +309,12 @@ export class ModelStore extends EventEmitter {
     }, {})
   }
 
-  public setMyNamespace = (namespace:string) => {
+  public setMyNamespace = (namespace: string) => {
     this.myNamespace = namespace
     this.myDomain = toggleDomainVsNamespace(namespace)
   }
 
-  public setMyDomain = (domain:string) => {
+  public setMyDomain = (domain: string) => {
     this.myDomain = domain
     this.myNamespace = toggleDomainVsNamespace(domain)
   }
@@ -323,18 +329,18 @@ export class ModelStore extends EventEmitter {
   public addModels = models => this.cache.addModels(models)
   public removeModels = models => this.cache.removeModels(models)
 
-  public getModelsPackByDomain = async (domain) => {
+  public getModelsPackByDomain = async domain => {
     return await this.bucket.getJSON(getModelsPackConfKey(domain))
   }
 
-  public validateModelsPackNamespaceOwner = async (pack) => {
+  public validateModelsPackNamespaceOwner = async pack => {
     if (!pack.namespace) {
       throw new Error(`ignoring ModelsPack sent by ${pack._author}, as it isn't namespaced`)
     }
 
     const domain = getDomain(pack)
     const friend = await this.friends.getByDomain(domain)
-    const fIdentityPermalink =friend.identity._permalink
+    const fIdentityPermalink = friend.identity._permalink
     if (fIdentityPermalink !== pack._author) {
       throw new Error(`ignoring ModelsPack sent by ${pack._author}.
 Domain ${domain} (and namespace ${pack.namespace}) belongs to ${fIdentityPermalink}`)
@@ -399,7 +405,7 @@ Domain ${domain} (and namespace ${pack.namespace}) belongs to ${fIdentityPermali
   //   // stop()
   // }
 
-  private onMissingModel = async (id):Promise<void> => {
+  private onMissingModel = async (id): Promise<void> => {
     const modelsPack = await this.getModelsPackByDomain(getDomain(id))
     if (modelsPack && modelsPack.models) {
       this.cache.addModels(modelsPack.models)
@@ -422,8 +428,12 @@ export const getModelsPackConfKey = domainOrPack => {
   throw new Error('expected domain or ModelsPack')
 }
 
-export const createModelStore = (components:ModelStoreOpts) => new ModelStore(components)
-export const toggleDomainVsNamespace = str => str.split('.').reverse().join('.')
+export const createModelStore = (components: ModelStoreOpts) => new ModelStore(components)
+export const toggleDomainVsNamespace = str =>
+  str
+    .split('.')
+    .reverse()
+    .join('.')
 export const ensureNoModelsRemoved = (current: ModelsPack, updated: ModelsPack) => {
   const before = (current.models || []).map(m => m.id)
   const after = (updated.models || []).map(m => m.id)
@@ -433,7 +443,7 @@ export const ensureNoModelsRemoved = (current: ModelsPack, updated: ModelsPack) 
   }
 }
 
-const getCumulative = (modelStore:ModelStore, foreign, customOnly) => {
+const getCumulative = (modelStore: ModelStore, foreign, customOnly) => {
   const domestic = customOnly ? modelStore.getMyCustomModels() : modelStore.models
   return {
     ...toModelsMap(_.get(foreign, 'models', [])),
@@ -442,12 +452,10 @@ const getCumulative = (modelStore:ModelStore, foreign, customOnly) => {
 }
 
 const omitNamespace = ({ modelsPack, namespace }) => {
-  let { models=[], lenses=[] } = modelsPack
-  models = models
-    .filter(model => Pack.getNamespace(model.id) !== namespace)
+  let { models = [], lenses = [] } = modelsPack
+  models = models.filter(model => Pack.getNamespace(model.id) !== namespace)
 
-  lenses = lenses
-    .filter(lens => Pack.getNamespace(lens.id) !== namespace)
+  lenses = lenses.filter(lens => Pack.getNamespace(lens.id) !== namespace)
 
   return Pack.pack({ models, lenses })
 }

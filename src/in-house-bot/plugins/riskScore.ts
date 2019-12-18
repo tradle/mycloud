@@ -272,8 +272,8 @@ function checkOfficers({ scoreDetails, corpExistsCheck, riskFactors }) {
   if (officers.length)
     officers = officers.filter(o => o.officer.position !== 'agent' && !o.officer.inactive)
   if (!officers.length) return
-  let weight = weights.lengthOfRelationship
-  let part = defaultO / officers.length
+  // let weight = weights.lengthOfRelationship
+  let part = Math.round(defaultO / officers.length / 100) * 100
   // let newScore = score + score * weight
   let newScore = {}
   officers.forEach(o => {

@@ -4,18 +4,15 @@ import levenshtein from 'fast-levenshtein'
 import constants from '@tradle/constants'
 import { Bot, Logger, IPBApp, IPBReq, ITradleObject, CreatePlugin, Applications } from '../types'
 
-import {
-  getStatusMessageForCheck,
-  toISODateString,
-  doesCheckNeedToBeCreated
-  // hasPropertiesChanged
-} from '../utils'
+import { doesCheckNeedToBeCreated, isSubClassOf } from '../utils'
 
 const { TYPE } = constants
-const { VERIFICATION } = constants.TYPES
+const { VERIFICATION, FORM } = constants.TYPES
 const PROVIDER = 'Tradle'
 
 const CLIENT_EDITS_CHECK = 'tradle.ClientEditsCheck'
+const MODIFICATION = 'tradle.Modification'
+const FORM_ERROR = 'tradle.FormError'
 const ASPECTS = 'distance between scanned/prefilled and entered data'
 
 interface IValidityCheck {
@@ -137,13 +134,13 @@ class ClientEditsAPI {
       }
     }
     // resource.message = getStatusMessageForCheck({models: this.bot.models, check: resource})
-    this.logger.debug(`DocumentValidity status message: ${resource.message}`)
+    this.logger.debug(`ClientEdits status message: ${resource.message}`)
     if (status.message) resource.resultDetails = status.message
     if (rawData) resource.rawData = rawData
 
-    this.logger.debug(`Creating DocumentValidity Check for: ${form.firstName} ${form.lastName}`)
+    this.logger.debug(`Creating ClientEdits Check for: ${form.firstName} ${form.lastName}`)
     const check = await this.applications.createCheck(resource, req)
-    this.logger.debug(`Created DocumentValidity Check for: ${form.firstName} ${form.lastName}`)
+    this.logger.debug(`Created ClientEdits Check for: ${form.firstName} ${form.lastName}`)
   }
 
   public createVerification = async ({ rawData, req }) => {
@@ -184,17 +181,121 @@ class ClientEditsAPI {
         req
       })
   }
+  public createModification = async req => {
+    const { payload } = req
+    let prevResource = await this.bot.objects.get(payload._p)
+
+    let isInitialSubmission, prefill
+    if (payload._sourceOfData) {
+      if (
+        !prevResource._sourceOfData ||
+        prevResource._sourceOfData._permalink !== payload._sourceOfData._permalink
+      ) {
+        ;({ prefill } = await this.createDataLineageModification(req))
+        isInitialSubmission = true
+      }
+    }
+
+    if (isInitialSubmission) prevResource = prefill
+    let props = this.bot.models[payload[TYPE]].properties
+    let modifications: any = {}
+    let added: any = {}
+    let changed: any = {}
+    let removed: any = {}
+    for (let p in props) {
+      if (!payload[p] && !prevResource[p]) continue
+      if (props[p].displayAs) continue
+      if (payload[p]) {
+        if (!prevResource[p]) {
+          _.extend(added, { [p]: payload[p] })
+          continue
+        } else if (!_.isEqual(payload[p], prevResource[p])) {
+          _.extend(changed, {
+            [p]: {
+              new: payload[p],
+              old: prevResource[p]
+            }
+          })
+        }
+      } else if (prevResource[p]) {
+        _.extend(removed, { [p]: p })
+      }
+    }
+    if (_.size(added)) _.extend(modifications, { added })
+    if (_.size(changed)) _.extend(modifications, { changed })
+    if (_.size(removed)) _.extend(modifications, { removed })
+    if (!_.size(modifications)) return
+    if (isInitialSubmission) {
+      modifications = {
+        initialSubmission: modifications
+      }
+    }
+
+    let resource: any = {
+      [TYPE]: MODIFICATION,
+      dateModified: Date.now(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
+      form: payload,
+      modifications
+    }
+
+    return await this.bot
+      .draft({ type: MODIFICATION })
+      .set(resource)
+      .signAndSave()
+  }
+  public createDataLineageModification = async req => {
+    const { payload } = req
+    const sourceOfData = payload._sourceOfData
+    if (!sourceOfData) return
+    let { dataLineage, prefill } = await this.bot.getResource(sourceOfData)
+
+    if (!dataLineage) return
+
+    for (let p in dataLineage) {
+      let props = dataLineage[p].properties
+      let properties = {}
+      props.forEach(p => {
+        properties[p] = prefill[p]
+      })
+      dataLineage[p] = properties
+    }
+    let resource: any = {
+      [TYPE]: MODIFICATION,
+      dateModified: Date.now(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
+      form: payload,
+      modifications: {
+        dataLineage
+      }
+    }
+
+    return {
+      modification: await this.bot
+        .draft({ type: MODIFICATION })
+        .set(resource)
+        .signAndSave(),
+      prefill
+    }
+  }
 }
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger, conf }) => {
   const clientEdits = new ClientEditsAPI({ bot, applications, logger })
   const plugin = {
     async onmessage(req: IPBReq) {
-      if (req.skipChecks) return
+      // if (req.skipChecks) return
+      const { payload, application } = req
+      if (!payload._link) return
+      if (!application) return
+      const { models } = bot
+      const sourceOfData = payload._sourceOfData
+      if (!isSubClassOf(FORM, models[payload[TYPE]], models)) return
+      debugger
+      if (payload._permalink === payload._link) await clientEdits.createDataLineageModification(req)
+      else {
+        await clientEdits.createModification(req)
+      }
+
       let { distance } = conf
       if (!distance) return
-      const { payload } = req
-
-      let sourceOfData = payload._sourceOfData
       if (!sourceOfData) return
       await clientEdits.checkEdits({ req, sourceOfData, distance })
     }

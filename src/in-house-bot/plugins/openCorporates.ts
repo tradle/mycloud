@@ -2,6 +2,7 @@ import fetch from 'node-fetch'
 import _ from 'lodash'
 
 import validateResource from '@tradle/validate-resource'
+import { enumValue } from '@tradle/build-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 import constants from '@tradle/constants'
@@ -29,6 +30,7 @@ const { VERIFICATION } = TYPES
 // const FORM_ID = 'tradle.legal.LegalEntity'
 const OPEN_CORPORATES = 'Open Corporates'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
+const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const STATUS = 'tradle.Status'
 
 interface IOpenCorporatesConf {
@@ -508,8 +510,21 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         user,
         application
       }
+
+      let title = enumValue({
+        model: bot.models[REFERENCE_DATA_SOURCES],
+        value: 'openCorporates'
+      }).title
+
+      let dataLineage = {
+        [title]: {
+          properties: Object.keys(prefill)
+        }
+      }
+
       formError.details = {
         prefill: payloadClone,
+        dataLineage,
         message
       }
       try {
