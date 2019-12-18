@@ -37,12 +37,17 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         companyType: associatedRes.companyType
       }
       prefill = sanitize(prefill).sanitized
-
+debugger
       if (!formRequest.prefill) formRequest.prefill = { [TYPE]: form }
       formRequest.prefill = {
         ...formRequest.prefill,
         ...prefill
       }
+      formRequest.dataLineage = {
+        associatedResource: buildResourceStub({ resource: associatedRes, models: this.bot.models })
+      }
+      if (associatedRes._dataLineage) formRequest.dataLineage = associatedRes._dataLineage
+
       formRequest.message = `Please review and correct the data below **for ${prefill.companyName}**`
     }
   }
