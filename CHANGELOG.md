@@ -2,7 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.26](https://github.com/tradle/mycloud/compare/v2.5.1-rc.25...v2.5.1-rc.26) (2019-12-09)
+## [2.5.1-rc.27](https://github.com/tradle/mycloud/compare/v2.5.1-rc.26...v2.5.1-rc.27) (2019-12-18)
+
+
+### Bug Fixes
+
+* dispaly score better ([de5ff97](https://github.com/tradle/mycloud/commit/de5ff97))
+* models ([f64f518](https://github.com/tradle/mycloud/commit/f64f518))
+* no need to crash if no dataSource resource found ([712c698](https://github.com/tradle/mycloud/commit/712c698))
+* typescript errors ([7629e0a](https://github.com/tradle/mycloud/commit/7629e0a))
+
+
+### Features
+
+* add 'modificationHistory' to subClassOf Form ([b0b6234](https://github.com/tradle/mycloud/commit/b0b6234))
+* client edits ([40417e2](https://github.com/tradle/mycloud/commit/40417e2))
+* count forms on application to have counters before all the backlinks fetched ([c4294aa](https://github.com/tradle/mycloud/commit/c4294aa))
+* counts for application backlinks ([d0dca55](https://github.com/tradle/mycloud/commit/d0dca55))
+* data lineage ([fc9d085](https://github.com/tradle/mycloud/commit/fc9d085))
+* data lineage and backlink counts projects ([a96f194](https://github.com/tradle/mycloud/commit/a96f194))
+* data lineage project ([5c0c6bb](https://github.com/tradle/mycloud/commit/5c0c6bb))
+* data lineage project ([4744b6c](https://github.com/tradle/mycloud/commit/4744b6c))
+* do not reach out to customers directly; application backlink counts ([2e7ca77](https://github.com/tradle/mycloud/commit/2e7ca77))
+* models and levenshtein ([6ab6bf0](https://github.com/tradle/mycloud/commit/6ab6bf0))
+* simplify multiple enum values check ([7397fa7](https://github.com/tradle/mycloud/commit/7397fa7))
 
 
 
