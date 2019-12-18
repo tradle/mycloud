@@ -735,7 +735,7 @@
       }
     },
     "@tradle/models": {
-      "version": "github:tradle/models#894ceb7ac84ab685f979917a08d05cdd31255a8d",
+      "version": "github:tradle/models#7ca23489ddff5e3d69a04d1670ebbeb854f7ba25",
       "from": "github:tradle/models"
     },
     "@tradle/models-cloud": {
