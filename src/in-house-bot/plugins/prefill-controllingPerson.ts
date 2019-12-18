@@ -1,5 +1,6 @@
 import uniqBy from 'lodash/uniqBy'
 import extend from 'lodash/extend'
+import size from 'lodash/size'
 
 import {
   Bot,
@@ -12,10 +13,11 @@ import {
   ValidatePluginConf,
   ITradleObject
 } from '../types'
-import * as Templates from '../templates'
-import Errors from '../../errors'
+
+// import { getEnumValueId } from '../utils'
 import { TYPE } from '../../constants'
 import validateResource from '@tradle/validate-resource'
+import { enumValue } from '@tradle/build-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
@@ -25,6 +27,7 @@ import { hasPropertiesChanged } from '../utils'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const CLIENT_ACTION_REQUIRED_CHECK = 'tradle.ClientActionRequiredCheck'
+const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const NEXT_FORM_REQUEST = 'tradle.NextFormRequest'
 const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
 const CHECK_STATUS = 'tradle.Status'
@@ -109,9 +112,12 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         }
       }
       if (!officer) {
-        if (pscCheck && pscCheck.status.id === `${CHECK_STATUS}_pass`)
+        if (pscCheck && pscCheck.status.id === `${CHECK_STATUS}_pass`) {
+          let currenPrefill = { ...formRequest.prefill }
           await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
-        if (carCheck && carCheck.status.id === `${CHECK_STATUS}_pass`)
+          this.addRefDataSource({ dataSource: 'psc', formRequest, currenPrefill })
+        } else if (carCheck && carCheck.status.id === `${CHECK_STATUS}_pass`) {
+          // let currenPrefill = formRequest.prefill
           await this.prefillBeneficialOwner({
             items,
             forms,
@@ -119,6 +125,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
             formRequest,
             pscCheck: carCheck
           })
+          // this.addRefDataSource({ dataSource: 'clientAction', formRequest, currenPrefill })
+        }
         return
       }
       let { name, inactive, start_date, end_date, occupation, position } = officer
@@ -130,10 +138,37 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         position,
         endDate: end_date && new Date(end_date).getTime()
       }
-      this.findAndPrefillBeneficialOwner(pscCheck, officer, prefill)
-
       prefill = sanitize(prefill).sanitized
+      let cePrefill = { ...prefill }
+      let provider = enumValue({
+        model: bot.models[REFERENCE_DATA_SOURCES],
+        value: 'openCorporates'
+      })
 
+      let dataLineage = {
+        [provider.title]: {
+          properties: Object.keys(cePrefill)
+        }
+      }
+      this.findAndPrefillBeneficialOwner(pscCheck, officer, prefill)
+      prefill = sanitize(prefill).sanitized
+      if (size(prefill) !== size(cePrefill)) {
+        let pscPrefill = []
+        for (let p in prefill) {
+          if (!cePrefill[p]) pscPrefill.push(p)
+        }
+        let title = enumValue({
+          model: bot.models[REFERENCE_DATA_SOURCES],
+          value: 'psc'
+        }).title
+        dataLineage = {
+          ...dataLineage,
+          [title]: {
+            properties: pscPrefill
+          }
+        }
+      }
+      formRequest.dataLineage = dataLineage
       if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
       formRequest.prefill = {
         ...formRequest.prefill,
@@ -144,7 +179,24 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       }
       formRequest.message = `Please review and correct the data below **for ${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
     },
+    addRefDataSource({ dataSource, currenPrefill, formRequest }) {
+      let { prefill } = formRequest
+      if (size(prefill) === size(currenPrefill)) return
+      let dsPrefill = []
+      for (let p in prefill) if (!currenPrefill[p]) dsPrefill.push(p)
 
+      let title = enumValue({
+        model: bot.models[REFERENCE_DATA_SOURCES],
+        value: dataSource
+      }).title
+      if (!formRequest.dataLineage) formRequest.dataLineage = {}
+      formRequest.dataLineage = {
+        ...formRequest.dataLineage,
+        [title]: {
+          properties: dsPrefill
+        }
+      }
+    },
     findAndPrefillBeneficialOwner(pscCheck, officer, prefill) {
       let beneficialOwners = pscCheck && pscCheck.rawData
       if (!beneficialOwners || !beneficialOwners.length) return
