@@ -14,21 +14,16 @@ import {
   ITradleObject
 } from '../types'
 
-// import { getEnumValueId } from '../utils'
 import { TYPE } from '../../constants'
 import validateResource from '@tradle/validate-resource'
 import { enumValue } from '@tradle/build-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
-import { hasPropertiesChanged } from '../utils'
-// import { compare } from '@tradle/dynamodb/lib/utils'
-
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const CLIENT_ACTION_REQUIRED_CHECK = 'tradle.ClientActionRequiredCheck'
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
-const NEXT_FORM_REQUEST = 'tradle.NextFormRequest'
 const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
 const CHECK_STATUS = 'tradle.Status'
 const COUNTRY = 'tradle.Country'
