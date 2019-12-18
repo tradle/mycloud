@@ -86,7 +86,7 @@ const jsonItem = {
 
 core[jsonItem.id] = jsonItem
 
-const models = extend(
+let models: any = extend(
   {},
   core,
   requireModels('@tradle/custom-models'),
@@ -97,5 +97,20 @@ const models = extend(
   requireModels('@tradle/models-cloud'),
   requireModels('@tradle/models-cloud-services')
 )
+const exclude = ['tradle.AssignRelationshipManager', 'tradle.ProductRequest']
+const modificationHistory = {
+  type: 'array',
+  internalUse: true,
+  readOnly: true,
+  items: {
+    ref: 'tradle.Modification',
+    backlink: 'form'
+  }
+}
 
+for (let m in models) {
+  if (exclude.includes(m)) continue
+  let model = models[m]
+  if (model.subClassOf === 'tradle.Form') extend(model.properties, { modificationHistory })
+}
 export = models as Models
