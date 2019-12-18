@@ -1,7 +1,5 @@
 import fs from 'fs-extra'
-import zlib from 'zlib'
 import crypto from 'crypto'
-import fetch from 'node-fetch'
 import AWS from 'aws-sdk'
 
 import {
@@ -16,9 +14,6 @@ const accessKeyId = ''
 const secretAccessKey = ''
 
 const TEMP = '/tmp/' // use lambda temp dir
-
-const GB_PREFIX = 'refdata/gb/'
-const DE_PREFIX = 'refdata/de/'
 
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
@@ -45,7 +40,7 @@ export class ImportPitchbookData {
     await this.moveFile('Fund.csv', 'fund', 'fund', current)
     await this.moveFile('LimitedPartner.csv', 'limited_partner', 'lp', current)
     await this.moveFile('CompanyToFundRelation.csv', 'company_fund_relation', undefined, current)
-    await this.moveFile('FundToLimitedPartnerRelation.csv', 'company_fund_relation', undefined, current)
+    await this.moveFile('FundToLimitedPartnerRelation.csv', 'company_lp_relation', undefined, current)
   }
 
   list = async (): Promise<Array<string>> => {
@@ -69,7 +64,7 @@ export class ImportPitchbookData {
       let key = `/refdata/pitchbook/${table}/${fileName}`
       fs.ensureDirSync(TEMP + 'pitchbook')
       await this.s3download('temp/pitchbook/' + fileName, localfile)
-      this.logger.debug('importPitchbookData moved file for ' + name)
+      this.logger.debug('importPitchbookData moved file for ' + fileName)
       let md5: string = await this.checksumFile('MD5', localfile)
       this.logger.debug('importPitchbookData calculated md5 for ' + fileName + ', md5=' + md5)
 
