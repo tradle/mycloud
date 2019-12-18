@@ -126,6 +126,9 @@ export class Applications implements IHasModels {
 
     let checkResource = check.toJSON()
 
+    let checksCount = application.checksCount
+    application.checksCount = (checksCount && ++application.checksCount) || 1
+
     if (!latestChecks) {
       if (checks) {
         const timeDesc = req.checks.slice().sort((a, b) => b._time - a._time)
@@ -342,9 +345,13 @@ export class Applications implements IHasModels {
       this.validatePartialResource(item)
     }
 
+    let application = opts.application || req.application
+    let formEditsCount = application.formEditsCount
+    application.formEditsCount = (formEditsCount && ++formEditsCount) || 1
+
     return await this.productsAPI.requestEdit({
       ...opts,
-      application: opts.application || req.application,
+      application,
       applicant: opts.applicant || req.applicant
     })
   }
