@@ -61,7 +61,7 @@ export class ImportPitchbookData {
     this.logger.debug('importPitchbookData ' + fileName)
     try {
       let localfile = TEMP + 'pitchbook/' + fileName
-      let key = `/refdata/pitchbook/${table}/${fileName}`
+      let key = `refdata/pitchbook/${table}/${fileName}`
       fs.ensureDirSync(TEMP + 'pitchbook')
       await this.s3download('temp/pitchbook/' + fileName, localfile)
       this.logger.debug('importPitchbookData moved file for ' + fileName)
