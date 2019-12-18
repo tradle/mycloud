@@ -371,8 +371,8 @@
       }
     },
     "@tradle/bot-products": {
-      "version": "git://github.com/tradle/bot-products.git#95c4ab3b016fa99f202785eb3fe5f10e979f39f8",
-      "from": "tradle/bot-products",
+      "version": "github:tradle/bot-products#6df95de77d9298f496346aae251afa5fab48894d",
+      "from": "github:tradle/bot-products",
       "requires": {
         "@tradle/build-resource": "^4.0.1",
         "@tradle/constants": "^2.1.0",
