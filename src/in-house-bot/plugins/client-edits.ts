@@ -12,7 +12,6 @@ const PROVIDER = 'Tradle'
 
 const CLIENT_EDITS_CHECK = 'tradle.ClientEditsCheck'
 const MODIFICATION = 'tradle.Modification'
-const FORM_ERROR = 'tradle.FormError'
 const ASPECTS = 'distance between scanned/prefilled and entered data'
 
 interface IValidityCheck {
