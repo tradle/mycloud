@@ -510,7 +510,7 @@
     "@tradle/centrix": {
       "version": "1.0.0",
       "resolved": "git://github.com/tradle/centrix.git#a6b234e114b8fd24d576913a4e8cacc10bf024b7",
-      "integrity": "sha1-QfZFU09EnuxnESYjZBOjugwfyfk=",
+      "integrity": "sha1-vpY8dztbsnRzde74x4QY8VchlvU=",
       "optional": true,
       "requires": {
         "co": "^4.6.0",
@@ -735,7 +735,7 @@
       }
     },
     "@tradle/models": {
-      "version": "git://github.com/tradle/models.git#34d4fb4ea149132cc281ef18f093f563ec2cd471",
+      "version": "github:tradle/models#894ceb7ac84ab685f979917a08d05cdd31255a8d",
       "from": "github:tradle/models"
     },
     "@tradle/models-cloud": {
@@ -747,7 +747,7 @@
       "from": "tradle/models-cloud-services"
     },
     "@tradle/models-corporate-onboarding": {
-      "version": "github:tradle/models-corporate-onboarding#0161e8ac9f4e77f50ed875fc57a011eedf2d34e5",
+      "version": "github:tradle/models-corporate-onboarding#e90bc7997078fb7edf8a3d9e3ca799320db55d64",
       "from": "github:tradle/models-corporate-onboarding"
     },
     "@tradle/models-nz": {

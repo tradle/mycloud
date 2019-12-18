@@ -85,18 +85,22 @@ export class PscCheckAPI {
   }
 
   getLinkToDataSource = async () => {
-    return await this.bot.db.findOne({
-      filter: {
-        EQ: {
-          [TYPE]: DATA_SOURCE_REFRESH,
-          name: enumValue({
-            model: this.bot.models[REFERENCE_DATA_SOURCES],
-            value: 'psc'
-          })
-        },
-        orderBy: ORDER_BY_TIMESTAMP_DESC
-      }
-    });
+    try {
+      return await this.bot.db.findOne({
+        filter: {
+          EQ: {
+            [TYPE]: DATA_SOURCE_REFRESH,
+            name: enumValue({
+              model: this.bot.models[REFERENCE_DATA_SOURCES],
+              value: 'psc'
+            })
+          },
+          orderBy: ORDER_BY_TIMESTAMP_DESC
+        }
+      });
+    } catch (err) {
+      return undefined
+    }
   }
 
   public sleep = async ms => {

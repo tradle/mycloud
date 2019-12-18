@@ -23,6 +23,8 @@ import Errors from '../../errors'
 import AWS from 'aws-sdk'
 import _ from 'lodash'
 
+import { enumValue, buildResourceStub } from '@tradle/build-resource'
+
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
@@ -35,6 +37,13 @@ const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const PROVIDER = 'PitchBook Data, Inc.'
 const ASPECTS = 'Beneficial owner'
 const COMMERCIAL = 'commercial'
+
+const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
+const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
+const ORDER_BY_TIMESTAMP_DESC = {
+  property: 'timestamp',
+  desc: true
+}
 
 interface IPitchbookthenaConf {
   type: string,
@@ -106,6 +115,25 @@ export class PitchbookCheckAPI {
   }
   public _sleep = (ms: number) => {
     return new Promise(resolve => setTimeout(resolve, ms))
+  }
+
+  getLinkToDataSource = async (id: string) => {
+    try {
+      return await this.bot.db.findOne({
+        filter: {
+          EQ: {
+            [TYPE]: DATA_SOURCE_REFRESH,
+            name: enumValue({
+              model: this.bot.models[REFERENCE_DATA_SOURCES],
+              value: id
+            })
+          },
+          orderBy: ORDER_BY_TIMESTAMP_DESC
+        }
+      });
+    } catch (err) {
+      return undefined
+    }
   }
   public getExecutionId = async (sql: string): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -222,8 +250,9 @@ export class PitchbookCheckAPI {
     let rawData: Array<any>
     if (find.status && find.data.length > 0) {
       this.logger.debug(`pitchbookCheck check() found ${find.data.length} records for company funds`)
+      let dataSourceLink = await this.getLinkToDataSource('pitchbook.fund')
       rawData = this.mapFunds(find.data)
-      status = { status: 'pass' }
+      status = { status: 'pass', dataSource: dataSourceLink }
     }
     else if (!find.status) {
       status = {
@@ -257,8 +286,9 @@ export class PitchbookCheckAPI {
       else {
         this.logger.debug(`pitchbookCheck check() found ${find.data.length} records for fund lp's`)
         // convert into psc
-        rawData = rawData = this.mapLimitedPartners(find.data)
-        status = { status: 'pass' }
+        rawData = this.mapLimitedPartners(find.data)
+        let dataSourceLink = await this.getLinkToDataSource('pitchbook.lp')
+        status = { status: 'pass', dataSource: dataSourceLink }
       }
     }
 
@@ -368,7 +398,7 @@ export class PitchbookCheckAPI {
       aspects: ASPECTS,
       form
     }
-
+    if (status.dataSource) resource.dataSource = buildResourceStub({ resource: status.dataSource, models: this.bot.models })
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
     if (rawData && Array.isArray(rawData)) {
