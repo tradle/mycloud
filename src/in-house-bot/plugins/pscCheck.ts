@@ -242,7 +242,12 @@ export class PscCheckAPI {
   }
   public createCheck = async ({ application, status, form, rawData, req }: IPscCheck) => {
     // debugger
-    let dataSourceLink = await this.getLinkToDataSource()
+    let dataSourceLink
+    try {
+      dataSourceLink = await this.getLinkToDataSource()
+    } catch (err) {
+      debugger
+    }
 
     let resource: any = {
       [TYPE]: BENEFICIAL_OWNER_CHECK,
