@@ -541,7 +541,7 @@
       "from": "tradle/countries"
     },
     "@tradle/custom-models": {
-      "version": "github:tradle/custom-models#b319d14d1b0c1b3965e6e3a8a9a585e54621f86d",
+      "version": "github:tradle/custom-models#69930a25466d0ec8896d636dfe2640aecb45c5f2",
       "from": "github:tradle/custom-models",
       "requires": {
         "@tradle/validate-model": "^7.1.18"

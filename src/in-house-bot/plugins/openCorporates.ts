@@ -261,7 +261,7 @@ class OpenCorporatesAPI {
     return check.toJSON()
   }
 
-  public createVerification = async ({ user, application, form, rawData, req }) => {
+  public createVerification = async ({ application, form, rawData, req }) => {
     // debugger
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
@@ -398,7 +398,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       if (hasVerification)
         pchecks.push(
           openCorporates.createVerification({
-            user,
             application,
             form: payload,
             rawData: hits[0].company,
