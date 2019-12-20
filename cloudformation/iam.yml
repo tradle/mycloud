@@ -265,8 +265,7 @@ Resources:
                   - Ref: PrivateConfBucket
                   - '/temp/*'
             Principal:
-              AWS:
-                - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:role/${Namespace}-${AWS::Region}-lambdaRole'
+              AWS: "*"
 
           - Sid: PreventDeleteObjects
             Action:
