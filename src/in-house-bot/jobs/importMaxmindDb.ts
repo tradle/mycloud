@@ -107,6 +107,7 @@ export class ImportMaxmindDb {
         })
 
       }).on('error', err => {
+        this.logger.debug('importMaxmindDb MD5OfLink download error', err)
         reject(err)
       }).end()
     })
@@ -143,6 +144,7 @@ export class ImportMaxmindDb {
           resolve()
         })
       }).on('error', err => {
+        this.logger.debug('importMaxmindDb maxmind download error', err)
         reject(err)
       }).end()
     })
@@ -193,6 +195,7 @@ export class ImportMaxmindDb {
           var out = fs.createWriteStream(db + '.gz');
           let writePromise = this.writeStreamToPromise(out)
           inp.pipe(gzip).pipe(out);
+          this.logger.debug(`importMaxmindDb uncompress`)
           await writePromise
           await this.upload(db, md5)
           break;
@@ -209,6 +212,7 @@ export class ImportMaxmindDb {
       Metadata: { md5 },
       Body: stream
     }
+    this.logger.debug(`importMaxmindDb uploading ${path} to s3`)
     let res = await s3.upload(contentToPost).promise()
   }
 
