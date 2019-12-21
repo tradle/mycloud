@@ -6,9 +6,8 @@ import zlib from 'zlib'
 
 import AWS from 'aws-sdk'
 
-import tls from 'tls'
-// @ts-ignore
-tls.DEFAULT_MAX_VERSION = 'TLSv1.2'
+import https from 'https'
+
 
 import {
   Bot,
@@ -75,6 +74,7 @@ export class ImportMaxmindDb {
     await this.bot.signAndSave(resource)
   }
 
+  /*
   MD5OfLink = async () => {
     let link = 'https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz.md5'
     try {
@@ -87,6 +87,31 @@ export class ImportMaxmindDb {
       throw err
     }
   }
+  */
+
+  MD5OfLink = async (): Promise<string> => {
+    var options = {
+      hostname: 'geolite.maxmind.com',
+      port: 443,
+      path: '/download/geoip/database/GeoLite2-City.tar.gz.md5',
+      method: 'GET',
+      secureProtocol: "TLSv1_2_method"
+    }
+    let dt: string = await new Promise((resolve, reject) => {
+      https.request(options, res => {
+        let body = ''
+        res.on('data', d => body += d)
+
+        res.on('end', () => {
+          resolve(body.toString())
+        })
+
+      }).on('error', err => {
+        reject(err)
+      }).end()
+    })
+    return dt
+  }
 
   MD5OfUploaded = async (key: string) => {
     var params = {
@@ -97,6 +122,33 @@ export class ImportMaxmindDb {
     return resp.Metadata.md5
   }
 
+  download = async () => {
+    // prepare directory in temp
+    fs.ensureDirSync(MAXMIND_DIR)
+    const fileStream = fs.createWriteStream(MAXMIND_DIR + '/GeoLite2-City.tar.gz')
+    var options = {
+      hostname: 'geolite.maxmind.com',
+      port: 443,
+      path: '/download/geoip/database/GeoLite2-City.tar.gz',
+      method: 'GET',
+      secureProtocol: "TLSv1_2_method"
+    }
+
+    let dt = await new Promise((resolve, reject) => {
+      https.request(options, res => {
+        res.on('data', buf => fileStream.write(buf))
+
+        res.on('end', () => {
+          fileStream.end()
+          resolve()
+        })
+      }).on('error', err => {
+        reject(err)
+      }).end()
+    })
+  }
+
+  /*
   download = async () => {
     // prepare directory in temp
     fs.ensureDirSync(MAXMIND_DIR)
@@ -115,7 +167,7 @@ export class ImportMaxmindDb {
       })
     })
   }
-
+  */
   decomp = async () => {
     let dist = MAXMIND_DIR + '/dist'
     !fs.existsSync(dist) && fs.mkdirSync(dist)
