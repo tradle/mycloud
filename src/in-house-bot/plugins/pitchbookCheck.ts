@@ -23,7 +23,7 @@ import Errors from '../../errors'
 import AWS from 'aws-sdk'
 import _ from 'lodash'
 
-import { enumValue, buildResourceStub } from '@tradle/build-resource'
+import { buildResourceStub } from '@tradle/build-resource'
 
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
@@ -249,7 +249,6 @@ export class PitchbookCheckAPI {
     if (find.status && find.data.length > 0) {
       this.logger.debug(`pitchbookCheck check() found ${find.data.length} records for company funds`)
       let dataSourceLink = await this.getLinkToDataSource('pitchbook.fund')
-      this.logger.debug(`found DataSourceRefresh for 'pitchbook.fund': ${dataSourceLink}`)
       rawData = this.mapFunds(find.data)
       status = { status: 'pass', dataSource: dataSourceLink }
     }

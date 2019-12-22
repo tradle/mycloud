@@ -30,7 +30,7 @@ import Errors from '../../errors'
 import AWS from 'aws-sdk'
 import _ from 'lodash'
 import util from 'util'
-import { enumValue, buildResourceStub } from '@tradle/build-resource'
+import { buildResourceStub } from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
@@ -106,13 +106,10 @@ export class RegulatorRegistrationAPI {
       filter: {
         EQ: {
           [TYPE]: DATA_SOURCE_REFRESH,
-          name: enumValue({
-            model: this.bot.models[REFERENCE_DATA_SOURCES],
-            value: id
-          })
+          'name.id': `${REFERENCE_DATA_SOURCES}_${id}`
         },
-        orderBy: ORDER_BY_TIMESTAMP_DESC
-      }
+      },
+      orderBy: ORDER_BY_TIMESTAMP_DESC
     });
   }
 
