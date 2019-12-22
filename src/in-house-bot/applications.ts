@@ -158,7 +158,7 @@ export class Applications implements IHasModels {
         application.hasFailedChecks = false
       }
     }
-    if (check[TYPE] === SANCTIONS_CHECK) {
+    if (checkResource[TYPE] === SANCTIONS_CHECK) {
       let sanctionsChecks = latestChecks.filter(check => check[TYPE] === SANCTIONS_CHECK)
       if (sanctionsChecks.length) {
         sanctionsChecks = uniqBy(sanctionsChecks, 'propertyName')
