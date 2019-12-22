@@ -126,7 +126,7 @@ export class PitchbookCheckAPI {
             'name.id': enumValue({
               model: this.bot.models[REFERENCE_DATA_SOURCES],
               value: id
-            })
+            }).id
           },
           orderBy: ORDER_BY_TIMESTAMP_DESC
         }
