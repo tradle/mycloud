@@ -541,15 +541,15 @@
       "from": "tradle/countries"
     },
     "@tradle/custom-models": {
-      "version": "github:tradle/custom-models#69930a25466d0ec8896d636dfe2640aecb45c5f2",
-      "from": "github:tradle/custom-models",
+      "version": "git://github.com/tradle/custom-models.git#2cb2dea0adb512e4b33ab36ee55ec027a1bd94e3",
+      "from": "tradle/custom-models",
       "requires": {
         "@tradle/validate-model": "^7.1.18"
       }
     },
     "@tradle/dynamodb": {
-      "version": "git://github.com/tradle/dynamodb.git#3bf14916b12f92c2ffa56041b361d7f01e13c8f3",
-      "from": "tradle/dynamodb",
+      "version": "github:tradle/dynamodb#7e398a4dc4bc062865991d5e65ddccc1e4a0c120",
+      "from": "github:tradle/dynamodb",
       "requires": {
         "@aws/dynamodb-expressions": "^0.4.0",
         "@tradle/aws-common-utils": "^1.0.1-alpha.15",
@@ -560,7 +560,7 @@
         "clone": "^2.1.1",
         "co": "^4.6.0",
         "debug": "^2.6.8",
-        "dynogels": "mvayngrib/dynogels",
+        "dynogels": "github:mvayngrib/dynogels",
         "error-ex": "^1.3.1",
         "event-hooks": "^1.2.0",
         "fast-levenshtein": "^2.0.6",
@@ -572,7 +572,7 @@
         "@tradle/errors": {
           "version": "2.0.0",
           "resolved": "https://registry.npmjs.org/@tradle/errors/-/errors-2.0.0.tgz",
-          "integrity": "sha1-UrDkmQreq55HGavZLIvc0w2RUhs=",
+          "integrity": "sha512-1+/l64bL7FsGNeH4AwAvcXhwNt+bV4qN9g8CpqnIiwqxUUQXehBVNB0tZ+5RJplTslmhzZU7mF+6ZTz6eJcelA==",
           "requires": {
             "inherits": "~2.0.3",
             "lodash": "^4.17.4"
@@ -735,8 +735,8 @@
       }
     },
     "@tradle/models": {
-      "version": "github:tradle/models#7ca23489ddff5e3d69a04d1670ebbeb854f7ba25",
-      "from": "github:tradle/models"
+      "version": "git://github.com/tradle/models.git#2c3dd652e2d469a4d0e4cf600f0e71e5182ae48e",
+      "from": "tradle/models"
     },
     "@tradle/models-cloud": {
       "version": "git://github.com/tradle/models-cloud.git#e8f9d965014fbc0059d67dbe26706fc21584b812",
@@ -747,7 +747,7 @@
       "from": "tradle/models-cloud-services"
     },
     "@tradle/models-corporate-onboarding": {
-      "version": "github:tradle/models-corporate-onboarding#e90bc7997078fb7edf8a3d9e3ca799320db55d64",
+      "version": "github:tradle/models-corporate-onboarding#3d3df283be29ac20b642f1fa06ee4b316d00faef",
       "from": "github:tradle/models-corporate-onboarding"
     },
     "@tradle/models-nz": {
@@ -1735,7 +1735,7 @@
     "array-sort": {
       "version": "1.0.0",
       "resolved": "https://registry.npmjs.org/array-sort/-/array-sort-1.0.0.tgz",
-      "integrity": "sha1-5MBTVkU/VvU1EqfR1hI/LFTAqIo=",
+      "integrity": "sha512-ihLeJkonmdiAsD7vpgN3CRcx2J2S0TiYW+IS/5zHBI7mKUq3ySvBdzzBfD236ubDBQFiiyG3SWCPc+msQ9KoYg==",
       "requires": {
         "default-compare": "^1.0.0",
         "get-value": "^2.0.6",
@@ -4974,7 +4974,7 @@
     "default-compare": {
       "version": "1.0.0",
       "resolved": "https://registry.npmjs.org/default-compare/-/default-compare-1.0.0.tgz",
-      "integrity": "sha1-y2ETGESthNhHiPto/QFoHKd4Gi8=",
+      "integrity": "sha512-QWfXlM0EkAbqOCbD/6HjdwT19j7WCkMyiRhWilc4H9/5h/RzTF9gv5LYh1+CmDV5d1rki6KAWLtQale0xt20eQ==",
       "requires": {
         "kind-of": "^5.0.2"
       }
@@ -5358,8 +5358,8 @@
       }
     },
     "dynogels": {
-      "version": "git://github.com/mvayngrib/dynogels.git#1e410328aa812c2e0925281bbedcaa899ffa8726",
-      "from": "mvayngrib/dynogels",
+      "version": "github:mvayngrib/dynogels#1e410328aa812c2e0925281bbedcaa899ffa8726",
+      "from": "github:mvayngrib/dynogels",
       "requires": {
         "async": "2.4.1",
         "joi": "10.5.0",
@@ -17987,22 +17987,6 @@
       "requires": {
         "bindings": "~1.2.1",
         "nan": "~2.3.0"
-      },
-      "dependencies": {
-        "bindings": {
-          "version": "1.2.1",
-          "resolved": "https://registry.npmjs.org/bindings/-/bindings-1.2.1.tgz",
-          "integrity": "sha1-FK1hE4EtLTfXLme0ystLtyZQXxE=",
-          "dev": true,
-          "optional": true
-        },
-        "nan": {
-          "version": "2.3.5",
-          "resolved": "https://registry.npmjs.org/nan/-/nan-2.3.5.tgz",
-          "integrity": "sha1-gioNwmYpDOTNOhIoLKPn42Rmigg=",
-          "dev": true,
-          "optional": true
-        }
       }
     }
   }

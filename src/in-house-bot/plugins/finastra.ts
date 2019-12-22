@@ -58,6 +58,7 @@ interface IAccountCheck {
   message?: string
   aspects: string
   req: IPBReq
+  form: any
 }
 interface IFinastraError {
   application: IPBApp
@@ -66,6 +67,7 @@ interface IFinastraError {
   customerIdError?: string
   judge: any
   req: IPBReq
+  form: any
 }
 const DEFAULT_CONF = {
   client_id: '',
@@ -235,6 +237,7 @@ export class IFinastraAPI {
     customerId,
     message,
     aspects,
+    form,
     req
   }: IAccountCheck) => {
     let date = new Date().getTime()
@@ -272,6 +275,7 @@ export const createPlugin: CreatePlugin<IFinastraAPI> = (
     accountNumberError,
     judge,
     application,
+    form,
     req
   }: IFinastraError) => {
     let message, aspects, errMessage
@@ -302,7 +306,8 @@ export const createPlugin: CreatePlugin<IFinastraAPI> = (
       resultDetails: message,
       aspects,
       provider: PROVIDER,
-      req
+      req,
+      form
     }
     if (await doesCheckNeedToBeCreated({ check, bot })) await documentChecker.createCheck(check)
     throw new Errors.AbortError(`${PROVIDER}: ${errMessage}`)
@@ -346,24 +351,37 @@ export const createPlugin: CreatePlugin<IFinastraAPI> = (
 
       let tokenResult = await documentChecker.token()
       if (!tokenResult.status) {
-        await handleError({ tokenError: tokenResult.error, judge, application, req })
+        await handleError({ tokenError: tokenResult.error, judge, application, req, form: taxForm })
         return
       }
       let customerResult = await documentChecker.customerCreate(tokenResult.token, customer)
       if (!customerResult.status) {
-        await handleError({ customerIdError: customerResult.error, judge, application, req })
+        await handleError({
+          customerIdError: customerResult.error,
+          judge,
+          application,
+          req,
+          form: taxForm
+        })
         return
       }
       debugger
       let accountResult = await documentChecker.accountCreate(tokenResult.token, customerResult.id)
       if (!accountResult.status) {
-        await handleError({ accountNumberError: accountResult.error, judge, application, req })
+        await handleError({
+          accountNumberError: accountResult.error,
+          judge,
+          application,
+          req,
+          form: taxForm
+        })
         return
       }
       certificate.accountNumber = accountResult.account
       await documentChecker.createCheck({
         application,
         customerId: customerResult.id,
+        form: taxFormStub,
         accountNumber: accountResult.account,
         status: { status: 'pass' },
         aspects: ASPECTS_ACCOUNT,

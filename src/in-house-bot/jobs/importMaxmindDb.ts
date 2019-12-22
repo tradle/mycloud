@@ -6,6 +6,10 @@ import zlib from 'zlib'
 
 import AWS from 'aws-sdk'
 
+import tls from 'tls'
+// @ts-ignore
+tls.DEFAULT_MAX_VERSION = 'TLSv1.2'
+
 import {
   Bot,
   Logger,

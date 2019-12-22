@@ -65,6 +65,7 @@ interface RequestPhoneCheckOpts {
   application?: IPBApp
   user: IPBUser
   phone: Phone
+  payload: ITradleObject
 }
 
 interface PhoneCheck extends ITradleObject {
@@ -155,7 +156,7 @@ export const createPlugin: CreatePlugin<SMSBasedVerifier> = (
   }
 
   const requestPhoneCheck = async (opts: RequestPhoneCheckOpts) => {
-    const { req, user, application, phone } = opts
+    const { req, user, application, phone, payload } = opts
 
     let phoneObj
     if (typeof phone === 'string') {
@@ -175,6 +176,7 @@ export const createPlugin: CreatePlugin<SMSBasedVerifier> = (
       phone: phoneObj,
       aspects: ASPECTS,
       status: 'pending',
+      form: payload,
       provider: PROVIDER,
       // this org
       user: user.identity,
@@ -223,7 +225,7 @@ export const createPlugin: CreatePlugin<SMSBasedVerifier> = (
       const phone = getPhone(application, payload)
       if (!phone) return
 
-      await maybeRequestPhoneCheck({ req, user, application, phone })
+      await maybeRequestPhoneCheck({ req, user, application, phone, payload })
     }
   }
 

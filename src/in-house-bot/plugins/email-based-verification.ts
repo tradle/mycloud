@@ -167,7 +167,7 @@ export const createPlugin: CreatePlugin<EmailBasedVerifier> = (
           application,
           emailAddress: value,
           aspects: ASPECTS,
-          // this org
+          form: payload,
           provider: conf.org.name,
           dateChecked: Date.now(),
           user: user.identity,
@@ -243,7 +243,7 @@ export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }
 
   const resp = await bot.mailer.canSendFrom(senderEmail)
   if (!resp.result) {
-    throw new Error(resp.reason)
+    throw new Error('Cant send email ' + resp.reason)
   }
 
   for (let product in products) {
