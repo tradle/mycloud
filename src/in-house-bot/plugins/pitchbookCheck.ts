@@ -397,6 +397,7 @@ export class PitchbookCheckAPI {
       form
     }
     if (status.dataSource) resource.dataSource = buildResourceStub({ resource: status.dataSource, models: this.bot.models })
+    this.logger.debug('DataSourceLink: ' + JSON.stringify(resource.dataSource, null, 2))
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
     if (rawData && Array.isArray(rawData)) {
