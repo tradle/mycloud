@@ -12,8 +12,10 @@ import {
   doesCheckNeedToBeCreated,
   getLatestCheck,
   isPassedCheck,
-  parseScannedDate
+  parseScannedDate,
+  getChecks
 } from '../utils'
+import { printCommand } from '../commands/help'
 
 const { TYPE } = constants
 const BASE_URL = 'https://api.complyadvantage.com/searches'
@@ -103,11 +105,8 @@ class ComplyAdvantageAPI {
     // let companyName, registrationDate
     // let resource = payload
     const { application, payload } = req
-    let isPerson = (criteria && criteria.entity_type === 'person') || isPersonForm(payload)
 
-    let map
-    if (isPerson) map = pConf.propertyMap && pConf.propertyMap[payload[TYPE]]
-    else map = propertyMap
+    let map = propertyMap
     if (!map) map = propertyMap && propertyMap[payload[TYPE]]
     // debugger
     let aspects
@@ -117,9 +116,7 @@ class ComplyAdvantageAPI {
     // if (await doesCheckExist({bot: this.bot, type: SANCTIONS_CHECK, eq: {form: payload._link}, application, provider: PROVIDER}))
     //   return
     // Check that props that are used for checking changed
-    let propertiesToCheck
-    if (isPerson) propertiesToCheck = ['firstName', 'lastName', 'dateOfBirth']
-    else propertiesToCheck = Object.values(map) // ['companyName', 'registrationDate']
+    let propertiesToCheck: any = Object.values(map) // ['companyName', 'registrationDate']
     // debugger
     let createCheck = await doesCheckNeedToBeCreated({
       bot: this.bot,
@@ -133,7 +130,7 @@ class ComplyAdvantageAPI {
     })
     if (!createCheck) return
 
-    let defaultMap: any = (isPerson && defaultPersonPropMap) || defaultPropMap
+    let defaultMap: any = defaultPropMap
 
     // Check if the check parameters changed
     let startDate = Date.now()
@@ -152,97 +149,167 @@ class ComplyAdvantageAPI {
       resource = payload
     }
     let { companyName, registrationDate, firstName, lastName, dateOfBirth } = resource
-    let name
-    if (isPerson) {
-      if (!firstName || !lastName || !dateOfBirth) {
-        this.logger.debug(
-          `${PROVIDER}. Not enough information to run the check for: ${payload[TYPE]}`
-        )
-        let status = {
-          status: 'fail',
-          message: !dateOfBirth && 'No date of birth was provided'
-          // message: `Sanctions check for "${name}" failed.` + (!dateOfBirth  &&  ' No registration date was provided')
-        }
-        await this.createCheck({ rawData: {}, status, req, aspects })
-        return
-      }
-      if (firstName.length === 1 && lastName.length === 1) {
-        this.logger.debug(`${PROVIDER}. Bad criteria: one letter first and last names`)
-        let status = {
-          status: 'fail',
-          message: 'Bad criteria: one letter first and last names'
-          // message: `Sanctions check for "${name}" failed.` + (!dateOfBirth  &&  ' No registration date was provided')
-        }
-        await this.createCheck({ rawData: {}, status, req, aspects })
-        return
-      }
-      name = firstName + ' ' + lastName
-    } else {
+    if (!companyName) {
+      debugger
       companyName = resource[propertyName]
-      this.logger.debug(`${PROVIDER} for: ${companyName}`)
-      if (companyName && !registrationDate) {
-        let check: any = await getLatestCheck({
-          type: CORPORATION_EXISTS,
-          req,
-          application,
-          bot: this.bot
-        })
-        if (check.rawData[0]) {
-          let date = check.rawData[0].company.incorporation_date
-          if (date) {
-            registrationDate = parseScannedDate(date)
-            resource.registrationDate = registrationDate
-          }
+    }
+    this.logger.debug(`${PROVIDER} for: ${companyName}`)
+    if (companyName && !registrationDate) {
+      let check: any = await getLatestCheck({
+        type: CORPORATION_EXISTS,
+        req,
+        application,
+        bot: this.bot
+      })
+      if (check.rawData[0]) {
+        let date = check.rawData[0].company.incorporation_date
+        if (date) {
+          registrationDate = parseScannedDate(date)
+          resource.registrationDate = registrationDate
         }
-      }
-
-      if (!companyName || !registrationDate) {
-        let props = this.bot.models[payload[TYPE]].properties
-        if (
-          props.companyName &&
-          props.companyName.readOnly &&
-          props.registrationDate &&
-          props.registrationDate.readOnly
-        )
-          return
-        this.logger.debug(
-          `${PROVIDER}. Not enough information to run the check for: ${payload[TYPE]}`
-        )
-        let status = {
-          status: 'fail',
-          message: !registrationDate && ' No registration date was provided'
-        }
-        await this.createCheck({ rawData: {}, status, req, aspects })
-        return
       }
     }
-    let r: { rawData: any; hits: any; status: any } = await this.getData(
+
+    if (!companyName || !registrationDate) {
+      let props = this.bot.models[payload[TYPE]].properties
+      if (
+        props.companyName &&
+        props.companyName.readOnly &&
+        props.registrationDate &&
+        props.registrationDate.readOnly
+      )
+        return
+      this.logger.debug(
+        `${PROVIDER}. Not enough information to run the check for: ${payload[TYPE]}`
+      )
+      let status = {
+        status: 'fail',
+        message: !registrationDate && ' No registration date was provided'
+      }
+      await this.createCheck({ rawData: {}, status, req, aspects })
+      return
+    }
+    let r: { rawData: any; hits: any; status: any } = await this.getData({
       resource,
       criteria,
       companyName
-    )
+    })
 
+    return await this.createChecksAndVerifications({ r, req, aspects, name: companyNameProperty })
+  }
+
+  public async getAndProcessDataForPerson({
+    propertyMap,
+    req,
+    criteria
+  }: {
+    propertyMap: any
+    req: IPBReq
+    criteria: any
+  }) {
+    // let criteria = pConf.filter
+    // let companyName, registrationDate
+    // let resource = payload
+    const { application, payload } = req
+
+    let map = propertyMap
+
+    let aspects
+    if (!criteria || !criteria.filter.types) aspects = ASPECTS + 'sanctions'
+    else aspects = ASPECTS + criteria.filter.types.join(', ')
+    // debugger
+    // if (await doesCheckExist({bot: this.bot, type: SANCTIONS_CHECK, eq: {form: payload._link}, application, provider: PROVIDER}))
+    //   return
+    // Check that props that are used for checking changed
+    let propertiesToCheck: any = Object.values(propertyMap) //['firstName', 'lastName', 'dateOfBirth']
+    // debugger
+    let createCheck = await doesCheckNeedToBeCreated({
+      bot: this.bot,
+      type: SANCTIONS_CHECK,
+      application,
+      provider: PROVIDER,
+      form: payload,
+      propertiesToCheck,
+      prop: 'form',
+      req
+    })
+    if (!createCheck) return
+
+    // Check if the check parameters changed
+    let startDate = Date.now()
+    let { resource, error } = await getCheckParameters({
+      plugin: PROVIDER,
+      resource: payload,
+      bot: this.bot,
+      defaultPropMap: defaultPersonPropMap,
+      map
+    })
+    this.logger.debug(`${PROVIDER} : getCheckParameters: ${Date.now() - startDate} `)
+    if (!resource) {
+      if (error) this.logger.debug(error)
+      // HACK - check if there is a check for this provider
+      if (application.checks && application.checks.find(c => c[TYPE] === payload[TYPE])) return
+      resource = payload
+    }
+    let { firstName, lastName, dateOfBirth } = resource
+    if (!firstName || !lastName || !dateOfBirth) {
+      this.logger.debug(
+        `${PROVIDER}. Not enough information to run the check for: ${payload[TYPE]}`
+      )
+      let status = {
+        status: 'fail',
+        message: !dateOfBirth && 'No date of birth was provided'
+        // message: `Sanctions check for "${name}" failed.` + (!dateOfBirth  &&  ' No registration date was provided')
+      }
+      await this.createCheck({ rawData: {}, status, req, aspects })
+      return
+    }
+    if (firstName.length === 1 && lastName.length === 1) {
+      this.logger.debug(`${PROVIDER}. Bad criteria: one letter first and last names`)
+      let status = {
+        status: 'fail',
+        message: 'Bad criteria: one letter first and last names'
+        // message: `Sanctions check for "${name}" failed.` + (!dateOfBirth  &&  ' No registration date was provided')
+      }
+      await this.createCheck({ rawData: {}, status, req, aspects })
+      return
+    }
+    let name = firstName + ' ' + lastName
+
+    let r: { rawData: any; hits: any; status: any } = await this.getData({
+      resource,
+      criteria
+    })
+    debugger
+    return await this.createChecksAndVerifications({ r, req, aspects, name })
+  }
+  async createChecksAndVerifications({ r, req, aspects, name }) {
     let pchecks = []
     let { rawData, hits, status } = r
     if (rawData.status === 'failure') {
       pchecks.push(this.createCheck({ rawData, status: 'fail', req, aspects }))
     } else {
       let hasVerification
-      if (hits && hits.length)
-        this.logger.debug(`${PROVIDER} found sanctions for: ${companyName || name}`)
+      if (hits && hits.length) this.logger.debug(`${PROVIDER} found sanctions for: ${name}`)
       else {
         hasVerification = true
-        this.logger.debug(`${PROVIDER} creating verification for: ${companyName || name}`)
+        this.logger.debug(`${PROVIDER} creating verification for: ${name}`)
       }
-      pchecks.push(
-        this.createCheck({ rawData, status, req, aspects, propertyName, companyNameProperty })
-      )
+      pchecks.push(this.createCheck({ rawData, status, req, aspects }))
       if (hasVerification) pchecks.push(this.createVerification({ rawData, req }))
     }
-    let checksAndVerifications = await Promise.all(pchecks)
+    return await Promise.all(pchecks)
   }
 
-  public getData = async (resource, criteria, companyName) => {
+  public getData = async ({
+    resource,
+    criteria,
+    companyName
+  }: {
+    resource: any
+    criteria: any
+    companyName?: string
+  }) => {
     let { registrationDate, firstName, lastName, dateOfBirth, entity_type } = resource //conf.propertyMap //[resource[TYPE]]
     let search_term = criteria && criteria.search_term
 
@@ -413,30 +480,29 @@ export const createPlugin: CreatePlugin<void> = (
 
       if (!application) return
 
-      let productId = application.requestFor
       let { products, forms } = conf
       let ptype = payload[TYPE]
-      let pConf
-      if (products && products[productId]) pConf = products[productId]
-      else if (forms && forms[ptype]) {
-        pConf = forms[ptype]
-        await complyAdvantage.getAndProcessData({
-          pConf,
-          req
-        })
-        return
-      } else return
+      let fConf = forms && forms[ptype]
+      let productId = application.requestFor
+      if (!fConf && (!products || !products[productId])) return
 
-      let propertyMap = pConf.propertyMap && pConf.propertyMap[ptype]
+      let { criteria, propertyMap, isPerson, pConf } = await this.checkForms(conf, payload, req)
 
-      let isPerson = isPersonForm(payload)
-      if (!isPerson && !propertyMap) return
+      if (isPerson) return
+
+      if (!criteria && products && products[productId]) {
+        pConf = products[productId]
+        criteria = pConf.filter
+        propertyMap = pConf.propertyMap && pConf.propertyMap[ptype]
+      }
 
       // Check that corporation exists otherwise no need to run
-      if (!isPerson) {
-        let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, application, req, bot })
-        if (!check || isPassedCheck(check.status)) return
-      }
+      // let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, application, req, bot })
+      let items = await getChecks({ bot, type: CORPORATION_EXISTS, application })
+      if (!items || !items.length) return
+
+      let check = items.find(item => item.form._permalink === payload._permalink)
+      // if (!check || isPassedCheck(check.status)) return
       if (propertyMap && !_.size(propertyMap)) propertyMap = null
 
       // if (!isPersonForm(payload) && payload[TYPE] !== LEGAL_ENTITY) return
@@ -469,6 +535,50 @@ export const createPlugin: CreatePlugin<void> = (
           req
         })
       }
+    },
+    async checkForms(conf, payload, req) {
+      let { forms } = conf
+      let ptype = payload[TYPE]
+      let pConf = forms[ptype]
+      if (!pConf) return {}
+      let criteria
+      let propertyMap
+      let isPerson = isPersonForm(payload)
+      if (isPerson) {
+        criteria = pConf.filter
+        propertyMap = pConf.propertyMap
+        await complyAdvantage.getAndProcessDataForPerson({
+          req,
+          criteria,
+          propertyMap: propertyMap || defaultPersonPropMap
+        })
+        return { isPerson }
+      }
+      if (pConf.person) {
+        let property = pConf.person.property
+        for (let p in property) {
+          if (typeof pConf.person.property[p] === 'object') {
+            isPerson = payload[p].id === pConf.person.property[p].id
+          } else isPerson = payload[p] !== null
+        }
+        if (isPerson) {
+          criteria = pConf.person.filter
+          propertyMap = pConf.person.propertyMap
+          if (propertyMap) propertyMap = { ...defaultPersonPropMap, ...propertyMap }
+        }
+      }
+      if (isPerson) {
+        await complyAdvantage.getAndProcessDataForPerson({
+          req,
+          criteria,
+          propertyMap
+        })
+        return { isPerson }
+      }
+      criteria = pConf.entity.filter
+      propertyMap = pConf.entity && pConf.entity.propertyMap
+      if (propertyMap) propertyMap = { ...defaultPropMap, ...propertyMap }
+      return { criteria, propertyMap, pConf: pConf.entity, isPerson }
     }
   }
 
@@ -557,56 +667,4 @@ export const createPlugin: CreatePlugin<void> = (
 //       ]
 //     }
 //   }
-// }
-
-// async getCheckParameters (resource) {
-//   let map = this.conf.propertyMap[resource[TYPE]]
-//   let dbRes = resource._prevlink  &&  await this.bot.objects.get(resource._prevlink)
-//   let runCheck = !dbRes
-//   debugger
-//   let r:any = {}
-//   for (let prop in defaultPropMap) {
-//     let p = map  &&  map[prop]
-//     if (!p)
-//       p = prop
-//     let pValue = resource[p]
-//     if (dbRes  &&  dbRes[p] !== pValue)
-//       runCheck = true
-//     r[prop] = pValue
-//   }
-//   debugger
-//   if (runCheck)
-//     return r
-//   this.logger.debug(`nothing changed for: ${title({resource, models: this.bot.models})}`)
-
-//   // for (let formId in propertyMap) {
-//   //   let map = propertyMap[formId]
-//   //   if (formId !== LEGAL_ENTITY) {
-//   //     debugger
-//   //     let formStubs = getParsedFormStubs(application).filter(f => f.type === LEGAL_ENTITY)
-
-//   //     if (!formStubs.length) {
-//   //       this.logger.debug(`No form ${formId} was found for ${productId}`)
-//   //       return
-//   //     }
-//   //     let { link } = formStubs[0]
-//   //     resource = await this.bot.objects.get(link)
-//   //   }
-//   //   let companyNameProp = map.companyName
-//   //   if (companyNameProp) {
-//   //     companyName = resource[companyNameProp]
-//   //     if (dbRes  &&  dbRes[companyNameProp] !== companyName)
-//   //       runCheck = true
-//   //   }
-//   //   let registrationDateProp = map.registrationDate
-//   //   if (registrationDateProp) {
-//   //     registrationDate = resource[registrationDateProp]
-//   //     if (dbRes  &&  dbRes[registrationDateProp] !== registrationDate)
-//   //       runCheck = true
-//   //   }
-//   // }
-//   // if (runCheck)
-//   //   return {companyName, registrationDate}
-//   // else
-//   //   this.logger.debug(`nothing changed for: ${companyName}`)
 // }

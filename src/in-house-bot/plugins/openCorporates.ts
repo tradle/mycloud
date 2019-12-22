@@ -302,12 +302,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       if (req.skipChecks) return
       const { user, application, payload } = req
       if (!application) return
-      if (!payload.country || !payload.companyName || !payload.registrationNumber) {
-        logger.debug(
-          'skipping check as form is missing "country" or "registrationNumber" or "companyName"'
-        )
-        return
-      }
 
       // debugger
       let ptype = payload[TYPE]
@@ -317,19 +311,20 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         logger.debug('not running check as form is missing "country"')
         return
       }
-      // if (
-      //   await doesCheckExist({
-      //     bot,
-      //     type: CORPORATION_EXISTS,
-      //     eq: { form: payload._link },
-      //     application,
-      //     provider: OPEN_CORPORATES
-      //   })
-      // )
-      //   return
 
-      let propertiesToCheck = ['registrationNumber', 'registrationDate', 'country', 'companyName']
+      let map = propertyMap && propertyMap[payload[TYPE]]
+      if (map) map = { ...defaultPropMap, ...map }
+      else map = defaultPropMap
+
+      let propertiesToCheck: any = Object.values(map) // ['registrationNumber', 'registrationDate', 'country', 'companyName']
       if (bot.models[ptype].properties.region) propertiesToCheck.push('region')
+
+      if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) {
+        logger.debug(
+          'skipping check as form is missing "country" or "registrationNumber" or "companyName"'
+        )
+        return
+      }
 
       let createCheck = await doesCheckNeedToBeCreated({
         bot,
@@ -342,9 +337,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         req
       })
       if (!createCheck) return
-
-      let map = propertyMap && propertyMap[payload[TYPE]]
-      if (map) map = { ...defaultPropMap, ...map }
 
       let { resource, error } = await getCheckParameters({
         plugin: DISPLAY_NAME,
