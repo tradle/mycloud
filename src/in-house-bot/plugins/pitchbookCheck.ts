@@ -124,9 +124,9 @@ export class PitchbookCheckAPI {
           EQ: {
             [TYPE]: DATA_SOURCE_REFRESH,
             'name.id': `${REFERENCE_DATA_SOURCES}_${id}`
-          },
-          orderBy: ORDER_BY_TIMESTAMP_DESC
-        }
+          }
+        },
+        orderBy: ORDER_BY_TIMESTAMP_DESC
       });
     } catch (err) {
       this.logger.error(`Lookup DataSourceRefresh error for '${id}'`, err)
