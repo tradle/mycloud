@@ -396,6 +396,7 @@ export class PitchbookCheckAPI {
       aspects: ASPECTS,
       form
     }
+    this.logger.debug('DataSourceLink stub for: ' + JSON.stringify(status.dataSource, null, 2))
     if (status.dataSource) resource.dataSource = buildResourceStub({ resource: status.dataSource, models: this.bot.models })
     this.logger.debug('DataSourceLink: ' + JSON.stringify(resource.dataSource, null, 2))
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
