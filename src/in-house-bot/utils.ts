@@ -540,14 +540,14 @@ export const getChecks = async ({
   bot: Bot
   type: string
   application: IPBApp
-  provider: string
+  provider?: string
 }) => {
   // debugger
   let eqClause = {
     [TYPE]: type,
-    'application._permalink': application._permalink,
-    provider
+    'application._permalink': application._permalink
   }
+  if (provider) _.extend(eqClause, { provider })
   const { items } = await bot.db.find({
     allowScan: true,
     orderBy: {
