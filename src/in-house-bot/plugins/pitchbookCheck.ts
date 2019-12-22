@@ -123,7 +123,7 @@ export class PitchbookCheckAPI {
         filter: {
           EQ: {
             [TYPE]: DATA_SOURCE_REFRESH,
-            name: enumValue({
+            'name.id': enumValue({
               model: this.bot.models[REFERENCE_DATA_SOURCES],
               value: id
             })
