@@ -2,7 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.29](https://github.com/tradle/mycloud/compare/v2.5.1-rc.28...v2.5.1-rc.29) (2019-12-18)
+## [2.5.1-rc.30](https://github.com/tradle/mycloud/compare/v2.5.1-rc.29...v2.5.1-rc.30) (2019-12-22)
+
+
+### Bug Fixes
+
+* typo ([8a29fb1](https://github.com/tradle/mycloud/commit/8a29fb1))
+
+
+### Features
+
+* add edits check if it was created ([ecb2797](https://github.com/tradle/mycloud/commit/ecb2797))
+* allow screening before onboarding ([cfbc608](https://github.com/tradle/mycloud/commit/cfbc608))
+* checks backlink on form ([db2fdb4](https://github.com/tradle/mycloud/commit/db2fdb4))
+* fresh models ([8b85acb](https://github.com/tradle/mycloud/commit/8b85acb))
+* getChecks signature change ([e0348bb](https://github.com/tradle/mycloud/commit/e0348bb))
 
 
 

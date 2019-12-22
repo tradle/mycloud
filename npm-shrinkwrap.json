@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "2.5.1-rc.29",
+  "version": "2.5.1-rc.30",
   "lockfileVersion": 1,
   "requires": true,
   "dependencies": {
@@ -747,7 +747,7 @@
       "from": "tradle/models-cloud-services"
     },
     "@tradle/models-corporate-onboarding": {
-      "version": "github:tradle/models-corporate-onboarding#3d3df283be29ac20b642f1fa06ee4b316d00faef",
+      "version": "github:tradle/models-corporate-onboarding#e90bc7997078fb7edf8a3d9e3ca799320db55d64",
       "from": "github:tradle/models-corporate-onboarding"
     },
     "@tradle/models-nz": {
@@ -1735,7 +1735,7 @@
     "array-sort": {
       "version": "1.0.0",
       "resolved": "https://registry.npmjs.org/array-sort/-/array-sort-1.0.0.tgz",
-      "integrity": "sha512-ihLeJkonmdiAsD7vpgN3CRcx2J2S0TiYW+IS/5zHBI7mKUq3ySvBdzzBfD236ubDBQFiiyG3SWCPc+msQ9KoYg==",
+      "integrity": "sha1-5MBTVkU/VvU1EqfR1hI/LFTAqIo=",
       "requires": {
         "default-compare": "^1.0.0",
         "get-value": "^2.0.6",
@@ -4974,7 +4974,7 @@
     "default-compare": {
       "version": "1.0.0",
       "resolved": "https://registry.npmjs.org/default-compare/-/default-compare-1.0.0.tgz",
-      "integrity": "sha512-QWfXlM0EkAbqOCbD/6HjdwT19j7WCkMyiRhWilc4H9/5h/RzTF9gv5LYh1+CmDV5d1rki6KAWLtQale0xt20eQ==",
+      "integrity": "sha1-y2ETGESthNhHiPto/QFoHKd4Gi8=",
       "requires": {
         "kind-of": "^5.0.2"
       }
@@ -17987,6 +17987,22 @@
       "requires": {
         "bindings": "~1.2.1",
         "nan": "~2.3.0"
+      },
+      "dependencies": {
+        "bindings": {
+          "version": "1.2.1",
+          "resolved": "https://registry.npmjs.org/bindings/-/bindings-1.2.1.tgz",
+          "integrity": "sha1-FK1hE4EtLTfXLme0ystLtyZQXxE=",
+          "dev": true,
+          "optional": true
+        },
+        "nan": {
+          "version": "2.3.5",
+          "resolved": "https://registry.npmjs.org/nan/-/nan-2.3.5.tgz",
+          "integrity": "sha1-gioNwmYpDOTNOhIoLKPn42Rmigg=",
+          "dev": true,
+          "optional": true
+        }
       }
     }
   }
