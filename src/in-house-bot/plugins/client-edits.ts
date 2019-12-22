@@ -2,6 +2,11 @@ import _ from 'lodash'
 import levenshtein from 'fast-levenshtein'
 
 import constants from '@tradle/constants'
+import validateResource from '@tradle/validate-resource'
+import { buildResourceStub } from '@tradle/build-resource'
+// @ts-ignore
+const { sanitize } = validateResource.utils
+
 import { Bot, Logger, IPBApp, IPBReq, ITradleObject, CreatePlugin, Applications } from '../types'
 
 import { doesCheckNeedToBeCreated, isSubClassOf } from '../utils'
@@ -12,7 +17,8 @@ const PROVIDER = 'Tradle'
 
 const CLIENT_EDITS_CHECK = 'tradle.ClientEditsCheck'
 const MODIFICATION = 'tradle.Modification'
-const ASPECTS = 'distance between scanned/prefilled and entered data'
+const ASPECTS = 'Fuzzy match'
+const DIFFERENCE_WITH_PREFILL = 'Differences With Prefilled Form'
 
 interface IValidityCheck {
   rawData: any
@@ -59,16 +65,14 @@ class ClientEditsAPI {
     if (prefill) this.checkTheDifferencesWithPrefill(payload, rawData, prefill)
     if (!_.size(rawData)) return
     let status
-    for (let p in rawData) {
-      if (rawData[p].distance > distance) {
+    let diff = rawData[DIFFERENCE_WITH_PREFILL]
+    for (let p in diff) {
+      if (diff[p].distance > distance) {
         status = 'fail'
       }
     }
     if (!status) status = 'pass'
-    let pchecks = []
-    pchecks.push(this.createCheck({ req, rawData, status }))
-    if (rawData.Status === 'pass') pchecks.push(this.createVerification({ rawData, req }))
-    let checksAndVerifications = await Promise.all(pchecks)
+    return await this.createCheck({ req, rawData, status })
   }
 
   public checkTheDifferencesWithPrefill(payload, rawData, prefill) {
@@ -104,10 +108,10 @@ class ClientEditsAPI {
         }
       }
     }
-    if (hasChanges) rawData['Differences With Prefilled Form'] = changes
+    if (hasChanges) rawData[DIFFERENCE_WITH_PREFILL] = changes
   }
 
-  public createCheck = async ({ rawData, status, req }: IValidityCheck) => {
+  public async createCheck({ rawData, status, req }: IValidityCheck) {
     let dateStr = rawData.updated_at
     let date
     if (dateStr) date = Date.parse(dateStr) - new Date().getTimezoneOffset() * 60 * 1000
@@ -138,49 +142,48 @@ class ClientEditsAPI {
     if (rawData) resource.rawData = rawData
 
     this.logger.debug(`Creating ClientEdits Check for: ${form.firstName} ${form.lastName}`)
-    const check = await this.applications.createCheck(resource, req)
-    this.logger.debug(`Created ClientEdits Check for: ${form.firstName} ${form.lastName}`)
+    return await this.applications.createCheck(resource, req)
   }
 
-  public createVerification = async ({ rawData, req }) => {
-    let { user, application, payload } = req
-    const method: any = {
-      [TYPE]: 'tradle.APIBasedVerificationMethod',
-      api: {
-        [TYPE]: 'tradle.API',
-        name: 'Document Validator'
-      },
-      aspect: ASPECTS,
-      rawData,
-      reference: [
-        {
-          queryId: `report: DV-${Math.random()
-            .toString()
-            .substring(2)}`
-        }
-      ]
-    }
+  // public createVerification = async ({ rawData, req }) => {
+  //   let { user, application, payload } = req
+  //   const method: any = {
+  //     [TYPE]: 'tradle.APIBasedVerificationMethod',
+  //     api: {
+  //       [TYPE]: 'tradle.API',
+  //       name: 'Document Validator'
+  //     },
+  //     aspect: ASPECTS,
+  //     rawData,
+  //     reference: [
+  //       {
+  //         queryId: `report: DV-${Math.random()
+  //           .toString()
+  //           .substring(2)}`
+  //       }
+  //     ]
+  //   }
 
-    const verification = this.bot
-      .draft({ type: VERIFICATION })
-      .set({
-        document: payload,
-        method
-      })
-      .toJSON()
-    // debugger
+  //   const verification = this.bot
+  //     .draft({ type: VERIFICATION })
+  //     .set({
+  //       document: payload,
+  //       method
+  //     })
+  //     .toJSON()
+  //   // debugger
 
-    await this.applications.createVerification({ application, verification })
-    this.logger.debug('Created DocumentValidity Verification')
-    if (application.checks)
-      await this.applications.deactivateChecks({
-        application,
-        type: CLIENT_EDITS_CHECK,
-        form: payload,
-        req
-      })
-  }
-  public createModification = async req => {
+  //   await this.applications.createVerification({ application, verification })
+  //   this.logger.debug('Created DocumentValidity Verification')
+  //   if (application.checks)
+  //     await this.applications.deactivateChecks({
+  //       application,
+  //       type: CLIENT_EDITS_CHECK,
+  //       form: payload,
+  //       req
+  //     })
+  // }
+  public createModification = async ({ req, check }) => {
     const { payload } = req
     let prevResource = await this.bot.objects.get(payload._p)
 
@@ -224,6 +227,18 @@ class ClientEditsAPI {
     if (_.size(changed)) _.extend(modifications, { changed })
     if (_.size(removed)) _.extend(modifications, { removed })
     if (!_.size(modifications)) return
+
+    if (check) {
+      let checkResource = check.toJSON()
+      _.extend(modifications, {
+        check: {
+          hash: check.permalink,
+          type: checkResource[TYPE],
+          displayName: checkResource.aspects,
+          status: checkResource.status
+        }
+      })
+    }
     if (isInitialSubmission) {
       modifications = {
         initialSubmission: modifications
@@ -258,6 +273,7 @@ class ClientEditsAPI {
       })
       dataLineage[p] = properties
     }
+    dataLineage = sanitize(dataLineage).sanitized
     let resource: any = {
       [TYPE]: MODIFICATION,
       dateModified: Date.now(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
@@ -287,16 +303,19 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       const { models } = bot
       const sourceOfData = payload._sourceOfData
       if (!isSubClassOf(FORM, models[payload[TYPE]], models)) return
-      debugger
-      if (payload._permalink === payload._link) await clientEdits.createDataLineageModification(req)
-      else {
-        await clientEdits.createModification(req)
-      }
 
       let { distance } = conf
-      if (!distance) return
-      if (!sourceOfData) return
-      await clientEdits.checkEdits({ req, sourceOfData, distance })
+      let check
+      if (distance && sourceOfData)
+        check = await clientEdits.checkEdits({ req, sourceOfData, distance })
+
+      if (payload._permalink === payload._link) await clientEdits.createDataLineageModification(req)
+      else await clientEdits.createModification({ req, check })
+
+      // let { distance } = conf
+      // if (!distance) return
+      // if (!sourceOfData) return
+      // let check = await clientEdits.checkEdits({ req, sourceOfData, distance })
     }
   }
 
