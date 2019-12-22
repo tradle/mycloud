@@ -132,6 +132,7 @@ export class PitchbookCheckAPI {
         }
       });
     } catch (err) {
+      this.logger.error(`Lookup DataSourceRefresh error for '${id}'`, err)
       return undefined
     }
   }
@@ -251,6 +252,7 @@ export class PitchbookCheckAPI {
     if (find.status && find.data.length > 0) {
       this.logger.debug(`pitchbookCheck check() found ${find.data.length} records for company funds`)
       let dataSourceLink = await this.getLinkToDataSource('pitchbook.fund')
+      this.logger.debug(`found DataSourceRefresh for 'pitchbook.fund': ${dataSourceLink}`)
       rawData = this.mapFunds(find.data)
       status = { status: 'pass', dataSource: dataSourceLink }
     }
