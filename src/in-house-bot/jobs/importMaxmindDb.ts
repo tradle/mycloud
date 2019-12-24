@@ -6,9 +6,8 @@ import zlib from 'zlib'
 
 import AWS from 'aws-sdk'
 
-import tls from 'tls'
-// @ts-ignore
-tls.DEFAULT_MAX_VERSION = 'TLSv1.2'
+import https from 'https'
+
 
 import {
   Bot,
@@ -75,6 +74,7 @@ export class ImportMaxmindDb {
     await this.bot.signAndSave(resource)
   }
 
+  /*
   MD5OfLink = async () => {
     let link = 'https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz.md5'
     try {
@@ -87,6 +87,32 @@ export class ImportMaxmindDb {
       throw err
     }
   }
+  */
+
+  MD5OfLink = async (): Promise<string> => {
+    var options = {
+      hostname: 'geolite.maxmind.com',
+      port: 443,
+      path: '/download/geoip/database/GeoLite2-City.tar.gz.md5',
+      method: 'GET',
+      secureProtocol: "TLSv1_2_method"
+    }
+    let dt: string = await new Promise((resolve, reject) => {
+      https.request(options, res => {
+        let body = ''
+        res.on('data', d => body += d)
+
+        res.on('end', () => {
+          resolve(body.toString())
+        })
+
+      }).on('error', err => {
+        this.logger.debug('importMaxmindDb MD5OfLink download error', err)
+        reject(err)
+      }).end()
+    })
+    return dt
+  }
 
   MD5OfUploaded = async (key: string) => {
     var params = {
@@ -97,6 +123,34 @@ export class ImportMaxmindDb {
     return resp.Metadata.md5
   }
 
+  download = async () => {
+    // prepare directory in temp
+    fs.ensureDirSync(MAXMIND_DIR)
+    const fileStream = fs.createWriteStream(MAXMIND_DIR + '/GeoLite2-City.tar.gz')
+    var options = {
+      hostname: 'geolite.maxmind.com',
+      port: 443,
+      path: '/download/geoip/database/GeoLite2-City.tar.gz',
+      method: 'GET',
+      secureProtocol: "TLSv1_2_method"
+    }
+
+    let dt = await new Promise((resolve, reject) => {
+      https.request(options, res => {
+        res.on('data', buf => fileStream.write(buf))
+
+        res.on('end', () => {
+          fileStream.end()
+          resolve()
+        })
+      }).on('error', err => {
+        this.logger.debug('importMaxmindDb maxmind download error', err)
+        reject(err)
+      }).end()
+    })
+  }
+
+  /*
   download = async () => {
     // prepare directory in temp
     fs.ensureDirSync(MAXMIND_DIR)
@@ -115,7 +169,7 @@ export class ImportMaxmindDb {
       })
     })
   }
-
+  */
   decomp = async () => {
     let dist = MAXMIND_DIR + '/dist'
     !fs.existsSync(dist) && fs.mkdirSync(dist)
@@ -141,6 +195,7 @@ export class ImportMaxmindDb {
           var out = fs.createWriteStream(db + '.gz');
           let writePromise = this.writeStreamToPromise(out)
           inp.pipe(gzip).pipe(out);
+          this.logger.debug(`importMaxmindDb uncompress`)
           await writePromise
           await this.upload(db, md5)
           break;
@@ -157,6 +212,7 @@ export class ImportMaxmindDb {
       Metadata: { md5 },
       Body: stream
     }
+    this.logger.debug(`importMaxmindDb uploading ${path} to s3`)
     let res = await s3.upload(contentToPost).promise()
   }
 

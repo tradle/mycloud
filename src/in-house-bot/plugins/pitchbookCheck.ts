@@ -23,7 +23,7 @@ import Errors from '../../errors'
 import AWS from 'aws-sdk'
 import _ from 'lodash'
 
-import { enumValue, buildResourceStub } from '@tradle/build-resource'
+import { buildResourceStub } from '@tradle/build-resource'
 
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
@@ -123,15 +123,13 @@ export class PitchbookCheckAPI {
         filter: {
           EQ: {
             [TYPE]: DATA_SOURCE_REFRESH,
-            name: enumValue({
-              model: this.bot.models[REFERENCE_DATA_SOURCES],
-              value: id
-            })
-          },
-          orderBy: ORDER_BY_TIMESTAMP_DESC
-        }
+            'name.id': `${REFERENCE_DATA_SOURCES}_${id}`
+          }
+        },
+        orderBy: ORDER_BY_TIMESTAMP_DESC
       });
     } catch (err) {
+      this.logger.error(`Lookup DataSourceRefresh error for '${id}'`, err)
       return undefined
     }
   }
@@ -398,7 +396,9 @@ export class PitchbookCheckAPI {
       aspects: ASPECTS,
       form
     }
+    this.logger.debug('DataSourceLink stub for: ' + JSON.stringify(status.dataSource, null, 2))
     if (status.dataSource) resource.dataSource = buildResourceStub({ resource: status.dataSource, models: this.bot.models })
+    this.logger.debug('DataSourceLink: ' + JSON.stringify(resource.dataSource, null, 2))
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
     if (rawData && Array.isArray(rawData)) {

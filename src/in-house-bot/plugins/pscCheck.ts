@@ -21,7 +21,7 @@ import {
   Logger
 } from '../types'
 import Errors from '../../errors'
-import { enumValue, buildResourceStub } from '@tradle/build-resource'
+import { buildResourceStub } from '@tradle/build-resource'
 import AWS from 'aws-sdk'
 import _ from 'lodash'
 import util from 'util'
@@ -90,13 +90,10 @@ export class PscCheckAPI {
         filter: {
           EQ: {
             [TYPE]: DATA_SOURCE_REFRESH,
-            name: enumValue({
-              model: this.bot.models[REFERENCE_DATA_SOURCES],
-              value: 'psc'
-            })
-          },
-          orderBy: ORDER_BY_TIMESTAMP_DESC
-        }
+            'name.id': `${REFERENCE_DATA_SOURCES}_psc`
+          }
+        },
+        orderBy: ORDER_BY_TIMESTAMP_DESC
       });
     } catch (err) {
       return undefined
