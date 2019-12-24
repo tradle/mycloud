@@ -263,7 +263,7 @@ class ClientEditsAPI {
     if (!sourceOfData) return
     let { dataLineage, prefill } = await this.bot.getResource(sourceOfData)
 
-    if (!dataLineage) return
+    if (!dataLineage) return {}
 
     for (let p in dataLineage) {
       let props = dataLineage[p].properties
@@ -301,8 +301,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       if (!payload._link) return
       if (!application) return
       const { models } = bot
-      const sourceOfData = payload._sourceOfData
       if (!isSubClassOf(FORM, models[payload[TYPE]], models)) return
+      const sourceOfData = payload._sourceOfData
 
       let { distance } = conf
       let check
