@@ -4,6 +4,7 @@ import { HTTPOptions } from 'aws-sdk/lib/config'
 import { AWSConfig, getLocalstackConfig } from '@tradle/aws-common-utils'
 import merge from 'lodash/merge'
 import { Bot } from '../types'
+import { REGIONS } from '../mailer'
 
 interface CreateConfigOpts {
   region: string
@@ -25,6 +26,22 @@ export const createConfig = ({ region, local, iotEndpoint }: CreateConfigOpts): 
     agent.setMaxListeners(0)
     httpOptions.agent = agent
   }
+  let sesRegion
+  if (region && REGIONS.includes(region)) sesRegion = region
+  else {
+    let parts = region.split('-')
+    parts.pop()
+    let partialRegion = parts.join('-')
+
+    // let idx = region.lastIndexOf('-')
+    // let partialRegion = region.slice(0, idx)
+    let sesRegion = REGIONS.find(r => r.startsWith(partialRegion))
+    if (!sesRegion) {
+      // partialRegion = partialRegion.split('-')[0]
+      partialRegion = parts[0]
+      sesRegion = REGIONS.find(r => r.startsWith(partialRegion))
+    }
+  }
 
   const config: AWSConfig = {
     maxRetries: 6,
@@ -32,6 +49,9 @@ export const createConfig = ({ region, local, iotEndpoint }: CreateConfigOpts): 
     httpOptions,
     s3: {
       signatureVersion: 'v4'
+    },
+    ses: {
+      region: sesRegion || region
     },
     iotdata: {
       httpOptions: {
