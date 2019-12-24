@@ -535,6 +535,31 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
   }
 }
 
+async function checkTheCheck(payload, application, propertyMap, conf, bot) {
+  let { associatedResource } = application
+  if (!associatedResource) return true
+  let atype = associatedResource[TYPE]
+  if (!conf.forms[atype]) return
+  let aRes = await bot.getResource(associatedResource)
+
+  let mapP = propertyMap && propertyMap[payload[TYPE]]
+  if (mapP) mapP = { ...defaultPropMap, ...mapP }
+  else mapP = defaultPropMap
+  let companyName = payload[mapP.companyName]
+  let registrationNumber = payload[mapP.registrationNumber]
+  let country = payload[mapP.country]
+
+  let mapA = propertyMap && propertyMap[atype]
+  if (mapA) mapA = { ...defaultPropMap, ...mapA }
+  else mapA = defaultPropMap
+
+  return (
+    companyName !== associatedResource[mapA.companyName] ||
+    country !== associatedResource[mapA.country] ||
+    registrationNumber !== associatedResource[mapA.registrationNumber]
+  )
+}
+
 // Search for jurisdiction and the by company number
 // async _fetch(resource, conf, application) {
 //   let country = resource.country
