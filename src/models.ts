@@ -1,6 +1,7 @@
 import extend from 'lodash/extend'
 import { Models } from './types'
-
+import { TYPES } from '@tradle/constants'
+const { FORM } = TYPES
 const requireModels = moduleName => {
   const module = require(moduleName)
   return module.models || module
@@ -97,20 +98,22 @@ let models: any = extend(
   requireModels('@tradle/models-cloud'),
   requireModels('@tradle/models-cloud-services')
 )
-const exclude = ['tradle.AssignRelationshipManager', 'tradle.ProductRequest']
-const modificationHistory = {
-  type: 'array',
-  internalUse: true,
-  readOnly: true,
-  items: {
-    ref: 'tradle.Modification',
-    backlink: 'form'
-  }
+let formBacklinks = []
+let formProps = models[FORM].properties
+for (let p in formProps) {
+  let prop = formProps[p]
+  if (prop.items && prop.items.backlink) formBacklinks.push({ [p]: prop })
 }
 
 for (let m in models) {
-  if (exclude.includes(m)) continue
   let model = models[m]
-  if (model.subClassOf === 'tradle.Form') extend(model.properties, { modificationHistory })
+  if (model.abstract || !model.subClassOf) continue
+  let sub = model
+  while (sub.subClassOf && sub.subClassOf !== FORM) sub = models[sub.subClassOf]
+  if (!sub.subClassOf) continue
+  formBacklinks.forEach(bl => {
+    let p = Object.keys(bl)[0]
+    if (!model.properties[p]) extend(model.properties, { [p]: bl[p] })
+  })
 }
 export = models as Models

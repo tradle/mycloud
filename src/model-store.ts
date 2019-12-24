@@ -3,7 +3,7 @@ import _ from 'lodash'
 import Pack from '@tradle/models-pack'
 import { TYPE, TYPES } from '@tradle/constants'
 const FORM = TYPES.FORM
-
+const basicModels = require('@tradle/models').models
 import { createModelStore as createStore, ModelStore as DBModelStore } from '@tradle/dynamodb'
 
 import { CacheableBucketItem } from './cacheable-bucket-item'
@@ -18,15 +18,6 @@ const parseJSON = obj => JSON.parse(obj)
 const MODELS_PACK = 'tradle.ModelsPack'
 const MODELS_PACK_CACHE_MAX_AGE = 60000
 const MINUTE = 60000
-const modificationHistory = {
-  type: 'array',
-  internalUse: true,
-  readOnly: true,
-  items: {
-    ref: 'tradle.Modification',
-    backlink: 'form'
-  }
-}
 
 const getDomain = pack => {
   if (typeof pack === 'object') {
@@ -232,10 +223,12 @@ export class ModelStore extends EventEmitter {
   }
 
   public getCumulativeModelsPack = async (opts?: any) => {
+    let form = basicModels[FORM]
+    const modificationHistory = form.modificationHistory
     try {
       let modelsPack = await this.cumulativePackItem.get(opts)
       let { models } = modelsPack
-      models.forEach(m => m.subClassOf === FORM && _.extend(m.properties, { modificationHistory }))
+      this.addFormBacklinks({ models })
       return modelsPack
     } catch (err) {
       Errors.ignoreNotFound(err)
@@ -288,6 +281,30 @@ export class ModelStore extends EventEmitter {
     })
   }
 
+  private addFormBacklinks = ({ models }) => {
+    let formBacklinks = []
+    let formProps = basicModels[FORM].properties
+    for (let p in formProps) {
+      let prop = formProps[p]
+      if (prop.items && prop.items.backlink) formBacklinks.push({ [p]: prop })
+    }
+
+    models.forEach(m => {
+      if (m.abstract || !m.subClassOf) return
+      let sub = m
+      while (sub && sub.subClassOf && sub.subClassOf !== FORM) sub = models[sub.subClassOf]
+
+      if (sub && sub.subClassOf) {
+        formBacklinks.forEach(bl => {
+          let p = Object.keys(bl)[0]
+          if (!m.properties[p])
+            _.extend(m.properties, {
+              [p]: bl[p]
+            })
+        })
+      }
+    })
+  }
   public setCustomModels = (modelsPack: ModelsPack) => {
     modelsPack = Pack.pack(modelsPack)
     const { namespace = getNamespace(modelsPack), models = [], lenses = [] } = modelsPack
@@ -295,9 +312,7 @@ export class ModelStore extends EventEmitter {
     if (!namespace) {
       throw new Error('expected "namespace"')
     }
-
-    models.forEach(m => m.subClassOf === FORM && _.extend(m.properties, { modificationHistory }))
-
+    this.addFormBacklinks({ models })
     this.cache.removeModels(this.myCustomModels)
     this.addModels(models)
     this.myModelsPack = modelsPack
