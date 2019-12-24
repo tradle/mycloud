@@ -735,8 +735,8 @@
       }
     },
     "@tradle/models": {
-      "version": "git://github.com/tradle/models.git#2c3dd652e2d469a4d0e4cf600f0e71e5182ae48e",
-      "from": "tradle/models"
+      "version": "github:tradle/models#60f61fbe362c667ccf7bf349f1af4d64a8012b42",
+      "from": "github:tradle/models"
     },
     "@tradle/models-cloud": {
       "version": "git://github.com/tradle/models-cloud.git#e8f9d965014fbc0059d67dbe26706fc21584b812",
@@ -747,7 +747,7 @@
       "from": "tradle/models-cloud-services"
     },
     "@tradle/models-corporate-onboarding": {
-      "version": "github:tradle/models-corporate-onboarding#3d3df283be29ac20b642f1fa06ee4b316d00faef",
+      "version": "github:tradle/models-corporate-onboarding#f3ca2753e97a7af3f7d796b4e5ff3285a1eebeb6",
       "from": "github:tradle/models-corporate-onboarding"
     },
     "@tradle/models-nz": {
@@ -17987,6 +17987,22 @@
       "requires": {
         "bindings": "~1.2.1",
         "nan": "~2.3.0"
+      },
+      "dependencies": {
+        "bindings": {
+          "version": "1.2.1",
+          "resolved": "https://registry.npmjs.org/bindings/-/bindings-1.2.1.tgz",
+          "integrity": "sha1-FK1hE4EtLTfXLme0ystLtyZQXxE=",
+          "dev": true,
+          "optional": true
+        },
+        "nan": {
+          "version": "2.3.5",
+          "resolved": "https://registry.npmjs.org/nan/-/nan-2.3.5.tgz",
+          "integrity": "sha1-gioNwmYpDOTNOhIoLKPn42Rmigg=",
+          "dev": true,
+          "optional": true
+        }
       }
     }
   }
