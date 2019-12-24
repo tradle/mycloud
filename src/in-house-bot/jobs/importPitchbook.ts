@@ -18,6 +18,8 @@ const TEMP = '/tmp/' // use lambda temp dir
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
 
+const FROM_BUCKET = 'referencedata.tradle.io'
+
 const s3 = new AWS.S3({ accessKeyId, secretAccessKey });
 
 export class ImportPitchbookData {
@@ -63,7 +65,7 @@ export class ImportPitchbookData {
       let localfile = TEMP + 'pitchbook/' + fileName
       let key = `refdata/pitchbook/${table}/${fileName}`
       fs.ensureDirSync(TEMP + 'pitchbook')
-      await this.s3download('temp/pitchbook/' + fileName, localfile)
+      await this.s3download('public/pitchbook/' + fileName, localfile)
       this.logger.debug('importPitchbookData moved file for ' + fileName)
       let md5: string = await this.checksumFile('MD5', localfile)
       this.logger.debug('importPitchbookData calculated md5 for ' + fileName + ', md5=' + md5)
@@ -109,7 +111,7 @@ export class ImportPitchbookData {
 
   s3download = async (key: string, localDest: string) => {
     let params = {
-      Bucket: this.outputLocation,
+      Bucket: FROM_BUCKET,
       Key: key
     }
     let file = fs.createWriteStream(localDest)
