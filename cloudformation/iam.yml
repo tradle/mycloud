@@ -162,6 +162,19 @@ Resources:
                 Resource: "*"
 
 # S3 Bucket Policies
+  ReferencedataBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowGetObjects
+            Action:
+              - s3:GetObject
+            Effect: Allow
+            Resource: 'arn:aws:s3:::referencedata.tradle.io/public/*'
+            Principal:
+              AWS: "*"
 
   ObjectsBucketPolicy:
     Type: AWS::S3::BucketPolicy
