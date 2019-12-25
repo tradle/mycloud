@@ -40,6 +40,7 @@ export class ImportPitchbookData {
     let current: Array<string> = []
     try {
       current = await this.list()
+      this.logger.debug(`importPitchbookData list returned ${current.length} elements`)
     } catch (err) {
       this.logger.debug('importPitchbookData failed list', err)
     }
