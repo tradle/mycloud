@@ -165,6 +165,7 @@ Resources:
   ReferencedataBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
+      Bucket: 'referencedata.tradle.io'
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
