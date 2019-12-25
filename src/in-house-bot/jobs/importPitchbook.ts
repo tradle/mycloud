@@ -37,7 +37,12 @@ export class ImportPitchbookData {
 
   move = async () => {
     this.logger.debug("importPitchbookData called")
-    let current: Array<string> = await this.list()
+    let current: Array<string> = []
+    try {
+      current = await this.list()
+    } catch (err) {
+      this.logger.debug('importPitchbookData failed list', err)
+    }
     await this.moveFile('Company.csv', 'company', 'company', current)
     await this.moveFile('Fund.csv', 'fund', 'fund', current)
     await this.moveFile('LimitedPartner.csv', 'limited_partner', 'lp', current)
