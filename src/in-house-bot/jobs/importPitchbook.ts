@@ -20,7 +20,7 @@ const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
 
 const FROM_BUCKET = 'referencedata.tradle.io'
 
-const s3 = new AWS.S3({ accessKeyId, secretAccessKey });
+const s3 = new AWS.S3() //{ accessKeyId, secretAccessKey });
 
 export class ImportPitchbookData {
 
