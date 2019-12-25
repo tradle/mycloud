@@ -65,7 +65,7 @@ Resources:
       MemorySize: 1024
       Role:
         Fn::GetAtt: IamRoleLambdaExecution.Arn
-      Runtime: nodejs10
+      Runtime: nodejs8.10
       Timeout: 60
 
   EnvironmentVariables:
