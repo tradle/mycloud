@@ -8,7 +8,6 @@ import { v4 as uuid } from 'uuid'
 import { execSync } from 'child_process'
 
 import { TYPE, PERMALINK, LINK } from '@tradle/constants'
-import Embed from '@tradle/embed'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils

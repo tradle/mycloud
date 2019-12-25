@@ -33,27 +33,13 @@
  *
  ***/
 import _ from 'lodash'
-// import validateResource from '@tradle/validate-resource'
 import { TYPE } from '@tradle/constants'
-import {
-  Bot,
-  CreatePlugin,
-  IWillJudgeAppArg,
-  IPBReq,
-  IPluginLifecycleMethods,
-  ValidatePluginConf,
-  ITradleObject,
-  IPBApp,
-  Applications,
-  Logger
-} from '../types'
+import { CreatePlugin } from '../types'
 import { getEnumValueId } from '../utils'
 const riskFactors = require('../../../riskFactors.json')
 const CP_ONBOARDING = 'tradle.legal.ControllingPersonOnboarding'
-const CE_ONBOARDING = 'tradle.legal.LegalEntityProduct'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
-const PHOTO_ID = 'tradle.PhotoID'
 const STATUS = 'tradle.Status'
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
