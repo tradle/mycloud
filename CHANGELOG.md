@@ -2,21 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.30](https://github.com/tradle/mycloud/compare/v2.5.1-rc.29...v2.5.1-rc.30) (2019-12-22)
+## [2.5.1-rc.31](https://github.com/tradle/mycloud/compare/v2.5.1-rc.30...v2.5.1-rc.31) (2019-12-25)
 
 
 ### Bug Fixes
 
-* typo ([8a29fb1](https://github.com/tradle/mycloud/commit/8a29fb1))
+* typo ([75e2773](https://github.com/tradle/mycloud/commit/75e2773))
 
 
 ### Features
 
-* add edits check if it was created ([ecb2797](https://github.com/tradle/mycloud/commit/ecb2797))
-* allow screening before onboarding ([cfbc608](https://github.com/tradle/mycloud/commit/cfbc608))
-* checks backlink on form ([db2fdb4](https://github.com/tradle/mycloud/commit/db2fdb4))
-* fresh models ([8b85acb](https://github.com/tradle/mycloud/commit/8b85acb))
-* getChecks signature change ([e0348bb](https://github.com/tradle/mycloud/commit/e0348bb))
+* data lineage ([d084b62](https://github.com/tradle/mycloud/commit/d084b62))
+* fresh models ([1ef8ea6](https://github.com/tradle/mycloud/commit/1ef8ea6))
+* generic way to dynamically add backlink props to Form model ([bac0e9a](https://github.com/tradle/mycloud/commit/bac0e9a))
+* match PhotoID or PersonalInfo with CP resource in parent application ([4d515db](https://github.com/tradle/mycloud/commit/4d515db))
+* more aws regions added ([62fe1c2](https://github.com/tradle/mycloud/commit/62fe1c2))
+* use for AWS SES the closest supported region if not in the list ([1d3e369](https://github.com/tradle/mycloud/commit/1d3e369))
 
 
 
