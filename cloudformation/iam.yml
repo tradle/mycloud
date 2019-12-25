@@ -161,22 +161,7 @@ Resources:
                   - cloudwatch:DeleteAlarms
                 Resource: "*"
 
-# S3 Bucket Policies
-  ReferencedataBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: 'referencedata.tradle.io'
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Sid: AllowGetObjects
-            Action:
-              - s3:GetObject
-            Effect: Allow
-            Resource: 'arn:aws:s3:::referencedata.tradle.io/public/*'
-            Principal:
-              AWS: "*"
-
+  # S3 Bucket Policies
   ObjectsBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
