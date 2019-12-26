@@ -13,7 +13,14 @@ type AWSMailerOpts = {
 }
 
 // see: https://docs.aws.amazon.com/general/latest/gr/rande.html
-const REGIONS = ['us-east-1', 'us-west-2', 'eu-west-1']
+export const REGIONS = [
+  'us-east-1',
+  'us-west-2',
+  'eu-west-1',
+  'ap-south-1',
+  'ap-southeast-2',
+  'eu-central-1'
+]
 
 const toArray = val => (val ? [].concat(val) : [])
 

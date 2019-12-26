@@ -1,18 +1,19 @@
 import _ from 'lodash'
-import { TYPE, PERMALINK, LINK } from '@tradle/constants'
 import DataURI from 'strong-data-uri'
-import { getLatestForms, isSubClassOf } from '../utils'
 import AWS from 'aws-sdk'
-import Embed from '@tradle/embed'
-import validateResource from '@tradle/validate-resource'
 import gs from 'node-gs'
 import path from 'path'
 import fs from 'fs'
 import { v4 as uuid } from 'uuid'
 import { execSync } from 'child_process'
 
+import { TYPE, PERMALINK, LINK } from '@tradle/constants'
+import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
+import { enumValue } from '@tradle/build-resource'
+
+import { getLatestForms, isSubClassOf } from '../utils'
 
 import {
   Bot,
@@ -31,6 +32,7 @@ import { String } from 'aws-sdk/clients/cognitosync'
 const FORM_ID = 'tradle.Form'
 const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 const CERTIFICATE_OF_INC = 'tradle.legal.CertificateOfIncorporation'
+const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 // const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 
 // export const name = 'document-ocr'
@@ -115,6 +117,7 @@ export class DocumentOcrAPI {
     } catch (err) {
       debugger
       this.logger.error('textract detectDocumentText failed', err)
+      // return { error: err.message }
     }
     return {}
   }
@@ -427,6 +430,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         }
       }
       let prefill
+      let dataLineage
       try {
         prefill = await documentOcrAPI.ocr(payload, property, formConf[confId])
         if (prefill.error) {
@@ -435,6 +439,17 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           }
         }
         prefill = sanitize(prefill).sanitized
+
+        let provider = enumValue({
+          model: bot.models[REFERENCE_DATA_SOURCES],
+          value: 'amazonTextract'
+        })
+        dataLineage = {
+          [provider.title]: {
+            properties: Object.keys(prefill)
+          }
+        }
+
         let hasChanges
         for (let p in prefill) {
           if (!payload[p]) hasChanges = true
@@ -467,6 +482,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       formError.details = {
         prefill: payloadClone,
         message: `Please review and correct the data below`
+      }
+      if (dataLineage) {
+        _.extend(formError.details, { dataLineage })
       }
       try {
         await applications.requestEdit(formError)
