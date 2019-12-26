@@ -1,6 +1,7 @@
 import fs from 'fs-extra'
 import crypto from 'crypto'
 import AWS from 'aws-sdk'
+import fetch from 'node-fetch'
 
 import {
   Bot,
@@ -71,7 +72,8 @@ export class ImportPitchbookData {
       let localfile = TEMP + 'pitchbook/' + fileName
       let key = `refdata/pitchbook/${table}/${fileName}`
       fs.ensureDirSync(TEMP + 'pitchbook')
-      await this.s3download('public/pitchbook/' + fileName, localfile)
+      await this.s3downloadhttp('public/pitchbook/' + fileName, localfile)
+
       this.logger.debug('importPitchbookData moved file for ' + fileName)
       let md5: string = await this.checksumFile('MD5', localfile)
       this.logger.debug('importPitchbookData calculated md5 for ' + fileName + ', md5=' + md5)
@@ -130,6 +132,15 @@ export class ImportPitchbookData {
           return reject(error)
         }).pipe(file)
     })
+  }
+
+  s3downloadhttp = async (key: string, localDest: string) => {
+    let url = `http://referencedata.tradle.io.s3-website-us-east-1.amazonaws.com/${key}`
+    let get = await fetch(url)
+    let fout = fs.createWriteStream(localDest)
+    let promise = this.writeStreamToPromise(fout)
+    get.body.pipe(fout)
+    await promise
   }
 
   createDataSourceRefresh = async (name: string) => {
