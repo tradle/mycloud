@@ -552,7 +552,7 @@ export class ImportPsc {
     return list
   }
 
-  newBO = async () => {
+  newBO = async (filter: boolean) => {
     this.logger.debug('importPSC newBO')
     let changeQuery = `SELECT r.company_number, r.data.name, r.data.name_elements, r.data.natures_of_control,
                        r.data.kind, c.companyemail, c._link, c._author 
@@ -568,6 +568,8 @@ export class ImportPsc {
       rdata.name_elements = makeJson(rdata.name_elements)
       rdata.natures_of_control = makeJson(rdata.natures_of_control)
     }
+    if (!filter)
+      return list
     let newEntiites = await this.filterOutKnown(list)
     return newEntiites
   }
@@ -606,6 +608,19 @@ export class ImportPsc {
     return newEntities
   }
 
+  showTables = async (): Promise<Set<string>> => {
+    let show = 'SHOW TABLES'
+    let result: any = await this.executeDDL(show, 250)
+    let rows: [] = result.ResultSet.Rows
+    let tables = new Set<string>()
+    for (let i = 1; i < rows.length; i++) {
+      let str: string = rows[i]['Data'][0]['VarCharValue']
+      tables.add(str)
+    }
+    return tables
+  }
+
+
   notIncludesAny = (tokens: Array<string>, inStr: string): boolean => {
     for (let token of tokens) {
       if (!inStr.includes(token)) {
@@ -616,8 +631,18 @@ export class ImportPsc {
   }
 
   notifyAdmin = async () => {
-    let data: Array<any> = await this.newBO()
-    this.logger.debug(`importPsc notifyAdmin ${data.length} BO's found in PSC`)
+    this.logger.debug('importPsc notifyAdmin called')
+    let tables: Set<string> = await this.showTables()
+    if (!tables.has('orc_psc_next_bucketed1') ||
+      !tables.has('psc1') ||
+      !tables.has('tradle_legal_legalentity')) {
+      this.logger.debug('importPsc notifyAdmin exited, some athena tables are not available yet')
+      return
+    }
+
+    let data: Array<any> = await this.newBO(tables.has('tradle_legal_legalentitycontrollingperson'))
+
+    this.logger.debug(`importPsc notifyAdmin ${data.length} new BO's found in PSC`)
     if (data.length == 0)
       return
 
