@@ -50,7 +50,7 @@ export const importPsc: Executor = async ({ job, components }) => {
   const { org } = orgConf
   let importer = new ImportPsc(components.bot, components.applications, org)
   try {
-    importer.movePSC()
+    importer.notifyAdmin() //  movePSC()
   } catch (err) {
     components.bot.logger.error('job importPsc failed', err)
   }

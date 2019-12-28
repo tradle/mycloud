@@ -24,7 +24,7 @@ const secretAccessKey = ''
 const region = 'us-east-1'
 
 //const BUCKET = 'jacob.gins.athena'
-//const ATHENA_DB = 'sampledb'
+const ATHENA_DB = 'adv'
 const ATHENA_OUTPUT = 'temp/athena'
 const ORIGIN_PREFIX = 'temp/refdata/gb/psc_origin/'
 const NEXT_BUCKETED_PREFIX = 'temp/refdata/gb/psc_next_bucketed/'
@@ -144,7 +144,7 @@ export class ImportPsc {
     this.org = org
     this.logger = bot.logger
     this.outputLocation = this.bot.buckets.PrivateConf.id //BUCKET //
-    this.database = this.bot.env.getStackResourceName('sec').replace(/\-/g, '_') //ATHENA_DB // 
+    this.database = ATHENA_DB //this.bot.env.getStackResourceName('sec').replace(/\-/g, '_') //ATHENA_DB // 
   }
 
   getDataSource = async () => {
@@ -152,13 +152,10 @@ export class ImportPsc {
       filter: {
         EQ: {
           [TYPE]: DATA_SOURCE_REFRESH,
-          name: enumValue({
-            model: this.bot.models[REFERENCE_DATA_SOURCES],
-            value: 'psc'
-          })
+          'name.id': `${REFERENCE_DATA_SOURCES}_psc`
         },
-        orderBy: ORDER_BY_TIMESTAMP_DESC
-      }
+      },
+      orderBy: ORDER_BY_TIMESTAMP_DESC
     });
   }
 
@@ -176,7 +173,7 @@ export class ImportPsc {
   }
 
   sendConfirmationEmail = async (record: any, product: string) => {
-    this.logger.debug('controlling person: preparing to send invite')
+    this.logger.debug('importPsc sendConfirmationEmail preparing to send invite')
 
     const host = this.bot.apiBaseUrl
     const provider = await this.bot.getMyPermalink()
@@ -198,9 +195,10 @@ export class ImportPsc {
         subject: `${BO_ONBOARD_MESSAGE} - ${record.name}`,
         body
       })
+      this.logger.debug('importPsc sendConfirmationEmail mail sent')
     } catch (err) {
       Errors.rethrow(err, 'developer')
-      this.logger.error('failed to email controlling person', err)
+      this.logger.error('importPsc sendConfirmationEmail failed to email', err)
     }
   }
 
@@ -497,10 +495,11 @@ export class ImportPsc {
   }
 
   executeDDL = async (sql: string, delay: number, wait: number = 10000) => {
+    this.logger.debug(`importPsc executeDDL sql ${sql}`)
     let id: string
     try {
       id = await this.getExecutionId(sql)
-      this.logger.debug(`execution id ${id}`)
+      this.logger.debug(`importPsc executeDDL execution id ${id}`)
     } catch (err) {
       this.logger.debug(err)
       return undefined
@@ -528,7 +527,7 @@ export class ImportPsc {
     }
     try {
       let data = await this.getResults(id)
-      this.logger.debug(`time passed: ${timePassed}, ${data}`)
+      this.logger.debug(`importPsc executeDDL time passed: ${timePassed}, ${data}`)
       return data
     } catch (err) {
       this.logger.debug(err)
@@ -554,6 +553,7 @@ export class ImportPsc {
   }
 
   newBO = async () => {
+    this.logger.debug('importPSC newBO')
     let changeQuery = `SELECT r.company_number, r.data.name, r.data.name_elements, r.data.natures_of_control,
                        r.data.kind, c.companyemail, c._link, c._author 
         FROM tradle_legal_legalentity c 
@@ -617,15 +617,16 @@ export class ImportPsc {
 
   notifyAdmin = async () => {
     let data: Array<any> = await this.newBO()
+    this.logger.debug(`importPsc notifyAdmin ${data.length} BO's found in PSC`)
     if (data.length == 0)
       return
 
     let dataSourceLink = await this.getDataSource()
 
-    this.logger.debug(`notifyAdmin about new ${data.length} BO's found in PSC`)
     for (let rdata of data) {
 
       let le_application = await this.getLeProductApplication(rdata)
+      this.logger.debug(`importPsc notifyAdmin getLeProductApplication returned ${le_application}`)
 
       let checkR: any = {
         [TYPE]: CLIENT_ACTION_REQUIRED_CHECK,
