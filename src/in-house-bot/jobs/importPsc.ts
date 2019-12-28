@@ -455,7 +455,7 @@ export class ImportPsc {
   }
 
   getExecutionId = async (sql: string): Promise<string> => {
-    this.logger.debug("start query", sql)
+    this.logger.debug("importPsc start query", sql)
     return new Promise((resolve, reject) => {
       let outputLocation = `s3://${this.outputLocation}/${ATHENA_OUTPUT}`
       let params = {
@@ -495,13 +495,13 @@ export class ImportPsc {
   }
 
   executeDDL = async (sql: string, delay: number, wait: number = 10000) => {
-    this.logger.debug(`importPsc executeDDL sql ${sql}`)
+    this.logger.debug('importPsc executeDDL')
     let id: string
     try {
       id = await this.getExecutionId(sql)
       this.logger.debug(`importPsc executeDDL execution id ${id}`)
     } catch (err) {
-      this.logger.debug(err)
+      this.logger.error('importPsc executeDDL error', err)
       return undefined
     }
 
@@ -530,7 +530,7 @@ export class ImportPsc {
       this.logger.debug(`importPsc executeDDL time passed: ${timePassed}, ${data}`)
       return data
     } catch (err) {
-      this.logger.debug(err)
+      this.logger.error('importPsc executeDDL err', err)
       return undefined
     }
   }
@@ -538,7 +538,7 @@ export class ImportPsc {
   processQueryResult = (data: AWS.Athena.GetQueryResultsOutput) => {
     var list = []
     if (!data || (data.ResultSet.ResultSetMetadata.ColumnInfo.length == 0)) {
-      this.logger.debug('no records')
+      this.logger.debug('importPsc no records')
     }
     else {
       let header = this.buildHeader(data.ResultSet.ResultSetMetadata.ColumnInfo)
