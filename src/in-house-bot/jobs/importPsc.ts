@@ -671,12 +671,17 @@ export class ImportPsc {
           }
         ]
       }
-      const type = checkR[TYPE]
-      let check = await this.bot
-        .draft({ type })
-        .set(checkR)
-        .signAndSave()
 
+      this.logger.debug(`importPsc check ${JSON.stringify(checkR, null, 2)}`)
+      const type = checkR[TYPE]
+      try {
+        let check = await this.bot
+          .draft({ type })
+          .set(checkR)
+          .signAndSave()
+      } catch (err) {
+        this.logger.debug('importPsc save check err', err)
+      }
       await this.sendConfirmationEmail(rdata, le_application.requestFor)
 
     }
