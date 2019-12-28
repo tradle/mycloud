@@ -18,6 +18,9 @@ import {
 } from '../types'
 
 import { enumValue, buildResourceStub } from '@tradle/build-resource'
+import validateResource from '@tradle/validate-resource'
+// @ts-ignore
+const { sanitize } = validateResource.utils
 
 const accessKeyId = ''
 const secretAccessKey = ''
@@ -51,7 +54,7 @@ const DEAR_CUSTOMER = 'Dear Customer'
 const DEFAULT_SMS_GATEWAY = 'sns'
 type SMSGatewayName = 'sns'
 
-const SENDER_EMAIL = 'support@tradle.io' // TODO
+const SENDER_EMAIL = 'jacob.gins@lablz.com' // TODO
 
 const BO_ONBOARD_MESSAGE = 'New BO onboarding'
 
@@ -657,7 +660,7 @@ export class ImportPsc {
         [TYPE]: CLIENT_ACTION_REQUIRED_CHECK,
         status: 'pass',
         provider: PROVIDER,
-        application: le_application,
+        application: sanitize(le_application).sanitized,
         dateChecked: Date.now(),
         aspects: ASPECTS,
         rawData: [
