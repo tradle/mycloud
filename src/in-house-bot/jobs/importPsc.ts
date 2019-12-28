@@ -557,8 +557,8 @@ export class ImportPsc {
     let changeQuery = `SELECT r.company_number, r.data.name, r.data.name_elements, r.data.natures_of_control,
                        r.data.kind, c.companyemail, c._link, c._author 
         FROM tradle_legal_legalentity c 
-          inner join adv.orc_psc_next_bucketed r on (c.registrationnumber = r.company_number)
-          left join adv.psc l on (r.company_number = l.company_number and  r.data.name = l.data.name)
+          inner join orc_psc_next_bucketed1 r on (c.registrationnumber = r.company_number)
+          left join psc1 l on (r.company_number = l.company_number and  r.data.name = l.data.name)
         WHERE r.company_number is not null and r.data.name is not null and l.company_number is null
                     and c.companyemail is not null`
 
