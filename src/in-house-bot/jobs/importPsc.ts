@@ -660,7 +660,7 @@ export class ImportPsc {
         [TYPE]: CLIENT_ACTION_REQUIRED_CHECK,
         status: 'pass',
         provider: PROVIDER,
-        application: sanitize(le_application).sanitized,
+        application: le_application,
         dateChecked: Date.now(),
         aspects: ASPECTS,
         rawData: [
@@ -674,8 +674,8 @@ export class ImportPsc {
           }
         ]
       }
+      checkR = sanitize(checkR).sanitized
 
-      this.logger.debug(`importPsc check ${JSON.stringify(checkR, null, 2)}`)
       const type = checkR[TYPE]
       try {
         let check = await this.bot
