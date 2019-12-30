@@ -13,7 +13,8 @@ import {
   getLatestCheck,
   isPassedCheck,
   parseScannedDate,
-  getChecks
+  getChecks,
+  getEnumValueId
 } from '../utils'
 import { printCommand } from '../commands/help'
 
@@ -497,11 +498,13 @@ export const createPlugin: CreatePlugin<void> = (
       }
 
       // Check that corporation exists otherwise no need to run
-      // let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, application, req, bot })
-      let items = await getChecks({ bot, type: CORPORATION_EXISTS, application })
-      if (!items || !items.length) return
+      let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, application, req, bot })
+      if (getEnumValueId(check.status) !== 'pass') return
 
-      let check = items.find(item => item.form._permalink === payload._permalink)
+      // let items = await getChecks({ bot, type: CORPORATION_EXISTS, application })
+      // if (!items || !items.length) return
+
+      // let check = items.find(item => item.form._permalink === payload._permalink)
       // if (!check || isPassedCheck(check.status)) return
       if (propertyMap && !_.size(propertyMap)) propertyMap = null
 
