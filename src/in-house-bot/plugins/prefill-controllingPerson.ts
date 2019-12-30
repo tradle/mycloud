@@ -2,17 +2,7 @@ import uniqBy from 'lodash/uniqBy'
 import extend from 'lodash/extend'
 import size from 'lodash/size'
 
-import {
-  Bot,
-  Logger,
-  CreatePlugin,
-  Applications,
-  ISMS,
-  IPBApp,
-  IPluginLifecycleMethods,
-  ValidatePluginConf,
-  ITradleObject
-} from '../types'
+import { Bot, Logger, CreatePlugin, IPluginLifecycleMethods, ITradleObject } from '../types'
 
 import { TYPE } from '../../constants'
 import validateResource from '@tradle/validate-resource'
@@ -34,10 +24,10 @@ const countryMap = {
 }
 
 export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
-  let { bot, applications, commands } = components
-  let { logger, conf } = pluginOpts
+  let { bot } = components
+  let { logger } = pluginOpts
   const plugin: IPluginLifecycleMethods = {
-    async willRequestForm({ req, application, formRequest }) {
+    async willRequestForm({ application, formRequest }) {
       let { form } = formRequest
       if (form !== CONTROLLING_PERSON) return
 
