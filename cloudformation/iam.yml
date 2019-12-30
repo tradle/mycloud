@@ -161,8 +161,7 @@ Resources:
                   - cloudwatch:DeleteAlarms
                 Resource: "*"
 
-# S3 Bucket Policies
-
+  # S3 Bucket Policies
   ObjectsBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:

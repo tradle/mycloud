@@ -1,6 +1,7 @@
 import fs from 'fs-extra'
 import crypto from 'crypto'
 import AWS from 'aws-sdk'
+import fetch from 'node-fetch'
 
 import {
   Bot,
@@ -18,7 +19,9 @@ const TEMP = '/tmp/' // use lambda temp dir
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
 
-const s3 = new AWS.S3({ accessKeyId, secretAccessKey });
+const FROM_BUCKET = 'referencedata.tradle.io'
+
+const s3 = new AWS.S3() //{ accessKeyId, secretAccessKey });
 
 export class ImportPitchbookData {
 
@@ -35,7 +38,13 @@ export class ImportPitchbookData {
 
   move = async () => {
     this.logger.debug("importPitchbookData called")
-    let current: Array<string> = await this.list()
+    let current: Array<string> = []
+    try {
+      current = await this.list()
+      this.logger.debug(`importPitchbookData list returned ${current.length} elements`)
+    } catch (err) {
+      this.logger.debug('importPitchbookData failed list', err)
+    }
     await this.moveFile('Company.csv', 'company', 'company', current)
     await this.moveFile('Fund.csv', 'fund', 'fund', current)
     await this.moveFile('LimitedPartner.csv', 'limited_partner', 'lp', current)
@@ -63,7 +72,8 @@ export class ImportPitchbookData {
       let localfile = TEMP + 'pitchbook/' + fileName
       let key = `refdata/pitchbook/${table}/${fileName}`
       fs.ensureDirSync(TEMP + 'pitchbook')
-      await this.s3download('temp/pitchbook/' + fileName, localfile)
+      await this.s3downloadhttp('public/pitchbook/' + fileName, localfile)
+
       this.logger.debug('importPitchbookData moved file for ' + fileName)
       let md5: string = await this.checksumFile('MD5', localfile)
       this.logger.debug('importPitchbookData calculated md5 for ' + fileName + ', md5=' + md5)
@@ -109,7 +119,7 @@ export class ImportPitchbookData {
 
   s3download = async (key: string, localDest: string) => {
     let params = {
-      Bucket: this.outputLocation,
+      Bucket: FROM_BUCKET,
       Key: key
     }
     let file = fs.createWriteStream(localDest)
@@ -122,6 +132,15 @@ export class ImportPitchbookData {
           return reject(error)
         }).pipe(file)
     })
+  }
+
+  s3downloadhttp = async (key: string, localDest: string) => {
+    let url = `http://referencedata.tradle.io.s3-website-us-east-1.amazonaws.com/${key}`
+    let get = await fetch(url)
+    let fout = fs.createWriteStream(localDest)
+    let promise = this.writeStreamToPromise(fout)
+    get.body.pipe(fout)
+    await promise
   }
 
   createDataSourceRefresh = async (name: string) => {

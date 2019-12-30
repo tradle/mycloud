@@ -75,7 +75,7 @@ const COMMON_JOBS: Job[] = [
   {
     name: 'importPitchbookData',
     function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: 1 * 60 * MINUTE,
+    period: 1 * 10 * MINUTE,
   },
   {
     name: 'importMaxmindDb',
