@@ -1,9 +1,7 @@
 // import _ from 'lodash'
 // import validateResource from '@tradle/validate-resource'
 import { TYPE } from '@tradle/constants'
-import {
-  isPassedCheck
-} from '../utils'
+import { isPassedCheck } from '../utils'
 
 import {
   Bot,
@@ -13,7 +11,7 @@ import {
   ITradleCheck,
   IPBApp,
   Applications,
-  Logger,
+  Logger
 } from '../types'
 
 // const { parseStub } = validateResource.utils
@@ -24,7 +22,7 @@ const getResourceType = resource => resource[TYPE]
 
 interface IConditionalAutoApproveConf {
   [product: string]: {
-    [targetCheck: string]: string []
+    [targetCheck: string]: string[]
   }
 }
 
@@ -49,8 +47,8 @@ export class ConditionalAutoApprove {
 
   public checkTheChecks = async ({ check }) => {
     this.logger.debug('checking if all checks passed')
-    const application = await this.bot.getResource(check.application, {backlinks: ['forms']})
-
+    const application = await this.bot.getResource(check.application, { backlinks: ['forms'] })
+    if (application.draft) return
     const product = application.requestFor
 
     const checksToCheck = this.conf.products[product]
@@ -60,7 +58,7 @@ export class ConditionalAutoApprove {
     }
 
     const thisCheckType = check[TYPE]
-    if (checksToCheck.length   &&  !checksToCheck.includes(thisCheckType)) {
+    if (checksToCheck.length && !checksToCheck.includes(thisCheckType)) {
       this.logger.debug(`ignoring check ${thisCheckType}, not relevant for auto-approve`)
       return
     }
@@ -69,11 +67,10 @@ export class ConditionalAutoApprove {
     const productForms = this.bot.models[product].forms
     let formsSubmitted = []
     let forms = application.submissions.filter(f => {
-      if (productForms.include(f[TYPE])  &&  !formsSubmitted.includes(f[TYPE]))
+      if (productForms.include(f[TYPE]) && !formsSubmitted.includes(f[TYPE]))
         formsSubmitted.push(f[TYPE])
     })
-    if (forms.length !== productForms.length)
-      return
+    if (forms.length !== productForms.length) return
     const checkResources = await this.applications.getLatestChecks({ application })
     // check that just passed may not have had correponding ApplicationSubmission created yet
     // and so may not be in the result
@@ -92,7 +89,7 @@ export class ConditionalAutoApprove {
       this.logger.debug('not ready to auto-approve', {
         product,
         passed: foundChecks.map(getResourceType),
-        required: checksToCheck.map(getResourceType),
+        required: checksToCheck.map(getResourceType)
       })
 
       return
@@ -108,42 +105,36 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   const plugin: IPluginLifecycleMethods = {
     onCheckStatusChanged: async (check: ITradleCheck) => {
       // check only if check changed not for new check
-      if (!check._prevlink  ||  !isPassedCheck(check))
-        return
+      if (!check._prevlink || !isPassedCheck(check)) return
 
-      debugger
+      // debugger
       await autoApproveAPI.checkTheChecks({ check })
     },
-    onFormsCollected: async function ({ req }) {
+    onFormsCollected: async function({ req }) {
       if (req.skipChecks) {
         logger.debug('skipped, skipChecks=true')
         return
       }
       const { application } = req
-      if (!application) {
+      if (!application || application.draft) {
         logger.debug('skipped, no application')
         return
       }
       let checkTypes = conf.products[application.requestFor]
-      if (!checkTypes)
-        return
+      if (!checkTypes) return
       // debugger
 
       if (checkTypes.length) {
         let checks = await applications.getLatestChecks({ application })
         let foundChecks = 0
-        for (let i=0; i<checks.length; i++) {
+        for (let i = 0; i < checks.length; i++) {
           let c = checks[i]
-          if (!checkTypes.includes(c[TYPE]))
-            continue
+          if (!checkTypes.includes(c[TYPE])) continue
           foundChecks++
-          if (c.status.title.toLowerCase() !== 'pass')
-            return
+          if (c.status.title.toLowerCase() !== 'pass') return
         }
-        if (foundChecks === checkTypes.length)
-          await applications.approve({ application })
-      }
-      else if (await applications.haveAllChecksPassed({ application }))
+        if (foundChecks === checkTypes.length) await applications.approve({ application })
+      } else if (await applications.haveAllChecksPassed({ application }))
         await applications.approve({ application })
     }
   }
@@ -151,7 +142,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   return { plugin }
 }
 
-export const validateConf:ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
+export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
   const { models } = bot
   // debugger
   for (let appType in <IConditionalAutoApproveConf>pluginConf) {

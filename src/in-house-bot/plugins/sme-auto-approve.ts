@@ -205,7 +205,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     onFormsCollected: async ({ req }) => {
       // debugger
       const { application } = req
-      if (!application || !conf.length) return
+      if (!application || !conf.length || application.draft) return
       const { requestFor } = application
 
       let pairs = conf.filter(pair => requestFor === pair.parent)
@@ -250,7 +250,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     async onmessage(req: IPBReq) {
       // debugger
       const { application, payload } = req
-      if (!application || !application.forms || !conf.length) return
+      if (!application || !application.forms || !conf.length || application.draft) return
 
       if (application.parent) {
         await smeVerifierAPI.checkAndUpdateNotification(application)

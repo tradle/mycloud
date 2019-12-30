@@ -465,7 +465,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
     async onmessage(req) {
       // useRealSES(bot)
       const { application, payload } = req
-      if (!application) return
+      if (!application || application.draft) return
       let productId = application.requestFor
 
       let { products, rules } = conf
