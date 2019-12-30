@@ -427,13 +427,14 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       result = _.uniqBy(result, TYPE)
       let message
       let prefill: any = {}
+      let errors
       if (getEnumValueId({ model: bot.models[STATUS], value: result[0].status }) !== 'pass')
         message = 'The company was not found. Please enter fill out the form'
       else {
         let check = result[0]
         let company = check.rawData && check.rawData.length && check.rawData[0].company
         if (!company) return
-        let { registered_address, company_type, incorporation_date, current_status } = company
+        let { registered_address, company_type, incorporation_date, current_status, name } = company
         if (incorporation_date) prefill.registrationDate = new Date(incorporation_date).getTime()
         if (company_type) prefill.companyType = company_type.trim()
 
@@ -445,7 +446,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
             postalCode: postal_code ? postal_code.trim() : ''
           })
         }
-
+        let wrongName = name.toLowerCase() !== payload.companyName.toLowerCase()
+        if (wrongName) prefill.companyName = name
         prefill = sanitize(prefill).sanitized
         if (!_.size(prefill)) return
         try {
@@ -465,13 +467,19 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
           debugger
           return
         }
-        message = 'Please review and correct the data below'
+        let error = ''
+        if (wrongName) {
+          error = 'Is it your company?'
+          errors = [{ name: 'companyName', error: 'Is it your company?' }]
+        }
+        message = `${error} Please review and correct the data below.`
       }
       try {
         return await this.sendFormError({
           req,
           payload,
           prefill,
+          errors,
           message
         })
       } catch (err) {
@@ -481,11 +489,13 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
     async sendFormError({
       payload,
       prefill,
+      errors,
       req,
       message
     }: {
       req: IPBReq
       prefill?: any
+      errors?: any
       payload: ITradleObject
       message: string
     }) {
@@ -518,6 +528,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         dataLineage,
         message
       }
+      if (errors) _.extend(formError.details, { errors })
       try {
         await applications.requestEdit(formError)
         return {
