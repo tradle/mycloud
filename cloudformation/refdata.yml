@@ -888,11 +888,11 @@ Resources:
         StorageDescriptor:
           Columns:
             - Name: companyname
-	            Type: string
+              Type: string
             - Name: companynumber
               Type: string
             - Name: "regaddress.careof"
-			        Type: string
+              Type: string
             - Name: "regaddress.pobox"
               Type: string
             - Name: "regaddress.addressline1"
@@ -997,7 +997,7 @@ Resources:
               Type: string
             - Name: confstmtlastmadeupdate
               Type: string
-        	Location: 
+          Location: 
             Fn::Join:
               - ''
               - - 's3://'
