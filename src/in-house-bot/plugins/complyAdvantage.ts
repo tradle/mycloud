@@ -493,7 +493,7 @@ export const createPlugin: CreatePlugin<void> = (
 
       // Check that corporation exists otherwise no need to run
       let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, application, req, bot })
-      if (getEnumValueId(check.status) !== 'pass') return
+      if (!check  ||  getEnumValueId({ model: bot.models[STATUS], value: check.status }) !== 'pass') return
 
       // let items = await getChecks({ bot, type: CORPORATION_EXISTS, application })
       // if (!items || !items.length) return
