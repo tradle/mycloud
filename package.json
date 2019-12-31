@@ -26,7 +26,7 @@
     "husky": "^0.14.3",
     "is-native-module": "^1.1.0",
     "js-yaml": "^3.10.0",
-    "juice": "^4.2.2",
+    "juice": "^4.3.2",
     "lint-staged": "^4.2.3",
     "localip": "^1.0.0",
     "minimist": "^1.2.0",
