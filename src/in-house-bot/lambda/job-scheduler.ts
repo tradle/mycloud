@@ -68,6 +68,11 @@ const COMMON_JOBS: Job[] = [
     period: 60 * MINUTE,
   },
   {
+    name: 'importBasicCompanyData',
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
+    period: 30 * MINUTE
+  },
+  {
     name: 'importRefdata',
     function: DEFAULT_JOB_RUNNER_FUNCTION,
     period: 1 * 60 * MINUTE,
