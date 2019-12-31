@@ -1,7 +1,6 @@
 import _ from 'lodash'
 import { Bot, Logger, CreatePlugin, IPluginLifecycleMethods } from '../types'
 import { TYPE } from '@tradle/constants'
-import { excludedProperties } from 'juice'
 import { sendConfirmationEmail } from '../email-utils'
 
 export const name = 'draftApplication'
@@ -73,7 +72,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       forms.sort((a, b) => a._time - b._time)
       forms.forEach(form => {
         let type = form[TYPE]
-        if (excludedProperties.includes(type)) return
+        if (exclude.includes(type)) return
         let properties = models[type].properties
         let item: any = {}
         items.push(item)
