@@ -707,6 +707,7 @@ export const loadComponentsAndPlugins = ({
       'finastra',
       'document-ocr',
       'bundleUpload',
+      'draftApplication',
       'interFormConditionals',
       'regulatorRegistration',
       'pscCheck',

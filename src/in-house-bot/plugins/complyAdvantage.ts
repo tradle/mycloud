@@ -13,13 +13,13 @@ import {
   getLatestCheck,
   isPassedCheck,
   parseScannedDate,
-  getChecks
+  getChecks,
+  getEnumValueId
 } from '../utils'
 import { printCommand } from '../commands/help'
 
 const { TYPE } = constants
 const BASE_URL = 'https://api.complyadvantage.com/searches'
-// const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 const VERIFICATION = 'tradle.Verification'
 const PHOTO_ID = 'tradle.PhotoID'
 const PERSONAL_INFO = 'tradle.PersonalInfo'
@@ -207,9 +207,6 @@ class ComplyAdvantageAPI {
     req: IPBReq
     criteria: any
   }) {
-    // let criteria = pConf.filter
-    // let companyName, registrationDate
-    // let resource = payload
     const { application, payload } = req
 
     let map = propertyMap
@@ -218,8 +215,6 @@ class ComplyAdvantageAPI {
     if (!criteria || !criteria.filter.types) aspects = ASPECTS + 'sanctions'
     else aspects = ASPECTS + criteria.filter.types.join(', ')
     // debugger
-    // if (await doesCheckExist({bot: this.bot, type: SANCTIONS_CHECK, eq: {form: payload._link}, application, provider: PROVIDER}))
-    //   return
     // Check that props that are used for checking changed
     let propertiesToCheck: any = Object.values(propertyMap) //['firstName', 'lastName', 'dateOfBirth']
     // debugger
@@ -497,15 +492,16 @@ export const createPlugin: CreatePlugin<void> = (
       }
 
       // Check that corporation exists otherwise no need to run
-      // let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, application, req, bot })
-      let items = await getChecks({ bot, type: CORPORATION_EXISTS, application })
-      if (!items || !items.length) return
+      let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, application, req, bot })
+      if (!check  ||  getEnumValueId({ model: bot.models[STATUS], value: check.status }) !== 'pass') return
 
-      let check = items.find(item => item.form._permalink === payload._permalink)
+      // let items = await getChecks({ bot, type: CORPORATION_EXISTS, application })
+      // if (!items || !items.length) return
+
+      // let check = items.find(item => item.form._permalink === payload._permalink)
       // if (!check || isPassedCheck(check.status)) return
       if (propertyMap && !_.size(propertyMap)) propertyMap = null
 
-      // if (!isPersonForm(payload) && payload[TYPE] !== LEGAL_ENTITY) return
       let dateProp
       let props = bot.models[ptype].properties
       for (let p in propertyMap) {
@@ -518,9 +514,6 @@ export const createPlugin: CreatePlugin<void> = (
       for (let p in defaultNamesMap) {
         if (namesMap[p]) names.push(namesMap[p])
       }
-      // let pMap = _.cloneDeep(namesMap)
-      // delete pMap[dateProp]
-      // let names: any = Object.values(pMap)
 
       for (let i = 0; i < names.length; i++) {
         if (!payload[names[i]]) continue

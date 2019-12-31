@@ -2,17 +2,7 @@ import uniqBy from 'lodash/uniqBy'
 import extend from 'lodash/extend'
 import size from 'lodash/size'
 
-import {
-  Bot,
-  Logger,
-  CreatePlugin,
-  Applications,
-  ISMS,
-  IPBApp,
-  IPluginLifecycleMethods,
-  ValidatePluginConf,
-  ITradleObject
-} from '../types'
+import { Bot, Logger, CreatePlugin, IPluginLifecycleMethods, ITradleObject } from '../types'
 
 import { TYPE } from '../../constants'
 import validateResource from '@tradle/validate-resource'
@@ -34,10 +24,10 @@ const countryMap = {
 }
 
 export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
-  let { bot, applications, commands } = components
-  let { logger, conf } = pluginOpts
+  let { bot } = components
+  let { logger } = pluginOpts
   const plugin: IPluginLifecycleMethods = {
-    async willRequestForm({ req, application, formRequest }) {
+    async willRequestForm({ application, formRequest }) {
       let { form } = formRequest
       if (form !== CONTROLLING_PERSON) return
 
@@ -99,9 +89,13 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           for (let i = 0; i < officers.length && !officer; i++) {
             let o = officers[i].officer
             // if (o.inactive) continue
-            let oldOfficer = items.find(
-              item => o.name.toLowerCase().trim() === (item.name && item.name.toLowerCase().trim())
-            )
+            let oldOfficer = items.find(item => {
+              let oname = o.name.toLowerCase().trim()
+              let iname = item.name && item.name.toLowerCase().trim()
+              let pname = item.prefilledName && item.prefilledName.toLowerCase().trim()
+              return oname === iname || oname === pname
+            })
+            debugger
             if (!oldOfficer) officer = o
           }
         }
@@ -127,6 +121,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let { name, inactive, start_date, end_date, occupation, position } = officer
       let prefill: any = {
         name,
+        prefilledName: name,
         startDate: start_date && new Date(start_date).getTime(),
         inactive,
         occupation,
@@ -316,7 +311,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         // debugger
         logger.debug('name = ' + name)
 
-        if (items.find(item => item.name === name)) continue
+        if (items.find(item => item.name === name || item.prefilledName === name)) continue
 
         let isIndividual = kind.startsWith('individual')
         if (isIndividual) {
@@ -327,7 +322,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           }
         } else if (!kind.startsWith('corporate-')) return
         let prefill: any = {
-          name
+          name,
+          prefilledName: name
         }
         if (isIndividual) {
           this.prefillIndividual(prefill, bene)
