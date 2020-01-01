@@ -315,31 +315,63 @@ export class ImportBasicCompanyData {
                     external_location = \'s3://${this.outputLocation}/${TMP_BUCKETED_PREFIX}\', 
                     bucketed_by = ARRAY[\'companynumber\'], 
                     bucket_count = ${BUCKET_COUNT})
-      AS SELECT 
-        companyname, 
-        companynumber, 
-        "regaddress.pobox", 
-        "regaddress.addressline1", 
-        "regaddress.addressline2", 
-        "regaddress.posttown", 
-        "regaddress.county", 
-        "regaddress.country", 
-        "regaddress.postcode", 
-        companycategory, 
-        companystatus, 
-        countryoforigin, 
-        dissolutiondate, 
-        incorporationdate, 
-        "siccode.sictext_1", 
-        "siccode.sictext_2", 
-        "siccode.sictext_3", 
-        "siccode.sictext_4", 
-        "previousname_1.companyname", 
-        "previousname_2.companyname", 
-        "previousname_3.companyname", 
-        "previousname_4.companyname", 
-        "previousname_5.companyname" 
-      FROM basic_company_data_origin`
+    AS SELECT 
+      companyname, 
+      companynumber, 
+      "regaddress.careof", 
+      "regaddress.pobox", 
+      "regaddress.addressline1", 
+      "regaddress.addressline2", 
+      "regaddress.posttown", 
+      "regaddress.county", 
+      "regaddress.country", 
+      "regaddress.postcode", 
+      companycategory, 
+      companystatus, 
+      countryoforigin, 
+      dissolutiondate, 
+      incorporationdate, 
+      "accounts.accountrefday", 
+      "accounts.accountrefmonth", 
+      "accounts.nextduedate", 
+      "accounts.lastmadeupdate", 
+      "accounts.accountcategory", 
+      "returns.nextduedate", 
+      "returns.lastmadeupdate", 
+      "mortgages.nummortcharges", 
+      "mortgages.nummortoutstanding", 
+      "mortgages.nummortpartsatisfied", 
+      "mortgages.nummortsatisfied", 
+      "siccode.sictext_1", 
+      "siccode.sictext_2", 
+      "siccode.sictext_3", 
+      "siccode.sictext_4", 
+      "limitedpartnerships.numgenpartners", 
+      "limitedpartnerships.numlimpartners", 
+      uri, 
+      "previousname_1.condate", 
+      "previousname_1.companyname", 
+      "previousname_2.condate", 
+      "previousname_2.companyname", 
+      "previousname_3.condate", 
+      "previousname_3.companyname", 
+      "previousname_4.condate", 
+      "previousname_4.companyname", 
+      "previousname_5.condate", 
+      "previousname_5.companyname", 
+      "previousname_6.condate", 
+      "previousname_6.companyname", 
+      "previousname_7.condate", 
+      "previousname_7.companyname", 
+      "previousname_8.condate", 
+      "previousname_8.companyname", 
+      "previousname_9.condate", 
+      "previousname_9.companyname", 
+      "previousname_10.condate", 
+      "previousname_10.companyname", 
+      confstmtnextduedate, 
+      confstmtlastmadeupdate
+    FROM basic_company_data_origin`
     let res = await this.executeDDL(create, 10000, 60000)
     this.logger.debug(JSON.stringify(res, null, 2))
   }
@@ -412,10 +444,7 @@ export class ImportBasicCompanyData {
     OUTPUTFORMAT 
       'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
     LOCATION
-      's3://${this.outputLocation}/${ORIGIN_PREFIX}'
-    TBLPROPERTIES (
-      'serialization.null.format' = '',
-      'skip.header.line.count' = '1')`
+      's3://${this.outputLocation}/${ORIGIN_PREFIX}'`
 
     let res = await this.executeDDL(create, 2000)
     this.logger.debug(JSON.stringify(res, null, 2))
