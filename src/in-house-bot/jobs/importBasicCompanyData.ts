@@ -33,7 +33,7 @@ const ORIGIN_PREFIX = 'temp/refdata/gb/basic_company_data_origin/'
 const TMP_BUCKETED_PREFIX = 'temp/refdata/gb/basic_company_data_tmp_bucketed/'
 const PREFIX = 'refdata/gb/basic_company_data/'
 
-const BUCKET_COUNT = 4
+const BUCKET_COUNT = 3
 const MAX_UPLOAD_TIME = 600000 // 10 min
 
 const athena = new AWS.Athena({ region, accessKeyId, secretAccessKey })
@@ -318,7 +318,6 @@ export class ImportBasicCompanyData {
       AS SELECT 
         companyname, 
         companynumber, 
-        "regaddress.careof", 
         "regaddress.pobox", 
         "regaddress.addressline1", 
         "regaddress.addressline2", 
@@ -331,46 +330,15 @@ export class ImportBasicCompanyData {
         countryoforigin, 
         dissolutiondate, 
         incorporationdate, 
-        "accounts.accountrefday", 
-        "accounts.accountrefmonth", 
-        "accounts.nextduedate", 
-        "accounts.lastmadeupdate", 
-        "accounts.accountcategory", 
-        "returns.nextduedate", 
-        "returns.lastmadeupdate", 
-        "mortgages.nummortcharges", 
-        "mortgages.nummortoutstanding", 
-        "mortgages.nummortpartsatisfied", 
-        "mortgages.nummortsatisfied", 
         "siccode.sictext_1", 
         "siccode.sictext_2", 
         "siccode.sictext_3", 
         "siccode.sictext_4", 
-        "limitedpartnerships.numgenpartners", 
-        "limitedpartnerships.numlimpartners", 
-        uri, 
-        "previousname_1.condate", 
         "previousname_1.companyname", 
-        "previousname_2.condate", 
         "previousname_2.companyname", 
-        "previousname_3.condate", 
         "previousname_3.companyname", 
-        "previousname_4.condate", 
         "previousname_4.companyname", 
-        "previousname_5.condate", 
-        "previousname_5.companyname", 
-        "previousname_6.condate", 
-        "previousname_6.companyname", 
-        "previousname_7.condate", 
-        "previousname_7.companyname", 
-        "previousname_8.condate", 
-        "previousname_8.companyname", 
-        "previousname_9.condate", 
-        "previousname_9.companyname", 
-        "previousname_10.condate", 
-        "previousname_10.companyname", 
-        confstmtnextduedate, 
-        confstmtlastmadeupdate  
+        "previousname_5.companyname" 
       FROM basic_company_data_origin`
     let res = await this.executeDDL(create, 10000, 60000)
     this.logger.debug(JSON.stringify(res, null, 2))
@@ -382,8 +350,8 @@ export class ImportBasicCompanyData {
       \`companynumber\` string, 
       \`regaddress.careof\` string, 
       \`regaddress.pobox\` string, 
-      \`regaddress.addressline1\`, 
-      \`regaddress.addressline2\`, 
+      \`regaddress.addressline1\` string, 
+      \`regaddress.addressline2\` string, 
       \`regaddress.posttown\` string, 
       \`regaddress.county\` string, 
       \`regaddress.country\` string, 
@@ -408,13 +376,13 @@ export class ImportBasicCompanyData {
       \`siccode.sictext_2\` string, 
       \`siccode.sictext_3\` string, 
       \`siccode.sictext_4\` string, 
-      \`limitedpartnerships.numgenpartners\`, 
-      \`limitedpartnerships.numlimpartners\`, 
+      \`limitedpartnerships.numgenpartners\` string, 
+      \`limitedpartnerships.numlimpartners\` string, 
       \`uri\` string, 
-      \`previousname_1.condate\`, 
-      \`previousname_1.companyname\`, 
-      \`previousname_2.condate\`', 
-      \`previousname_2.companyname\`, 
+      \`previousname_1.condate\` string, 
+      \`previousname_1.companyname\` string, 
+      \`previousname_2.condate\` string, 
+      \`previousname_2.companyname\` string, 
       \`previousname_3.condate\` string, 
       \`previousname_3.companyname\` string, 
       \`previousname_4.condate\` string, 
@@ -444,11 +412,7 @@ export class ImportBasicCompanyData {
     OUTPUTFORMAT 
       'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
     LOCATION
-      's3://${this.outputLocation}/${ORIGIN_PREFIX}'
-    TBLPROPERTIES (
-      'classification'='csv', 
-      'compressionType'='gzip', 
-      'typeOfData'='file')`
+      's3://${this.outputLocation}/${ORIGIN_PREFIX}'`
 
     let res = await this.executeDDL(create, 2000)
     this.logger.debug(JSON.stringify(res, null, 2))
