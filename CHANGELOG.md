@@ -2,22 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.31](https://github.com/tradle/mycloud/compare/v2.5.1-rc.30...v2.5.1-rc.31) (2019-12-25)
+## [2.5.1-rc.32](https://github.com/tradle/mycloud/compare/v2.5.1-rc.31...v2.5.1-rc.32) (2019-12-31)
 
 
 ### Bug Fixes
 
-* typo ([75e2773](https://github.com/tradle/mycloud/commit/75e2773))
+* change of CP name leads to getting the same CP prefill next time ([ca80995](https://github.com/tradle/mycloud/commit/ca80995))
+* check status ([622985e](https://github.com/tradle/mycloud/commit/622985e))
+* installing dev deps ([833d227](https://github.com/tradle/mycloud/commit/833d227))
+* slow checking ([e7d3e1d](https://github.com/tradle/mycloud/commit/e7d3e1d))
+* typo ([8695fca](https://github.com/tradle/mycloud/commit/8695fca))
 
 
 ### Features
 
-* data lineage ([d084b62](https://github.com/tradle/mycloud/commit/d084b62))
-* fresh models ([1ef8ea6](https://github.com/tradle/mycloud/commit/1ef8ea6))
-* generic way to dynamically add backlink props to Form model ([bac0e9a](https://github.com/tradle/mycloud/commit/bac0e9a))
-* match PhotoID or PersonalInfo with CP resource in parent application ([4d515db](https://github.com/tradle/mycloud/commit/4d515db))
-* more aws regions added ([62fe1c2](https://github.com/tradle/mycloud/commit/62fe1c2))
-* use for AWS SES the closest supported region if not in the list ([1d3e369](https://github.com/tradle/mycloud/commit/1d3e369))
+* if company name not the same as in OC, use OC name and give customer a message to confirm it's theirs compnay ([626285f](https://github.com/tradle/mycloud/commit/626285f))
+* models ([4a704ab](https://github.com/tradle/mycloud/commit/4a704ab))
+* sending email ([3d67f7b](https://github.com/tradle/mycloud/commit/3d67f7b))
+* white glove project ([93f1f12](https://github.com/tradle/mycloud/commit/93f1f12))
+* white glove project ([c9e8381](https://github.com/tradle/mycloud/commit/c9e8381))
+* white glove project ([26886f8](https://github.com/tradle/mycloud/commit/26886f8))
 
 
 

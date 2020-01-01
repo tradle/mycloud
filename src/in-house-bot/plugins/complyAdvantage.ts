@@ -490,11 +490,21 @@ export const createPlugin: CreatePlugin<void> = (
         criteria = pConf.filter
         propertyMap = pConf.propertyMap && pConf.propertyMap[ptype]
       }
+      if (req.latestChecks) {
+        // Check that corporation exists otherwise no need to run
 
-      // Check that corporation exists otherwise no need to run
-      let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, application, req, bot })
-      if (!check  ||  getEnumValueId({ model: bot.models[STATUS], value: check.status }) !== 'pass') return
+        // let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, application, req, bot })
+        let { checks } = await bot.getResource(payload, { backlinks: ['checks'] })
+        if (!checks || !checks.length) return
+        checks = checks.filter(check => check[TYPE] === CORPORATION_EXISTS)
+        if (!checks || !checks.length) return
+        checks = await Promise.all(checks.map(c => bot.getResource(c)))
+        checks.sort((a, b) => b._time - a._time)
 
+        let check = checks[0]
+        if (!check || getEnumValueId({ model: bot.models[STATUS], value: check.status }) !== 'pass')
+          return
+      }
       // let items = await getChecks({ bot, type: CORPORATION_EXISTS, application })
       // if (!items || !items.length) return
 
@@ -579,4 +589,3 @@ export const createPlugin: CreatePlugin<void> = (
     plugin
   }
 }
-
