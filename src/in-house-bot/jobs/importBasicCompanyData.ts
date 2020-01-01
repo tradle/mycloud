@@ -437,14 +437,17 @@ export class ImportBasicCompanyData {
       'org.apache.hadoop.hive.serde2.OpenCSVSerde' 
     WITH SERDEPROPERTIES ( 
       'escapeChar'='\\', 
-      'quoteChar'='\"', 
+      'quoteChar'='"', 
       'separatorChar'=',') 
     STORED AS INPUTFORMAT 
       'org.apache.hadoop.mapred.TextInputFormat' 
     OUTPUTFORMAT 
       'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
     LOCATION
-      's3://${this.outputLocation}/${ORIGIN_PREFIX}'`
+      's3://${this.outputLocation}/${ORIGIN_PREFIX}'
+    TBLPROPERTIES (
+      'serialization.null.format' = '',
+      'skip.header.line.count' = '1')`
 
     let res = await this.executeDDL(create, 2000)
     this.logger.debug(JSON.stringify(res, null, 2))
