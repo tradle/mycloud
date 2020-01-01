@@ -436,7 +436,7 @@ export class ImportBasicCompanyData {
     ROW FORMAT SERDE 
       'org.apache.hadoop.hive.serde2.OpenCSVSerde' 
     WITH SERDEPROPERTIES ( 
-      'escapeChar'='\\', 
+      'escapeChar'='\\\\', 
       'quoteChar'='"', 
       'separatorChar'=',') 
     STORED AS INPUTFORMAT 
