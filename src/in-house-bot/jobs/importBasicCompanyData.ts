@@ -151,11 +151,56 @@ export class ImportBasicCompanyData {
     //*** create data source refresh resource */
     await this.createDataSourceRefresh()
 
+    //***** find changes in registered companies data *********/
+    await this.lookForChanges()
+
     //***** replace files from upload/psc_next_bucketed/ to upload/psc/
     await this.copyFromTmp()
 
     let end = new Date().getTime()
     this.logger.debug(`importBasicCompanyData total time (ms): ${end - begin}`)
+  }
+
+  lookForChanges = async () => {
+    this.logger.debug('importBasciCompanyData lookForChanges')
+    let changeQuery = `SELECT r.*, c.companyemail, c._link, c._author 
+        FROM tradle_legal_legalentity c, basic_company_data_tmp_bucketed r,
+          basic_company_data l
+        WHERE c.registrationnumber = r.companynumber 
+           and r.companynumber = l.companynumber and
+           and len(c.companyemail) > 0
+           and (r.companyname <> l.companyname or r."regaddress.addressline1" <> l."regaddress.addressline1"
+                or len(r.dissolutiondate) > 0)`
+
+    let data: AWS.Athena.GetQueryResultsOutput = await this.executeDDL(changeQuery, 10000)
+    let list = this.processQueryResult(data)
+    console.log(`importBasciCompanyData found ${list.length} changed companies`)
+    for (let rdata of list) {
+      console.log(`importBasciCompanyData changes are in ${rdata.companynumber}: ${rdata.companyname}`)
+    }
+  }
+
+  processQueryResult = (data: AWS.Athena.GetQueryResultsOutput) => {
+    var list = []
+    if (!data || (data.ResultSet.ResultSetMetadata.ColumnInfo.length == 0)) {
+      this.logger.debug('importPsc no records')
+    }
+    else {
+      let header = this.buildHeader(data.ResultSet.ResultSetMetadata.ColumnInfo)
+      let top_row = _.map(_.head(data.ResultSet.Rows).Data, (n) => { return n.VarCharValue })
+      let resultSet = (_.difference(header, top_row).length > 0) ?
+        data.ResultSet.Rows : _.drop(data.ResultSet.Rows)
+      resultSet.forEach((item) => {
+        list.push(_.zipObject(header, _.map(item.Data, (n) => { return n.VarCharValue })))
+      })
+    }
+    return list
+  }
+
+  buildHeader = (columns: any) => {
+    return _.map(columns, (i: any) => {
+      return i.Name
+    })
   }
 
   deleteAllInTmp = async () => {
