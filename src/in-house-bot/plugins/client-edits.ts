@@ -208,6 +208,7 @@ class ClientEditsAPI {
       if (!payload[p] && !prevResource[p]) continue
       if (props[p].displayAs) continue
       if (payload[p]) {
+        if (!prevResource) continue
         if (!prevResource[p]) {
           _.extend(added, { [p]: payload[p] })
           continue
