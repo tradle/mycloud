@@ -346,8 +346,8 @@ export class Applications implements IHasModels {
     }
 
     let application = opts.application || req.application
-    let formEditsCount = application.formEditsCount
-    application.formEditsCount = (formEditsCount && ++formEditsCount) || 1
+    let editRequestsCount = application.editRequestsCount
+    application.editRequestsCount = (editRequestsCount && ++editRequestsCount) || 1
 
     return await this.productsAPI.requestEdit({
       ...opts,
