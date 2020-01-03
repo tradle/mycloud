@@ -27,7 +27,6 @@ import {
 
 const { TYPE, TYPES, PERMALINK, LINK } = constants
 const { VERIFICATION } = TYPES
-// const FORM_ID = 'tradle.legal.LegalEntity'
 const OPEN_CORPORATES = 'Open Corporates'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
@@ -117,10 +116,9 @@ class OpenCorporatesAPI {
       return { rawData: json, hits: [], message, url }
     }
     json = sanitize(json).sanitized
-    let companies, hasHits
+    let companies
     if (hasAllInfo) {
       companies = [json.results]
-      hasHits = true
       // url = `${url}/network?confidence=80&ownership_percentage=25`
       // let networkJSON
       // try {
@@ -134,7 +132,6 @@ class OpenCorporatesAPI {
       // }
     } else {
       companies = json.results.companies
-      hasHits = json.results.companies.length
     }
     let foundCompanyName, foundNumber, foundCountry, foundDate
     let rightCompanyName, rightNumber, rightCountry, rightDate
@@ -282,7 +279,7 @@ class OpenCorporatesAPI {
       })
       .toJSON()
 
-    const signedVerification = await this.applications.createVerification({
+    await this.applications.createVerification({
       application,
       verification
     })
