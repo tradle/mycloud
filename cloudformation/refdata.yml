@@ -874,3 +874,144 @@ Resources:
           BucketColumns: []
           SortColumns: []
           StoredAsSubDirectories: 'false'
+
+  BasicCompanyDataGlueTable:
+    Type: 'AWS::Glue::Table'
+    Properties:
+      DatabaseName:
+        Ref: SecGlueDatabase
+      CatalogId:
+        Ref: 'AWS::AccountId'
+      TableInput:
+        Name: basic_company_data
+        TableType: EXTERNAL_TABLE
+        StorageDescriptor:
+          Columns:
+            - Name: companyname
+              Type: string
+            - Name: companynumber
+              Type: string
+            - Name: "regaddress.careof"
+              Type: string
+            - Name: "regaddress.pobox"
+              Type: string
+            - Name: "regaddress.addressline1"
+              Type: string
+            - Name: "regaddress.addressline2"
+              Type: string
+            - Name: "regaddress.posttown"
+              Type: string
+            - Name: "regaddress.county"
+              Type: string
+            - Name: "regaddress.country"
+              Type: string
+            - Name: "regaddress.postcode"
+              Type: string
+            - Name: companycategory
+              Type: string
+            - Name: companystatus
+              Type: string
+            - Name: countryoforigin
+              Type: string
+            - Name: dissolutiondate
+              Type: string
+            - Name: incorporationdate
+              Type: string
+            - Name: "accounts.accountrefday"
+              Type: string
+            - Name: "accounts.accountrefmonth"
+              Type: string
+            - Name: "accounts.nextduedate"
+              Type: string
+            - Name: "accounts.lastmadeupdate"
+              Type: string
+            - Name: "accounts.accountcategory"
+              Type: string
+            - Name: "returns.nextduedate"
+              Type: string
+            - Name: "returns.lastmadeupdate"
+              Type: string
+            - Name: "mortgages.nummortcharges"
+              Type: string
+            - Name: "mortgages.nummortoutstanding"
+              Type: string
+            - Name: "mortgages.nummortpartsatisfied"
+              Type: string
+            - Name: "mortgages.nummortsatisfied"
+              Type: string
+            - Name: "siccode.sictext_1"
+              Type: string
+            - Name: "siccode.sictext_2"
+              Type: string
+            - Name: "siccode.sictext_3"
+              Type: string
+            - Name: "siccode.sictext_4"
+              Type: string
+            - Name: "limitedpartnerships.numgenpartners"
+              Type: string
+            - Name: "limitedpartnerships.numlimpartners"
+              Type: string
+            - Name: uri
+              Type: string
+            - Name: "previousname_1.condate"
+              Type: string
+            - Name: "previousname_1.companyname"
+              Type: string
+            - Name: "previousname_2.condate"
+              Type: string
+            - Name: "previousname_2.companyname"
+              Type: string
+            - Name: "previousname_3.condate"
+              Type: string
+            - Name: "previousname_3.companyname"
+              Type: string
+            - Name: "previousname_4.condate"
+              Type: string
+            - Name: "previousname_4.companyname"
+              Type: string
+            - Name: "previousname_5.condate"
+              Type: string
+            - Name: "previousname_5.companyname"
+              Type: string
+            - Name: "previousname_6.condate"
+              Type: string
+            - Name: "previousname_6.companyname"
+              Type: string
+            - Name: "previousname_7.condate"
+              Type: string
+            - Name: "previousname_7.companyname"
+              Type: string
+            - Name: "previousname_8.condate"
+              Type: string
+            - Name: "previousname_8.companyname"
+              Type: string
+            - Name: "previousname_9.condate"
+              Type: string
+            - Name: "previousname_9.companyname"
+              Type: string
+            - Name: "previousname_10.condate"
+              Type: string
+            - Name: "previousname_10.companyname"
+              Type: string
+            - Name: confstmtnextduedate
+              Type: string
+            - Name: confstmtlastmadeupdate
+              Type: string
+          Location: 
+            Fn::Join:
+              - ''
+              - - 's3://'
+                - Ref: PrivateConfBucket
+                - '/refdata/gb/basic_company_data/'
+          InputFormat: org.apache.hadoop.hive.ql.io.orc.OrcInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat
+          Compressed: 'false'
+          NumberOfBuckets: 3
+          StoredAsSubDirectories: 'false'
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.ql.io.orc.OrcSerde
+            Parameters: {}
+          BucketColumns: [companynumber]
+          SortColumns: []
+          Parameters:
+            has_encrypted_data: 'false'

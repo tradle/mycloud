@@ -18,6 +18,7 @@ import { ImportPsc } from './importPsc'
 import { ImportRefdata } from './importRefdata'
 import { ImportPitchbookData } from './importPitchbook'
 import { ImportMaxmindDb } from './importMaxmindDb'
+import { ImportBasicCompanyData } from './importBasicCompanyData'
 import { Chaser } from './chaser'
 // import { Deployment } from '../deployment'
 
@@ -53,6 +54,17 @@ export const importPsc: Executor = async ({ job, components }) => {
     importer.movePSC() // notifyAdmin() //  movePSC()
   } catch (err) {
     components.bot.logger.error('job importPsc failed', err)
+  }
+}
+
+export const importBasicCompanyData: Executor = async ({ job, components }) => {
+  const orgConf = components.conf
+  const { org } = orgConf
+  let importer = new ImportBasicCompanyData(components.bot, components.applications, org)
+  try {
+    importer.moveBasic() // notifyAdmin() //  movePSC()
+  } catch (err) {
+    components.bot.logger.error('job importBasicCompanyData failed', err)
   }
 }
 

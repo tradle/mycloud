@@ -68,6 +68,11 @@ const COMMON_JOBS: Job[] = [
     period: 60 * MINUTE,
   },
   {
+    name: 'importBasicCompanyData',
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
+    period: 90 * MINUTE
+  },
+  {
     name: 'importRefdata',
     function: DEFAULT_JOB_RUNNER_FUNCTION,
     period: 1 * 60 * MINUTE,
@@ -75,7 +80,7 @@ const COMMON_JOBS: Job[] = [
   {
     name: 'importPitchbookData',
     function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: 1 * 10 * MINUTE,
+    period: 1 * 30 * MINUTE,
   },
   {
     name: 'importMaxmindDb',
