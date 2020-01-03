@@ -6,6 +6,7 @@ import { sendConfirmationEmail } from '../email-utils'
 export const name = 'draftApplication'
 const APPLICATION = 'tradle.Application'
 const PRODUCT_BUNDLE = 'tradle.ProductBundle'
+const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 
 const exclude = [
   'tradle.ProductRequest',
@@ -69,10 +70,14 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let models = bot.models
       let keepProperties = ['_t']
       forms = _.uniqBy(forms, '_permalink')
+
+      let emailAddressForms = []
+
       forms.sort((a, b) => a._time - b._time)
       forms.forEach(form => {
         let type = form[TYPE]
         if (exclude.includes(type)) return
+        if (type === LEGAL_ENTITY) emailAddressForms.push(form)
         let properties = models[type].properties
         let item: any = {}
         items.push(item)
@@ -84,6 +89,10 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           } else item[p] = form[p]
         }
       })
+      debugger
+      emailAddressForms.sort((a, b) => b._time - a._time)
+      let emailAddressForm = emailAddressForms.find(r => r.companyEmail)
+      if (!emailAddressForm) return
       const requestFor = payload.requestFor
       let bundle = await bot
         .draft({
@@ -96,7 +105,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         .signAndSave()
 
       await sendConfirmationEmail({
-        emailAddress: 'ellen@tradle.io',
+        emailAddress: emailAddressForm.companyEmail,
         senderEmail: 'noreply@tradle.io',
         payload,
         bot,
