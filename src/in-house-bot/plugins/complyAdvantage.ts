@@ -191,7 +191,8 @@ class ComplyAdvantageAPI {
     let r: { rawData: any; hits: any; status: any } = await this.getData({
       resource,
       criteria,
-      companyName: (propertyName && resource[propertyName]) || companyName
+      companyName: (propertyName && resource[propertyName]) || companyName,
+      application
     })
 
     return await this.createChecksAndVerifications({
@@ -280,7 +281,8 @@ class ComplyAdvantageAPI {
 
     let r: { rawData: any; hits: any; status: any } = await this.getData({
       resource,
-      criteria
+      criteria,
+      application
     })
     debugger
     return await this.createChecksAndVerifications({ r, req, aspects, name, propertyName })
@@ -318,11 +320,13 @@ class ComplyAdvantageAPI {
   public getData = async ({
     resource,
     criteria,
-    companyName
+    companyName,
+    application
   }: {
     resource: any
     criteria: any
     companyName?: string
+    application: IPBApp
   }) => {
     let { registrationDate, firstName, lastName, dateOfBirth, entity_type } = resource //conf.propertyMap //[resource[TYPE]]
     let search_term = criteria && criteria.search_term
@@ -393,6 +397,19 @@ class ComplyAdvantageAPI {
       status = {
         status: 'fail'
       }
+      let screening = {}
+      hits.forEach(hit => {
+        let { types } = hit.doc
+        types.forEach(t => {
+          if (!screening[t]) screening[t] = []
+          screening[t].push(hit)
+          let tt = t.toLowerCase()
+          if (tt.startsWith('adverse')) application.adverseMediaHit = true
+          else if (tt.startsWith('sanction')) application.sanctionsHit = true
+          else if (tt.startsWith('pep')) application.pepHit = true
+        })
+      })
+      rawData = {...screening, ...rawData}
     } else {
       status = {
         status: 'pass'
