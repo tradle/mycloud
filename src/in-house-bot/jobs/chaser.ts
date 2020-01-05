@@ -1,5 +1,7 @@
 import { TYPE } from '@tradle/constants'
 import { Bot, Logger } from '../types'
+import { getEnumValueId } from '../utils'
+
 const NOTIFICATION = 'tradle.Notification'
 const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
 
@@ -34,10 +36,11 @@ export class Chaser {
       }
     })
     if (!items.length) return
-    items = items.filter(item => !item.status.id.endsWith('_abandoned'))
-    items.sort((a, b) => b._time - a._time)
+    let model = this.bot.models[NOTIFICATION_STATUS]
+    items = items.filter(item => getEnumValueId({ model, value: item.status }) !== 'abandoned')
+    // items.sort((a, b) => b._time - a._time)
     let now = Date.now()
-    let notify = items.filter(item => now - item.dateLastNotified > (item.interval || 5 * MINUTE))
+    let notify = items.filter(item => now - item.dateLastNotified > (item.interval || 24 * 60 * MINUTE))
     let result = await Promise.all(
       notify.map(item =>
         this.bot.versionAndSave({
