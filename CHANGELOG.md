@@ -2,23 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.34](https://github.com/tradle/mycloud/compare/v2.5.1-rc.33...v2.5.1-rc.34) (2020-01-05)
-
-
-### Bug Fixes
-
-* bad comparison with prev resource version ([c93a983](https://github.com/tradle/mycloud/commit/c93a983))
-* check override models shouldn't allow set 'top' property ([23962fb](https://github.com/tradle/mycloud/commit/23962fb))
-* prop name change in model ([6167239](https://github.com/tradle/mycloud/commit/6167239))
-* typo ([8df19fe](https://github.com/tradle/mycloud/commit/8df19fe))
-
-
-### Features
-
-* fresh models ([3631616](https://github.com/tradle/mycloud/commit/3631616))
-* models redistribution ([0a836ce](https://github.com/tradle/mycloud/commit/0a836ce))
-* screening added ([00ea7a0](https://github.com/tradle/mycloud/commit/00ea7a0))
-* screening clarified ([937c336](https://github.com/tradle/mycloud/commit/937c336))
+## [2.5.1-rc.35](https://github.com/tradle/mycloud/compare/v2.5.1-rc.34...v2.5.1-rc.35) (2020-01-05)
 
 
 
