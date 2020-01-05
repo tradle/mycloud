@@ -120,8 +120,7 @@ class OpenCorporatesAPI {
       }
       rawData = this.mapCompany(companyFound, officersFound)
       companies = [rawData]
-    }
-    else {
+    } else {
       if (hasAllInfo) {
         // debugger
         let cc = country.id.split('_')[1]
@@ -334,8 +333,7 @@ class OpenCorporatesAPI {
   mapCompany = (comp: any, offic: any) => {
     let addr = comp.registered_office_address
     let street = addr.address_line_1
-    if (street && addr.address_line_2)
-      street += '\n' + addr.address_line_2
+    if (street && addr.address_line_2) street += '\n' + addr.address_line_2
 
     let oneLineAddress = street
     oneLineAddress += ', ' + addr.locality
@@ -377,10 +375,8 @@ class OpenCorporatesAPI {
           obj.officer.end_date = item.resigned_on
           obj.officer.inactive = true
         }
-        if (item.country_of_residence)
-          obj.officer.country_of_residence = item.country_of_residence
-        if (item.nationality)
-          obj.officer.nationality = item.nationality
+        if (item.country_of_residence) obj.officer.country_of_residence = item.country_of_residence
+        if (item.nationality) obj.officer.nationality = item.nationality
         offArr.push(obj)
       }
     }
@@ -401,7 +397,7 @@ class OpenCorporatesAPI {
           publisher: 'UK Companies House',
           url: 'https://api.companieshouse.gov.uk/',
           terms: 'UK Crown Copyright',
-          retrieved_at: dateformat(new Date(), 'yyyy-mm-dd\'T\'HH:mm:ss+00:00')
+          retrieved_at: dateformat(new Date(), "yyyy-mm-dd'T'HH:mm:ss+00:00")
         },
         registered_address: {
           street_address: street,
@@ -420,7 +416,6 @@ class OpenCorporatesAPI {
     return sanitize(res).sanitized
   }
 
-
   company = async (company_number: string) => {
     let link = 'https://api.companieshouse.gov.uk/company/' + company_number
     let res = await this.getCHInfo(link)
@@ -434,12 +429,12 @@ class OpenCorporatesAPI {
   }
 
   getCHInfo = async (link: string) => {
-    var auth = 'Basic ' + Buffer.from(this.conf.companiesHouseApiKey + ':').toString('base64');
+    var auth = 'Basic ' + Buffer.from(this.conf.companiesHouseApiKey + ':').toString('base64')
     const res = await fetch(link, {
       method: 'get',
       headers: {
-        'Host': 'api.companieshouse.gov.uk',
-        'Authorization': auth
+        Host: 'api.companieshouse.gov.uk',
+        Authorization: auth
       }
     })
     let json = await res.json()
@@ -456,13 +451,12 @@ class OpenCorporatesAPI {
           }
         },
         orderBy: ORDER_BY_TIMESTAMP_DESC
-      });
+      })
     } catch (err) {
       return undefined
     }
   }
 }
-
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger, conf }) => {
   const openCorporates = new OpenCorporatesAPI({ bot, conf, applications, logger })
@@ -510,7 +504,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         return
       }
 
-      let useCompaniesHouse = this.conf.companiesHouseApiKey && resource.country && resource.country.id.split('_')[1] === 'GB'
+      let useCompaniesHouse =
+        conf.companiesHouseApiKey && resource.country && resource.country.id.split('_')[1] === 'GB'
 
       if (useCompaniesHouse) {
         // going with company house
@@ -525,9 +520,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
           req
         })
         if (!createCheck) return
-      }
-      else {
-        // using open corporate 
+      } else {
+        // using open corporate
         let createCheck = await doesCheckNeedToBeCreated({
           bot,
           type: CORPORATION_EXISTS,
