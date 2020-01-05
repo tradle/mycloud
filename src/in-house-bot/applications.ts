@@ -144,7 +144,7 @@ export class Applications implements IHasModels {
     if (failedChecks.length) {
       application.numberOfChecksFailed = failedChecks.length
       application.hasFailedChecks = true
-      application.hasFailedSanctionsChecks =
+      application.hasFailedScreeningChecks =
         failedChecks.findIndex(check => check[TYPE] === SANCTIONS_CHECK) !== -1
       application.hasFailedDocumentValidityChecks =
         failedChecks.findIndex(check => check[TYPE] === DOCUMENT_VALIDITY_CHECK) !== -1
@@ -162,8 +162,8 @@ export class Applications implements IHasModels {
       let sanctionsChecks = latestChecks.filter(check => check[TYPE] === SANCTIONS_CHECK)
       if (sanctionsChecks.length) {
         sanctionsChecks = uniqBy(sanctionsChecks, 'propertyName')
-        if (application.sanctionsCheckCount !== sanctionsChecks.length)
-          application.sanctionsCheckCount = sanctionsChecks.length
+        if (application.screeningCheckCount !== sanctionsChecks.length)
+          application.screeningCheckCount = sanctionsChecks.length
       }
     }
     return check
