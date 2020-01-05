@@ -1,4 +1,5 @@
 import fetch from 'node-fetch'
+import dateformat from 'dateformat'
 import _ from 'lodash'
 
 import validateResource from '@tradle/validate-resource'
@@ -6,6 +7,7 @@ import { enumValue } from '@tradle/build-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 import constants from '@tradle/constants'
+import { buildResourceStub } from '@tradle/build-resource'
 import {
   Bot,
   Logger,
@@ -28,13 +30,20 @@ import {
 const { TYPE, TYPES, PERMALINK, LINK } = constants
 const { VERIFICATION } = TYPES
 const OPEN_CORPORATES = 'Open Corporates'
+const COMPANIES_HOUSE = 'Companies House'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
+const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
+const ORDER_BY_TIMESTAMP_DESC = {
+  property: 'timestamp',
+  desc: true
+}
 const STATUS = 'tradle.Status'
 
 interface IOpenCorporatesConf {
   products: any
   propertyMap: any
+  companiesHouseApiKey: string
 }
 const defaultPropMap = {
   companyName: 'companyName',
@@ -88,51 +97,76 @@ class OpenCorporatesAPI {
     let { registrationNumber, registrationDate, region, country, companyName } = resource
     let url: string
     let hasAllInfo = registrationNumber && country
+
+    let companies: Array<any>, rawData
+
     // debugger
-    if (hasAllInfo) {
-      // debugger
-      let cc = country.id.split('_')[1]
-      if (cc === 'US') {
-        if (region) {
-          let reg = (typeof region === 'string' && region) || region.id.split('_')[1]
-          url = `${BASE_URL}companies/${cc.toLowerCase()}_${reg.toLowerCase()}/${registrationNumber}`
-        } else hasAllInfo = false
-      } else url = `${BASE_URL}companies/${cc.toLowerCase()}/${registrationNumber}`
+    if (this.conf.companiesHouseApiKey && hasAllInfo && country.id.split('_')[1] === 'GB') {
+      // use company house api or data lake
+      url = 'https://api.companieshouse.gov.uk/company/' + registrationNumber
+      // use api
+      let companyFound: any, officersFound: any
+      try {
+        companyFound = await this.company(registrationNumber)
+        if (companyFound.errors) {
+          let message = `No match for company with registration number "${registrationNumber}" were found`
+          return { rawData: companyFound, hits: [], message, url }
+        }
+        officersFound = await this.officers(registrationNumber)
+      } catch (err) {
+        let message = `Check was not completed for company with registration number: "${registrationNumber}": ${err.message}`
+        this.logger.debug('Search by registration number', err)
+        return { resource, rawData: {}, message, hits: [], url }
+      }
+      rawData = this.mapCompany(companyFound, officersFound)
+      companies = [rawData]
     }
-    if (!url)
-      url = `${BASE_URL}companies/search?q=${companyName.replace(/\s/g, '+')}&inactive=false`
-    // let json = test
-    let json
-    try {
-      let res = await fetch(url)
-      json = await res.json()
-    } catch (err) {
-      let message = `Check was not completed for "${companyName}": ${err.message}`
-      this.logger.debug('Search by company name', err)
-      return { resource, rawData: {}, message, hits: [], url }
+    else {
+      if (hasAllInfo) {
+        // debugger
+        let cc = country.id.split('_')[1]
+        if (cc === 'US') {
+          if (region) {
+            let reg = (typeof region === 'string' && region) || region.id.split('_')[1]
+            url = `${BASE_URL}companies/${cc.toLowerCase()}_${reg.toLowerCase()}/${registrationNumber}`
+          } else hasAllInfo = false
+        } else url = `${BASE_URL}companies/${cc.toLowerCase()}/${registrationNumber}`
+      }
+      if (!url)
+        url = `${BASE_URL}companies/search?q=${companyName.replace(/\s/g, '+')}&inactive=false`
+      // let json = test
+      let json
+      try {
+        let res = await fetch(url)
+        json = await res.json()
+      } catch (err) {
+        let message = `Check was not completed for "${companyName}": ${err.message}`
+        this.logger.debug('Search by company name', err)
+        return { resource, rawData: {}, message, hits: [], url }
+      }
+      if (!json.results) {
+        let message = `No matches for company name "${companyName}" were found`
+        return { rawData: json, hits: [], message, url }
+      }
+      json = sanitize(json).sanitized
+      if (hasAllInfo) {
+        companies = [json.results]
+        // url = `${url}/network?confidence=80&ownership_percentage=25`
+        // let networkJSON
+        // try {
+        //   let res = await fetch(url)
+        //   networkJSON = await res.json()
+        // } catch (err) {}
+        // return {
+        //   rawData: json.results,
+        //   hits: [json.results.company],
+        //   url
+        // }
+      } else {
+        companies = json.results.companies
+      }
     }
-    if (!json.results) {
-      let message = `No matches for company name "${companyName}" were found`
-      return { rawData: json, hits: [], message, url }
-    }
-    json = sanitize(json).sanitized
-    let companies
-    if (hasAllInfo) {
-      companies = [json.results]
-      // url = `${url}/network?confidence=80&ownership_percentage=25`
-      // let networkJSON
-      // try {
-      //   let res = await fetch(url)
-      //   networkJSON = await res.json()
-      // } catch (err) {}
-      // return {
-      //   rawData: json.results,
-      //   hits: [json.results.company],
-      //   url
-      // }
-    } else {
-      companies = json.results.companies
-    }
+
     let foundCompanyName, foundNumber, foundCountry, foundDate
     let rightCompanyName, rightNumber, rightCountry, rightDate
     let message
@@ -220,7 +254,7 @@ class OpenCorporatesAPI {
     }
     if (companies.length === 1) url = companies[0].company.opencorporates_url
     return {
-      rawData: (companies.length && json.results) || json,
+      rawData: rawData,
       message,
       hits: companies,
       status: companies.length ? 'pass' : 'fail',
@@ -228,6 +262,7 @@ class OpenCorporatesAPI {
     }
   }
   public createCorporateCheck = async ({
+    provider,
     application,
     rawData,
     status,
@@ -240,7 +275,7 @@ class OpenCorporatesAPI {
     let checkR: any = {
       [TYPE]: CORPORATION_EXISTS,
       status: status || (!message && hits.length === 1 && 'pass') || 'fail',
-      provider: OPEN_CORPORATES,
+      provider,
       application,
       dateChecked: Date.now(),
       shareUrl: url,
@@ -248,6 +283,12 @@ class OpenCorporatesAPI {
       form
     }
     checkR.message = getStatusMessageForCheck({ models: this.bot.models, check: checkR })
+
+    if (provider === COMPANIES_HOUSE) {
+      let ds = this.getLinkToCompaniesHouseDataSourceRefresh()
+      if (ds) checkR.dataSource = buildResourceStub({ resource: ds, models: this.bot.models })
+    }
+
     if (message) checkR.resultDetails = message
     if (hits.length) checkR.rawData = hits
     else if (rawData) checkR.rawData = rawData
@@ -288,7 +329,140 @@ class OpenCorporatesAPI {
     if (application.checks)
       await this.applications.deactivateChecks({ application, type: CORPORATION_EXISTS, form, req })
   }
+
+  // companies house access methods
+  mapCompany = (comp: any, offic: any) => {
+    let addr = comp.registered_office_address
+    let street = addr.address_line_1
+    if (street && addr.address_line_2)
+      street += '\n' + addr.address_line_2
+
+    let oneLineAddress = street
+    oneLineAddress += ', ' + addr.locality
+    oneLineAddress += ', ' + addr.postal_code
+
+    let codes = []
+    for (let cd of comp.sic_codes) {
+      let exp = {
+        industry_code: {
+          code: cd
+        }
+      }
+      codes.push(exp)
+    }
+
+    let previous = []
+    if (comp.previous_company_names) {
+      for (let elem of comp.previous_company_names) {
+        previous.push(elem.name)
+      }
+    }
+
+    let offArr = []
+    if (offic.items) {
+      for (let item of offic.items) {
+        let obj = {
+          officer: {
+            name: item.name,
+            position: item.officer_role,
+            start_date: item.appointed_on,
+            occupation: item.occupation,
+            inactive: false,
+            end_date: undefined,
+            country_of_residence: undefined,
+            nationality: undefined
+          }
+        }
+        if (item.resigned_on) {
+          obj.officer.end_date = item.resigned_on
+          obj.officer.inactive = true
+        }
+        if (item.country_of_residence)
+          obj.officer.country_of_residence = item.country_of_residence
+        if (item.nationality)
+          obj.officer.nationality = item.nationality
+        offArr.push(obj)
+      }
+    }
+
+    let res = {
+      company: {
+        name: comp.company_name,
+        company_number: comp.company_number,
+        jurisdiction_code: comp.jurisdiction,
+        incorporation_date: comp.date_of_creation,
+        registry_url: 'https://api.companieshouse.gov.uk/company/' + comp.company_number,
+        company_type: comp.type,
+        previous_names: previous,
+        current_status: comp.company_status,
+        registered_address_in_full: oneLineAddress,
+        industry_codes: codes,
+        source: {
+          publisher: 'UK Companies House',
+          url: 'https://api.companieshouse.gov.uk/',
+          terms: 'UK Crown Copyright',
+          retrieved_at: dateformat(new Date(), 'yyyy-mm-dd\'T\'HH:mm:ss+00:00')
+        },
+        registered_address: {
+          street_address: street,
+          locality: addr.locality,
+          postal_code: addr.postal_code,
+          region: undefined,
+          country: addr.country
+        },
+        officers: offArr
+      }
+    }
+    if (addr.region) {
+      res.company.registered_address.region = addr.region
+    }
+
+    return sanitize(res).sanitized
+  }
+
+
+  company = async (company_number: string) => {
+    let link = 'https://api.companieshouse.gov.uk/company/' + company_number
+    let res = await this.getCHInfo(link)
+    return res
+  }
+
+  officers = async (company_number: string) => {
+    let link = 'https://api.companieshouse.gov.uk/company/' + company_number + '/officers'
+    let res = await this.getCHInfo(link)
+    return res
+  }
+
+  getCHInfo = async (link: string) => {
+    var auth = 'Basic ' + Buffer.from(this.conf.companiesHouseApiKey + ':').toString('base64');
+    const res = await fetch(link, {
+      method: 'get',
+      headers: {
+        'Host': 'api.companieshouse.gov.uk',
+        'Authorization': auth
+      }
+    })
+    let json = await res.json()
+    return json
+  }
+
+  getLinkToCompaniesHouseDataSourceRefresh = async () => {
+    try {
+      return await this.bot.db.findOne({
+        filter: {
+          EQ: {
+            [TYPE]: DATA_SOURCE_REFRESH,
+            'name.id': `${REFERENCE_DATA_SOURCES}_companiesHouse`
+          }
+        },
+        orderBy: ORDER_BY_TIMESTAMP_DESC
+      });
+    } catch (err) {
+      return undefined
+    }
+  }
 }
+
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger, conf }) => {
   const openCorporates = new OpenCorporatesAPI({ bot, conf, applications, logger })
@@ -323,18 +497,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         return
       }
 
-      let createCheck = await doesCheckNeedToBeCreated({
-        bot,
-        type: CORPORATION_EXISTS,
-        application,
-        provider: OPEN_CORPORATES,
-        form: payload,
-        propertiesToCheck,
-        prop: 'form',
-        req
-      })
-      if (!createCheck) return
-
       let { resource, error } = await getCheckParameters({
         plugin: DISPLAY_NAME,
         resource: payload,
@@ -347,6 +509,38 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         if (error) logger.debug(error)
         return
       }
+
+      let useCompaniesHouse = this.conf.companiesHouseApiKey && resource.country && resource.country.id.split('_')[1] === 'GB'
+
+      if (useCompaniesHouse) {
+        // going with company house
+        let createCheck = await doesCheckNeedToBeCreated({
+          bot,
+          type: CORPORATION_EXISTS,
+          application,
+          provider: COMPANIES_HOUSE,
+          form: payload,
+          propertiesToCheck,
+          prop: 'form',
+          req
+        })
+        if (!createCheck) return
+      }
+      else {
+        // using open corporate 
+        let createCheck = await doesCheckNeedToBeCreated({
+          bot,
+          type: CORPORATION_EXISTS,
+          application,
+          provider: OPEN_CORPORATES,
+          form: payload,
+          propertiesToCheck,
+          prop: 'form',
+          req
+        })
+        if (!createCheck) return
+      }
+
       let r: {
         rawData: object
         message?: string
@@ -371,9 +565,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       if (status === 'pass' && hits.length === 1) {
         if (!application.applicantName) application.applicantName = payload.companyName
       }
-
+      let provider = useCompaniesHouse ? COMPANIES_HOUSE : OPEN_CORPORATES
       pchecks.push(
         openCorporates.createCorporateCheck({
+          provider,
           application,
           rawData,
           message,
