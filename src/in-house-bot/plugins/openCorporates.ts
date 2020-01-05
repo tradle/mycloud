@@ -40,12 +40,10 @@ const ORDER_BY_TIMESTAMP_DESC = {
 }
 const STATUS = 'tradle.Status'
 
-const APIKEY = 'xlAjMDpxydq-cPj19ENjyep-spcMwn4kG05QT7p2';
-
 interface IOpenCorporatesConf {
   products: any
   propertyMap: any
-  companyhouseApiKey: string
+  companiesHouseApiKey: string
 }
 const defaultPropMap = {
   companyName: 'companyName',
@@ -100,10 +98,10 @@ class OpenCorporatesAPI {
     let url: string
     let hasAllInfo = registrationNumber && country
 
-    let companies: Array<any>, hasHits, rawData
+    let companies: Array<any>, rawData
 
     // debugger
-    if (hasAllInfo && country.id.split('_')[1] === 'GB') {
+    if (this.conf.companiesHouseApiKey && hasAllInfo && country.id.split('_')[1] === 'GB') {
       // use company house api or data lake
       url = 'https://api.companieshouse.gov.uk/company/' + registrationNumber
       // use api
@@ -122,7 +120,6 @@ class OpenCorporatesAPI {
       }
       rawData = this.mapCompany(companyFound, officersFound)
       companies = [rawData]
-      hasHits = true
     }
     else {
       if (hasAllInfo) {
@@ -437,7 +434,7 @@ class OpenCorporatesAPI {
   }
 
   getCHInfo = async (link: string) => {
-    var auth = 'Basic ' + Buffer.from(this.conf.companyhouseApiKey + ':').toString('base64');
+    var auth = 'Basic ' + Buffer.from(this.conf.companiesHouseApiKey + ':').toString('base64');
     const res = await fetch(link, {
       method: 'get',
       headers: {
@@ -513,7 +510,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         return
       }
 
-      let useCompaniesHouse = resource.country && resource.country.id.split('_')[1] === 'GB'
+      let useCompaniesHouse = this.conf.companiesHouseApiKey && resource.country && resource.country.id.split('_')[1] === 'GB'
 
       if (useCompaniesHouse) {
         // going with company house
