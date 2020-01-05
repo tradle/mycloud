@@ -520,34 +520,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       // }
       // await cp.sendLinkViaSMS({resource: payload, application, smsBasedVerifier, legalEntity})
     },
-    // async onResourceCreated(payload) {
-    //   if (payload[TYPE] === CONTROLLING_PERSON) {
-    //     if (getEnumValueId(payload.typeOfControllingEntity) === 'person') return
-    //     let {
-    //       name,
-    //       emailAddress,
-    //       controllingEntityCompanyNumber,
-    //       controllingEntityCountry,
-    //       controllingEntityRegion,
-    //       controllingEntityPostalCode,
-    //       controllingEntityStreetAddress
-    //     } = payload
-    //     let le = sanitize({
-    //       [TYPE]: 'tradle.legal.LegalEntity',
-    //       companyName: name,
-    //       registrationNumber: controllingEntityCompanyNumber,
-    //       country: controllingEntityCountry,
-    //       region: controllingEntityRegion,
-    //       emailAddress,
-    //       streetAddress: controllingEntityStreetAddress,
-    //       postalCode: controllingEntityPostalCode
-    //     }).sanitized
-    //     let legalEntity = await bot
-    //       .draft({ [TYPE]: 'tradle.legal.LegalEntity' })
-    //       .set(le)
-    //       .signAndSave()
-    //   }
-    // },
     async onResourceChanged(changes) {
       // useRealSES(bot)
       let { old, value } = changes
@@ -780,3 +752,31 @@ export const validateConf: ValidatePluginConf = async ({
       '"messages" in the rules should be an array. Index of the message in array signifies what message will be send depending on what time the message is getting send out'
     )
 }
+    // async onResourceCreated(payload) {
+    //   if (payload[TYPE] === CONTROLLING_PERSON) {
+    //     if (getEnumValueId(payload.typeOfControllingEntity) === 'person') return
+    //     let {
+    //       name,
+    //       emailAddress,
+    //       controllingEntityCompanyNumber,
+    //       controllingEntityCountry,
+    //       controllingEntityRegion,
+    //       controllingEntityPostalCode,
+    //       controllingEntityStreetAddress
+    //     } = payload
+    //     let le = sanitize({
+    //       [TYPE]: 'tradle.legal.LegalEntity',
+    //       companyName: name,
+    //       registrationNumber: controllingEntityCompanyNumber,
+    //       country: controllingEntityCountry,
+    //       region: controllingEntityRegion,
+    //       emailAddress,
+    //       streetAddress: controllingEntityStreetAddress,
+    //       postalCode: controllingEntityPostalCode
+    //     }).sanitized
+    //     let legalEntity = await bot
+    //       .draft({ [TYPE]: 'tradle.legal.LegalEntity' })
+    //       .set(le)
+    //       .signAndSave()
+    //   }
+    // },
