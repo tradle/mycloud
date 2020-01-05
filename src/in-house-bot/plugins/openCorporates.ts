@@ -7,6 +7,7 @@ import { enumValue } from '@tradle/build-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 import constants from '@tradle/constants'
+import { buildResourceStub } from '@tradle/build-resource'
 import {
   Bot,
   Logger,
@@ -285,6 +286,12 @@ class OpenCorporatesAPI {
       form
     }
     checkR.message = getStatusMessageForCheck({ models: this.bot.models, check: checkR })
+
+    if (provider === COMPANIES_HOUSE) {
+      let ds = this.getLinkToCompaniesHouseDataSourceRefresh()
+      if (ds) checkR.dataSource = buildResourceStub({ resource: ds, models: this.bot.models })
+    }
+
     if (message) checkR.resultDetails = message
     if (hits.length) checkR.rawData = hits
     else if (rawData) checkR.rawData = rawData
