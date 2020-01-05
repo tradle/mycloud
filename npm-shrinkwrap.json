@@ -508,9 +508,8 @@
       }
     },
     "@tradle/centrix": {
-      "version": "1.0.0",
-      "resolved": "git://github.com/tradle/centrix.git#a6b234e114b8fd24d576913a4e8cacc10bf024b7",
-      "integrity": "sha1-QfZFU09EnuxnESYjZBOjugwfyfk=",
+      "version": "git://github.com/tradle/centrix.git#a6b234e114b8fd24d576913a4e8cacc10bf024b7",
+      "from": "tradle/centrix",
       "optional": true,
       "requires": {
         "co": "^4.6.0",
@@ -1798,8 +1797,7 @@
         "node-uuid": "~1.4.3",
         "qlobber": "~0.7.0",
         "qlobber-fsq": "~3.2.4",
-        "steed": "^1.1.3",
-        "zmq": "^2.14.0"
+        "steed": "^1.1.3"
       },
       "dependencies": {
         "ioredis": {
@@ -18176,33 +18174,6 @@
           "requires": {
             "safe-buffer": "~5.1.0"
           }
-        }
-      }
-    },
-    "zmq": {
-      "version": "2.15.3",
-      "resolved": "https://registry.npmjs.org/zmq/-/zmq-2.15.3.tgz",
-      "integrity": "sha1-Zsbegsw2sJc0uCBwN3ZJCm+75iQ=",
-      "dev": true,
-      "optional": true,
-      "requires": {
-        "bindings": "~1.2.1",
-        "nan": "~2.3.0"
-      },
-      "dependencies": {
-        "bindings": {
-          "version": "1.2.1",
-          "resolved": "https://registry.npmjs.org/bindings/-/bindings-1.2.1.tgz",
-          "integrity": "sha1-FK1hE4EtLTfXLme0ystLtyZQXxE=",
-          "dev": true,
-          "optional": true
-        },
-        "nan": {
-          "version": "2.3.5",
-          "resolved": "https://registry.npmjs.org/nan/-/nan-2.3.5.tgz",
-          "integrity": "sha1-gioNwmYpDOTNOhIoLKPn42Rmigg=",
-          "dev": true,
-          "optional": true
         }
       }
     }
