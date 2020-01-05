@@ -2,16 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.33](https://github.com/tradle/mycloud/compare/v2.5.1-rc.32...v2.5.1-rc.33) (2020-01-03)
+## [2.5.1-rc.34](https://github.com/tradle/mycloud/compare/v2.5.1-rc.33...v2.5.1-rc.34) (2020-01-05)
 
 
 ### Bug Fixes
 
-* comparison with prev version of the resource ([cdb2849](https://github.com/tradle/mycloud/commit/cdb2849))
-* edit requests count ([d55e98d](https://github.com/tradle/mycloud/commit/d55e98d))
-* error happens for new resource ([4af3412](https://github.com/tradle/mycloud/commit/4af3412))
-* find email address where to send draft ([003dc86](https://github.com/tradle/mycloud/commit/003dc86))
-* run checks for all company names ([d2c028c](https://github.com/tradle/mycloud/commit/d2c028c))
+* bad comparison with prev resource version ([c93a983](https://github.com/tradle/mycloud/commit/c93a983))
+* check override models shouldn't allow set 'top' property ([23962fb](https://github.com/tradle/mycloud/commit/23962fb))
+* prop name change in model ([6167239](https://github.com/tradle/mycloud/commit/6167239))
+* typo ([8df19fe](https://github.com/tradle/mycloud/commit/8df19fe))
+
+
+### Features
+
+* fresh models ([3631616](https://github.com/tradle/mycloud/commit/3631616))
+* models redistribution ([0a836ce](https://github.com/tradle/mycloud/commit/0a836ce))
+* screening added ([00ea7a0](https://github.com/tradle/mycloud/commit/00ea7a0))
+* screening clarified ([937c336](https://github.com/tradle/mycloud/commit/937c336))
 
 
 
