@@ -2,26 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.32](https://github.com/tradle/mycloud/compare/v2.5.1-rc.31...v2.5.1-rc.32) (2019-12-31)
+## [2.5.1-rc.33](https://github.com/tradle/mycloud/compare/v2.5.1-rc.32...v2.5.1-rc.33) (2020-01-03)
 
 
 ### Bug Fixes
 
-* change of CP name leads to getting the same CP prefill next time ([ca80995](https://github.com/tradle/mycloud/commit/ca80995))
-* check status ([622985e](https://github.com/tradle/mycloud/commit/622985e))
-* installing dev deps ([833d227](https://github.com/tradle/mycloud/commit/833d227))
-* slow checking ([e7d3e1d](https://github.com/tradle/mycloud/commit/e7d3e1d))
-* typo ([8695fca](https://github.com/tradle/mycloud/commit/8695fca))
-
-
-### Features
-
-* if company name not the same as in OC, use OC name and give customer a message to confirm it's theirs compnay ([626285f](https://github.com/tradle/mycloud/commit/626285f))
-* models ([4a704ab](https://github.com/tradle/mycloud/commit/4a704ab))
-* sending email ([3d67f7b](https://github.com/tradle/mycloud/commit/3d67f7b))
-* white glove project ([93f1f12](https://github.com/tradle/mycloud/commit/93f1f12))
-* white glove project ([c9e8381](https://github.com/tradle/mycloud/commit/c9e8381))
-* white glove project ([26886f8](https://github.com/tradle/mycloud/commit/26886f8))
+* comparison with prev version of the resource ([cdb2849](https://github.com/tradle/mycloud/commit/cdb2849))
+* edit requests count ([d55e98d](https://github.com/tradle/mycloud/commit/d55e98d))
+* error happens for new resource ([4af3412](https://github.com/tradle/mycloud/commit/4af3412))
+* find email address where to send draft ([003dc86](https://github.com/tradle/mycloud/commit/003dc86))
+* run checks for all company names ([d2c028c](https://github.com/tradle/mycloud/commit/d2c028c))
 
 
 

@@ -28,7 +28,6 @@ import {
 
 const { TYPE, TYPES, PERMALINK, LINK } = constants
 const { VERIFICATION } = TYPES
-// const FORM_ID = 'tradle.legal.LegalEntity'
 const OPEN_CORPORATES = 'Open Corporates'
 const COMPANIES_HOUSE = 'Companies House'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
@@ -100,7 +99,7 @@ class OpenCorporatesAPI {
     let url: string
     let hasAllInfo = registrationNumber && country
 
-    let companies, hasHits, rawData
+    let companies: Array<any>, hasHits, rawData
 
     // debugger
     if (hasAllInfo && country.id.split('_')[1] === 'GB') {
@@ -152,10 +151,8 @@ class OpenCorporatesAPI {
         return { rawData: json, hits: [], message, url }
       }
       json = sanitize(json).sanitized
-
       if (hasAllInfo) {
         companies = [json.results]
-        hasHits = true
         // url = `${url}/network?confidence=80&ownership_percentage=25`
         // let networkJSON
         // try {
@@ -169,9 +166,7 @@ class OpenCorporatesAPI {
         // }
       } else {
         companies = json.results.companies
-        hasHits = json.results.companies.length
       }
-      rawData = (companies.length && json.results) || json
     }
 
     let foundCompanyName, foundNumber, foundCountry, foundDate
@@ -321,7 +316,7 @@ class OpenCorporatesAPI {
       })
       .toJSON()
 
-    const signedVerification = await this.applications.createVerification({
+    await this.applications.createVerification({
       application,
       verification
     })
@@ -511,9 +506,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         return
       }
 
-      let useCompanyHouse = resource.country.id.split('_')[1] === 'GB'
+      let useCompaniesHouse = resource.country && resource.country.id.split('_')[1] === 'GB'
 
-      if (useCompanyHouse) {
+      if (useCompaniesHouse) {
         // going with company house
         let createCheck = await doesCheckNeedToBeCreated({
           bot,
@@ -566,7 +561,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       if (status === 'pass' && hits.length === 1) {
         if (!application.applicantName) application.applicantName = payload.companyName
       }
-      let provider = useCompanyHouse ? COMPANIES_HOUSE : OPEN_CORPORATES
+      let provider = useCompaniesHouse ? COMPANIES_HOUSE : OPEN_CORPORATES
       pchecks.push(
         openCorporates.createCorporateCheck({
           provider,

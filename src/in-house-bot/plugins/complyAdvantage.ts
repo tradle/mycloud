@@ -1,24 +1,23 @@
 import fetch from 'node-fetch'
 import _ from 'lodash'
 
-import constants from '@tradle/constants'
+import { TYPE, TYPES } from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
-import { Bot, Logger, IPBApp, IPBReq, CreatePlugin, Applications } from '../types'
+import { Bot, Logger, IPBApp, IPBReq, CreatePlugin, Applications, ITradleObject } from '../types'
 
 import {
   getCheckParameters,
   doesCheckNeedToBeCreated,
   getLatestCheck,
-  isPassedCheck,
   parseScannedDate,
-  getChecks,
-  getEnumValueId
+  getEnumValueId,
+  isSubClassOf
 } from '../utils'
-import { printCommand } from '../commands/help'
+// import { printCommand } from '../commands/help'
 
-const { TYPE } = constants
+const { FORM } = TYPES
 const BASE_URL = 'https://api.complyadvantage.com/searches'
 const VERIFICATION = 'tradle.Verification'
 const PHOTO_ID = 'tradle.PhotoID'
@@ -186,26 +185,34 @@ class ComplyAdvantageAPI {
         status: 'fail',
         message: !registrationDate && ' No registration date was provided'
       }
-      await this.createCheck({ rawData: {}, status, req, aspects })
+      await this.createCheck({ rawData: {}, status, req, aspects, propertyName })
       return
     }
     let r: { rawData: any; hits: any; status: any } = await this.getData({
       resource,
       criteria,
-      companyName
+      companyName: (propertyName && resource[propertyName]) || companyName
     })
 
-    return await this.createChecksAndVerifications({ r, req, aspects, name: companyNameProperty })
+    return await this.createChecksAndVerifications({
+      r,
+      req,
+      aspects,
+      name: companyNameProperty,
+      propertyName
+    })
   }
 
   public async getAndProcessDataForPerson({
     propertyMap,
     req,
-    criteria
+    criteria,
+    propertyName
   }: {
     propertyMap: any
     req: IPBReq
     criteria: any
+    propertyName?: string
   }) {
     const { application, payload } = req
 
@@ -276,9 +283,21 @@ class ComplyAdvantageAPI {
       criteria
     })
     debugger
-    return await this.createChecksAndVerifications({ r, req, aspects, name })
+    return await this.createChecksAndVerifications({ r, req, aspects, name, propertyName })
   }
-  async createChecksAndVerifications({ r, req, aspects, name }) {
+  async createChecksAndVerifications({
+    r,
+    req,
+    aspects,
+    name,
+    propertyName
+  }: {
+    r: ITradleObject
+    req: IPBReq
+    aspects: string
+    name: string
+    propertyName?: string
+  }) {
     let pchecks = []
     let { rawData, hits, status } = r
     if (rawData.status === 'failure') {
@@ -290,7 +309,7 @@ class ComplyAdvantageAPI {
         hasVerification = true
         this.logger.debug(`${PROVIDER} creating verification for: ${name}`)
       }
-      pchecks.push(this.createCheck({ rawData, status, req, aspects }))
+      pchecks.push(this.createCheck({ rawData, status, req, aspects, propertyName }))
       if (hasVerification) pchecks.push(this.createVerification({ rawData, req }))
     }
     return await Promise.all(pchecks)
@@ -408,7 +427,8 @@ class ComplyAdvantageAPI {
     if (propertyName) {
       resource.propertyName = propertyName
       resource.secondaryName = payload[propertyName]
-      if (companyNameProperty !== propertyName) resource.name = payload[companyNameProperty]
+      if (companyNameProperty && companyNameProperty !== propertyName)
+        resource.name = payload[companyNameProperty]
     }
     // resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.status === 'fail' && rawData.hits) {
@@ -477,6 +497,8 @@ export const createPlugin: CreatePlugin<void> = (
 
       let { products, forms } = conf
       let ptype = payload[TYPE]
+
+      if (!isSubClassOf(FORM, bot.models[ptype], bot.models)) return
       let fConf = forms && forms[ptype]
       let productId = application.requestFor
       if (!fConf && (!products || !products[productId])) return
@@ -490,21 +512,20 @@ export const createPlugin: CreatePlugin<void> = (
         criteria = pConf.filter
         propertyMap = pConf.propertyMap && pConf.propertyMap[ptype]
       }
-      if (req.latestChecks) {
-        // Check that corporation exists otherwise no need to run
-
-        // let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, application, req, bot })
-        let { checks } = await bot.getResource(payload, { backlinks: ['checks'] })
+      let checks = req.checks
+      if (checks) checks = checks.filter(check => check[TYPE] === CORPORATION_EXISTS)
+      else {
+        checks = await bot.getResource(payload, { backlinks: ['checks'] })
         if (!checks || !checks.length) return
         checks = checks.filter(check => check[TYPE] === CORPORATION_EXISTS)
         if (!checks || !checks.length) return
         checks = await Promise.all(checks.map(c => bot.getResource(c)))
-        checks.sort((a, b) => b._time - a._time)
-
-        let check = checks[0]
-        if (!check || getEnumValueId({ model: bot.models[STATUS], value: check.status }) !== 'pass')
-          return
       }
+      checks.sort((a, b) => b._time - a._time)
+
+      let check = checks[0]
+      if (!check || getEnumValueId({ model: bot.models[STATUS], value: check.status }) !== 'pass')
+        return
       // let items = await getChecks({ bot, type: CORPORATION_EXISTS, application })
       // if (!items || !items.length) return
 

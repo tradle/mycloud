@@ -205,9 +205,10 @@ class ClientEditsAPI {
     let changed: any = {}
     let removed: any = {}
     for (let p in props) {
-      if (!payload[p] && !prevResource[p]) continue
+      if (!prevResource || !prevResource[p]) continue
       if (props[p].displayAs) continue
       if (payload[p]) {
+        if (!prevResource) continue
         if (!prevResource[p]) {
           _.extend(added, { [p]: payload[p] })
           continue
