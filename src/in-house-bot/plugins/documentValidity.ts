@@ -1,15 +1,8 @@
-import fetch from 'node-fetch'
-
 import _ from 'lodash'
 import constants from '@tradle/constants'
 import { Bot, Logger, IPBApp, IPBReq, ITradleObject, CreatePlugin, Applications } from '../types'
 
-import {
-  getStatusMessageForCheck,
-  toISODateString,
-  doesCheckNeedToBeCreated
-  // hasPropertiesChanged
-} from '../utils'
+import { doesCheckNeedToBeCreated } from '../utils'
 
 const { TYPE } = constants
 const { VERIFICATION } = constants.TYPES
@@ -26,9 +19,6 @@ const MAX_VALID_AGE = 120
 const MAX_EXPIRATION_YEARS = 10
 const MIN_AGE_MILLIS = MIN_VALID_AGE * ONE_YEAR_MILLIS // 14 years
 const MAX_AGE_MILLIS = MAX_VALID_AGE * ONE_YEAR_MILLIS // 120 years
-const MAX_EXPIRATION_YEARS_MILLIS = MAX_EXPIRATION_YEARS * ONE_YEAR_MILLIS
-
-const DISPLAY_NAME = 'Document Validity'
 
 interface IValidityCheck {
   rawData: any
@@ -141,52 +131,16 @@ class DocumentValidityAPI {
         Warning: 'Document was not scanned but uploaded',
         Status: 'warning'
       })
-    } else if (scanJson) {
-      this.checkTheDifferences(payload, rawData)
-      // Create BlinkID check
     }
+    // else if (scanJson) {
+    //   this.checkTheDifferences(payload, rawData)
+    //   // Create BlinkID check
+    // }
 
     let pchecks = []
-    pchecks.push(
-      this.createCheck({ req, rawData, status: rawData.Status })
-    )
-    if (rawData.Status === 'pass')
-      pchecks.push(this.createVerification({ rawData, req }))
+    pchecks.push(this.createCheck({ req, rawData, status: rawData.Status }))
+    if (rawData.Status === 'pass') pchecks.push(this.createVerification({ rawData, req }))
     let checksAndVerifications = await Promise.all(pchecks)
-  }
-  public checkTheDifferences(payload, rawData) {
-    let props = this.bot.models[PHOTO_ID].properties
-    let { scanJson } = payload
-    let { personal, document } = scanJson
-    let hasChanges
-    let changes = {}
-    for (let p in payload) {
-      let prop = props[p]
-      if (!prop || prop.type === 'object') continue
-      let val = (personal && personal[p]) || (document && document[p])
-      if (!val) continue
-      if (prop.type === 'string') {
-        if (payload[p].toLowerCase() !== val.toLowerCase()) {
-          hasChanges = true
-          changes[
-            prop.title || p
-          ] = `Value scanned from the document is ${val}, but manually was changed to ${payload[p]}`
-        }
-      } else if (prop.type === 'date') {
-        if (payload[p] !== val) {
-          let changed = true
-          if (typeof val === 'string' && toISODateString(payload[p]) === toISODateString(val))
-            changed = false
-          if (changed) {
-            hasChanges = true
-            changes[prop.title || p] = `Value scanned from the document is ${toISODateString(
-              val
-            )}, but manually was set to ${toISODateString(payload[p])}`
-          }
-        }
-      }
-    }
-    if (hasChanges) rawData['Differences With Scanned Document'] = changes
   }
   public createCheck = async ({ rawData, status, req }: IValidityCheck) => {
     let dateStr = rawData.updated_at
@@ -253,11 +207,14 @@ class DocumentValidityAPI {
     // debugger
 
     await this.applications.createVerification({ application, verification })
-    this.logger.debug(
-      'Created DocumentValidity Verification'
-    )
+    this.logger.debug('Created DocumentValidity Verification')
     if (application.checks)
-      await this.applications.deactivateChecks({ application, type: DOCUMENT_VALIDITY, form: payload, req })
+      await this.applications.deactivateChecks({
+        application,
+        type: DOCUMENT_VALIDITY,
+        form: payload,
+        req
+      })
   }
 }
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger }) => {
@@ -276,3 +233,40 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
     plugin
   }
 }
+/*
+  public checkTheDifferences(payload, rawData) {
+    let props = this.bot.models[PHOTO_ID].properties
+    let { scanJson } = payload
+    let { personal, document } = scanJson
+    let hasChanges
+    let changes = {}
+    for (let p in payload) {
+      let prop = props[p]
+      if (!prop || prop.type === 'object') continue
+      let val = (personal && personal[p]) || (document && document[p])
+      if (!val) continue
+      if (prop.type === 'string') {
+        if (payload[p].toLowerCase() !== val.toLowerCase()) {
+          hasChanges = true
+          changes[
+            prop.title || p
+          ] = `Value scanned from the document is ${val}, but manually was changed to ${payload[p]}`
+        }
+      } else if (prop.type === 'date') {
+        if (payload[p] !== val) {
+          let changed = true
+          if (typeof val === 'string' && toISODateString(payload[p]) === toISODateString(val))
+            changed = false
+          if (changed) {
+            hasChanges = true
+            changes[prop.title || p] = `Value scanned from the document is ${toISODateString(
+              val
+            )}, but manually was set to ${toISODateString(payload[p])}`
+          }
+        }
+      }
+    }
+    if (hasChanges) rawData['Differences With Scanned Document'] = changes
+  }
+
+ */
