@@ -615,7 +615,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       let prefill: any = {}
       let errors
       if (getEnumValueId({ model: bot.models[STATUS], value: result[0].status }) !== 'pass')
-        message = 'The company was not found. Please enter fill out the form'
+        message = 'The company was not found. Please fill out the form'
       else {
         let check = result[0]
         let company = check.rawData && check.rawData.length && check.rawData[0].company
