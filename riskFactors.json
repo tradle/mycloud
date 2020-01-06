@@ -38,7 +38,7 @@
   "historicalBehaviorRisk": {
     "pep": 0.2,
     "sanctions": 0.9,
-    "adversePress": 0.3
+    "adverseMedia": 0.3
   },
   "lengthOfRelationship": {
     "1": 0.9,
