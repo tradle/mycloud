@@ -396,13 +396,14 @@ export class PitchbookCheckAPI {
       aspects: ASPECTS,
       form
     }
-    this.logger.debug('DataSourceLink stub for: ' + JSON.stringify(status.dataSource, null, 2))
+    this.logger.debug('pitchbookCheck DataSourceLink stub for: ' + JSON.stringify(status.dataSource, null, 2))
     if (status.dataSource) resource.dataSource = buildResourceStub({ resource: status.dataSource, models: this.bot.models })
-    this.logger.debug('DataSourceLink: ' + JSON.stringify(resource.dataSource, null, 2))
+    this.logger.debug('pitchbookCheck DataSourceLink: ' + JSON.stringify(resource.dataSource, null, 2))
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
     if (rawData && Array.isArray(rawData)) {
       resource.rawData = sanitize(rawData).sanitized
+      this.logger.debug('pitchbookCheck rawData:\n' + JSON.stringify(resource.rawData, null, 2))
     }
 
     this.logger.debug(`${PROVIDER} Creating pitchbookCheck`)
