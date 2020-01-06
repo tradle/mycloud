@@ -698,13 +698,13 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         application
       }
 
-      let title = enumValue({
+      let dataSource = enumValue({
         model: bot.models[REFERENCE_DATA_SOURCES],
         value: 'openCorporates'
-      }).title
+      })
 
       let dataLineage = {
-        [title]: {
+        [dataSource.id]: {
           properties: Object.keys(prefill)
         }
       }

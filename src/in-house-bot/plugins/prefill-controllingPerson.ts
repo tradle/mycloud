@@ -136,7 +136,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       })
 
       let dataLineage = {
-        [provider.title]: {
+        [provider.id]: {
           properties: Object.keys(cePrefill)
         }
       }
@@ -147,13 +147,13 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         for (let p in prefill) {
           if (!cePrefill[p]) pscPrefill.push(p)
         }
-        let title = enumValue({
+        let pscProvider = enumValue({
           model: bot.models[REFERENCE_DATA_SOURCES],
           value: 'psc'
-        }).title
+        })
         dataLineage = {
           ...dataLineage,
-          [title]: {
+          [pscProvider.id]: {
             properties: pscPrefill
           }
         }
@@ -175,14 +175,14 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let dsPrefill = []
       for (let p in prefill) if (!currenPrefill[p]) dsPrefill.push(p)
 
-      let title = enumValue({
+      let eVal = enumValue({
         model: bot.models[REFERENCE_DATA_SOURCES],
         value: dataSource
-      }).title
+      })
       if (!formRequest.dataLineage) formRequest.dataLineage = {}
       formRequest.dataLineage = {
         ...formRequest.dataLineage,
-        [title]: {
+        [eVal.id]: {
           properties: dsPrefill
         }
       }
