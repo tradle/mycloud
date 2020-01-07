@@ -2,24 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.36](https://github.com/tradle/mycloud/compare/v2.5.1-rc.35...v2.5.1-rc.36) (2020-01-07)
+## [2.5.1-rc.37](https://github.com/tradle/mycloud/compare/v2.5.1-rc.36...v2.5.1-rc.37) (2020-01-07)
 
 
 ### Bug Fixes
 
-* typo in message ([f6a4caf](https://github.com/tradle/mycloud/commit/f6a4caf))
+* bad region property is set for CP which causes errors on submit ([46728f8](https://github.com/tradle/mycloud/commit/46728f8))
+* changes when confirming prefill are not in lineage ([f58e8f3](https://github.com/tradle/mycloud/commit/f58e8f3))
+* companies house response mapping ([ffe8350](https://github.com/tradle/mycloud/commit/ffe8350))
+* companies house response mapping ([0fab497](https://github.com/tradle/mycloud/commit/0fab497))
+* property 'selfie' in FacialRecognitionCheck was renamed to 'form' for the sake of uniformed check ref point ([1301524](https://github.com/tradle/mycloud/commit/1301524))
+* typo ([8daa055](https://github.com/tradle/mycloud/commit/8daa055))
+* typo ([1fc4e02](https://github.com/tradle/mycloud/commit/1fc4e02))
 
 
 ### Features
 
-* data lineage ([ee0600e](https://github.com/tradle/mycloud/commit/ee0600e))
-* data lineage ([9c42a59](https://github.com/tradle/mycloud/commit/9c42a59))
-* data lineage ([6e8da32](https://github.com/tradle/mycloud/commit/6e8da32))
-* data lineage project - show create checks for this update ([78b358c](https://github.com/tradle/mycloud/commit/78b358c))
-* fresh models ([c7c39f5](https://github.com/tradle/mycloud/commit/c7c39f5))
-* if no SM or not enough of them send to CPs in order of ownership ([466ed22](https://github.com/tradle/mycloud/commit/466ed22))
-* increase default notification interval to an hour ([12a996d](https://github.com/tradle/mycloud/commit/12a996d))
-* need all vertual for latest checks ([176f5f5](https://github.com/tradle/mycloud/commit/176f5f5))
+* data lineage ([f5f5bbe](https://github.com/tradle/mycloud/commit/f5f5bbe))
 
 
 
