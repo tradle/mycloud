@@ -7,6 +7,7 @@ import { Bot, Logger, CreatePlugin, IPluginLifecycleMethods, ITradleObject } fro
 import { TYPE } from '../../constants'
 import validateResource from '@tradle/validate-resource'
 import { enumValue } from '@tradle/build-resource'
+import { regions } from '@tradle/aws-s3-client'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
@@ -250,7 +251,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         extend(prefill, {
           controllingEntityPostalCode: postal_code,
           controllingEntityStreetAddress: address_line_1,
-          controllingEntityRegion: locality
+          controllingEntityRegion: regions,
+          controllingEntityCity: locality
         })
       }
       if (identification) {
@@ -287,11 +289,11 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let beneficialOwners = pscCheck.rawData && pscCheck.rawData
       logger.debug(
         'pscCheck.rawData: ' +
-          beneficialOwners +
-          '; ' +
-          JSON.stringify(beneficialOwners[0], null, 2) +
-          '; length = ' +
-          beneficialOwners.length
+        beneficialOwners +
+        '; ' +
+        JSON.stringify(beneficialOwners[0], null, 2) +
+        '; length = ' +
+        beneficialOwners.length
       )
 
       if (!beneficialOwners || !beneficialOwners.length) return
