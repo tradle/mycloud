@@ -160,11 +160,13 @@ class ClientEditsAPI {
     checks?: any
   }) => {
     const { payload } = req
-    let prevResource = await this.bot.objects.get(payload._p)
+
+    let prevResource = payload._p && (await this.bot.objects.get(payload._p))
 
     let isInitialSubmission, prefill
     if (payload._sourceOfData) {
       if (
+        !prevResource ||
         !prevResource._sourceOfData ||
         prevResource._sourceOfData._permalink !== payload._sourceOfData._permalink
       ) {
@@ -342,9 +344,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       if (distance && sourceOfData)
         check = await clientEdits.checkEdits({ req, sourceOfData, distance })
 
-      if (payload._permalink === payload._link)
-        await clientEdits.createDataLineageModification({ req, checks })
-      else await clientEdits.createModification({ req, check, checks })
+      // if (payload._permalink === payload._link)
+      //   await clientEdits.createDataLineageModification({ req, checks })
+      // else
+      await clientEdits.createModification({ req, check, checks })
     }
   }
 
