@@ -3,7 +3,6 @@ import levenshtein from 'fast-levenshtein'
 
 import constants from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
-// import { buildResourceStub } from '@tradle/build-resource'
 import { enumValue } from '@tradle/build-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
@@ -13,7 +12,7 @@ import { Bot, Logger, IPBApp, IPBReq, ITradleObject, CreatePlugin, Applications 
 import { doesCheckNeedToBeCreated, isSubClassOf } from '../utils'
 
 const { TYPE } = constants
-const { VERIFICATION, FORM } = constants.TYPES
+const { FORM } = constants.TYPES
 const PROVIDER = 'Tradle'
 
 const CLIENT_EDITS_CHECK = 'tradle.ClientEditsCheck'
