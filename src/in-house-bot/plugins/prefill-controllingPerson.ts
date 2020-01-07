@@ -133,7 +133,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let cePrefill = { ...prefill }
       let provider = enumValue({
         model: bot.models[REFERENCE_DATA_SOURCES],
-        value: 'openCorporates'
+        // HACK
+        value: check.provider === 'Open Corporates' && 'openCorporates' || 'companyHouse'
       })
 
       let dataLineage = {

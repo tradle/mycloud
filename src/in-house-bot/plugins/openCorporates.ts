@@ -34,6 +34,7 @@ const COMPANIES_HOUSE = 'Companies House'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
+const COUNTRY = 'tradle.Country'
 const ORDER_BY_TIMESTAMP_DESC = {
   property: 'timestamp',
   desc: true
@@ -283,10 +284,10 @@ class OpenCorporatesAPI {
     }
     checkR.message = getStatusMessageForCheck({ models: this.bot.models, check: checkR })
 
-    if (provider === COMPANIES_HOUSE) {
-      let ds = this.getLinkToCompaniesHouseDataSourceRefresh()
-      if (ds) checkR.dataSource = buildResourceStub({ resource: ds, models: this.bot.models })
-    }
+    let ds = await this.getDataSourceRefreshLink(
+      (provider === COMPANIES_HOUSE && 'companyHouse') || 'openCorporates'
+    )
+    if (ds) checkR.dataSource = buildResourceStub({ resource: ds, models: this.bot.models })
 
     if (message) checkR.resultDetails = message
     if (hits.length) checkR.rawData = hits
@@ -441,16 +442,20 @@ class OpenCorporatesAPI {
     return json
   }
 
-  getLinkToCompaniesHouseDataSourceRefresh = async () => {
+  getDataSourceRefreshLink = async value => {
+    let { models } = this.bot
+    let dataSource = enumValue({
+      model: models[REFERENCE_DATA_SOURCES],
+      value
+    })
     try {
       return await this.bot.db.findOne({
         filter: {
           EQ: {
             [TYPE]: DATA_SOURCE_REFRESH,
-            'name.id': `${REFERENCE_DATA_SOURCES}_companiesHouse`
+            'name.id': dataSource.id
           }
-        },
-        orderBy: ORDER_BY_TIMESTAMP_DESC
+        }
       })
     } catch (err) {
       return undefined
@@ -591,8 +596,12 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       if (!application) return
 
       if (payload[TYPE] !== 'tradle.legal.LegalEntity') return
+      let { propertyMap, companiesHouseApiKey } = conf
+      let map = propertyMap && propertyMap[payload[TYPE]]
+      if (map) map = { ...defaultPropMap, ...map }
+      else map = defaultPropMap
 
-      if (!payload.country || !payload.companyName || !payload.registrationNumber) {
+      if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) {
         logger.debug('skipping prefill"')
         return
       }
@@ -660,10 +669,13 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         }
         message = `${error} Please review and correct the data below.`
       }
+      let country = companiesHouseApiKey && getEnumValueId({ model: bot.models[COUNTRY], value: payload[map.country] })
+
       try {
         return await this.sendFormError({
           req,
           payload,
+          country,
           prefill,
           errors,
           message
@@ -674,6 +686,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
     },
     async sendFormError({
       payload,
+      country,
       prefill,
       errors,
       req,
@@ -683,6 +696,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       prefill?: any
       errors?: any
       payload: ITradleObject
+      country?: string
       message: string
     }) {
       let { application, user } = req
@@ -697,10 +711,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         user,
         application
       }
-
       let dataSource = enumValue({
         model: bot.models[REFERENCE_DATA_SOURCES],
-        value: 'openCorporates'
+        value: (country && country === 'GB' && 'companiesHouse') || 'openCorporates'
       })
 
       let dataLineage = {
