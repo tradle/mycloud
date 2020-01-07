@@ -177,32 +177,32 @@ class ClientEditsAPI {
     if (isInitialSubmission) prevResource = prefill
     let props = this.bot.models[payload[TYPE]].properties
     let modifications: any = {}
-    let added: any = {}
-    let changed: any = {}
-    let removed: any = {}
-    for (let p in props) {
-      if (!prevResource || !prevResource[p]) continue
-      if (props[p].displayAs) continue
-      if (payload[p]) {
-        if (!prevResource) continue
-        if (!prevResource[p]) {
-          _.extend(added, { [p]: payload[p] })
-          continue
-        } else if (!_.isEqual(payload[p], prevResource[p])) {
-          _.extend(changed, {
-            [p]: {
-              new: payload[p],
-              old: prevResource[p]
-            }
-          })
+    if (prevResource) {
+      let added: any = {}
+      let changed: any = {}
+      let removed: any = {}
+      for (let p in props) {
+        if (props[p].displayAs) continue
+        if (payload[p]) {
+          if (!prevResource[p]) {
+            _.extend(added, { [p]: payload[p] })
+            continue
+          } else if (!_.isEqual(payload[p], prevResource[p])) {
+            _.extend(changed, {
+              [p]: {
+                new: payload[p],
+                old: prevResource[p]
+              }
+            })
+          }
+        } else if (prevResource[p]) {
+          _.extend(removed, { [p]: p })
         }
-      } else if (prevResource[p]) {
-        _.extend(removed, { [p]: p })
       }
+      if (_.size(added)) _.extend(modifications, { added })
+      if (_.size(changed)) _.extend(modifications, { changed })
+      if (_.size(removed)) _.extend(modifications, { removed })
     }
-    if (_.size(added)) _.extend(modifications, { added })
-    if (_.size(changed)) _.extend(modifications, { changed })
-    if (_.size(removed)) _.extend(modifications, { removed })
     if (!_.size(modifications) && !check && !checks) return
 
     if (check) {
