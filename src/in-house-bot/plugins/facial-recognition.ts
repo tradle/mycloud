@@ -64,7 +64,7 @@ export class FacialRecognitionAPI {
           [TYPE]: FACIAL_RECOGNITION,
           'application._permalink': application._permalink,
           provider: PROVIDER,
-          'selfie._link': selfieStub.link,
+          'form._link': selfieStub.link,
           'photoID._link': photoIDStub.link
         }
       }
@@ -217,7 +217,7 @@ export class FacialRecognitionAPI {
       aspects: 'facial similarity',
       rawData,
       application,
-      selfie,
+      form: selfie,
       photoID,
       dateChecked: new Date().getTime()
     }
