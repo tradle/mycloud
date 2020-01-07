@@ -238,11 +238,11 @@ function checkOfficers({ scoreDetails, corpExistsCheck, riskFactors }) {
 
   let score: any = {}
   if (industry_codes && industry_codes.length) {
-    let ic = industry_codes.filter(
-      code =>
-        code.industry_code.code_scheme_id.startsWith('isic_') &&
-        industries[code.industry_code.code + '']
-    )
+    let ic = industry_codes.filter(icode => {
+      let { code, code_scheme_id } = icode.industry_code
+      if (code_scheme_id) return code_scheme_id.startsWith('isic_') && industries[code + '']
+      else return industries[code + '']
+    })
     if (ic.length) {
       let weight = weights.industry
       let industryCoef = 0
