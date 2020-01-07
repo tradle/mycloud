@@ -53,6 +53,7 @@ const defaultPropMap = {
   region: 'region',
   country: 'country'
 }
+
 const BASE_URL = 'https://api.opencorporates.com/'
 const DISPLAY_NAME = 'Open Corporates'
 const test = {
@@ -94,7 +95,7 @@ class OpenCorporatesAPI {
     this.logger = logger
     this.conf = conf
   }
-  public _fetch = async (resource, application) => {
+  public _fetch = async (resource, application, provider) => {
     let { registrationNumber, registrationDate, region, country, companyName } = resource
     let url: string
     let hasAllInfo = registrationNumber && country
@@ -170,6 +171,7 @@ class OpenCorporatesAPI {
     let foundCompanyName, foundNumber, foundCountry, foundDate
     let rightCompanyName, rightNumber, rightCountry, rightDate
     let message
+
     companies = companies.filter(c => {
       let {
         inactive,
@@ -206,8 +208,10 @@ class OpenCorporatesAPI {
       // }
       // else
       if (jurisdiction_code.indexOf(countryCode.toLowerCase()) === -1) {
-        rightCountry = jurisdiction_code
-        return false
+        if (provider !== COMPANIES_HOUSE || !jurisdiction_code.startsWith('england')) {
+          rightCountry = jurisdiction_code
+          return false
+        }
       }
       foundCountry = true
       let cName = companyName.toLowerCase()
@@ -282,10 +286,12 @@ class OpenCorporatesAPI {
       aspects: 'company existence',
       form
     }
+    checkR = sanitize(checkR).sanitized
+
     checkR.message = getStatusMessageForCheck({ models: this.bot.models, check: checkR })
 
     let ds = await this.getDataSourceRefreshLink(
-      (provider === COMPANIES_HOUSE && 'companyHouse') || 'openCorporates'
+      (provider === COMPANIES_HOUSE && 'companiesHouse') || 'openCorporates'
     )
     if (ds) checkR.dataSource = buildResourceStub({ resource: ds, models: this.bot.models })
 
@@ -512,33 +518,19 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       let useCompaniesHouse =
         conf.companiesHouseApiKey && resource.country && resource.country.id.split('_')[1] === 'GB'
 
-      if (useCompaniesHouse) {
-        // going with company house
-        let createCheck = await doesCheckNeedToBeCreated({
-          bot,
-          type: CORPORATION_EXISTS,
-          application,
-          provider: COMPANIES_HOUSE,
-          form: payload,
-          propertiesToCheck,
-          prop: 'form',
-          req
-        })
-        if (!createCheck) return
-      } else {
-        // using open corporate
-        let createCheck = await doesCheckNeedToBeCreated({
-          bot,
-          type: CORPORATION_EXISTS,
-          application,
-          provider: OPEN_CORPORATES,
-          form: payload,
-          propertiesToCheck,
-          prop: 'form',
-          req
-        })
-        if (!createCheck) return
-      }
+      let provider = (useCompaniesHouse && COMPANIES_HOUSE) || OPEN_CORPORATES
+      // going with company house
+      let createCheck = await doesCheckNeedToBeCreated({
+        bot,
+        type: CORPORATION_EXISTS,
+        application,
+        provider,
+        form: payload,
+        propertiesToCheck,
+        prop: 'form',
+        req
+      })
+      if (!createCheck) return
 
       let r: {
         rawData: object
@@ -546,7 +538,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         hits: any
         status?: string
         url: string
-      } = await openCorporates._fetch(resource, application)
+      } = await openCorporates._fetch(resource, application, provider)
 
       let pchecks = []
 
@@ -564,7 +556,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       if (status === 'pass' && hits.length === 1) {
         if (!application.applicantName) application.applicantName = payload.companyName
       }
-      let provider = useCompaniesHouse ? COMPANIES_HOUSE : OPEN_CORPORATES
       pchecks.push(
         openCorporates.createCorporateCheck({
           provider,
@@ -669,7 +660,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         }
         message = `${error} Please review and correct the data below.`
       }
-      let country = companiesHouseApiKey && getEnumValueId({ model: bot.models[COUNTRY], value: payload[map.country] })
+      let country =
+        companiesHouseApiKey &&
+        getEnumValueId({ model: bot.models[COUNTRY], value: payload[map.country] })
 
       try {
         return await this.sendFormError({
