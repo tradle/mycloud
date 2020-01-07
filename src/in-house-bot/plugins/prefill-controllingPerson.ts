@@ -134,7 +134,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let provider = enumValue({
         model: bot.models[REFERENCE_DATA_SOURCES],
         // HACK
-        value: check.provider === 'Open Corporates' && 'openCorporates' || 'companiesHouse'
+        value: (check.provider === 'Open Corporates' && 'openCorporates') || 'companiesHouse'
       })
 
       let dataLineage = {
@@ -252,7 +252,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         extend(prefill, {
           controllingEntityPostalCode: postal_code,
           controllingEntityStreetAddress: address_line_1,
-          controllingEntityRegion: regions,
+          // controllingEntityRegion: regions,
           controllingEntityCity: locality
         })
       }
@@ -290,11 +290,11 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let beneficialOwners = pscCheck.rawData && pscCheck.rawData
       logger.debug(
         'pscCheck.rawData: ' +
-        beneficialOwners +
-        '; ' +
-        JSON.stringify(beneficialOwners[0], null, 2) +
-        '; length = ' +
-        beneficialOwners.length
+          beneficialOwners +
+          '; ' +
+          JSON.stringify(beneficialOwners[0], null, 2) +
+          '; length = ' +
+          beneficialOwners.length
       )
 
       if (!beneficialOwners || !beneficialOwners.length) return
