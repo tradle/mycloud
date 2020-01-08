@@ -89,7 +89,7 @@ Resources:
       SSESpecification:
         Fn::If:
           - DoEncrypt
-          - {"SSEEnabled": true, "KMSMasterKeyId": {"Ref": "EncryptionKey"}}
+          - {"SSEEnabled": true, "SSEType": "KMS", "KMSMasterKeyId": {"Ref": "EncryptionKey"}}
           - Ref: AWS::NoValue
       BillingMode:
         Fn::If:
@@ -111,7 +111,7 @@ Resources:
       SSESpecification:
         Fn::If:
           - DoEncrypt
-          - {"SSEEnabled": true, "KMSMasterKeyId": {"Ref": "EncryptionKey"}}
+          - {"SSEEnabled": true, "SSEType": "KMS", "KMSMasterKeyId": {"Ref": "EncryptionKey"}}
           - Ref: AWS::NoValue
       ProvisionedThroughput:
         Fn::If:
