@@ -38,10 +38,7 @@
         "Fn::If": [
           "DoEncrypt",
           {
-            "SSEEnabled": true,
-            "KMSMasterKeyID": {
-              "Ref": "EncryptionKey"
-            }
+            "SSEEnabled": true
           },
           {
             "Ref": "AWS::NoValue"
@@ -72,10 +69,7 @@
         "Fn::If": [
           "DoEncrypt",
           {
-            "SSEEnabled": true,
-            "KMSMasterKeyID": {
-              "Ref": "EncryptionKey"
-            }
+            "SSEEnabled": true
           },
           {
             "Ref": "AWS::NoValue"

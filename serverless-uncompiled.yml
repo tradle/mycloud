@@ -1627,6 +1627,8 @@ resources:
             Ref: EncryptTables
           ProvisionDynamoDBScaling:
             Ref: ProvisionDynamoDBScaling
+          EncryptionKey:
+            Fn::GetAtt: Keys.Outputs.BucketEncryptionKeyAlias
 
 
     Buckets:

@@ -48,6 +48,10 @@ Parameters:
       - "true"
       - "false"
 
+  EncryptionKey:
+    Type: String
+    Default: ""
+
 Conditions:
   DoCreateEventsTable:
     Fn::Equals: [ Ref: ExistingEventsTable, ""]
@@ -85,7 +89,7 @@ Resources:
       SSESpecification:
         Fn::If:
           - DoEncrypt
-          - SSEEnabled: true
+          - {"SSEEnabled": true, "KMSMasterKeyID": {"Ref": "EncryptionKey"}}
           - Ref: AWS::NoValue
       BillingMode:
         Fn::If:
@@ -107,7 +111,7 @@ Resources:
       SSESpecification:
         Fn::If:
           - DoEncrypt
-          - SSEEnabled: true
+          - {"SSEEnabled": true, "KMSMasterKeyID": {"Ref": "EncryptionKey"}}
           - Ref: AWS::NoValue
       ProvisionedThroughput:
         Fn::If:
