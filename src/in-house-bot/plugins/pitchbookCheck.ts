@@ -278,7 +278,7 @@ export class PitchbookCheckAPI {
       else if (find.data.length == 0) {
         status = {
           status: 'fail',
-          message: 'No entry for provided checks is found in fund lp\''
+          message: 'No matching entries found in company to fund relations or in fund to LP relations'
         }
       }
       else {
