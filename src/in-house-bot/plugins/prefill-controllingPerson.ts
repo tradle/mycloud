@@ -50,9 +50,13 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       result.sort((a, b) => b._time - a._time)
 
-      result = uniqBy(result, TYPE)
+      result = uniqBy(result, r => r[TYPE] && r.provider)
       let check = result.find(c => c[TYPE] === CORPORATION_EXISTS)
-      let pscCheck = result.find(c => c[TYPE] === BENEFICIAL_OWNER_CHECK)
+      let pscCheck = result.find(
+        c =>
+          c[TYPE] === BENEFICIAL_OWNER_CHECK &&
+          c.provider === 'http://download.companieshouse.gov.uk/en_pscdata.html'
+      )
       let carCheck = result.find(c => c[TYPE] === CLIENT_ACTION_REQUIRED_CHECK)
 
       let forms = application.forms.filter(form => form.submission[TYPE] === CONTROLLING_PERSON)
@@ -205,17 +209,22 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
     },
 
     compare(officerName, bo) {
+      officerName = officerName
+        .replace(/[^a-zA-Z ]/g, '')
+        .toLowerCase()
+        .trim()
+      let officerNameDetails = officerName.split(' ')
+
       let { name, name_elements } = bo.data
       if (!name && !name_elements) return false
-      officerName = officerName.toLowerCase().trim()
       if (name_elements) {
         let nameElms: any = {}
         for (let p in name_elements) nameElms[p] = name_elements[p].toLowerCase()
         let { forename, surname, middle_name } = nameElms
         if (
-          officerName.indexOf(`${forename} `) === -1 ||
-          officerName.indexOf(` ${surname}`) === -1 ||
-          (middle_name && officerName.indexOf(` ${middle_name} `) === -1)
+          !officerNameDetails.includes(`${forename}`) ||
+          !officerNameDetails.includes(`${surname}`) ||
+          (middle_name && !officerNameDetails.includes(`${middle_name}`))
         )
           return false
         else return true
