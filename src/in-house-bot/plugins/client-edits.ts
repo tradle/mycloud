@@ -284,12 +284,13 @@ class ClientEditsAPI {
         debugger
       }
       let properties = {}
-      props.forEach(p => {
-        properties[p] = prefill[p]
-      })
-      dataLineage[p] = properties
+      if (props) {
+        props.forEach(p => {
+          properties[p] = prefill[p]
+        })
+        dataLineage[p] = properties
+      } else debugger
     }
-
     dataLineage = sanitize(dataLineage).sanitized
     let modifications: any = { dataLineage }
 
