@@ -299,7 +299,7 @@ export class RankOneCheckAPI {
       aspects: 'facial similarity',
       rawData,
       application,
-      selfie,
+      form: selfie,
       photoID,
       dateChecked: new Date().getTime()
     }

@@ -124,7 +124,7 @@ export class Applications implements IHasModels {
       .set(props)
       .signAndSave()
 
-    let checkResource = check.toJSON()
+    let checkResource = check.toJSON({virtual: true})
 
     let checksCount = application.checksCount
     application.checksCount = (checksCount && ++application.checksCount) || 1

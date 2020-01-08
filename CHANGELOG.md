@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.35](https://github.com/tradle/mycloud/compare/v2.5.1-rc.34...v2.5.1-rc.35) (2020-01-05)
+## [2.5.1-rc.38](https://github.com/tradle/mycloud/compare/v2.5.1-rc.37...v2.5.1-rc.38) (2020-01-08)
+
+
+### Bug Fixes
+
+* data lineage ([b4554a8](https://github.com/tradle/mycloud/commit/b4554a8))
+* duplicate CPs ([38f5186](https://github.com/tradle/mycloud/commit/38f5186))
 
 
 

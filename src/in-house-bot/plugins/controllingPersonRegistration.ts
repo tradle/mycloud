@@ -287,10 +287,15 @@ class ControllingPersonRegistrationAPI {
 
     let result = await this.getCP({ application, bot: this.bot })
 
-    let seniorManagement = result.filter((r: any) => r.isSeniorManager && !r.doNotReachOut)
+    let cPeople = result.filter(
+      (r: any) => r.typeOfControllingEntity.id === CP_PERSON && !r.doNotReachOut
+    )
+    cPeople.sort((a: any, b: any) => b.percentageOfOwnership - a.percentageOfOwnership)
+
+    let seniorManagement = cPeople.filter((r: any) => r.isSeniorManager && !r.doNotReachOut)
     if (!seniorManagement.length) {
-      if (result.length > notify) seniorManagement = result.slice(0, notify)
-      else seniorManagement = result
+      if (cPeople.length > notify) seniorManagement = cPeople.slice(0, notify)
+      else seniorManagement = cPeople
     }
     let sm: any = seniorManagement[0]
     let legalEntity = sm.legalEntity
@@ -629,7 +634,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         return { form: value.form, abandon: true }
       }
       let result: any = await cp.getCP({ application, bot, stubs })
-      result = result.filter(r => r.typeOfControllingEntity.id.endsWith('_person'))
+      result = result.filter(r => r.typeOfControllingEntity.id === CP_PERSON)
       if (result.length === notifiedParties.length) {
         debugger
         return { form: value.form, abandon: true }
@@ -752,31 +757,31 @@ export const validateConf: ValidatePluginConf = async ({
       '"messages" in the rules should be an array. Index of the message in array signifies what message will be send depending on what time the message is getting send out'
     )
 }
-    // async onResourceCreated(payload) {
-    //   if (payload[TYPE] === CONTROLLING_PERSON) {
-    //     if (getEnumValueId(payload.typeOfControllingEntity) === 'person') return
-    //     let {
-    //       name,
-    //       emailAddress,
-    //       controllingEntityCompanyNumber,
-    //       controllingEntityCountry,
-    //       controllingEntityRegion,
-    //       controllingEntityPostalCode,
-    //       controllingEntityStreetAddress
-    //     } = payload
-    //     let le = sanitize({
-    //       [TYPE]: 'tradle.legal.LegalEntity',
-    //       companyName: name,
-    //       registrationNumber: controllingEntityCompanyNumber,
-    //       country: controllingEntityCountry,
-    //       region: controllingEntityRegion,
-    //       emailAddress,
-    //       streetAddress: controllingEntityStreetAddress,
-    //       postalCode: controllingEntityPostalCode
-    //     }).sanitized
-    //     let legalEntity = await bot
-    //       .draft({ [TYPE]: 'tradle.legal.LegalEntity' })
-    //       .set(le)
-    //       .signAndSave()
-    //   }
-    // },
+// async onResourceCreated(payload) {
+//   if (payload[TYPE] === CONTROLLING_PERSON) {
+//     if (getEnumValueId(payload.typeOfControllingEntity) === 'person') return
+//     let {
+//       name,
+//       emailAddress,
+//       controllingEntityCompanyNumber,
+//       controllingEntityCountry,
+//       controllingEntityRegion,
+//       controllingEntityPostalCode,
+//       controllingEntityStreetAddress
+//     } = payload
+//     let le = sanitize({
+//       [TYPE]: 'tradle.legal.LegalEntity',
+//       companyName: name,
+//       registrationNumber: controllingEntityCompanyNumber,
+//       country: controllingEntityCountry,
+//       region: controllingEntityRegion,
+//       emailAddress,
+//       streetAddress: controllingEntityStreetAddress,
+//       postalCode: controllingEntityPostalCode
+//     }).sanitized
+//     let legalEntity = await bot
+//       .draft({ [TYPE]: 'tradle.legal.LegalEntity' })
+//       .set(le)
+//       .signAndSave()
+//   }
+// },
