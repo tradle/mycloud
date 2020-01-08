@@ -2,7 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.35](https://github.com/tradle/mycloud/compare/v2.5.1-rc.34...v2.5.1-rc.35) (2020-01-05)
+## [2.5.1-rc.37](https://github.com/tradle/mycloud/compare/v2.5.1-rc.36...v2.5.1-rc.37) (2020-01-07)
+
+
+### Bug Fixes
+
+* bad region property is set for CP which causes errors on submit ([46728f8](https://github.com/tradle/mycloud/commit/46728f8))
+* changes when confirming prefill are not in lineage ([f58e8f3](https://github.com/tradle/mycloud/commit/f58e8f3))
+* companies house response mapping ([ffe8350](https://github.com/tradle/mycloud/commit/ffe8350))
+* companies house response mapping ([0fab497](https://github.com/tradle/mycloud/commit/0fab497))
+* property 'selfie' in FacialRecognitionCheck was renamed to 'form' for the sake of uniformed check ref point ([1301524](https://github.com/tradle/mycloud/commit/1301524))
+* typo ([8daa055](https://github.com/tradle/mycloud/commit/8daa055))
+* typo ([1fc4e02](https://github.com/tradle/mycloud/commit/1fc4e02))
+
+
+### Features
+
+* data lineage ([f5f5bbe](https://github.com/tradle/mycloud/commit/f5f5bbe))
 
 
 

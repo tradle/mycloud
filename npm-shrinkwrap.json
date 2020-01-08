@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "2.5.1-rc.35",
+  "version": "2.5.1-rc.37",
   "lockfileVersion": 1,
   "requires": true,
   "dependencies": {
@@ -735,7 +735,7 @@
       }
     },
     "@tradle/models": {
-      "version": "github:tradle/models#07f8fa7386faabcf575f0d80102277750b967e14",
+      "version": "github:tradle/models#a39bba6c0c87ba2e497e35a570f592338d72e613",
       "from": "github:tradle/models"
     },
     "@tradle/models-cloud": {
@@ -747,7 +747,7 @@
       "from": "tradle/models-cloud-services"
     },
     "@tradle/models-corporate-onboarding": {
-      "version": "github:tradle/models-corporate-onboarding#20c59651d3374c2f950dd8c761fd9625d9a7788b",
+      "version": "github:tradle/models-corporate-onboarding#a06b4440d6a4561d56df80c01eea2e509de1f6e0",
       "from": "github:tradle/models-corporate-onboarding"
     },
     "@tradle/models-nz": {

@@ -50,9 +50,13 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       result.sort((a, b) => b._time - a._time)
 
-      result = uniqBy(result, TYPE)
+      result = uniqBy(result, r => r[TYPE] && r.provider)
       let check = result.find(c => c[TYPE] === CORPORATION_EXISTS)
-      let pscCheck = result.find(c => c[TYPE] === BENEFICIAL_OWNER_CHECK)
+      let pscCheck = result.find(
+        c =>
+          c[TYPE] === BENEFICIAL_OWNER_CHECK &&
+          c.provider === 'http://download.companieshouse.gov.uk/en_pscdata.html'
+      )
       let carCheck = result.find(c => c[TYPE] === CLIENT_ACTION_REQUIRED_CHECK)
 
       let forms = application.forms.filter(form => form.submission[TYPE] === CONTROLLING_PERSON)
@@ -133,11 +137,12 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let cePrefill = { ...prefill }
       let provider = enumValue({
         model: bot.models[REFERENCE_DATA_SOURCES],
-        value: 'openCorporates'
+        // HACK
+        value: (check.provider === 'Open Corporates' && 'openCorporates') || 'companiesHouse'
       })
 
       let dataLineage = {
-        [provider.title]: {
+        [provider.id]: {
           properties: Object.keys(cePrefill)
         }
       }
@@ -148,13 +153,13 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         for (let p in prefill) {
           if (!cePrefill[p]) pscPrefill.push(p)
         }
-        let title = enumValue({
+        let pscProvider = enumValue({
           model: bot.models[REFERENCE_DATA_SOURCES],
           value: 'psc'
-        }).title
+        })
         dataLineage = {
           ...dataLineage,
-          [title]: {
+          [pscProvider.id]: {
             properties: pscPrefill
           }
         }
@@ -176,14 +181,14 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let dsPrefill = []
       for (let p in prefill) if (!currenPrefill[p]) dsPrefill.push(p)
 
-      let title = enumValue({
+      let eVal = enumValue({
         model: bot.models[REFERENCE_DATA_SOURCES],
         value: dataSource
-      }).title
+      })
       if (!formRequest.dataLineage) formRequest.dataLineage = {}
       formRequest.dataLineage = {
         ...formRequest.dataLineage,
-        [title]: {
+        [eVal.id]: {
           properties: dsPrefill
         }
       }
@@ -204,17 +209,22 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
     },
 
     compare(officerName, bo) {
+      officerName = officerName
+        .replace(/[^a-zA-Z ]/g, '')
+        .toLowerCase()
+        .trim()
+      let officerNameDetails = officerName.split(' ')
+
       let { name, name_elements } = bo.data
       if (!name && !name_elements) return false
-      officerName = officerName.toLowerCase().trim()
       if (name_elements) {
         let nameElms: any = {}
         for (let p in name_elements) nameElms[p] = name_elements[p].toLowerCase()
         let { forename, surname, middle_name } = nameElms
         if (
-          officerName.indexOf(`${forename} `) === -1 ||
-          officerName.indexOf(` ${surname}`) === -1 ||
-          (middle_name && officerName.indexOf(` ${middle_name} `) === -1)
+          !officerNameDetails.includes(`${forename}`) ||
+          !officerNameDetails.includes(`${surname}`) ||
+          (middle_name && !officerNameDetails.includes(`${middle_name}`))
         )
           return false
         else return true
@@ -251,7 +261,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         extend(prefill, {
           controllingEntityPostalCode: postal_code,
           controllingEntityStreetAddress: address_line_1,
-          controllingEntityRegion: regions,
+          // controllingEntityRegion: regions,
           controllingEntityCity: locality
         })
       }
@@ -289,11 +299,11 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let beneficialOwners = pscCheck.rawData && pscCheck.rawData
       logger.debug(
         'pscCheck.rawData: ' +
-        beneficialOwners +
-        '; ' +
-        JSON.stringify(beneficialOwners[0], null, 2) +
-        '; length = ' +
-        beneficialOwners.length
+          beneficialOwners +
+          '; ' +
+          JSON.stringify(beneficialOwners[0], null, 2) +
+          '; length = ' +
+          beneficialOwners.length
       )
 
       if (!beneficialOwners || !beneficialOwners.length) return

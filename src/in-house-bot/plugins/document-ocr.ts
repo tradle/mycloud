@@ -445,7 +445,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           value: 'amazonTextract'
         })
         dataLineage = {
-          [provider.title]: {
+          [provider.id]: {
             properties: Object.keys(prefill)
           }
         }
