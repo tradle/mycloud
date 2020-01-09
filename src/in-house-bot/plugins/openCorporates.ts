@@ -347,15 +347,17 @@ class OpenCorporatesAPI {
     oneLineAddress += ', ' + addr.postal_code
 
     let codes = []
-    for (let cd of comp.sic_codes) {
-      let exp = {
-        industry_code: {
-          code: cd
+    debugger
+    if (comp.sic_codes) {
+      for (let cd of comp.sic_codes) {
+        let exp = {
+          industry_code: {
+            code: cd
+          }
         }
+        codes.push(exp)
       }
-      codes.push(exp)
     }
-
     let previous = []
     if (comp.previous_company_names) {
       for (let elem of comp.previous_company_names) {
