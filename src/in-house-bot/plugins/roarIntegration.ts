@@ -31,6 +31,7 @@ import { SearchResult } from '@tradle/dynamodb'
 const { sanitize } = validateResource.utils
 
 const FORM_TYPE = 'tradle.legal.LegalEntityControllingPerson'
+const TRADLE = 'TRADLE_';
 
 export class RoarRequestAPI {
   private bot: Bot
@@ -62,7 +63,7 @@ export class RoarRequestAPI {
         ],
         CustomerType: isIND ? 'IND' : 'ORG',
         CountryOfResidence: person.controllingEntityCountryOfResidence.id.split('_')[1],
-        ExistingCustomerInternalId: person._permalink.substring(0, 40),
+        ExistingCustomerInternalId: TRADLE + person._permalink.substring(0, 40),
         ApplicantID: person._permalink.substring(0, 40),
         Jurisdiction: person.controllingEntityRegion.id.split('_')[1],
         LastName: isIND ? person.lastName : '',
@@ -107,7 +108,7 @@ export class RoarRequestAPI {
           }
         ],
         Jurisdiction: legalEntity.region.id.split('_')[1],
-        ApplicantID: legalEntity._permalink.substring(0, 40),
+        ApplicantID: TRADLE + legalEntity._permalink.substring(0, 40),
         OnboardingCustomerRelatedCustomer: relatedCustomers,
         CustomerNAICSCode: 'NONE',
         LastName: '',
@@ -130,7 +131,7 @@ export class RoarRequestAPI {
         CountryOfResidence: countryCode,
         ExistingCustomerInternalId: '',
         OrganizationLegalStructure: 'LS1', //legatEntity.companyType, // ??????
-        ApplicationID: legalEntity._permalink,
+        ApplicationID: TRADLE + legalEntity._permalink.substring(0, 40),
         OrganizationName: legalEntity.companyName,
         CountryOfIncorporation: countryCode,
         CIPVerifiedStatus: 'Auto Pass',
@@ -142,7 +143,7 @@ export class RoarRequestAPI {
         Alias: legalEntity.alsoKnownAs ? legalEntity.alsoKnownAs : ''
       },
       locale: 'en_US',
-      applicationId: legalEntity._permalink.substring(0, 40),
+      applicationId: TRADLE + legalEntity._permalink.substring(0, 40),
       PMFProcess: 'Onboarding_KYC',
       infodom: 'FCCMINFODOM',
       requestUserId: 'SVBUSER'
