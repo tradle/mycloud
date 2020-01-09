@@ -415,9 +415,9 @@
       }
     },
     "@tradle/build-resource": {
-      "version": "4.0.2",
-      "resolved": "https://registry.npmjs.org/@tradle/build-resource/-/build-resource-4.0.2.tgz",
-      "integrity": "sha1-QqbYjsmoojRFYokQ5T3126Err0A=",
+      "version": "4.0.3",
+      "resolved": "https://registry.npmjs.org/@tradle/build-resource/-/build-resource-4.0.3.tgz",
+      "integrity": "sha512-0IGELsMQ3dcmSFhbJD+UQ4T7HHBEqqnzYcdXJYHK7PlvUXAYF3YwD1YElBGgoG0pUqFjsAFYdDg4RtOIdftkog==",
       "requires": {
         "@tradle/constants": "^2.3.2",
         "lodash": "^4.0.0"
