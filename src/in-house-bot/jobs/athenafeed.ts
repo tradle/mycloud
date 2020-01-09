@@ -110,7 +110,7 @@ export class AthenaFeed {
         str = await this.getFile(objectsS3, obj.name, this.inputLocation)
         this.consumeFile(map, str)
       } catch (err) {
-        this.logger.debug(`error getFile, idx=${idx}, err=${err}`)
+        this.logger.error(`athenafeed error getFile, idx=${idx}`, err)
         idx--;
         break;
       }
@@ -232,7 +232,7 @@ export class AthenaFeed {
         let str = await this.getFile(targetS3, DATADUMP_FOLDER + type + '-permalinks', this.outputLocation)
         permalinkInbuckets = JSON.parse(str)
       } catch (err) {
-        this.logger.debug(`error s3download, type=${type}, err=${err}`)
+        this.logger.error(`athenafeed error s3download, type=${type}`, err)
         return;
       }
 
@@ -313,7 +313,7 @@ export class AthenaFeed {
         await this.datadumpFilenames(names, data.NextContinuationToken)
       }
     } catch (err) {
-      this.logger.error(err)
+      this.logger.error('athenafeed', err)
     }
   }
 
@@ -339,7 +339,7 @@ export class AthenaFeed {
         await this.objectsBucketFilenames(files, data.NextContinuationToken)
       }
     } catch (err) {
-      this.logger.error(err)
+      this.logger.error('athenafeed', err)
     }
   }
 
@@ -684,7 +684,7 @@ export class AthenaFeed {
       id = await this.getExecutionId(sql)
       this.logger.debug(`execution id ${id}`)
     } catch (err) {
-      this.logger.error(err)
+      this.logger.error('athenafeed', err)
       return undefined
     }
 
@@ -713,7 +713,7 @@ export class AthenaFeed {
       this.logger.debug(`time passed: ${timePassed}, got data ${data}`)
       return data
     } catch (err) {
-      this.logger.error(err)
+      this.logger.error('athenafeed', err)
       return undefined
     }
   }
