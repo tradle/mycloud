@@ -31,7 +31,13 @@ import { SearchResult } from '@tradle/dynamodb'
 const { sanitize } = validateResource.utils
 
 const FORM_TYPE = 'tradle.legal.LegalEntityControllingPerson'
+const SCREENING_CHECK = 'tradle.RoarScreeningCheck'
+const PROVIDER = 'KYC Engine'
+const ASPECTS = 'screening'
+const COMMERCIAL = 'commercial'
+
 const TRADLE = 'TRADLE_';
+
 
 export class RoarRequestAPI {
   private bot: Bot
@@ -150,6 +156,28 @@ export class RoarRequestAPI {
     }
     return req
   }
+
+  public createCheck = async ({ application, form, rawData, req }) => {
+    // debugger
+    let resource: any = {
+      [TYPE]: SCREENING_CHECK,
+      status: 'pending',
+      sourceType: COMMERCIAL,
+      provider: PROVIDER,
+      application,
+      dateChecked: new Date().getTime(),
+      aspects: ASPECTS,
+      form
+    }
+
+    resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
+    resource.rawData = sanitize(rawData).sanitized
+
+    this.logger.debug(`${PROVIDER} Creating roarScreeningCheck`)
+    let check: any = await this.applications.createCheck(resource, req)
+    this.logger.debug(`${PROVIDER} Created roarScreeningCheck ${check._permalink}`)
+    return check
+  }
 }
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
@@ -183,7 +211,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       let roarReq: any = roarRequestAPI.build(legalEntity, controllingPersons)
       logger.debug(`roarIntegrationSender request: ${JSON.stringify(roarReq, null, 2)}`)
-
+      let check = await roarRequestAPI.createCheck({ application, form: payload, rawData: roarReq, req })
     }
   }
   return { plugin }
