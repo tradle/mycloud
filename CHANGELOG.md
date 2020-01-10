@@ -2,20 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.39](https://github.com/tradle/mycloud/compare/v2.5.1-rc.38...v2.5.1-rc.39) (2020-01-08)
+## [2.5.1-rc.40](https://github.com/tradle/mycloud/compare/v2.5.1-rc.39...v2.5.1-rc.40) (2020-01-10)
 
 
 ### Bug Fixes
 
-* mapping rawData to props ([e369d22](https://github.com/tradle/mycloud/commit/e369d22))
-* prior return ([73ccc18](https://github.com/tradle/mycloud/commit/73ccc18))
-* typo ([2ea3f81](https://github.com/tradle/mycloud/commit/2ea3f81))
-
-
-### Features
-
-* changing key management for dynamodb encryption ([5418ce4](https://github.com/tradle/mycloud/commit/5418ce4))
-* switch DynamoDB encryption to Customer Managed CMK ([7c0e990](https://github.com/tradle/mycloud/commit/7c0e990))
+* displaying model type props ([04e3b4a](https://github.com/tradle/mycloud/commit/04e3b4a))
 
 
 
