@@ -14,7 +14,7 @@ const TEMP = '/tmp/' // use lambda temp dir
 const TYPES_DIR = TEMP + 'types/'
 const accessKeyId = ''
 const secretAccessKey = ''
-const region = 'us-east-1'
+const region = ''
 
 const DATADUMP_FOLDER = 'data_export/'
 const MARKER = 'marker'
@@ -27,7 +27,7 @@ const ATHENA_OUTPUT = 'temp/athena'
 
 const TIME_LIMIT = 660000 // 11 min
 
-const athena = new AWS.Athena({ region, accessKeyId, secretAccessKey })
+const athena = new AWS.Athena() //{ region, accessKeyId, secretAccessKey })
 const targetS3 = new AWS.S3({ accessKeyId, secretAccessKey })
 const objectsS3 = new AWS.S3({ accessKeyId, secretAccessKey })
 

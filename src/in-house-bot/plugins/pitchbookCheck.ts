@@ -106,8 +106,8 @@ export class PitchbookCheckAPI {
     this.logger = logger
     const accessKeyId = ''
     const secretAccessKey = ''
-    const region = 'us-east-1'
-    this.athena = new AWS.Athena({ region, accessKeyId, secretAccessKey })
+    const region = ''
+    this.athena = new AWS.Athena() //{ region, accessKeyId, secretAccessKey })
   }
 
   public sleep = async (ms: number) => {

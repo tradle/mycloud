@@ -72,7 +72,7 @@ export class RoarRequestAPI {
         CountryOfResidence: person.controllingEntityCountryOfResidence.id.split('_')[1],
         ExistingCustomerInternalId: TRADLE + person._permalink.substring(0, 40),
         ApplicantID: person._permalink.substring(0, 40),
-        Jurisdiction: person.controllingEntityRegion.id.split('_')[1],
+        Jurisdiction: person.controllingEntityCountryOfResidence.id.split('_')[1], //person.controllingEntityRegion.id.split('_')[1],
         LastName: isIND ? person.lastName : '',
         CountryOfIncorporation: person.controllingEntityCountryOfResidence.id.split('_')[1],
         OrganizationName: isIND ? '' : person.name,
