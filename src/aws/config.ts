@@ -35,7 +35,7 @@ export const createConfig = ({ region, local, iotEndpoint }: CreateConfigOpts): 
 
     // let idx = region.lastIndexOf('-')
     // let partialRegion = region.slice(0, idx)
-    let sesRegion = REGIONS.find(r => r.startsWith(partialRegion))
+    sesRegion = REGIONS.find(r => r.startsWith(partialRegion))
     if (!sesRegion) {
       // partialRegion = partialRegion.split('-')[0]
       partialRegion = parts[0]
