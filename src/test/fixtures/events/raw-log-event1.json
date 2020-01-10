@@ -1,0 +1,51 @@
+{
+  "messageType": "DATA_MESSAGE",
+  "owner": "404247308186",
+  "logGroup": "/aws/lambda/tdl-mv-ltd-dev-jobScheduler",
+  "logStream": "2020/01/10/[$LATEST]d71f10810e0e4d3a9cb45386d505f3d4",
+  "subscriptionFilters": [
+    "tdl-mv-ltd-dev-LogProcessorLogsSubscriptionFilterCloudWatchLog6-U265ZHCWB5ZL"
+  ],
+  "logEvents": [
+    {
+      "id": "35204461218885086871905688409717990942379560890128662528",
+      "timestamp": 1578622638189,
+      "message": "2020-01-10T02:17:18.170Z\ta1196cb9-e471-4f28-b65e-2976558ec9a9\tINFO\t{\"namespace\":\"tradle:lambda:jobScheduler\",\"msg\":\"request context\",\"level\":\"INFO\",\"details\":{\"seq\":6,\"requestId\":\"a1196cb9-e471-4f28-b65e-2976558ec9a9\",\"correlationId\":\"a1196cb9-e471-4f28-b65e-2976558ec9a9\",\"containerId\":\"Aidan Turner Torhert f74bd1748161\",\"commit\":\"4e7e92ea\",\"start\":1578622638170,\"botReady\":true}}\n"
+    },
+    {
+      "id": "35204461218885086871905688409717990942379560890128662529",
+      "timestamp": 1578622638189,
+      "message": "2020-01-10T02:17:18.171Z\ta1196cb9-e471-4f28-b65e-2976558ec9a9\tINFO\t{\"namespace\":\"tradle:jobs\",\"msg\":\"scheduling job: retryDelivery\",\"level\":\"DEBUG\"}\n"
+    },
+    {
+      "id": "35204461218885086871905688409717990942379560890128662530",
+      "timestamp": 1578622638189,
+      "message": "2020-01-10T02:17:18.171Z\ta1196cb9-e471-4f28-b65e-2976558ec9a9\tINFO\t{\"namespace\":\"tradle:lambda-invoker\",\"msg\":\"invoking\",\"level\":\"DEBUG\",\"details\":{\"shortName\":\"genericJobRunner\",\"arn\":\"arn:aws:lambda:us-east-1:404247308186:function:tdl-mv-ltd-dev-genericJobRunner\"}}\n"
+    },
+    {
+      "id": "35204461241676448464803985260367495017026186349240647683",
+      "timestamp": 1578622639211,
+      "message": "2020-01-10T02:17:19.210Z\ta1196cb9-e471-4f28-b65e-2976558ec9a9\tINFO\t{\"namespace\":\"tradle:lambda:jobScheduler\",\"msg\":\"execution time: 1040ms\",\"level\":\"DEBUG\"}\n"
+    },
+    {
+      "id": "35204461241676448464803985260367495017026186349240647684",
+      "timestamp": 1578622639211,
+      "message": "2020-01-10T02:17:19.211Z\ta1196cb9-e471-4f28-b65e-2976558ec9a9\tINFO\t{\"namespace\":\"tradle:lambda:jobScheduler\",\"msg\":\"preparing for exit\",\"level\":\"DEBUG\",\"details\":{\"requestTime\":1041,\"timeLeft\":28906}}\n"
+    },
+    {
+      "id": "35204461242523876782348148939745852311386824086467903493",
+      "timestamp": 1578622639249,
+      "message": "END RequestId: a1196cb9-e471-4f28-b65e-2976558ec9a9\n"
+    },
+    {
+      "id": "35204461242523876782348148939745852311386824086467903494",
+      "timestamp": 1578622639249,
+      "message": "REPORT RequestId: a1196cb9-e471-4f28-b65e-2976558ec9a9\tDuration: 1113.26 ms\tBilled Duration: 1200 ms\tMemory Size: 256 MB\tMax Memory Used: 240 MB\t\nXRAY TraceId: 1-5e17deae-54fe7dd47640da5232462892\tSegmentId: 3cecdde63de99d9a\tSampled: true\t\n"
+    },
+    {
+      "id":"35204496003475943813979013346762853323644523451177435142",
+      "timestamp": 1578624197984,
+      "message": "REPORT RequestId: 072f1844-f9bf-4ab3-9325-2e3c4c115a61\tDuration: 172.40 ms\tBilled Duration: 200 ms\tMemory Size: 256 MB\tMax Memory Used: 238 MB\t\nXRAY TraceId: 1-5e17e4c5-04083836a4b3eed3555b758b\tSegmentId: 502dae6b37a7adb3\tSampled: true\t\n"
+    }
+  ]
+}

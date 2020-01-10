@@ -100,7 +100,7 @@ const LIFECYCLE = {
 const REGEX = {
   START: /^START RequestId:\s*([^\s]+)\s*Version:\s*(.*)\s*$/i,
   END: /^END RequestId:\s*([^\s]+)\s*$/i,
-  REPORT: /^REPORT RequestId:\s*([^\s]+)\s*Duration:\s*([^\s]*)\s*ms\s*Billed Duration:\s*([^\s]*)\s*ms\s*Memory Size:\s*(\d+)\s*([a-zA-Z]+)\s*Max Memory Used:\s*(\d+)\s*([a-zA-Z]+)\s*$/i
+  REPORT: /^REPORT RequestId:\s*([^\s]+)\s*Duration:\s*([^\s]*)\s*ms\s*Billed Duration:\s*([^\s]*)\s*ms\s*Memory Size:\s*(\d+)\s*([a-zA-Z]+)\s*Max Memory Used:\s*(\d+)\s*([a-zA-Z]+)\s*/i
 }
 
 const XRAY_SPAM = [
@@ -389,8 +389,9 @@ export const parseLogEntryMessage = (message: string) => {
     }
   }
 
-  const [date, requestId, bodyStr] = message.split('\t', 3)
-  const body = parseMessageBody(bodyStr)
+  const parts = message.trim().split('\t')
+  const [data, requestId] = parts
+  const body = parseMessageBody(parts.pop())
   if (body) {
     return {
       requestId,
