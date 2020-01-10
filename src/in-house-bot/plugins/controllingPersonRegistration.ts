@@ -345,6 +345,14 @@ class ControllingPersonRegistrationAPI {
         notifications.find((r: any) => r.form._permalink !== resource._permalink)
       )
     }
+    if (!notifyArr.length) {
+      this.bot.logger.debug(
+        `No one to notify out of: ${result.filter(
+          (r: any) => r.typeOfControllingEntity.id === CP_PERSON
+        )} controlling persons.`
+      )
+      return
+    }
     let legalEntity = notifyArr[0].legalEntity
 
     await Promise.all(
@@ -376,7 +384,7 @@ class ControllingPersonRegistrationAPI {
         r.typeOfControllingEntity.id === CP_PERSON &&
         !r.isSeniorManagement &&
         !r.doNotReachOut &&
-        r.percentageOfOwnership < alwaysNotifyIfShares
+        (!r.percentageOfOwnership || r.percentageOfOwnership < alwaysNotifyIfShares)
     )
     cPeople.sort((a: any, b: any) => b.percentageOfOwnership - a.percentageOfOwnership)
 
