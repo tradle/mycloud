@@ -390,7 +390,7 @@ export const parseLogEntryMessage = (message: string) => {
   }
 
   const parts = message.trim().split('\t')
-  const [data, requestId] = parts
+  const [date, requestId] = parts
   const body = parseMessageBody(parts.pop())
   if (body) {
     return {
