@@ -56,6 +56,7 @@ export class RoarRequestAPI {
 
     let relatedCustomers = []
     for (let person of legalEntityControllingPersons) {
+      this.logger.debug(`roarIntegration controlling person: ${JSON.stringify(person, null, 2)}`)
 
       let isIND = person.typeOfControllingEntity.id.split('_')[1] == 'person' ? true : false
       let dob = ''
