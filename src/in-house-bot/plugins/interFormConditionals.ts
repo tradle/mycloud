@@ -1,17 +1,7 @@
 import cloneDeep from 'lodash/cloneDeep'
 import size from 'lodash/size'
 import extend from 'lodash/extend'
-import {
-  Bot,
-  Logger,
-  CreatePlugin,
-  Applications,
-  ITradleObject,
-  IPBApp,
-  IPBReq,
-  IPluginLifecycleMethods,
-  ValidatePluginConf
-} from '../types'
+import { CreatePlugin, IPBReq, IPluginLifecycleMethods, ValidatePluginConf } from '../types'
 import { TYPE } from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
