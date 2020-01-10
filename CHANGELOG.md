@@ -2,14 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.42](https://github.com/tradle/mycloud/compare/v2.5.1-rc.41...v2.5.1-rc.42) (2020-01-10)
+## [2.5.1-rc.43](https://github.com/tradle/mycloud/compare/v2.5.1-rc.42...v2.5.1-rc.43) (2020-01-10)
 
 
 ### Bug Fixes
 
-* don't execute if no application ([8d062ba](https://github.com/tradle/mycloud/commit/8d062ba))
-* missing file is here ([02fdd9d](https://github.com/tradle/mycloud/commit/02fdd9d))
-* typo ([ac926dd](https://github.com/tradle/mycloud/commit/ac926dd))
+* finding who to notify for CPs ([710c829](https://github.com/tradle/mycloud/commit/710c829))
+* scoreType is unknown for old applications ([65d4c2b](https://github.com/tradle/mycloud/commit/65d4c2b))
 
 
 
