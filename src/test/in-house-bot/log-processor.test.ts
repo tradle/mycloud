@@ -11,7 +11,7 @@ import rawAlertEvent from '../fixtures/events/sns'
 const rawLogEvent = require('../fixtures/events/raw-log-event.json')
 const rawLogEvent1 = require('../fixtures/events/raw-log-event1.json')
 const parsedLogEvent: LP.ParsedLogEvent = require('../fixtures/events/parsed-log-event.json')
-// const parsedLogEvent1: LP.ParsedLogEvent = require('../fixtures/events/parsed-log-event1.json')
+const parsedLogEvent1: LP.ParsedLogEvent = require('../fixtures/events/parsed-log-event1.json')
 const parsedAlertEvent = {
   accountId: '12345678902',
   region: 'us-east-1',
@@ -43,11 +43,11 @@ test(
     )
     t.ok(LP.parseAlertEvent(rawAlertEvent).eventUrl)
 
-    // t.same(LP.parseLogEvent(rawLogEvent1), parsedLogEvent1)
-    // t.same(
-    //   LP.getLogEventKey(parsedLogEvent1),
-    //   'logs/2020-01-10/02:00/tdl-mv-ltd-dev-jobScheduler/35204461218885086871905688409717990942379560890128662528'
-    // )
+    t.same(LP.parseLogEvent(rawLogEvent1), parsedLogEvent1)
+    t.same(
+      LP.getLogEventKey(parsedLogEvent1),
+      'logs/2020-01-10/02:00/tdl-mv-ltd-dev-jobScheduler/35204461218885086871905688409717990942379560890128662528'
+    )
     t.equal(LP.parseLogEvent(rawLogEvent1).entries.length, 8)
     t.end()
   })
