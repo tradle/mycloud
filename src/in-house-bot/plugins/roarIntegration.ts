@@ -212,6 +212,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let roarReq: any = roarRequestAPI.build(legalEntity, controllingPersons)
       logger.debug(`roarIntegrationSender request: ${JSON.stringify(roarReq, null, 2)}`)
       let check = await roarRequestAPI.createCheck({ application, form: payload, rawData: roarReq, req })
+      logger.debug(`roarIntegrationSender check: ${JSON.stringify(check, null, 2)}`)
     }
   }
   return { plugin }
