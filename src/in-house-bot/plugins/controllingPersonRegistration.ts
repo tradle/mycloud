@@ -37,7 +37,10 @@ const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
 const CE_NOTIFICATION = 'tradle.CENotification'
 const NOTIFICATION = 'tradle.Notification'
 const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
-const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
+const SCORE_TYPE = 'tradle.ScoreType'
+const SM_POSITIONS = 'tradle.SeniorManagerPosition'
+
+const defaultAlwaysNotifyIfShares = 25
 
 const NOTIFICATION_PROVIDER = 'Tradle'
 
@@ -87,6 +90,7 @@ interface IControllingPersonRegistrationConf {
       score: number
       notify?: number
     }
+    alwaysNotifyIfShares?: number
     medium: {
       score: number
       notify?: number
@@ -281,31 +285,49 @@ class ControllingPersonRegistrationAPI {
     })
   }
   public async checkRules({ application, forms, rules }) {
-    const { score } = application
-    const { positions, messages, interval, noAutoNotification } = rules
-    let notify = this.getNotify({ score, rules })
+    let { positions, messages, interval, noAutoNotification, alwaysNotifyIfShares } = rules
+    // if (!alwaysNotifyIfShares) alwaysNotifyIfShares = defaultAlwaysNotifyIfShares
+
+    let notify = this.getNotify({ rules, application })
 
     let result = await this.getCP({ application, bot: this.bot })
+    let { seniorManagement, cPeople, alwaysNotify } = await this.categorizeCP({
+      application,
+      rules,
+      result
+    })
 
-    let cPeople = result.filter(
-      (r: any) => r.typeOfControllingEntity.id === CP_PERSON && !r.doNotReachOut
-    )
-    cPeople.sort((a: any, b: any) => b.percentageOfOwnership - a.percentageOfOwnership)
+    let notifyArr = []
+    if (seniorManagement.length) {
+      let sm: any = seniorManagement[0]
+      if (seniorManagement.length > notify)
+        notifyArr = this.getSeniorManagement({ notify, positions, seniorManagement })
+      else {
+        // notify = seniorManagement.length
+        notifyArr = seniorManagement
+      }
+    }
+    if (alwaysNotify) {
+      if (seniorManagement.length) {
+        alwaysNotify.forEach((r: any) => {
+          if (!seniorManagement.find((sm: any) => sm._permalink === r._permalink)) notifyArr.push(r)
+        })
+      } else {
+        notifyArr = notifyArr.concat(alwaysNotify)
+      }
+    }
+    let cnt = notifyArr.length
+    if (!cnt || cnt < notify) {
+      let neededCnt = notify - cnt
+      let addCps
+      if (cPeople.length > neededCnt) {
+        addCps = cPeople.slice(0, neededCnt)
+      } else {
+        addCps = cPeople
+      }
+      if (addCps.length) notifyArr = notifyArr.concat(addCps)
+    }
 
-    let seniorManagement = cPeople.filter((r: any) => r.isSeniorManager && !r.doNotReachOut)
-    if (!seniorManagement.length) {
-      if (cPeople.length > notify) seniorManagement = cPeople.slice(0, notify)
-      else seniorManagement = cPeople
-    }
-    let sm: any = seniorManagement[0]
-    let legalEntity = sm.legalEntity
-    let notifyArr
-    if (seniorManagement.length > notify)
-      notifyArr = this.getSeniorManagement({ notify, positions, seniorManagement })
-    else {
-      notify = seniorManagement.length
-      notifyArr = seniorManagement
-    }
     // if (!noAutoNotification) {
     let cpEntities = result.filter(
       (r: any) => r.typeOfControllingEntity.id !== CP_PERSON && !r.doNotReachOutToMembers
@@ -323,6 +345,8 @@ class ControllingPersonRegistrationAPI {
         notifications.find((r: any) => r.form._permalink !== resource._permalink)
       )
     }
+    let legalEntity = notifyArr[0].legalEntity
+
     await Promise.all(
       notifyArr.map(resource =>
         this.sendConfirmationEmail({
@@ -340,18 +364,39 @@ class ControllingPersonRegistrationAPI {
       )
     )
   }
+  async categorizeCP({ application, rules, result }) {
+    let { alwaysNotifyIfShares } = rules
+    if (!alwaysNotifyIfShares) alwaysNotifyIfShares = defaultAlwaysNotifyIfShares
+
+    let seniorManagement = result.filter((r: any) => r.isSeniorManager && !r.doNotReachOut)
+    let alwaysNotify = result.filter((r: any) => r.percentageOfOwnership >= alwaysNotifyIfShares)
+
+    let cPeople = result.filter(
+      (r: any) =>
+        r.typeOfControllingEntity.id === CP_PERSON &&
+        !r.isSeniorManagement &&
+        !r.doNotReachOut &&
+        r.percentageOfOwnership < alwaysNotifyIfShares
+    )
+    cPeople.sort((a: any, b: any) => b.percentageOfOwnership - a.percentageOfOwnership)
+
+    return {
+      seniorManagement,
+      alwaysNotify,
+      cPeople
+    }
+  }
   public getSeniorManagement({ notify, positions, seniorManagement }) {
     let positionsArr
-    let smPosition = this.bot.models['tradle.SeniorManagerPosition']
+    let smPosition = this.bot.models[SM_POSITIONS]
     if (positions) positionsArr = positions.map(p => smPosition.enum.find(val => val.id === p))
     else positionsArr = smPosition
     let notifyArr = []
-    let dontNotifyArr = []
-    // for (let i = 0; i < positionsArr.length; i++) {
     for (let position of positionsArr) {
       let id = `tradle.SeniorManagerPosition_${position.id}`
       let seniorManager = seniorManagement.find(
-        (sm: any) => sm.seniorManagerPosition && sm.seniorManagerPosition.id === id
+        (sm: any) =>
+          !sm.doNotReachOut && sm.seniorManagerPosition && sm.seniorManagerPosition.id === id
       )
       if (seniorManager) {
         notifyArr.push(seniorManager)
@@ -398,13 +443,14 @@ class ControllingPersonRegistrationAPI {
     if (!stubs) stubs = this.getCpStubs(application)
     return await Promise.all(stubs.map(stub => bot.getResource(stub)))
   }
-  public getNotify({ score, rules }) {
+  public getNotify({ rules, application }) {
     const { low, medium, high, maxNotifications } = rules
+    let score = getEnumValueId({ model: this.bot.models[SCORE_TYPE], value: application.scoreType })
     let notify
-    if (score >= low.score) {
+    if (score === 'low') {
       notify = low.notify
       if (!notify) return
-    } else if (score > medium.score) {
+    } else if (score === 'medium') {
       notify = medium.notify
       if (!notify) return
     } else notify = high.notify || maxNotifications || 5
@@ -470,6 +516,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
     async onmessage(req) {
       // useRealSES(bot)
       const { application, payload } = req
+      debugger
       if (!application || application.draft) return
       let productId = application.requestFor
 
@@ -619,9 +666,9 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       })
     },
     async getNextManager({ application, conf, timesNotified, value }) {
-      let { notifications, score } = application
+      let { notifications } = application
       let { maxNotifications, positions } = conf.rules
-      let notify = cp.getNotify({ score, rules: conf.rules })
+      let notify = cp.getNotify({ rules: conf.rules, application })
       let notifiedParties: any = await Promise.all(notifications.map(item => bot.getResource(item)))
       notifiedParties = uniqBy(notifiedParties, 'form._permalink')
 
@@ -697,6 +744,7 @@ export const validateConf: ValidatePluginConf = async ({
   }
   if (!rules) return
   let {
+    alwaysNotifyIfShares,
     noAutoNotification,
     low,
     high,
@@ -706,23 +754,31 @@ export const validateConf: ValidatePluginConf = async ({
     interval,
     maxNotifications
   } = rules
+  if (alwaysNotifyIfShares) {
+    if (typeof alwaysNotifyIfShares !== 'number')
+      throw new Error('"alwaysNotifyIfShares" in the rules should be a number')
+    if (alwaysNotifyIfShares > 100 || alwaysNotifyIfShares < 0)
+      throw new Error(
+        '"alwaysNotifyIfPercentageOfShares" in the rules should be a number in range 0-100'
+      )
+  }
   if (noAutoNotification && typeof noAutoNotification !== 'boolean')
     throw new Error('"noAutoNotification" in the rules should be a boolean')
 
   if (!low || !high || !medium)
     throw new Error(`If rules are assigned all 3: "low", "high" and "medium' should be present`)
-  if (!low.score || !high.score || !medium.score)
-    throw new Error(
-      `If rules are assigned all 3: "low", "high" and "medium' should have a "score" attribute`
-    )
-  if (
-    typeof low.score !== 'number' ||
-    typeof high.score !== 'number' ||
-    typeof medium.score !== 'number'
-  )
-    throw new Error(
-      `If rules are assigned all 3: "low", "high" and "medium' should have a "score" as a number`
-    )
+  // if (!low.score || !high.score || !medium.score)
+  //   throw new Error(
+  //     `If rules are assigned all 3: "low", "high" and "medium' should have a "score" attribute`
+  //   )
+  // if (
+  //   typeof low.score !== 'number' ||
+  //   typeof high.score !== 'number' ||
+  //   typeof medium.score !== 'number'
+  // )
+  //   throw new Error(
+  //     `If rules are assigned all 3: "low", "high" and "medium' should have a "score" as a number`
+  //   )
   if (
     (low.notify && typeof low.notify !== 'number') ||
     (high.notify && typeof high.notify !== 'number') ||
