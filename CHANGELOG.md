@@ -2,12 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.40](https://github.com/tradle/mycloud/compare/v2.5.1-rc.39...v2.5.1-rc.40) (2020-01-10)
+## [2.5.1-rc.41](https://github.com/tradle/mycloud/compare/v2.5.1-rc.40...v2.5.1-rc.41) (2020-01-10)
 
 
 ### Bug Fixes
 
-* displaying model type props ([04e3b4a](https://github.com/tradle/mycloud/commit/04e3b4a))
+* log event parsing ([a37d6ce](https://github.com/tradle/mycloud/commit/a37d6ce))
+* temp commenting out missed json ([621a4b2](https://github.com/tradle/mycloud/commit/621a4b2))
+* typo in var name ([89032bc](https://github.com/tradle/mycloud/commit/89032bc))
+* undo log-processor lambda changes ([5d7ca51](https://github.com/tradle/mycloud/commit/5d7ca51))
+* undo npm-shrinkwrap.json changes ([d261f9d](https://github.com/tradle/mycloud/commit/d261f9d))
+* undo package.json changes ([f94fa74](https://github.com/tradle/mycloud/commit/f94fa74))
+
+
+### Features
+
+* more prefills for LE ([24f02be](https://github.com/tradle/mycloud/commit/24f02be))
+* prefills for CP ([f412d51](https://github.com/tradle/mycloud/commit/f412d51))
+* rules for notifications ([aabab84](https://github.com/tradle/mycloud/commit/aabab84))
+* score type on application ([3080407](https://github.com/tradle/mycloud/commit/3080407))
 
 
 
