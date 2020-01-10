@@ -1,0 +1,91 @@
+{
+  "entries": [
+    {
+      "id": "35204461218885086871905688409717990942379560890128662528",
+      "timestamp": 1578622638189,
+      "requestId": "a1196cb9-e471-4f28-b65e-2976558ec9a9",
+      "namespace": "tradle:lambda:jobScheduler",
+      "msg": "request context",
+      "level": "INFO",
+      "details": {
+        "seq": 6,
+        "requestId": "a1196cb9-e471-4f28-b65e-2976558ec9a9",
+        "correlationId": "a1196cb9-e471-4f28-b65e-2976558ec9a9",
+        "containerId": "Aidan Turner Torhert f74bd1748161",
+        "commit": "4e7e92ea",
+        "start": 1578622638170,
+        "botReady": true
+      }
+    },
+    {
+      "id": "35204461218885086871905688409717990942379560890128662529",
+      "timestamp": 1578622638189,
+      "requestId": "a1196cb9-e471-4f28-b65e-2976558ec9a9",
+      "namespace": "tradle:jobs",
+      "msg": "scheduling job: retryDelivery",
+      "level": "DEBUG"
+    },
+    {
+      "id": "35204461218885086871905688409717990942379560890128662530",
+      "timestamp": 1578622638189,
+      "requestId": "a1196cb9-e471-4f28-b65e-2976558ec9a9",
+      "namespace": "tradle:lambda-invoker",
+      "msg": "invoking",
+      "level": "DEBUG",
+      "details": {
+        "shortName": "genericJobRunner",
+        "arn": "arn:aws:lambda:us-east-1:404247308186:function:tdl-mv-ltd-dev-genericJobRunner"
+      }
+    },
+    {
+      "id": "35204461241676448464803985260367495017026186349240647683",
+      "timestamp": 1578622639211,
+      "requestId": "a1196cb9-e471-4f28-b65e-2976558ec9a9",
+      "namespace": "tradle:lambda:jobScheduler",
+      "msg": "execution time: 1040ms",
+      "level": "DEBUG"
+    },
+    {
+      "id": "35204461241676448464803985260367495017026186349240647684",
+      "timestamp": 1578622639211,
+      "requestId": "a1196cb9-e471-4f28-b65e-2976558ec9a9",
+      "namespace": "tradle:lambda:jobScheduler",
+      "msg": "preparing for exit",
+      "level": "DEBUG",
+      "details": {
+        "requestTime": 1041,
+        "timeLeft": 28906
+      }
+    },
+    {
+      "id": "35204461242523876782348148939745852311386824086467903493",
+      "timestamp": 1578622639249,
+      "__": "END",
+      "requestId": "a1196cb9-e471-4f28-b65e-2976558ec9a9"
+    },
+    {
+      "id": "35204461242523876782348148939745852311386824086467903494",
+      "timestamp": 1578622639249,
+      "__": "REPORT",
+      "requestId": "a1196cb9-e471-4f28-b65e-2976558ec9a9",
+      "duration": 1113.26,
+      "billedDuration": 1200,
+      "memorySize": 256,
+      "memoryUsed": 240
+    },
+    {
+      "id": "35204496003475943813979013346762853323644523451177435142",
+      "timestamp": 1578624197984,
+      "__": "REPORT",
+      "requestId": "072f1844-f9bf-4ab3-9325-2e3c4c115a61",
+      "duration": 172.4,
+      "billedDuration": 200,
+      "memorySize": 256,
+      "memoryUsed": 238
+    }
+  ],
+  "function": {
+    "version": "$LATEST",
+    "name": "tdl-mv-ltd-dev-jobScheduler"
+  }
+}
