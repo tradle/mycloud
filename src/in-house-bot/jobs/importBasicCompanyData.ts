@@ -36,7 +36,7 @@ const PREFIX = 'refdata/gb/basic_company_data/'
 const BUCKET_COUNT = 3
 const MAX_UPLOAD_TIME = 600000 // 10 min
 
-const athena = new AWS.Athena({ region, accessKeyId, secretAccessKey })
+const athena = new AWS.Athena() //{ region, accessKeyId, secretAccessKey })
 const s3 = new AWS.S3({ accessKeyId, secretAccessKey });
 
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'

@@ -18,6 +18,7 @@ const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
 const CHECK_STATUS = 'tradle.Status'
 const COUNTRY = 'tradle.Country'
+const COMPANIES_HOUSE = 'Companies House'
 
 const countryMap = {
   England: 'United Kingdom',
@@ -133,7 +134,25 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         position,
         endDate: end_date && new Date(end_date).getTime()
       }
-      prefill = sanitize(prefill).sanitized
+      if (check.provider === COMPANIES_HOUSE) {
+        let [lastName, otherNames] = name.split(', ')
+        if (otherNames) {
+          let names = otherNames && otherNames.trim().split(' ')
+          let firstName
+          let middleName
+          let len = names.length
+          if (len !== 1) {
+            middleName = names[len - 1]
+            firstName = names
+              .slice(0, len - 1)
+              .join(' ')
+              .trim()
+          } else firstName = names[0].trim()
+
+          extend(prefill, { firstName, lastName, middleName })
+        }
+      }
+      // prefill = sanitize(prefill).sanitized
       let cePrefill = { ...prefill }
       let provider = enumValue({
         model: bot.models[REFERENCE_DATA_SOURCES],
@@ -238,13 +257,23 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       }
     },
     prefillIndividual(prefill, bo) {
-      let { country_of_residence, date_of_birth, natures_of_control } = bo.data
+      let { country_of_residence, date_of_birth, natures_of_control, name_elements } = bo.data
 
-      prefill.dateOfBirth =
-        date_of_birth && new Date(date_of_birth.year, date_of_birth.month).getTime()
+      prefill.controllingEntityDateOfBirth =
+        date_of_birth && new Date(date_of_birth.year, date_of_birth.month - 1).getTime()
       if (country_of_residence) {
         let country = getCountryByTitle(country_of_residence, bot.models)
-        if (country) prefill.controllingEntityCountry = country
+        if (country) prefill.controllingEntityCountryOfResidence = country
+      }
+      if (name_elements) {
+        let { firstName, lastName } = prefill
+        if (!firstName && !lastName) {
+          extend(prefill, {
+            firstName: name_elements.forename,
+            lastName: name_elements.surname,
+            middleName: name_elements.middle_name
+          })
+        }
       }
       this.addNatureOfControl(prefill, natures_of_control)
     },

@@ -31,6 +31,13 @@ import { SearchResult } from '@tradle/dynamodb'
 const { sanitize } = validateResource.utils
 
 const FORM_TYPE = 'tradle.legal.LegalEntityControllingPerson'
+const SCREENING_CHECK = 'tradle.RoarScreeningCheck'
+const PROVIDER = 'KYC Engine'
+const ASPECTS = 'screening'
+const COMMERCIAL = 'commercial'
+
+const TRADLE = 'TRADLE_';
+
 
 export class RoarRequestAPI {
   private bot: Bot
@@ -49,6 +56,7 @@ export class RoarRequestAPI {
 
     let relatedCustomers = []
     for (let person of legalEntityControllingPersons) {
+      this.logger.debug(`roarIntegration controlling person: ${JSON.stringify(person, null, 2)}`)
 
       let isIND = person.typeOfControllingEntity.id.split('_')[1] == 'person' ? true : false
       let dob = ''
@@ -62,9 +70,9 @@ export class RoarRequestAPI {
         ],
         CustomerType: isIND ? 'IND' : 'ORG',
         CountryOfResidence: person.controllingEntityCountryOfResidence.id.split('_')[1],
-        ExistingCustomerInternalId: person._permalink.substring(0, 40),
+        ExistingCustomerInternalId: TRADLE + person._permalink.substring(0, 40),
         ApplicantID: person._permalink.substring(0, 40),
-        Jurisdiction: person.controllingEntityRegion.id.split('_')[1],
+        Jurisdiction: person.controllingEntityCountryOfResidence.id.split('_')[1], //person.controllingEntityRegion.id.split('_')[1],
         LastName: isIND ? person.lastName : '',
         CountryOfIncorporation: person.controllingEntityCountryOfResidence.id.split('_')[1],
         OrganizationName: isIND ? '' : person.name,
@@ -107,7 +115,7 @@ export class RoarRequestAPI {
           }
         ],
         Jurisdiction: legalEntity.region.id.split('_')[1],
-        ApplicantID: legalEntity._permalink.substring(0, 40),
+        ApplicantID: TRADLE + legalEntity._permalink.substring(0, 40),
         OnboardingCustomerRelatedCustomer: relatedCustomers,
         CustomerNAICSCode: 'NONE',
         LastName: '',
@@ -130,7 +138,7 @@ export class RoarRequestAPI {
         CountryOfResidence: countryCode,
         ExistingCustomerInternalId: '',
         OrganizationLegalStructure: 'LS1', //legatEntity.companyType, // ??????
-        ApplicationID: legalEntity._permalink,
+        ApplicationID: TRADLE + legalEntity._permalink.substring(0, 40),
         OrganizationName: legalEntity.companyName,
         CountryOfIncorporation: countryCode,
         CIPVerifiedStatus: 'Auto Pass',
@@ -142,12 +150,34 @@ export class RoarRequestAPI {
         Alias: legalEntity.alsoKnownAs ? legalEntity.alsoKnownAs : ''
       },
       locale: 'en_US',
-      applicationId: legalEntity._permalink.substring(0, 40),
+      applicationId: TRADLE + legalEntity._permalink.substring(0, 40),
       PMFProcess: 'Onboarding_KYC',
       infodom: 'FCCMINFODOM',
       requestUserId: 'SVBUSER'
     }
     return req
+  }
+
+  public createCheck = async ({ application, form, rawData, req }) => {
+    // debugger
+    let resource: any = {
+      [TYPE]: SCREENING_CHECK,
+      status: 'pending',
+      sourceType: COMMERCIAL,
+      provider: PROVIDER,
+      application,
+      dateChecked: new Date().getTime(),
+      aspects: ASPECTS,
+      form
+    }
+
+    resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
+    resource.rawData = sanitize(rawData).sanitized
+
+    this.logger.debug(`${PROVIDER} Creating roarScreeningCheck`)
+    let check: any = await this.applications.createCheck(resource, req)
+    this.logger.debug(`${PROVIDER} Created roarScreeningCheck ${check._permalink}`)
+    return check
   }
 }
 
@@ -182,7 +212,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       let roarReq: any = roarRequestAPI.build(legalEntity, controllingPersons)
       logger.debug(`roarIntegrationSender request: ${JSON.stringify(roarReq, null, 2)}`)
-
+      let check = await roarRequestAPI.createCheck({ application, form: payload, rawData: roarReq, req })
+      logger.debug(`roarIntegrationSender check: ${JSON.stringify(check, null, 2)}`)
     }
   }
   return { plugin }

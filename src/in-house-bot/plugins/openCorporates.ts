@@ -622,7 +622,22 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         let check = result[0]
         let company = check.rawData && check.rawData.length && check.rawData[0].company
         if (!company) return
-        let { registered_address, company_type, incorporation_date, current_status, name } = company
+        let {
+          registered_address,
+          company_type,
+          incorporation_date,
+          current_status,
+          name,
+          previous_company_names,
+          previous_names
+        } = company
+
+        let previousNames = previous_company_names || previous_names
+        if (previousNames) {
+          prefill.alsoKnownAs = previousNames[0]
+          if (previousNames.length > 1) prefill.formerlyKnownAs = previousNames[1]
+        }
+
         if (incorporation_date) prefill.registrationDate = new Date(incorporation_date).getTime()
         if (company_type) prefill.companyType = company_type.trim()
 
