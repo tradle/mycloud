@@ -6,12 +6,11 @@ const lambda = fromCloudwatchLogs({ event: LOGS })
 const { bot, logger } = lambda
 let processor: LogProcessor
 
-lambda.use(async ctx => {
+lambda.use(async (ctx) => {
   const { event, components } = ctx
   if (!processor) {
     processor = fromLambda({ lambda, components })
     bot.hook(bot.events.topics.logging.logs, async (ctx, next) => {
-      const { event } = ctx
       ctx.event = await processor.parseLogEvent(ctx.event)
       await processor.handleLogEvent(ctx.event)
     })
