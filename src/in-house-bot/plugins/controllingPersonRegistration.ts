@@ -453,7 +453,13 @@ class ControllingPersonRegistrationAPI {
   }
   public getNotify({ rules, application }) {
     const { low, medium, high, maxNotifications } = rules
-    let score = getEnumValueId({ model: this.bot.models[SCORE_TYPE], value: application.scoreType })
+    let score
+    if (application.scoreType)
+      score = getEnumValueId({ model: this.bot.models[SCORE_TYPE], value: application.scoreType })
+    else {
+      debugger
+      score = 'high'
+    }
     let notify
     if (score === 'low') {
       notify = low.notify
