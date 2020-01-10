@@ -14,7 +14,7 @@ const TEMP = '/tmp/' // use lambda temp dir
 const TYPES_DIR = TEMP + 'types/'
 const accessKeyId = ''
 const secretAccessKey = ''
-const region = 'us-east-1'
+const region = ''
 
 const DATADUMP_FOLDER = 'data_export/'
 const MARKER = 'marker'
@@ -27,7 +27,7 @@ const ATHENA_OUTPUT = 'temp/athena'
 
 const TIME_LIMIT = 660000 // 11 min
 
-const athena = new AWS.Athena({ region, accessKeyId, secretAccessKey })
+const athena = new AWS.Athena() //{ region, accessKeyId, secretAccessKey })
 const targetS3 = new AWS.S3({ accessKeyId, secretAccessKey })
 const objectsS3 = new AWS.S3({ accessKeyId, secretAccessKey })
 
@@ -110,7 +110,7 @@ export class AthenaFeed {
         str = await this.getFile(objectsS3, obj.name, this.inputLocation)
         this.consumeFile(map, str)
       } catch (err) {
-        this.logger.debug(`error getFile, idx=${idx}, err=${err}`)
+        this.logger.error(`athenafeed error getFile, idx=${idx}`, err)
         idx--;
         break;
       }
@@ -232,7 +232,7 @@ export class AthenaFeed {
         let str = await this.getFile(targetS3, DATADUMP_FOLDER + type + '-permalinks', this.outputLocation)
         permalinkInbuckets = JSON.parse(str)
       } catch (err) {
-        this.logger.debug(`error s3download, type=${type}, err=${err}`)
+        this.logger.error(`athenafeed error s3download, type=${type}`, err)
         return;
       }
 
@@ -313,7 +313,7 @@ export class AthenaFeed {
         await this.datadumpFilenames(names, data.NextContinuationToken)
       }
     } catch (err) {
-      this.logger.error(err)
+      this.logger.error('athenafeed', err)
     }
   }
 
@@ -339,7 +339,7 @@ export class AthenaFeed {
         await this.objectsBucketFilenames(files, data.NextContinuationToken)
       }
     } catch (err) {
-      this.logger.error(err)
+      this.logger.error('athenafeed', err)
     }
   }
 
@@ -684,7 +684,7 @@ export class AthenaFeed {
       id = await this.getExecutionId(sql)
       this.logger.debug(`execution id ${id}`)
     } catch (err) {
-      this.logger.error(err)
+      this.logger.error('athenafeed', err)
       return undefined
     }
 
@@ -713,7 +713,7 @@ export class AthenaFeed {
       this.logger.debug(`time passed: ${timePassed}, got data ${data}`)
       return data
     } catch (err) {
-      this.logger.error(err)
+      this.logger.error('athenafeed', err)
       return undefined
     }
   }

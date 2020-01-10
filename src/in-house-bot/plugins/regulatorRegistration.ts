@@ -98,7 +98,7 @@ export class RegulatorRegistrationAPI {
     const accessKeyId = ''
     const secretAccessKey = ''
     const region = 'us-east-1'
-    this.athena = new AWS.Athena({ region, accessKeyId, secretAccessKey })
+    this.athena = new AWS.Athena() //{ region, accessKeyId, secretAccessKey })
   }
 
   getDataSource = async (id: string) => {
