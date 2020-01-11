@@ -73,15 +73,14 @@ export class JenIdCheckerAPI {
   public handleData = async (form, application) => {
     await this.bot.resolveEmbeds(form)
 
-    let buf = DataURI.decode(form.scan.url)
-    const scanDimensions = sizeof(buf)
+    let frontImageInfo = await this.imageResize(form.scan.url)
 
     let jsonFrontImage = {
       mmHeight: 0,
       mmWidth: 0,
-      imageData: form.scan.url,
-      pixelHeight: scanDimensions.height,
-      pixelWidth: scanDimensions.width,
+      imageData: frontImageInfo.url,
+      pixelHeight: frontImageInfo.height,
+      pixelWidth: frontImageInfo.width,
       cropped: 1
     }
 
@@ -95,15 +94,14 @@ export class JenIdCheckerAPI {
     let jsonInputImages = [jsonTransactionFrontInputImage]
 
     if (form.otherSideScan) {
-      buf = DataURI.decode(form.otherSideScan.url)
-      const backDimensions = sizeof(buf)
+      let backImageInfo = await this.imageResize(form.otherSideScan.url)
 
       let jsonBackImage = {
         mmHeight: 0,
         mmWidth: 0,
-        imageData: form.otherSideScan.url,
-        pixelHeight: backDimensions.height,
-        pixelWidth: backDimensions.width,
+        imageData: backImageInfo.url,
+        pixelHeight: backImageInfo.height,
+        pixelWidth: backImageInfo.width,
         cropped: 1
       }
 
@@ -211,6 +209,25 @@ export class JenIdCheckerAPI {
       this.logger.debug(`Failed get data from ${PROVIDER}, error : ${response.error}`)
       return status
     }
+  }
+
+  imageResize = async (dataUrl: string) => {
+    let pref = dataUrl.substring(0, dataUrl.indexOf(',') + 1)
+    let buf = DataURI.decode(dataUrl)
+    let dimensions: any = sizeof(buf);
+    let currentWidth: number = dimensions.width
+    let currentHeight: number = dimensions.height
+    let biggest = currentWidth > currentHeight ? currentWidth : currentHeight
+    let coef: number = 3000 / biggest
+
+    if (coef <= 0.9) {
+      let width: number = Math.round(currentWidth * coef)
+      let height: number = Math.round(currentHeight * coef)
+      let resizedBuf = await sharp(buf).resize(width, height).toBuffer()
+      let newDataUrl = pref + resizedBuf.toString('base64')
+      return { url: newDataUrl, width, height }
+    }
+    return { url: dataUrl, width: currentWidth, height: currentHeight }
   }
 
   public createCheck = async ({ application, status, form, req }: IJenIdCheck) => {
