@@ -64,18 +64,18 @@ export class RoarRequestAPI {
         dob = dateformat(person.controllingEntityDateOfBirth, 'mm-dd-yyyy')
       }
       let item = {
-        PrimaryCitizenship: person.controllingEntityCountry.id.split('_')[1],
+        PrimaryCitizenship: person.controllingEntityCountry ? person.controllingEntityCountry.id.split('_')[1] : '',
         OnboardingCustomerRelationship: [
           { RelationshipCode: person.isSeniorManager ? 'CP' : 'BO' }
         ],
         CustomerType: isIND ? 'IND' : 'ORG',
-        CountryOfResidence: person.controllingEntityCountryOfResidence.id.split('_')[1],
+        CountryOfResidence: person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : '',
         ExistingCustomerInternalId: TRADLE + person._permalink.substring(0, 40),
         ApplicantID: person._permalink.substring(0, 40),
-        Jurisdiction: person.controllingEntityCountryOfResidence.id.split('_')[1], //person.controllingEntityRegion.id.split('_')[1],
-        LastName: isIND ? person.lastName : '',
-        CountryOfIncorporation: person.controllingEntityCountryOfResidence.id.split('_')[1],
-        OrganizationName: isIND ? '' : person.name,
+        Jurisdiction: person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : '',
+        LastName: (isIND && person.lastName) ? person.lastName : '',
+        CountryOfIncorporation: person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : '',
+        OrganizationName: (!isIND && person.name) ? person.name : '',
         CIPVerifiedStatus: 'Auto Pass',
         DateOfBirth: dob,
         MiddleName: '',
@@ -83,16 +83,16 @@ export class RoarRequestAPI {
         OnboardingCustomerAddress: [
           {
             AddressPurpose: 'P',
-            PostalCode: person.controllingEntityPostalCode,
-            State: person.controllingEntityRegion.id.split('_')[1],
-            StreetLine1: person.controllingEntityStreetAddress,
+            PostalCode: person.controllingEntityPostalCode ? person.controllingEntityPostalCode : '',
+            State: person.controllingEntityRegion ? person.controllingEntityRegion.id.split('_')[1] : '',
+            StreetLine1: person.controllingEntityStreetAddress ? person.controllingEntityStreetAddress : '',
             StreetLine2: '',
             StreetLine3: '',
-            Country: person.controllingEntityCountry.id.split('_')[1],
-            City: person.controllingEntityCity
+            Country: person.controllingEntityCountry ? person.controllingEntityCountry.id.split('_')[1] : '',
+            City: person.controllingEntityCity ? person.controllingEntityCity : ''
           }
         ],
-        FirstName: isIND ? person.firstName : '',
+        FirstName: (isIND && person.firstName) ? person.firstName : '',
         CIPExemptFlag: isIND ? 'N' : 'Y',
         CIPVerifiedFlag: 'Y',
         ExposuretoPEP: ''
@@ -114,7 +114,7 @@ export class RoarRequestAPI {
             Country: countryCode
           }
         ],
-        Jurisdiction: legalEntity.region.id.split('_')[1],
+        Jurisdiction: legalEntity.region ? legalEntity.region.id.split('_')[1] : legalEntity.country.id.split('_')[1],
         ApplicantID: TRADLE + legalEntity._permalink.substring(0, 40),
         OnboardingCustomerRelatedCustomer: relatedCustomers,
         CustomerNAICSCode: 'NONE',
@@ -122,13 +122,13 @@ export class RoarRequestAPI {
         StockExchange: 'N',
         OnboardingCustomerAddress: {
           AddressPurpose: 'P',
-          PostalCode: legalEntity.postalCode,
-          State: legalEntity.region.id.split('_')[1],
+          PostalCode: legalEntity.postalCode ? legalEntity.postalCode : '',
+          State: legalEntity.region ? legalEntity.region.id.split('_')[1] : '',
           StreetLine1: legalEntity.streetAddress,
           StreetLine2: '',
           StreetLine3: '',
           Country: countryCode,
-          City: legalEntity.city
+          City: legalEntity.city ? legalEntity.city : ''
         },
         FirstName: '',
         CIPExemptFlag: 'N',
@@ -172,7 +172,7 @@ export class RoarRequestAPI {
     }
 
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
-    resource.rawData = sanitize(rawData).sanitized
+    resource.requestData = sanitize(rawData).sanitized
 
     this.logger.debug(`${PROVIDER} Creating roarScreeningCheck`)
     let check: any = await this.applications.createCheck(resource, req)
