@@ -3,6 +3,7 @@ import fetch from 'node-fetch'
 import DataURI from 'strong-data-uri'
 import sizeof from 'image-size'
 import _ from 'lodash'
+import sharp from 'sharp'
 import { buildResourceStub } from '@tradle/build-resource'
 import constants from '@tradle/constants'
 import {
