@@ -166,19 +166,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       application.score = getScore(scoreDetails, riskFactors)
       application.scoreType = getScoreType(application.score, riskFactors, models)
     },
-    async checkParent(application, defaultValue) {
-      let { score } = application
-      if (score === defaultValue || !application.parent) return
-      let parentApp = await bot.getResource({
-        [TYPE]: application[TYPE],
-        _permalink: application.parent._permalink
-      })
-      let pscore = parentApp.score
-      if (pscore && pscore < score) return
-      parentApp.score = score
-      await applications.updateApplication(parentApp)
-      if (parentApp.parent) await this.checkParent(parentApp, defaultValue)
-    },
     onFormsCollected: async ({ req }) => {
       // debugger
       const { user, application, payload } = req
@@ -192,11 +179,26 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         if (ptype !== formType) return
       } else if (!formType[ptype]) return
       let { defaultValue } = riskFactors
-      await this.checkParent(application, defaultValue)
+      await checkParent({ application, defaultValue, bot, applications })
     }
   }
   return { plugin }
 }
+async function checkParent({ application, defaultValue, bot, applications }) {
+  let { score } = application
+  if (score === defaultValue || !application.parent) return
+  let parentApp = await bot.getResource({
+    [TYPE]: application[TYPE],
+    _permalink: application.parent._permalink
+  })
+  let pscore = parentApp.score
+  if (pscore && pscore < score) return
+  parentApp.score = score
+  await applications.updateApplication(parentApp)
+  if (parentApp.parent)
+    await checkParent({ application: parentApp, defaultValue, bot, applications })
+}
+
 function addDetailScore({ value, coef }) {
   return { value, coef, score: Math.round(value * coef * 100) / 100 }
 }
