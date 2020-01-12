@@ -72,7 +72,7 @@ export class JenIdCheckerAPI {
 
   public handleData = async (form, application) => {
     await this.bot.resolveEmbeds(form)
-
+    this.logger.debug('jenIdChecker handleData called')
     let frontImageInfo = await this.imageResize(form.scan.url)
 
     let jsonFrontImage = {
@@ -217,6 +217,7 @@ export class JenIdCheckerAPI {
     let dimensions: any = sizeof(buf);
     let currentWidth: number = dimensions.width
     let currentHeight: number = dimensions.height
+    this.logger.debug(`jenIdChecker imageResize before resize w=${currentWidth}' h=${currentHeight}`)
     let biggest = currentWidth > currentHeight ? currentWidth : currentHeight
     let coef: number = 3000 / biggest
 
@@ -225,8 +226,10 @@ export class JenIdCheckerAPI {
       let height: number = Math.round(currentHeight * coef)
       let resizedBuf = await sharp(buf).resize(width, height).toBuffer()
       let newDataUrl = pref + resizedBuf.toString('base64')
+      this.logger.debug(`jenIdChecker imageResize after resize w=${width}' h=${height}`)
       return { url: newDataUrl, width, height }
     }
+    this.logger.debug(`jenIdChecker imageResize no resize coef=${coef}`)
     return { url: dataUrl, width: currentWidth, height: currentHeight }
   }
 
@@ -378,7 +381,8 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
 ) => {
   const documentChecker = new JenIdCheckerAPI({ bot, applications, conf, logger })
   const plugin: IPluginLifecycleMethods = {
-    onFormsCollected: async ({ req }) => {
+    async onmessage(req: IPBReq) {
+      //onFormsCollected: async ({ req }) => {
       if (req.skipChecks) return
       const { user, application, applicant, payload } = req
 
