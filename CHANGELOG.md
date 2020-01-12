@@ -2,13 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.43](https://github.com/tradle/mycloud/compare/v2.5.1-rc.42...v2.5.1-rc.43) (2020-01-10)
+## [2.5.1-rc.44](https://github.com/tradle/mycloud/compare/v2.5.1-rc.43...v2.5.1-rc.44) (2020-01-12)
 
 
 ### Bug Fixes
 
-* finding who to notify for CPs ([710c829](https://github.com/tradle/mycloud/commit/710c829))
-* scoreType is unknown for old applications ([65d4c2b](https://github.com/tradle/mycloud/commit/65d4c2b))
+* logging ([ed1756e](https://github.com/tradle/mycloud/commit/ed1756e))
+
+
+### Features
+
+* white glove project ([59a59cd](https://github.com/tradle/mycloud/commit/59a59cd))
 
 
 
