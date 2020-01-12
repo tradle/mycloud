@@ -200,7 +200,7 @@ export const createPlugin: CreatePlugin<IFacetecZoomCheckAPI> = (
       })
       if (!toCheck) {
         logger.debug(
-          `${PROVIDER}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`
+          `${PROVIDER}: check already exists for ${application.applicantName}`
         )
         return
       }
