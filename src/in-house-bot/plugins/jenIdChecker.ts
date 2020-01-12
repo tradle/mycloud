@@ -219,7 +219,7 @@ export class JenIdCheckerAPI {
     let currentHeight: number = dimensions.height
     this.logger.debug(`jenIdChecker imageResize before resize w=${currentWidth}' h=${currentHeight}`)
     let biggest = currentWidth > currentHeight ? currentWidth : currentHeight
-    let coef: number = 3000 / biggest
+    let coef: number = 1.0 //3000 / biggest
 
     if (coef <= 0.9) {
       let width: number = Math.round(currentWidth * coef)
