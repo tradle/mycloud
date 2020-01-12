@@ -13,10 +13,7 @@ import * as utils from '../../utils'
 import Errors from '../../errors'
 import { createTestBot } from '../../'
 import models from '../../models'
-import {
-  IMyDeploymentConf,
-  MyCloudLaunchTemplate,
-} from '../../in-house-bot/types'
+import { IMyDeploymentConf, MyCloudLaunchTemplate } from '../../in-house-bot/types'
 import { createTestEnv } from '../env'
 
 const users = require('../fixtures/users.json')
@@ -25,7 +22,9 @@ const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
 const TMP_SNS_TOPIC = 'tradle.cloud.TmpSNSTopic'
 const VERSION_INFO = 'tradle.cloud.VersionInfo'
 
-test('deployment by referral', loudAsync(async (t) => {
+test(
+  'deployment by referral',
+  loudAsync(async t => {
   const sandbox = sinon.createSandbox()
   const configuredBy = users[0].identity
   const senderEmail = 'sender@example.com'
@@ -43,12 +42,12 @@ test('deployment by referral', loudAsync(async (t) => {
     domain: 'example.com',
     adminEmail: 'admin@example.com',
     hrEmail: 'hr@example.com',
-    stackName: 'mytradle',
+      stackName: 'mytradle'
   }
 
   conf._author = users[0].link
 
-  const parent = createTestBot()
+    const parent = createBotInRegion({ region: 'us-east-1' })
   const child = createBotInRegion({ region })
   sandbox.stub(child.blockchain, 'toString').returns(childChain)
 
@@ -72,21 +71,18 @@ test('deployment by referral', loudAsync(async (t) => {
 
   const childOrg = {
     name: 'bagel',
-    domain: 'mydomain',
+      domain: 'mydomain'
   }
 
   const childDeployment = new Deployment({
     bot: child,
     logger: child.logger.sub('deployment:test:child'),
-    org: childOrg,
+      org: childOrg
   })
 
   sandbox.stub(childDeployment, 'getCurrentAdminEmail').resolves(conf.adminEmail)
 
-  const [
-    childIdentity,
-    parentIdentity
-  ] = await Promise.all([
+    const [childIdentity, parentIdentity] = await Promise.all([
     child.getMyIdentity(),
     parent.getMyIdentity()
   ])
@@ -110,10 +106,10 @@ test('deployment by referral', loudAsync(async (t) => {
 
   let deploymentConf: IMyDeploymentConf
   let expectedLaunchReport
-  const saveTemplateStub = sandbox.stub(parentDeployment, 'savePublicTemplate').callsFake(async ({ template, bucket }: {
-    template: MyCloudLaunchTemplate
-    bucket: string
-  }) => {
+    const saveTemplateStub = sandbox
+      .stub(parentDeployment, 'savePublicTemplate')
+      .callsFake(
+        async ({ template, bucket }: { template: MyCloudLaunchTemplate; bucket: string }) => {
     t.equal(bucket, regionalBucket)
 
     deploymentConf = {
@@ -124,72 +120,71 @@ test('deployment by referral', loudAsync(async (t) => {
       domain: childOrg.domain,
       adminEmail: Deployment.getAdminEmailFromTemplate(template),
       identity: childIdentity,
-      apiUrl: childUrl,
+            apiUrl: childUrl
     }
 
     expectedLaunchReport = {
       ..._.omit(deploymentConf, ['name', 'domain', 'logo', 'referrerUrl', 'stackName']),
       org: _.pick(deploymentConf, ['name', 'domain']),
       version: child.version,
-      adminEmail: conf.adminEmail,
+            adminEmail: conf.adminEmail
     }
-
     ;['identity', 'org'].forEach(prop => {
       expectedLaunchReport[prop] = utils.omitVirtual(expectedLaunchReport[prop])
     })
 
     return 'http://my.template.url'
-  })
+        }
+      )
 
   const parentTemplate = {
     Parameters: {
       Stage: {
         Type: 'String',
-        Default: 'dev',
+          Default: 'dev'
       },
       BlockchainNetwork: {
-        Type: 'String',
+          Type: 'String'
       },
       OrgName: {
-        Type: 'String',
+          Type: 'String'
       },
       OrgDomain: {
-        Type: 'String',
+          Type: 'String'
       },
       OrgLogo: {
-        Type: 'String',
+          Type: 'String'
       },
       OrgAdminEmail: {
-        Type: 'String',
-      },
+          Type: 'String'
+        }
     },
-    "Mappings": {
-      "deployment": {
-        "init": {
-          "referrerUrl": "",
-          "referrerIdentity": "",
-          "deploymentUUID": "",
-          "stackName": "tdl-xxxx-tdl-dev"
+      Mappings: {
+        deployment: {
+          init: {
+            referrerUrl: '',
+            referrerIdentity: '',
+            deploymentUUID: '',
+            stackName: 'tdl-xxxx-tdl-dev'
         }
       }
     },
-    "Resources": {
-      "Initialize": {
-        "Properties": {}
+      Resources: {
+        Initialize: {
+          Properties: {}
       },
-      BotUnderscoreoninitLogGroup: {
-      },
-      "SomeLambdaFunction": {
-        "Type": "AWS::Lambda::Function",
-        "Properties": {
-          "Code": {
-            "S3Bucket": {
-              "Something": "NotRight"
+        BotUnderscoreoninitLogGroup: {},
+        SomeLambdaFunction: {
+          Type: 'AWS::Lambda::Function',
+          Properties: {
+            Code: {
+              S3Bucket: {
+                Something: 'NotRight'
             },
-            "S3Key": "path-to-lambda-code.zip"
+              S3Key: 'path-to-lambda-code.zip'
+            }
           }
         }
-      },
       // "AwsAlertsAlarm": {
       //   "Type": "AWS::SNS::Topic",
       //   "Properties": {
@@ -205,7 +200,7 @@ test('deployment by referral', loudAsync(async (t) => {
     }
   }
 
-  sandbox.stub(parent.snsUtils, 'createTopic').callsFake(async (topic) => {
+    sandbox.stub(parent.snsUtils, 'createTopic').callsFake(async topic => {
     return `arn:aws:sns:${region}:12345678902:${topic}`
   })
 
@@ -219,7 +214,9 @@ test('deployment by referral', loudAsync(async (t) => {
 
   sandbox.stub(parent.snsUtils, 'setTopicAttributes').resolves()
   sandbox.stub(parent.snsUtils, 'listSubscriptions').resolves([])
-  sandbox.stub(parent.snsUtils, 'subscribe').resolves('arn:aws:sns:us-east-1:12345678902:some-uuid')
+    sandbox
+      .stub(parent.snsUtils, 'subscribe')
+      .resolves('arn:aws:sns:us-east-1:12345678902:some-uuid')
   sandbox.stub(parent.lambdaUtils, 'getPolicy').resolves({
     Statement: []
   })
@@ -238,10 +235,9 @@ test('deployment by referral', loudAsync(async (t) => {
     throw new Errors.NotFound('not found')
   })
 
-  const copyFiles = sandbox.stub(parent.buckets.ServerlessDeployment, 'copyFilesTo').callsFake(async ({
-    bucket,
-    keys
-  }) => {
+    const copyFiles = sandbox
+      .stub(parent.buckets.ServerlessDeployment, 'copyFilesTo')
+      .callsFake(async ({ bucket, keys }) => {
     t.equal(bucket, regionalBucket)
     t.same(keys, ['path-to-lambda-code.zip'])
   })
@@ -308,12 +304,14 @@ test('deployment by referral', loudAsync(async (t) => {
   })
 
   const sentEmails = []
-  const emailStub = sandbox.stub(parent.mailer, 'send').callsFake(async (opts) => {
+    const emailStub = sandbox.stub(parent.mailer, 'send').callsFake(async opts => {
     t.equal(opts.from, senderEmail)
     sentEmails.push(...opts.to)
   })
 
-  const getConfAuthorStub = sandbox.stub(parent.identities, 'byPermalink').callsFake(async (permalink) => {
+    const getConfAuthorStub = sandbox
+      .stub(parent.identities, 'byPermalink')
+      .callsFake(async permalink => {
     if (permalink === conf._author) {
       return configuredBy
     }
@@ -333,7 +331,9 @@ test('deployment by referral', loudAsync(async (t) => {
     return resource
   })
 
-  const findChildDeployment = sandbox.stub(parentDeployment, 'getChildDeploymentByDeploymentUUID').callsFake(async deploymentUUID => {
+    const findChildDeployment = sandbox
+      .stub(parentDeployment, 'getChildDeploymentByDeploymentUUID')
+      .callsFake(async deploymentUUID => {
     t.equal(deploymentUUID, childDeploymentResource.deploymentUUID)
     return childDeploymentResource
   })
@@ -360,14 +360,17 @@ test('deployment by referral', loudAsync(async (t) => {
     _t: 'tradle.cloud.Configuration',
     _author: conf._author,
     _link: conf._link,
-    _permalink: conf._permalink,
+      _permalink: conf._permalink
   })
 
   t.equal(copyFiles.callCount, 1)
   // t.equal(launchPackage.template.Resources.AwsAlertsAlarm.Properties.Subscription[0].Endpoint, conf.adminEmail)
   t.equal(launchPackage.template.Parameters.OrgAdminEmail.Default, conf.adminEmail)
   t.equal(launchPackage.template.Parameters.BlockchainNetwork.Default, childChain)
-  t.equal(QueryString.parse(launchPackage.url.split('?').pop()).stackName, Deployment.expandStackName({ stackName: conf.stackName, stage: 'dev' }))
+    t.equal(
+      QueryString.parse(launchPackage.url.split('?').pop()).stackName,
+      Deployment.expandStackName({ stackName: conf.stackName, stage: 'dev' })
+    )
   // t.same(launchPackage.template.Resources.AwsAlertsAlarm.Properties.Subscription[0].Endpoint, {
   //   'Fn::FindInMap': ['org', 'contact', 'adminEmail']
   // })
@@ -423,10 +426,7 @@ test('deployment by referral', loudAsync(async (t) => {
 
   const saved = saveResourceStub.getCalls().map(call => call.args[0])
   const [childChanges, topicChanges] = _.partition(saved, r => r[TYPE] === CHILD_DEPLOYMENT)
-  const [
-    createChild,
-    updateChild
-  ] = childChanges
+    const [createChild, updateChild] = childChanges
 
   // t.equal(createTopic[TYPE], TMP_SNS_TOPIC)
   t.equal(createChild[TYPE], CHILD_DEPLOYMENT)
@@ -451,13 +451,15 @@ test('deployment by referral', loudAsync(async (t) => {
 
   saveResourceStub.reset()
 
-  const updateReq = await child.sign(childDeployment.draftUpdateRequest({
+    const updateReq = await child.sign(
+      childDeployment.draftUpdateRequest({
     adminEmail: conf.adminEmail,
     tag: '2.2.3',
-    provider: parent.buildStub(parentIdentity),
-  }))
+        provider: parent.buildStub(parentIdentity)
+      })
+    )
 
-  sandbox.stub(parentDeployment, 'getVersionInfoByTag').callsFake(async (tag) => {
+    sandbox.stub(parentDeployment, 'getVersionInfoByTag').callsFake(async tag => {
     t.equal(tag, '2.2.3')
     return {
       templateUrl: parentTemplateUrl,
@@ -483,12 +485,16 @@ test('deployment by referral', loudAsync(async (t) => {
   updateResponse = getLastCallArg(parentSendStub).object
   t.equal(updateResponse[TYPE], 'tradle.cloud.UpdateResponse')
 
-  const stubInvoke = sandbox.stub(child.lambdaUtils, 'invoke').callsFake(async ({ name, arg }) => {
+    const stubInvoke = sandbox
+      .stub(child.lambdaUtils, 'invoke')
+      .callsFake(async ({ name, arg }) => {
     t.equal(name, 'updateStack')
     t.equal(arg.templateUrl, updatePkg.templateUrl)
   })
 
-  const stubLookupRequest = sandbox.stub(childDeployment, 'lookupLatestUpdateRequest').resolves(updateReq)
+    const stubLookupRequest = sandbox
+      .stub(childDeployment, 'lookupLatestUpdateRequest')
+      .resolves(updateReq)
   // const stubCreateTopic = sandbox.stub(childDeployment, 'createStackUpdateTopic').resolves()
   await childDeployment.handleUpdateResponse(updateResponse)
 
@@ -498,11 +504,7 @@ test('deployment by referral', loudAsync(async (t) => {
 
   t.equal(copyFiles.callCount, 2)
 
-  const [
-    updateTopic,
-    logTopic,
-  ] = saveResourceStub.getCalls().map(call => call.args[0])
-
+    const [updateTopic, logTopic] = saveResourceStub.getCalls().map(call => call.args[0])
   ;[updateTopic, logTopic].forEach(topicRes => {
     t.equal(topicRes[TYPE], TMP_SNS_TOPIC)
     t.equal(utils.parseArn(topicRes.topic).region, region)
@@ -523,12 +525,15 @@ test('deployment by referral', loudAsync(async (t) => {
 
   sandbox.restore()
   t.end()
-}))
+  })
+)
 
-test('tradle and children', loudAsync(async (t) => {
+test(
+  'tradle and children',
+  loudAsync(async t => {
   const sandbox = sinon.createSandbox()
   const region = 'ap-southeast-2'
-  const tradle = createTestBot()
+    const tradle = createBotInRegion({ region: 'us-east-1' })
   tradle.version.commitsSinceTag = 0
   sandbox.stub(tradle.lambdaUtils, 'getPolicy').resolves({
     Statement: []
@@ -548,7 +553,7 @@ test('tradle and children', loudAsync(async (t) => {
     logger: tradle.logger.sub('deployment:test:parent'),
     org: {
       name: 'tradle',
-      domain: 'tradle.io',
+        domain: 'tradle.io'
     }
   })
 
@@ -557,7 +562,7 @@ test('tradle and children', loudAsync(async (t) => {
     logger: child.logger.sub('deployment:test:child'),
     org: {
       name: 'bagel',
-      domain: 'bagel.yum',
+        domain: 'bagel.yum'
     }
   })
 
@@ -573,7 +578,11 @@ test('tradle and children', loudAsync(async (t) => {
   getVIStub.rejects(new Errors.NotFound('version info'))
 
   await tradleDeployment.handleStackUpdate()
-  const lastSavedVersionInfo = saveStub.getCalls().map(c => c.args[0]).reverse().find(obj => obj[TYPE] === VERSION_INFO)
+    const lastSavedVersionInfo = saveStub
+      .getCalls()
+      .map(c => c.args[0])
+      .reverse()
+      .find(obj => obj[TYPE] === VERSION_INFO)
   t.ok(_.isMatch(lastSavedVersionInfo, _.pick(tradle.version, ['tag', 'commit'])))
 
   const reportStub = sandbox.stub(childDeployment, 'callHomeTo').resolves()
@@ -599,19 +608,27 @@ test('tradle and children', loudAsync(async (t) => {
 
   sandbox.restore()
   t.end()
-}))
+  })
+)
 
 const getLastCallArg = (stub: sinon.SinonStub) => {
-  return stub.getCalls().slice().pop().args[0]
+  return stub
+    .getCalls()
+    .slice()
+    .pop().args[0]
 }
 
 export const createBotInRegion = ({ region }: { region: string }) => {
   const env = createTestEnv()
+  // @ts-ignore
+  const parts = env.R_STACK.split(':')
+  parts[3] = region
+  const R_STACK = parts.join(':')
   return createTestBot({
     env: createTestEnv({
       AWS_REGION: region,
       // @ts-ignore
-      R_STACK: env.R_STACK.replace(env.AWS_REGION, region)
+      R_STACK
     })
   })
 }
