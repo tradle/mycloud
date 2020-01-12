@@ -7,7 +7,7 @@ import { enumValue } from '@tradle/build-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
-import { Bot, Logger, IPBApp, IPBReq, ITradleObject, CreatePlugin, Applications } from '../types'
+import { Bot, Logger, IPBReq, CreatePlugin, Applications } from '../types'
 
 import { doesCheckNeedToBeCreated, isSubClassOf } from '../utils'
 
