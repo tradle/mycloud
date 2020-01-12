@@ -392,7 +392,7 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
       if (!formStub) return
 
       const form = await bot.getResource(formStub)
-
+      this.logger.debug('JenIdChecker onmessage before check needed')
       // debugger
       let toCheck = await doesCheckNeedToBeCreated({
         bot,
