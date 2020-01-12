@@ -34,6 +34,9 @@
  ***/
 import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
+
+import { enumValue } from '@tradle/build-resource'
+
 import { CreatePlugin } from '../types'
 import { getEnumValueId } from '../utils'
 const riskFactors = require('../../../riskFactors.json')
@@ -41,6 +44,7 @@ const CP_ONBOARDING = 'tradle.legal.ControllingPersonOnboarding'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const STATUS = 'tradle.Status'
+const SCORE_TYPE = 'tradle.ScoreType'
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
   const plugin = {
@@ -61,6 +65,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!application.scoreDetails) application.scoreDetails = {}
       let { scoreDetails } = application
 
+      const models = bot.models
       let { country, countriesOfOperation } = payload
       if (country) {
         let cid = country.id.split('_')[1]
@@ -74,6 +79,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           scoreDetails.countryOfRegistration.score = scoreDetails.countryOfRegistration[cid].score
           if (requestFor === CP_ONBOARDING) {
             application.score = getScore(scoreDetails, riskFactors)
+            application.scoreType = getScoreType(application.score, riskFactors, models)
             return
           }
         }
@@ -88,6 +94,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       )
       if (!checks) {
         application.score = getScore(scoreDetails, riskFactors)
+        application.scoreType = getScoreType(application.score, riskFactors, models)
         return
       }
       let sanctionsChecks
@@ -100,7 +107,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       } else {
         sanctionsChecks = latestChecks.filter(check => check[TYPE] === 'tradle.SanctionsCheck')
       }
-      const models = bot.models
       if (sanctionsChecks) {
         let failedCheck = sanctionsChecks.find(
           check => getEnumValueId({ model: bot.models[STATUS], value: check.status }) !== 'pass'
@@ -127,6 +133,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!beneRiskCheck || !beneRiskCheck.rawData || !beneRiskCheck.rawData.length) {
         let score = getScore(scoreDetails, riskFactors)
         application.score = Math.round(score)
+        application.scoreType = getScoreType(application.score, riskFactors, models)
         return
       }
       let { rawData } = beneRiskCheck
@@ -157,19 +164,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       if (_.size(boScore)) scoreDetails.boScore = boScore
       application.score = getScore(scoreDetails, riskFactors)
-    },
-    async checkParent(application, defaultValue) {
-      let { score } = application
-      if (score === defaultValue || !application.parent) return
-      let parentApp = await bot.getResource({
-        [TYPE]: application[TYPE],
-        _permalink: application.parent._permalink
-      })
-      let pscore = parentApp.score
-      if (pscore && pscore < score) return
-      parentApp.score = score
-      await applications.updateApplication(parentApp)
-      if (parentApp.parent) await this.checkParent(parentApp, defaultValue)
+      application.scoreType = getScoreType(application.score, riskFactors, models)
     },
     onFormsCollected: async ({ req }) => {
       // debugger
@@ -184,11 +179,26 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         if (ptype !== formType) return
       } else if (!formType[ptype]) return
       let { defaultValue } = riskFactors
-      await this.checkParent(application, defaultValue)
+      await checkParent({ application, defaultValue, bot, applications })
     }
   }
   return { plugin }
 }
+async function checkParent({ application, defaultValue, bot, applications }) {
+  let { score } = application
+  if (score === defaultValue || !application.parent) return
+  let parentApp = await bot.getResource({
+    [TYPE]: application[TYPE],
+    _permalink: application.parent._permalink
+  })
+  let pscore = parentApp.score
+  if (pscore && pscore < score) return
+  parentApp.score = score
+  await applications.updateApplication(parentApp)
+  if (parentApp.parent)
+    await checkParent({ application: parentApp, defaultValue, bot, applications })
+}
+
 function addDetailScore({ value, coef }) {
   return { value, coef, score: Math.round(value * coef * 100) / 100 }
 }
@@ -284,4 +294,17 @@ function checkOfficers({ scoreDetails, corpExistsCheck, riskFactors }) {
 }
 function roundScore(score) {
   return (score && Math.round(score * 100) / 100) || score
+}
+function getScoreType(score, riskFactors, models) {
+  const { low, high, medium, autohigh } = riskFactors
+  let value
+  if (score < low) value = 'low'
+  else if (score < medium) value = 'medium'
+  else if (score < high) value = 'high'
+  else if (score < autohigh) value = 'autohigh'
+
+  return enumValue({
+    model: models[SCORE_TYPE],
+    value
+  })
 }

@@ -13,6 +13,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
   const plugin = {
     async onmessage(req: IPBReq) {
       const { payload, application } = req
+      if (!application) return
       if (!isSubClassOf(FORM, bot.models[payload[TYPE]], bot.models)) return
       if (exclude.includes(payload[TYPE])) return
       let { formsCount } = application

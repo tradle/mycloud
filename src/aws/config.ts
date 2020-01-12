@@ -27,19 +27,21 @@ export const createConfig = ({ region, local, iotEndpoint }: CreateConfigOpts): 
     httpOptions.agent = agent
   }
   let sesRegion
-  if (region && REGIONS.includes(region)) sesRegion = region
-  else {
-    let parts = region.split('-')
-    parts.pop()
-    let partialRegion = parts.join('-')
+  if (!local) {
+    if (region && REGIONS.includes(region)) sesRegion = region
+    else {
+      let parts = region.split('-')
+      parts.pop()
+      let partialRegion = parts.join('-')
 
-    // let idx = region.lastIndexOf('-')
-    // let partialRegion = region.slice(0, idx)
-    let sesRegion = REGIONS.find(r => r.startsWith(partialRegion))
-    if (!sesRegion) {
-      // partialRegion = partialRegion.split('-')[0]
-      partialRegion = parts[0]
+      // let idx = region.lastIndexOf('-')
+      // let partialRegion = region.slice(0, idx)
       sesRegion = REGIONS.find(r => r.startsWith(partialRegion))
+      if (!sesRegion) {
+        // partialRegion = partialRegion.split('-')[0]
+        partialRegion = parts[0]
+        sesRegion = REGIONS.find(r => r.startsWith(partialRegion))
+      }
     }
   }
 

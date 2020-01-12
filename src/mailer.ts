@@ -65,6 +65,10 @@ export default class Mailer implements IMailer {
     validateSendOpts(opts)
     this.logger.debug('sending email', _.omit(opts, 'body'))
     let interp = interpetSendOpts(opts)
+
+    let { region, endpoint } = this.client.config
+    this.logger.debug(`AWS_REGION: ${region}; AWS_ENDPOINT: ${endpoint}`)
+
     const res = await this.client.sendEmail(interp).promise()
     return {
       id: res.MessageId

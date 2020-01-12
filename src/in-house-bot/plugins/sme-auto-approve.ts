@@ -210,7 +210,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       let pairs = conf.filter(pair => requestFor === pair.parent)
 
-      debugger
+      // debugger
       if (pairs.length) {
         logger.debug('Parent application was submitted. Check if all child applications checked in')
         await smeVerifierAPI.checkCPs(application)
