@@ -35,10 +35,6 @@ const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
 const COUNTRY = 'tradle.Country'
-const ORDER_BY_TIMESTAMP_DESC = {
-  property: 'timestamp',
-  desc: true
-}
 const STATUS = 'tradle.Status'
 
 interface IOpenCorporatesConf {
@@ -347,7 +343,7 @@ class OpenCorporatesAPI {
     oneLineAddress += ', ' + addr.postal_code
 
     let codes = []
-    debugger
+    // debugger
     if (comp.sic_codes) {
       for (let cd of comp.sic_codes) {
         let exp = {
