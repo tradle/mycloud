@@ -383,17 +383,27 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
   const plugin: IPluginLifecycleMethods = {
     async onmessage(req: IPBReq) {
       //onFormsCollected: async ({ req }) => {
+      //if (req.skipChecks) return
+      //const { user, application, applicant, payload } = req
+
+      //if (!application) return
+
+      //const formStub = getParsedFormStubs(application).find(form => form.type === PHOTO_ID)
+      //if (!formStub) return
+
+      //const form = await bot.getResource(formStub)
+
       if (req.skipChecks) return
-      const { user, application, applicant, payload } = req
-
+      const { application, payload } = req
       if (!application) return
+      if (PHOTO_ID != payload[TYPE]) return
 
-      const formStub = getParsedFormStubs(application).find(form => form.type === PHOTO_ID)
-      if (!formStub) return
 
-      const form = await bot.getResource(formStub)
+
+
       this.logger.debug('JenIdChecker onmessage before check needed')
       // debugger
+      /*
       let toCheck = await doesCheckNeedToBeCreated({
         bot,
         type: DOCUMENT_CHECKER_CHECK,
@@ -410,8 +420,10 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
         )
         return
       }
+      */
       // debugger
-      let status = await documentChecker.handleData(form, application)
+      let status = await documentChecker.handleData(payload, application)
+      /*
       await documentChecker.createCheck({ application, status, form, req })
       if (status.status === 'pass') {
         await documentChecker.createVerification({
@@ -421,6 +433,7 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
           req
         })
       }
+      */
     }
   }
 
