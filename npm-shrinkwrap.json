@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "2.5.1-rc.44",
+  "version": "2.5.1-rc.45",
   "lockfileVersion": 1,
   "requires": true,
   "dependencies": {
@@ -371,7 +371,7 @@
       }
     },
     "@tradle/bot-products": {
-      "version": "github:tradle/bot-products#be124f7585ca3163290610cbd8eccd3be9ddbe16",
+      "version": "github:tradle/bot-products#6df95de77d9298f496346aae251afa5fab48894d",
       "from": "github:tradle/bot-products",
       "requires": {
         "@tradle/build-resource": "^4.0.1",
