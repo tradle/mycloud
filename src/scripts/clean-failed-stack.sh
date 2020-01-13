@@ -1,6 +1,9 @@
 #!/bin/bash
 
+set -x
+
 STACK_NAME=$1
+AWS_REGION=${AWS_REGION-us-east-1}
 
 if [[ ! $STACK_NAME ]]
 then
@@ -8,27 +11,33 @@ then
   exit 1
 fi
 
-# STATUS=$(aws cloudformation describe-stack --stack-name tdl-mv-ltd-dev | jq -r '.Stacks[0].StackStatus')
+awsr() {
+  aws --region $AWS_REGION $@
+}
 
-aws cloudformation delete-stack --stack-name "$STACK_NAME" || echo 'stack is probably already deleted'
+# STATUS=$(awsr cloudformation describe-stack --stack-name tdl-mv-ltd-dev | jq -r '.Stacks[0].StackStatus')
 
-TABLES=$(aws dynamodb list-tables | jq -r .TableNames[] | grep $STACK_NAME)
+awsr cloudformation delete-stack --stack-name "$STACK_NAME" || echo 'stack is probably already deleted'
+
+TABLES=$(awsr dynamodb list-tables | jq -r .TableNames[] | grep $STACK_NAME)
 for t in $TABLES;
 do
   echo deleting $t
-  aws dynamodb delete-table --table-name "$t"
+  awsr dynamodb delete-table --table-name "$t"
 done
 
-BUCKETS=$(aws s3 ls | grep $STACK_NAME | awk '{ print $3 }')
+BUCKETS=$(awsr s3 ls | grep $STACK_NAME | awk '{ print $3 }')
 for b in $BUCKETS; 
 do 
   echo deleting $b
   delete-aws-bucket "$b"
 done
 
-LOG_GROUPS=$(aws logs describe-log-groups | jq -r '.logGroups[].logGroupName' | grep "/aws/lambda/$STACK_NAME")
+LOG_GROUPS=$(awsr logs describe-log-groups | jq -r '.logGroups[].logGroupName' | grep "/aws/lambda/$STACK_NAME")
 for l in $LOG_GROUPS;
 do
   echo deleting $l
-  aws logs delete-log-group --log-group-name "$l"
+  awsr logs delete-log-group --log-group-name "$l"
 done
+
+set +x
