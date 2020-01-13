@@ -206,14 +206,23 @@ export class ImportPsc {
   }
 
   movePSC = async () => {
+    this.logger.debug('importPsc_movePsc_start')
     let begin = new Date().getTime()
     //***** collect current links
-    let links = await this.collectLinks()
-    if (links.length == 0)
+    let links: Array<string>
+    try {
+      links = await this.collectLinks()
+      if (links.length == 0) {
+        this.logger.debug('importPsc_movePsc_collectLinks_no_links')
+        return
+      }
+    } catch (err) {
+      this.logger.error('importPsc_movePsc_collectLinks_error', err)
       return
+    }
     //**** collect bucket file names in gb/psc/ for table psc
     let inbucket = await this.currentInBucket()
-    this.logger.debug('inbucket', inbucket.length)
+    this.logger.debug(`importPsc_inbucket ${inbucket.length}`)
 
     if (inbucket.length > 0) {
       let preserve = []
@@ -228,30 +237,29 @@ export class ImportPsc {
         }
       }
 
-
       //**** delete files in gb/psc/ except preserve 
       await this.deleteInBucket(inbucket, preserve)
 
-      this.logger.debug(`links: ${links}`);
+      this.logger.debug(`importPsc_links: ${links}`);
 
       if (links.length == 0) {
         // nothing changed
-        this.logger.debug('no new files, exiting')
+        this.logger.debug('importPsc no new files, exiting')
         return;
       }
 
     }
     else
-      this.logger.debug('no files in bucket, continue to upload')
+      this.logger.debug('importPsc no files in bucket, continue to upload')
 
     let now = new Date().getTime()
-    this.logger.debug('starting upload')
+    this.logger.debug('importPsc starting upload')
 
     //**** load links into /gb/psc/ for psc table
     let cnt = 1;
     for (let link of links) {
       let s = new Date().getTime()
-      this.logger.debug('start upload of', link)
+      this.logger.debug(`importPsc start upload of ${link}`)
       let times = 1
       let res: any
       while (true) {
@@ -260,7 +268,7 @@ export class ImportPsc {
           this.logger.debug(`fetch returned stream, file ${cnt}`)
           break
         } catch (err) {
-          this.logger.debug(`attempt ${times++}, fetch err`, err)
+          this.logger.error(`importPsc download attempt ${times++}, fetch err`, err)
           if (times > 5)
             throw err
         }
@@ -273,12 +281,12 @@ export class ImportPsc {
       let f = new Date().getTime()
       this.logger.debug(`${cnt++}. file upload time ${f - s}\n`)
       if (f - begin > MAX_UPLOAD_TIME) {
-        this.logger.debug('psc files upload time exceeded 10 min, taking a break')
+        this.logger.debug('importPsc psc files upload time exceeded 10 min, taking a break')
         return;
       }
     }
     let fin = new Date().getTime()
-    this.logger.debug('upload finished, time', (fin - now))
+    this.logger.debug('importPsc upload finished, time', (fin - now))
 
     //**** delete all files in upload/psc_next_bucketed/
     await this.deleteAllInNext()
@@ -327,6 +335,7 @@ export class ImportPsc {
     };
     let files = []
     try {
+      this.logger.error('importPsc_currentInBucket_start')
       let data = await s3.listObjectsV2(params).promise()
 
       for (let content of data.Contents) {
@@ -336,7 +345,7 @@ export class ImportPsc {
         files.push(content.Key)
       }
     } catch (err) {
-      this.logger.debug(err.message)
+      this.logger.error('importPsc_currentInBucket_err', err)
     }
     return files
   }
@@ -398,9 +407,9 @@ export class ImportPsc {
 
     try {
       let res = await s3.deleteObjects(param2).promise();
-      this.logger.debug('deletedAll', res)
+      this.logger.debug('importPsc_deleteAllInNext deletedAll', res)
     } catch (err) {
-      this.logger.debug(err);
+      this.logger.error('importPsc_deleteAllInNext_error', err);
     }
 
   }
@@ -421,7 +430,7 @@ export class ImportPsc {
                     bucket_count = ${BUCKET_COUNT})
       AS SELECT company_number, data FROM psc_origin`
     let res = await this.executeDDL(create, 10000, 60000)
-    this.logger.debug(JSON.stringify(res, null, 2))
+    this.logger.debug('importPsc_dropAndCreateNextTable: ' + JSON.stringify(res, null, 2))
   }
 
   createPscInputTable = async () => {
@@ -446,7 +455,7 @@ export class ImportPsc {
             'typeOfData'='file')`
 
     let res = await this.executeDDL(create, 2000)
-    this.logger.debug(JSON.stringify(res, null, 2))
+    this.logger.debug('importPsc_createPscInputTable: ' + JSON.stringify(res, null, 2))
   }
 
   sleep = async (ms: number) => {
@@ -458,7 +467,7 @@ export class ImportPsc {
   }
 
   getExecutionId = async (sql: string): Promise<string> => {
-    this.logger.debug("importPsc start query", sql)
+    this.logger.debug(`importPsc start query: ${sql}`)
     return new Promise((resolve, reject) => {
       let outputLocation = `s3://${this.outputLocation}/${ATHENA_OUTPUT}`
       let params = {
@@ -683,7 +692,7 @@ export class ImportPsc {
           .set(checkR)
           .signAndSave()
       } catch (err) {
-        this.logger.debug('importPsc save check err', err)
+        this.logger.error('importPsc save check err', err)
       }
       await this.sendConfirmationEmail(rdata, le_application.requestFor)
 
@@ -722,7 +731,7 @@ export class ImportPsc {
       let key = content.Key
       toCopy.push(key)
     }
-    this.logger.debug(JSON.stringify(toCopy))
+    this.logger.debug('importPsc' + JSON.stringify(toCopy))
 
     let promises = []
     for (let key of toCopy) {

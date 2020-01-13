@@ -17,9 +17,6 @@ import Errors from '../../errors'
 import { TYPE } from '../../constants'
 // import { useRealSES } from '../../aws/config'
 import { enumValue } from '@tradle/build-resource'
-import validateResource from '@tradle/validate-resource'
-// @ts-ignore
-const { sanitize } = validateResource.utils
 
 import { hasPropertiesChanged, getEnumValueId, getLatestCheck } from '../utils'
 import { appLinks } from '../../app-links'
