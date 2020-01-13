@@ -218,18 +218,18 @@ export class JenIdCheckerAPI {
     let currentWidth: number = dimensions.width
     let currentHeight: number = dimensions.height
     this.logger.debug(`jenIdChecker imageResize before resize w=${currentWidth}' h=${currentHeight}`)
-    let biggest = currentWidth > currentHeight ? currentWidth : currentHeight
-    let coef: number = 3000 / biggest
-
-    if (coef <= 0.9) {
-      let width: number = Math.round(currentWidth * coef)
-      let height: number = Math.round(currentHeight * coef)
-      let resizedBuf = await sharp(buf).resize(width, height).toBuffer()
+    //let biggest = currentWidth > currentHeight ? currentWidth : currentHeight
+    //let coef: number = 3000 / biggest
+    if (currentWidth < currentHeight) {
+      //if (coef <= 0.9) {
+      let width: number = currentHeight  // Math.round(currentWidth * coef)
+      let height: number = currentWidth // Math.round(currentHeight * coef)
+      let resizedBuf = await sharp(buf).rotate(-90).toBuffer()     // resize(width, height).toBuffer()
       let newDataUrl = pref + resizedBuf.toString('base64')
-      this.logger.debug(`jenIdChecker imageResize after resize w=${width}' h=${height}`)
+      this.logger.debug(`jenIdChecker imageResize after rotate w=${width}' h=${height}`)
       return { url: newDataUrl, width, height }
     }
-    this.logger.debug(`jenIdChecker imageResize no resize coef=${coef}`)
+    this.logger.debug(`jenIdChecker imageResize no rotate`) //resize coef=${coef}`)
     return { url: dataUrl, width: currentWidth, height: currentHeight }
   }
 
