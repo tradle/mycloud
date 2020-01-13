@@ -189,7 +189,7 @@ export class JenIdCheckerAPI {
       if (processingstatus.code !== '0') {
         return {
           status: 'fail',
-          message: `Check failed: ${processingstatus.short}`,
+          message: `Check failed: ${processingstatus.description}`,
           rawData: result.data
         }
       } else if (+securitystatus.overallriskvalue >= this.conf.threshold) {

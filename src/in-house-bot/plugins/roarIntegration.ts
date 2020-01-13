@@ -72,9 +72,9 @@ export class RoarRequestAPI {
         CountryOfResidence: person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : '',
         ExistingCustomerInternalId: TRADLE + person._permalink.substring(0, 40),
         ApplicantID: person._permalink.substring(0, 40),
-        Jurisdiction: person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : '',
+        Jurisdiction: person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : '', //???
         LastName: (isIND && person.lastName) ? person.lastName : '',
-        CountryOfIncorporation: person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : '',
+        CountryOfIncorporation: person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : '', //???
         OrganizationName: (!isIND && person.name) ? person.name : '',
         CIPVerifiedStatus: 'Auto Pass',
         DateOfBirth: dob,
@@ -84,7 +84,7 @@ export class RoarRequestAPI {
           {
             AddressPurpose: 'P',
             PostalCode: person.controllingEntityPostalCode ? person.controllingEntityPostalCode : '',
-            State: person.controllingEntityRegion ? person.controllingEntityRegion.id.split('_')[1] : '',
+            State: person.controllingEntityRegion ? person.controllingEntityRegion.id.split('_')[1] : '', //???
             StreetLine1: person.controllingEntityStreetAddress ? person.controllingEntityStreetAddress : '',
             StreetLine2: '',
             StreetLine3: '',
@@ -114,7 +114,7 @@ export class RoarRequestAPI {
             Country: countryCode
           }
         ],
-        Jurisdiction: legalEntity.region ? legalEntity.region.id.split('_')[1] : legalEntity.country.id.split('_')[1],
+        Jurisdiction: legalEntity.region ? legalEntity.region.id.split('_')[1] : legalEntity.country.id.split('_')[1], //???
         ApplicantID: TRADLE + legalEntity._permalink.substring(0, 40),
         OnboardingCustomerRelatedCustomer: relatedCustomers,
         CustomerNAICSCode: 'NONE',
@@ -149,7 +149,7 @@ export class RoarRequestAPI {
         MiddleName: '',
         Alias: legalEntity.alsoKnownAs ? legalEntity.alsoKnownAs : ''
       },
-      locale: 'en_US',
+      locale: 'en_US', //???
       applicationId: TRADLE + legalEntity._permalink.substring(0, 40),
       PMFProcess: 'Onboarding_KYC',
       infodom: 'FCCMINFODOM',
