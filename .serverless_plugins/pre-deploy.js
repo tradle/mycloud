@@ -7,7 +7,7 @@ const {
 } = require('@tradle/aws-cloudformation-client')
 
 const { traverse, replaceDeep } = require('../lib/utils')
-const { Deployment } = require('../lib/in-house-bot/deployment')
+// const { Deployment } = require('../lib/in-house-bot/deployment')
 const {
   validateTemplatesAtPath,
   uploadTemplatesAtPath
@@ -120,7 +120,8 @@ class SetVersion {
     this.log('WARNING: removing duplicate ServiceEndpoint definition (ours and serverless\'s)')
     template.Outputs.ServiceEndpoint.Value = _.pick(template.Outputs.ServiceEndpoint.Value, ['Fn::Sub'])
 
-    Deployment.ensureInitLogIsRetained(template)
+    // Deployment.ensureInitLogIsRetained(template)
+    template.Resources.BotUnderscoreoninitLogGroup.DeletionPolicy = 'Retain'
   }
 
   async _setBucket() {
