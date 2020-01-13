@@ -219,7 +219,7 @@ export class JenIdCheckerAPI {
     let currentHeight: number = dimensions.height
     this.logger.debug(`jenIdChecker imageResize before resize w=${currentWidth}' h=${currentHeight}`)
     let biggest = currentWidth > currentHeight ? currentWidth : currentHeight
-    let coef: number = 1.0 //3000 / biggest
+    let coef: number = 3000 / biggest
 
     if (coef <= 0.9) {
       let width: number = Math.round(currentWidth * coef)
@@ -381,29 +381,18 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
 ) => {
   const documentChecker = new JenIdCheckerAPI({ bot, applications, conf, logger })
   const plugin: IPluginLifecycleMethods = {
-    async onmessage(req: IPBReq) {
-      //onFormsCollected: async ({ req }) => {
-      //if (req.skipChecks) return
-      //const { user, application, applicant, payload } = req
-
-      //if (!application) return
-
-      //const formStub = getParsedFormStubs(application).find(form => form.type === PHOTO_ID)
-      //if (!formStub) return
-
-      //const form = await bot.getResource(formStub)
-
+    onFormsCollected: async ({ req }) => {
       if (req.skipChecks) return
-      const { application, payload } = req
+      const { user, application, applicant, payload } = req
+
       if (!application) return
-      if (PHOTO_ID != payload[TYPE]) return
 
+      const formStub = getParsedFormStubs(application).find(form => form.type === PHOTO_ID)
+      if (!formStub) return
 
+      const form = await bot.getResource(formStub)
 
-
-      this.logger.debug('JenIdChecker onmessage before check needed')
       // debugger
-      /*
       let toCheck = await doesCheckNeedToBeCreated({
         bot,
         type: DOCUMENT_CHECKER_CHECK,
@@ -420,10 +409,8 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
         )
         return
       }
-      */
       // debugger
-      let status = await documentChecker.handleData(payload, application)
-      /*
+      let status = await documentChecker.handleData(form, application)
       await documentChecker.createCheck({ application, status, form, req })
       if (status.status === 'pass') {
         await documentChecker.createVerification({
@@ -433,7 +420,6 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
           req
         })
       }
-      */
     }
   }
 

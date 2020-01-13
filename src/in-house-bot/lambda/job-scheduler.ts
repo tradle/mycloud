@@ -67,26 +67,26 @@ const COMMON_JOBS: Job[] = [
     function: DEFAULT_JOB_RUNNER_FUNCTION,
     period: 60 * MINUTE,
   },
-  //{
-  //  name: 'importBasicCompanyData',
-  //  function: DEFAULT_JOB_RUNNER_FUNCTION,
-  //  period: 90 * MINUTE
-  //},
-  //{
-  //  name: 'importRefdata',
-  //  function: DEFAULT_JOB_RUNNER_FUNCTION,
-  //  period: 1 * 60 * MINUTE,
-  //},
-  //{
-  //  name: 'importPitchbookData',
-  //  function: DEFAULT_JOB_RUNNER_FUNCTION,
-  //  period: 1 * 30 * MINUTE,
-  //},
-  //{
-  //  name: 'importMaxmindDb',
-  //  function: DEFAULT_JOB_RUNNER_FUNCTION,
-  //  period: 1 * 60 * MINUTE,
-  //},
+  {
+    name: 'importBasicCompanyData',
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
+    period: 90 * MINUTE
+  },
+  {
+    name: 'importRefdata',
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
+    period: 1 * 60 * MINUTE,
+  },
+  {
+    name: 'importPitchbookData',
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
+    period: 1 * 30 * MINUTE,
+  },
+  {
+    name: 'importMaxmindDb',
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
+    period: 1 * 60 * MINUTE,
+  },
   {
     name: 'chaser',
     function: DEFAULT_JOB_RUNNER_FUNCTION,
