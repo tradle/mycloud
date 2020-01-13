@@ -2,13 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.43](https://github.com/tradle/mycloud/compare/v2.5.1-rc.42...v2.5.1-rc.43) (2020-01-10)
+## [2.5.1-rc.45](https://github.com/tradle/mycloud/compare/v2.5.1-rc.44...v2.5.1-rc.45) (2020-01-13)
 
 
 ### Bug Fixes
 
-* finding who to notify for CPs ([710c829](https://github.com/tradle/mycloud/commit/710c829))
-* scoreType is unknown for old applications ([65d4c2b](https://github.com/tradle/mycloud/commit/65d4c2b))
+* clean-failed-stack to support other regions ([c72a46f](https://github.com/tradle/mycloud/commit/c72a46f))
+* deploy with sharp package ([fd91cf7](https://github.com/tradle/mycloud/commit/fd91cf7))
+* deploying ([ef16278](https://github.com/tradle/mycloud/commit/ef16278))
+* deployment test to ignore region in vars.json ([68a2d30](https://github.com/tradle/mycloud/commit/68a2d30))
+* don't use ses region fallbacks in localsttack mode ([f63d345](https://github.com/tradle/mycloud/commit/f63d345))
+* paging added for submissions ([09a8ab7](https://github.com/tradle/mycloud/commit/09a8ab7))
 
 
 
