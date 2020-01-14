@@ -101,6 +101,12 @@ Resources:
                 KMSMasterKeyID:
                   Ref: EncryptionKey
           - Ref: AWS::NoValue
+      LifecycleConfiguration:
+        Rules:
+          - Id: LogsExpiration
+            Status: Enabled
+            ExpirationInDays: '1'
+            Prefix: 'temp/athena/'   
 
   FileUpload:
     Condition: DoCreateFileUploadBucket
