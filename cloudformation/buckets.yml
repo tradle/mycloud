@@ -103,7 +103,7 @@ Resources:
           - Ref: AWS::NoValue
       LifecycleConfiguration:
         Rules:
-          - Id: LogsExpiration
+          - Id: AthenaQueriesOutputExpiration
             Status: Enabled
             ExpirationInDays: '1'
             Prefix: 'temp/athena/'   
