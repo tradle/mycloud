@@ -56,6 +56,7 @@ interface IPscAthenaConf {
 
 interface IPscConf {
   athenaMaps: [IPscAthenaConf]
+  trace?: boolean
 }
 
 interface IPscCheck {
@@ -68,7 +69,7 @@ interface IPscCheck {
 
 export class PscCheckAPI {
   private bot: Bot
-  private conf: any
+  private conf: IPscConf
   private applications: Applications
   private logger: Logger
   private athena: AWS.Athena
@@ -132,7 +133,7 @@ export class PscCheckAPI {
         if (data.QueryExecution.Status.State === 'SUCCEEDED') return resolve('SUCCEEDED')
         else if (['FAILED', 'CANCELLED'].includes(data.QueryExecution.Status.State))
           return reject(
-            new Error(`Query status: ${JSON.stringify(data.QueryExecution.Status, null, 2)}`)
+            new Error(`pscCheck Query status: ${JSON.stringify(data.QueryExecution.Status, null, 2)}`)
           )
         else return resolve('INPROCESS')
       })
@@ -158,9 +159,9 @@ export class PscCheckAPI {
 
     try {
       id = await this.getExecutionId(sql)
-      this.logger.debug('athena execution id', id)
+      this.logger.debug('pscCheck athena execution id', id)
     } catch (err) {
-      this.logger.debug('athena error', err)
+      this.logger.error('pscCheck athena error', err)
       return { status: false, error: err, data: null }
     }
 
@@ -171,13 +172,13 @@ export class PscCheckAPI {
       try {
         result = await this.checkStatus(id)
       } catch (err) {
-        this.logger.debug('athena error', err)
+        this.logger.error('pscCheck athena error', err)
         return { status: false, error: err, data: null }
       }
       if (result == 'SUCCEEDED') break
 
       if (timePassed > 10000) {
-        this.logger.debug('athena error', 'result timeout')
+        this.logger.debug('pscCheck athena error', 'result timeout')
         return { status: false, error: 'result timeout', data: null }
       }
       await this.sleep(POLL_INTERVAL)
@@ -202,10 +203,10 @@ export class PscCheckAPI {
           )
         )
       })
-      this.logger.debug('athena query result', list)
+      this.logger.debug(`pscCheck athena query result contains ${list.length} rows`)
       return { status: true, error: null, data: list }
     } catch (err) {
-      this.logger.debug('athena error', err)
+      this.logger.error('pscCheck athena error', err)
       return { status: false, error: err, data: null }
     }
   }
@@ -263,7 +264,8 @@ export class PscCheckAPI {
         if (rdata.data && typeof rdata.data === 'string') rdata.data = makeJson(rdata.data)
       })
       resource.rawData = sanitize(rawData).sanitized
-      this.logger.debug(JSON.stringify(resource.rawData, null, 2))
+      if (this.conf.trace)
+        this.logger.debug(`pscCheck rawData: ${JSON.stringify(resource.rawData, null, 2)}`)
     }
 
     this.logger.debug(`${PROVIDER} Creating pscCheck`)
