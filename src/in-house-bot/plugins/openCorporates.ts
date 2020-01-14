@@ -104,6 +104,9 @@ class OpenCorporatesAPI {
       url = 'https://api.companieshouse.gov.uk/company/' + registrationNumber
       // use api
       let companyFound: any, officersFound: any
+      if (/^\d/.test(registrationNumber) && registrationNumber.length < 8)
+        registrationNumber = '0' + registrationNumber
+
       try {
         companyFound = await this.company(registrationNumber)
         if (companyFound.errors) {
@@ -623,6 +626,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
           company_type,
           incorporation_date,
           current_status,
+          company_number,
           name,
           previous_company_names,
           previous_names
@@ -647,6 +651,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         }
         let wrongName = name.toLowerCase() !== payload.companyName.toLowerCase()
         if (wrongName) prefill.companyName = name
+        let wrongNumber = company_number.toLowerCase() !== payload.registrationNumber.toLowerCase()
+        if (wrongNumber) prefill.registrationNumber = company_number
+
         prefill = sanitize(prefill).sanitized
         if (!_.size(prefill)) return
         try {
@@ -670,6 +677,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         if (wrongName) {
           error = 'Is it your company?'
           errors = [{ name: 'companyName', error: 'Is it your company?' }]
+        }
+        if (wrongNumber) {
+          if (!error) error = 'Is it your company?'
+          if (!errors) errors = []
+          errors.push({ name: 'registrationNumber', error: 'Is it your company?' })
         }
         message = `${error} Please review and correct the data below.`
       }
