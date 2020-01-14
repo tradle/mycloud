@@ -48,7 +48,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       }
       if (associatedRes._dataLineage) formRequest.dataLineage = associatedRes._dataLineage
 
-      formRequest.message = `Please review and correct the data below **for ${prefill.companyName}**`
+      formRequest.message = `Please review and correct the data below for **${prefill.companyName}**`
     }
   }
 

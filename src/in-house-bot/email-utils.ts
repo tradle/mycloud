@@ -61,7 +61,7 @@ export const sendConfirmationEmail = async ({
     })
   } catch (err) {
     Errors.rethrow(err, 'developer')
-    bot.logger.error('failed to email', err)
+    bot.logger.error(`failed to email from ${senderEmail} to ${emailAddress} in ${orgName || ''}`, err)
   }
 }
 
