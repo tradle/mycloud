@@ -56,7 +56,10 @@ export class RoarRequestAPI {
 
     let relatedCustomers = []
     for (let person of legalEntityControllingPersons) {
-      this.logger.debug(`roarIntegration controlling person: ${JSON.stringify(person, null, 2)}`)
+      if (this.conf.trace)
+        this.logger.debug(`roarIntegration controlling person: ${JSON.stringify(person, null, 2)}`)
+      else
+        this.logger.debug(`roarIntegration controlling person: ${person._permalink}`)
 
       let isIND = person.typeOfControllingEntity.id.split('_')[1] == 'person' ? true : false
       let dob = ''
@@ -211,9 +214,13 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const legalEntity = await bot.getResource(legalEntityRef)
 
       let roarReq: any = roarRequestAPI.build(legalEntity, controllingPersons)
-      logger.debug(`roarIntegrationSender request: ${JSON.stringify(roarReq, null, 2)}`)
+      if (conf.trace)
+        logger.debug(`roarIntegration request: ${JSON.stringify(roarReq, null, 2)}`)
       let check = await roarRequestAPI.createCheck({ application, form: payload, rawData: roarReq, req })
-      logger.debug(`roarIntegrationSender check: ${JSON.stringify(check, null, 2)}`)
+      if (conf.trace)
+        logger.debug(`roarIntegration created check: ${JSON.stringify(check, null, 2)}`)
+      else
+        logger.debug(`roarIntegration created check`)
     }
   }
   return { plugin }
