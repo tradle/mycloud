@@ -14,15 +14,15 @@ import {
   Applications,
   Logger
 } from '../types'
+import { doesCheckNeedToBeCreated } from '../utils'
 
 const MATCH_CHECK = 'tradle.MatchCheck'
-const PHOTO_ID = 'tradle.PhotoID'
 const PROVIDER = 'Tradle'
-const ASPECTS = 'controlling person existence'
+const ASPECTS = 'Linking ID to controlling person'
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
   const plugin = {
-    async onmessage(req) {
+    async onmessage(req: IPBReq) {
       const { user, application, payload } = req
       if (!application) return
       let { requestFor, associatedResource } = application
@@ -40,35 +40,54 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!propsToMatch) return
 
       let r = await bot.getResource(associatedResource)
-      let name = r.name && r.name.toLowerCase()
-      if (!name) return
+      let { firstName, lastName } = r //.name && r.name.toLowerCase()
+      if (!firstName || !lastName) return
 
+      let associateValues = [firstName.toLowerCase(), lastName.toLowerCase()]
       let valuesToMatch = []
-      propsToMatch.forEach(p => payload[p]  &&  valuesToMatch.push(payload[p].toLowerCase()))
+
+      let createCheck = await doesCheckNeedToBeCreated({
+        bot: this.bot,
+        type: MATCH_CHECK,
+        application,
+        provider: PROVIDER,
+        form: payload,
+        propertiesToCheck: propsToMatch,
+        prop: 'form',
+        req
+      })
+      if (!createCheck) return
+
+      propsToMatch.forEach(p => payload[p] && valuesToMatch.push(payload[p].toLowerCase()))
 
       let comparedValues = []
 
-      for (let i = 0; i < valuesToMatch.length; i++) {
-        let val = valuesToMatch[i]
-        let idx = name.indexOf(val)
-        if (idx === -1) break
-        if (idx && name.charAt(idx - 1) !== ' ') break
-        if (idx + val.length !== name.length && name.charAt(idx + val.length) !== ' ') break
-        comparedValues.push(val)
-      }
+      // for (let i = 0; i < valuesToMatch.length; i++) {
+      //   let val = valuesToMatch[i]
+      //   let idx = name.indexOf(val)
+      //   if (idx === -1) break
+      //   if (idx && name.charAt(idx - 1) !== ' ') break
+      //   if (idx + val.length !== name.length && name.charAt(idx + val.length) !== ' ') break
+      //   comparedValues.push(val)
+      // }
 
-      if (comparedValues.length === valuesToMatch.length) return true
+      valuesToMatch.forEach(val => associateValues.includes(val) && comparedValues.push(val))
 
+      let pass = comparedValues.length === valuesToMatch.length
+      let message
+      if (pass) message = `Name in ID document matches with the name of the controlling person`
+      else
+        message = `Name in ID document does not match with the name of the controlling person.\n\nExpected: ${r.name}`
       await applications.createCheck(
         {
           [TYPE]: MATCH_CHECK,
-          status: 'fail',
+          status: (pass && 'pass') || 'fail',
           provider: PROVIDER,
           application,
           dateChecked: Date.now(),
           aspects: ASPECTS,
           form: payload,
-          message: `Name in ID document does not match with the name in the associated resource.\n\nExpected: ${r.name}`
+          message
         },
         req
       )
