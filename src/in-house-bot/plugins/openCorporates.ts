@@ -105,7 +105,7 @@ class OpenCorporatesAPI {
       // use api
       let companyFound: any, officersFound: any
       if (/^\d/.test(registrationNumber) && registrationNumber.length < 8)
-        registrationNumber = '0' + registrationNumber
+        registrationNumber = registrationNumber.padStart(8, '0')
 
       try {
         companyFound = await this.company(registrationNumber)

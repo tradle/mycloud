@@ -222,7 +222,7 @@ export class PscCheckAPI {
     let status
     let formCompanyNumber = form[check] //.replace(/-/g, '').replace(/^0+/, '') // '133693';
     if (/^\d/.test(formCompanyNumber) && formCompanyNumber.length < 8)
-      formCompanyNumber = '0' + formCompanyNumber
+      formCompanyNumber = formCompanyNumber.padStart(8, '0')
 
     this.logger.debug(`pscCheck check() called with number ${formCompanyNumber}`)
     let sql = util.format(QUERY, formCompanyNumber)
