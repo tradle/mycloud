@@ -10,7 +10,9 @@ import {
   IPluginLifecycleMethods,
   ValidatePluginConf,
   ITradleObject,
-  ITradleCheck
+  ITradleCheck,
+  IBotConf,
+  ValidatePluginConfOpts
 } from '../types'
 import * as Templates from '../templates'
 import Errors from '../../errors'
@@ -169,12 +171,14 @@ class ControllingPersonRegistrationAPI {
   private org: any
   private conf: IControllingPersonRegistrationConf
   private applications: Applications
-  constructor({ bot, org, conf, logger, applications }) {
+  private senderEmail: string
+  constructor({ bot, org, conf, logger, applications, senderEmail }) {
     this.bot = bot
     this.org = org
     this.conf = conf
     this.logger = logger
     this.applications = applications
+    this.senderEmail = senderEmail
   }
   public async sendConfirmationEmail({
     resource,
@@ -224,7 +228,7 @@ class ControllingPersonRegistrationAPI {
     debugger
     try {
       await this.bot.mailer.send({
-        from: this.conf.senderEmail,
+        from: this.senderEmail, //this.conf.senderEmail,
         to: [emailAddress],
         format: 'html',
         subject: `${(product === CP_ONBOARDING && CP_ONBOARD_MESSAGE) ||
@@ -522,13 +526,23 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
   let { logger, conf } = pluginOpts
   const orgConf = components.conf
   const { org } = orgConf
-  const cp = new ControllingPersonRegistrationAPI({ bot, conf, org, logger, applications })
+  const botConf = orgConf.bot
+  const senderEmail = conf.senderEmail || botConf.senderEmail
+  const cp = new ControllingPersonRegistrationAPI({
+    bot,
+    conf,
+    org,
+    logger,
+    applications,
+    senderEmail
+  })
   const plugin: IPluginLifecycleMethods = {
     async onmessage(req) {
       // useRealSES(bot)
       const { application, payload } = req
       // debugger
-      if (!application || application.draft) return
+      if (!senderEmail) debugger
+      if (!application || application.draft || !senderEmail) return
       let productId = application.requestFor
 
       let { products, rules } = conf
@@ -736,16 +750,11 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
     plugin
   }
 }
-export const validateConf: ValidatePluginConf = async ({
-  bot,
-  pluginConf
-}: {
-  bot: Bot
-  pluginConf: IControllingPersonRegistrationConf
-}) => {
+export const validateConf: ValidatePluginConf = async (opts: ValidatePluginConfOpts) => {
+  const { bot, conf, pluginConf } = opts
   const { models } = bot
   let { senderEmail, rules, products } = pluginConf
-  if (!senderEmail) throw new Error('missing senderEmail')
+  if (!senderEmail && !conf.bot.senderEmail) throw new Error('missing senderEmail')
   for (let appType in products) {
     if (!models[appType]) throw new Error(`model does not exist for ${appType}`)
     let forms = products[appType]

@@ -71,6 +71,7 @@ export interface IBotConf {
   products: IProductsConf
   tours?: ITours
   sandbox?: boolean
+  senderEmail?: string
   graphqlAuth?: boolean
   credentials?: KVMap
   logging?: ILoggingConf
