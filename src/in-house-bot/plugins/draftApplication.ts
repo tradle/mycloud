@@ -37,8 +37,10 @@ const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
 }
 
 export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
-  let { bot, applications, commands, smsBasedVerifier } = components
+  let { bot } = components
   let { logger, conf } = pluginOpts
+  const senderEmail = conf.senderEmail || components.conf.bot.senderEmail
+
   const plugin: IPluginLifecycleMethods = {
     getRequiredForms: async ({ user, application }) => {
       if (!application) return
@@ -106,7 +108,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       await sendConfirmationEmail({
         emailAddress: emailAddressForm.companyEmail,
-        senderEmail: 'noreply@tradle.io',
+        senderEmail,
         payload,
         bot,
         product: requestFor,
