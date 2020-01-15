@@ -62,15 +62,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       let comparedValues = []
 
-      // for (let i = 0; i < valuesToMatch.length; i++) {
-      //   let val = valuesToMatch[i]
-      //   let idx = name.indexOf(val)
-      //   if (idx === -1) break
-      //   if (idx && name.charAt(idx - 1) !== ' ') break
-      //   if (idx + val.length !== name.length && name.charAt(idx + val.length) !== ' ') break
-      //   comparedValues.push(val)
-      // }
-
       valuesToMatch.forEach(val => associateValues.includes(val) && comparedValues.push(val))
 
       let pass = comparedValues.length === valuesToMatch.length
