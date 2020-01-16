@@ -310,8 +310,9 @@ class ControllingPersonRegistrationAPI {
     }
     if (alwaysNotify) {
       if (seniorManagement.length) {
-        alwaysNotify.forEach((r: any) => {
-          if (!seniorManagement.find((sm: any) => sm._permalink === r._permalink)) notifyArr.push(r)
+        alwaysNotify.forEach((r: any) => notifyArr.push(r))
+        seniorManagement.forEach((r: any) => {
+          if (!alwaysNotify.find((sm: any) => sm._permalink === r._permalink)) notifyArr.push(r)
         })
       } else {
         notifyArr = notifyArr.concat(alwaysNotify)
