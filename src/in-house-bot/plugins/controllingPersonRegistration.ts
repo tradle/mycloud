@@ -754,7 +754,8 @@ export const validateConf: ValidatePluginConf = async (opts: ValidatePluginConfO
   const { bot, conf, pluginConf } = opts
   const { models } = bot
   let { senderEmail, rules, products } = pluginConf
-  if (!senderEmail && !conf.bot.senderEmail) throw new Error('missing senderEmail')
+  let botConf = conf['botConf'] || conf.bot
+  if (!senderEmail && !botConf.senderEmail) throw new Error('missing senderEmail')
   for (let appType in products) {
     if (!models[appType]) throw new Error(`model does not exist for ${appType}`)
     let forms = products[appType]
