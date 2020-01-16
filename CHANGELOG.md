@@ -2,19 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.48](https://github.com/tradle/mycloud/compare/v2.5.1-rc.47...v2.5.1-rc.48) (2020-01-16)
-
-
-### Bug Fixes
-
-* sharp package needs to be reinstalled ([d04a73e](https://github.com/tradle/mycloud/commit/d04a73e))
-
-
-### Features
-
-* changes ([ce7a5f1](https://github.com/tradle/mycloud/commit/ce7a5f1))
-* models ([7168730](https://github.com/tradle/mycloud/commit/7168730))
-* models ([adcb3b6](https://github.com/tradle/mycloud/commit/adcb3b6))
+## [2.5.1-rc.49](https://github.com/tradle/mycloud/compare/v2.5.1-rc.48...v2.5.1-rc.49) (2020-01-16)
 
 
 
