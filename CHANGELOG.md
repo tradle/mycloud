@@ -2,23 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.47](https://github.com/tradle/mycloud/compare/v2.5.1-rc.46...v2.5.1-rc.47) (2020-01-15)
+## [2.5.1-rc.48](https://github.com/tradle/mycloud/compare/v2.5.1-rc.47...v2.5.1-rc.48) (2020-01-16)
 
 
 ### Bug Fixes
 
-* match person name to CP ([6d61347](https://github.com/tradle/mycloud/commit/6d61347))
-* nature of control ([b9c2e98](https://github.com/tradle/mycloud/commit/b9c2e98))
+* sharp package needs to be reinstalled ([d04a73e](https://github.com/tradle/mycloud/commit/d04a73e))
 
 
 ### Features
 
-* CH numbers need to be prefixed with 0 if the length of it is less then 8 ([c8c1636](https://github.com/tradle/mycloud/commit/c8c1636))
-* format annotation added for data models ([8833880](https://github.com/tradle/mycloud/commit/8833880))
-* models upgrade ([7430706](https://github.com/tradle/mycloud/commit/7430706))
-* prefix CH numbers with 0 up to 8 characters ([3f433a5](https://github.com/tradle/mycloud/commit/3f433a5))
-* senderEmail available for plugins from the same place ([5784d21](https://github.com/tradle/mycloud/commit/5784d21))
-* senderEmail available for plugins from the same place ([73446de](https://github.com/tradle/mycloud/commit/73446de))
+* changes ([ce7a5f1](https://github.com/tradle/mycloud/commit/ce7a5f1))
+* models ([7168730](https://github.com/tradle/mycloud/commit/7168730))
+* models ([adcb3b6](https://github.com/tradle/mycloud/commit/adcb3b6))
 
 
 
