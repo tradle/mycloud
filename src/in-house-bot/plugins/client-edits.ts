@@ -344,9 +344,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       if (distance && sourceOfData)
         check = await clientEdits.checkEdits({ req, sourceOfData, distance })
 
-      // if (payload._permalink === payload._link)
-      //   await clientEdits.createDataLineageModification({ req, checks })
-      // else
       await clientEdits.createModification({ req, check, checks })
     }
   }
