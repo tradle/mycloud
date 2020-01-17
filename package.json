@@ -194,6 +194,7 @@
     "aws-xray-sdk-core": "^1.2.0",
     "bluebird": "^3.5.0",
     "bn.js": "^4.11.8",
+    "box-node-sdk": "^1.30.0",
     "caseless": "^0.12.0",
     "clone": "^2.1.1",
     "co": "^4.6.0",

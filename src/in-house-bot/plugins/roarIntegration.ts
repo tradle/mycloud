@@ -27,6 +27,7 @@ import dateformat from 'dateformat'
 
 import validateResource from '@tradle/validate-resource'
 import { SearchResult } from '@tradle/dynamodb'
+import BoxSDK from 'box-node-sdk'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
@@ -38,10 +39,17 @@ const COMMERCIAL = 'commercial'
 
 const TRADLE = 'TRADLE_';
 
+const REQUESTS = 'REQUESTS'
+
+interface IRoarIntegrationConf {
+  token: string
+  trace?: boolean
+}
+
 
 export class RoarRequestAPI {
   private bot: Bot
-  private conf: any
+  private conf: IRoarIntegrationConf
   private applications: Applications
   private logger: Logger
 
@@ -161,6 +169,32 @@ export class RoarRequestAPI {
     return req
   }
 
+  send = async (fileName: string, request: string) => {
+    this.logger.debug('roarIntegration is about to send request to roar')
+    const client = BoxSDK.getBasicClient(this.conf.token);
+    try {
+      let res = await client.folders.get('0')
+      let folderId: string
+      for (let elem of res.item_collection.entries) {
+        if (REQUESTS == elem.name) {
+          folderId = elem.id
+          break
+        }
+      }
+      if (!folderId) {
+        this.logger.error('roarIntegration could not find box REQUESTS')
+        return
+      }
+
+      let buff = Buffer.from(request);
+      await client.files.uploadFile(folderId, fileName, buff)
+      this.logger.debug(`roarIntegration sent ${fileName} to roar`)
+    } catch (err) {
+      this.logger.error('roarIntegration failed to send request', err)
+    }
+
+  }
+
   public createCheck = async ({ application, form, rawData, req }) => {
     // debugger
     let resource: any = {
@@ -214,13 +248,19 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const legalEntity = await bot.getResource(legalEntityRef)
 
       let roarReq: any = roarRequestAPI.build(legalEntity, controllingPersons)
+      let request = JSON.stringify(roarReq, null, 2)
+
       if (conf.trace)
-        logger.debug(`roarIntegration request: ${JSON.stringify(roarReq, null, 2)}`)
+        logger.debug(`roarIntegration request: ${request}`)
       let check = await roarRequestAPI.createCheck({ application, form: payload, rawData: roarReq, req })
       if (conf.trace)
         logger.debug(`roarIntegration created check: ${JSON.stringify(check, null, 2)}`)
       else
         logger.debug(`roarIntegration created check`)
+
+      // send to roar
+      let fileName = check._permalink + '_request.json'
+      await roarRequestAPI.send(fileName, request)
     }
   }
   return { plugin }
