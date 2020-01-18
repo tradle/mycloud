@@ -422,7 +422,7 @@
       }
     },
     "@tradle/bot-products": {
-      "version": "github:tradle/bot-products#be124f7585ca3163290610cbd8eccd3be9ddbe16",
+      "version": "github:tradle/bot-products#6df95de77d9298f496346aae251afa5fab48894d",
       "from": "github:tradle/bot-products",
       "requires": {
         "@tradle/build-resource": "^4.0.1",
@@ -798,7 +798,7 @@
       "from": "tradle/models-cloud-services"
     },
     "@tradle/models-corporate-onboarding": {
-      "version": "github:tradle/models-corporate-onboarding#b95939c90c1a49c1bf0946f2041f4bd5bfa5a20d",
+      "version": "github:tradle/models-corporate-onboarding#4fe807486c687e9a24f8d90c40297865bf748ad7",
       "from": "github:tradle/models-corporate-onboarding"
     },
     "@tradle/models-nz": {
@@ -16933,16 +16933,16 @@
       "integrity": "sha1-QV9CcC1z2BAzApLMXuhurhoRoXA="
     },
     "sharp": {
-      "version": "0.23.4",
-      "resolved": "https://registry.npmjs.org/sharp/-/sharp-0.23.4.tgz",
-      "integrity": "sha512-fJMagt6cT0UDy9XCsgyLi0eiwWWhQRxbwGmqQT6sY8Av4s0SVsT/deg8fobBQCTDU5iXRgz0rAeXoE2LBZ8g+Q==",
+      "version": "0.24.0",
+      "resolved": "https://registry.npmjs.org/sharp/-/sharp-0.24.0.tgz",
+      "integrity": "sha512-kUtQE6+HJnNqO0H6ueOBtRXahktuqydIBaFMvhDelf/KaK9j/adEdjf4Y3+bbjYOa5i6hi2EAa2Y2G9umP4s2g==",
       "requires": {
         "color": "^3.1.2",
         "detect-libc": "^1.0.3",
         "nan": "^2.14.0",
         "npmlog": "^4.1.2",
         "prebuild-install": "^5.3.3",
-        "semver": "^6.3.0",
+        "semver": "^7.1.1",
         "simple-get": "^3.1.0",
         "tar": "^5.0.5",
         "tunnel-agent": "^0.6.0"
@@ -17015,9 +17015,9 @@
           "integrity": "sha1-IQmtx5ZYh8/AXLvUQsrIv7s2CGM="
         },
         "semver": {
-          "version": "6.3.0",
-          "resolved": "https://registry.npmjs.org/semver/-/semver-6.3.0.tgz",
-          "integrity": "sha512-b39TBaTSfV6yBrapU89p5fKekE2m/NwnDocOVruQFS1/veMgdzuPcnOM34M6CwxW8jH/lxEa5rBoDeUwu5HHTw=="
+          "version": "7.1.1",
+          "resolved": "https://registry.npmjs.org/semver/-/semver-7.1.1.tgz",
+          "integrity": "sha512-WfuG+fl6eh3eZ2qAf6goB7nhiCd7NPXhmyFxigB/TOkQyeLP8w8GsVehvtGNtnNmyboz4TgeK40B1Kbql/8c5A=="
         },
         "simple-get": {
           "version": "3.1.0",
