@@ -312,7 +312,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
     addNatureOfControl(prefill, natures_of_control) {
       if (!natures_of_control) return
       let natureOfControl = bot.models['tradle.PercentageOfOwnership'].enum.find(e =>
-        natures_of_control.includes(e.title.toLowerCase().replace(/\s/g, '-'))
+        natures_of_control.includes(e.id.replace(/\./g, '-'))
       )
       if (natureOfControl)
         prefill.natureOfControl = {

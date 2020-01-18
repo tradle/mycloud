@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "2.5.1-rc.45",
+  "version": "2.5.1-rc.49",
   "lockfileVersion": 1,
   "requires": true,
   "dependencies": {
@@ -422,7 +422,7 @@
       }
     },
     "@tradle/bot-products": {
-      "version": "github:tradle/bot-products#6df95de77d9298f496346aae251afa5fab48894d",
+      "version": "github:tradle/bot-products#be124f7585ca3163290610cbd8eccd3be9ddbe16",
       "from": "github:tradle/bot-products",
       "requires": {
         "@tradle/build-resource": "^4.0.1",
@@ -798,7 +798,7 @@
       "from": "tradle/models-cloud-services"
     },
     "@tradle/models-corporate-onboarding": {
-      "version": "github:tradle/models-corporate-onboarding#4fe807486c687e9a24f8d90c40297865bf748ad7",
+      "version": "github:tradle/models-corporate-onboarding#b95939c90c1a49c1bf0946f2041f4bd5bfa5a20d",
       "from": "github:tradle/models-corporate-onboarding"
     },
     "@tradle/models-nz": {
@@ -1001,9 +1001,9 @@
       }
     },
     "@tradle/validate-model": {
-      "version": "7.1.19",
-      "resolved": "https://registry.npmjs.org/@tradle/validate-model/-/validate-model-7.1.19.tgz",
-      "integrity": "sha512-Vrg7TjBsAgjn+f/DurNTomQA0Kv5bZQP4uPdmfAptTJj1me1tMHu39clMtwVBDdAWHnU+W4BgYZz5VWoCypu4Q==",
+      "version": "7.1.20",
+      "resolved": "https://registry.npmjs.org/@tradle/validate-model/-/validate-model-7.1.20.tgz",
+      "integrity": "sha512-eMCEcd0TelHslDCMGKItDEnAMb5+U1rfDW7AI+44rcH3936IqLVIMoDum0ed8n64qdHU4jdymlUXXD4a61T4JQ==",
       "requires": {
         "@tradle/constants": "^2.1.0",
         "@tradle/merge-models": "^2.0.0",

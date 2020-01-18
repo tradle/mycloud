@@ -95,7 +95,7 @@ export class PscCheckAPI {
           }
         },
         orderBy: ORDER_BY_TIMESTAMP_DESC
-      });
+      })
     } catch (err) {
       return undefined
     }
@@ -133,7 +133,9 @@ export class PscCheckAPI {
         if (data.QueryExecution.Status.State === 'SUCCEEDED') return resolve('SUCCEEDED')
         else if (['FAILED', 'CANCELLED'].includes(data.QueryExecution.Status.State))
           return reject(
-            new Error(`pscCheck Query status: ${JSON.stringify(data.QueryExecution.Status, null, 2)}`)
+            new Error(
+              `pscCheck Query status: ${JSON.stringify(data.QueryExecution.Status, null, 2)}`
+            )
           )
         else return resolve('INPROCESS')
       })
@@ -219,6 +221,9 @@ export class PscCheckAPI {
   public async lookup({ check, form, application, req, user }) {
     let status
     let formCompanyNumber = form[check] //.replace(/-/g, '').replace(/^0+/, '') // '133693';
+    if (/^\d/.test(formCompanyNumber) && formCompanyNumber.length < 8)
+      formCompanyNumber = formCompanyNumber.padStart(8, '0')
+
     this.logger.debug(`pscCheck check() called with number ${formCompanyNumber}`)
     let sql = util.format(QUERY, formCompanyNumber)
     let find = await this.queryAthena(sql)
@@ -255,7 +260,8 @@ export class PscCheckAPI {
       aspects: ASPECTS,
       form
     }
-    if (dataSourceLink) resource.dataSource = buildResourceStub({ resource: dataSourceLink, models: this.bot.models })
+    if (dataSourceLink)
+      resource.dataSource = buildResourceStub({ resource: dataSourceLink, models: this.bot.models })
 
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
