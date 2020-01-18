@@ -131,16 +131,18 @@ export class RoarRequestAPI {
         CustomerNAICSCode: 'NONE',
         LastName: '',
         StockExchange: 'N',
-        OnboardingCustomerAddress: {
-          AddressPurpose: 'P',
-          PostalCode: legalEntity.postalCode ? legalEntity.postalCode : '',
-          State: legalEntity.region ? legalEntity.region.id.split('_')[1] : '',
-          StreetLine1: legalEntity.streetAddress,
-          StreetLine2: '',
-          StreetLine3: '',
-          Country: countryCode,
-          City: legalEntity.city ? legalEntity.city : ''
-        },
+        OnboardingCustomerAddress: [
+          {
+            AddressPurpose: 'P',
+            PostalCode: legalEntity.postalCode ? legalEntity.postalCode : '',
+            State: legalEntity.region ? legalEntity.region.id.split('_')[1] : '',
+            StreetLine1: legalEntity.streetAddress,
+            StreetLine2: '',
+            StreetLine3: '',
+            Country: countryCode,
+            City: legalEntity.city ? legalEntity.city : ''
+          }
+        ],
         FirstName: '',
         CIPExemptFlag: 'N',
         CIPVerifiedFlag: 'Y',
