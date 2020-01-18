@@ -4,6 +4,8 @@ import {
   IBotConf,
 } from '../types'
 
+import { TYPE } from '@tradle/constants'
+
 import BoxSDK from 'box-node-sdk'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
@@ -11,12 +13,15 @@ const { sanitize } = validateResource.utils
 
 const RESPONSES = 'RESPONSES'
 const PROCESSED_RESPONSES = 'PROCESSED_RESPONSES'
+const SCREENING_CHECK = 'tradle.RoarScreeningCheck'
 
 export class RoarFeedback {
 
   private bot: Bot
+  private conf: IBotConf
   private logger: Logger
   private token: string
+  private trace: boolean
 
   constructor(bot: Bot, conf: IBotConf) {
     this.bot = bot
@@ -24,14 +29,17 @@ export class RoarFeedback {
     let jobs: any = conf['jobs']
     if (jobs) {
       let roarFeedbackConf = jobs.roarFeedback
-      if (roarFeedbackConf)
+      if (roarFeedbackConf) {
         this.token = roarFeedbackConf.token
+        this.trace = roarFeedbackConf.trace
+      }
     }
   }
 
   pullResponses = async () => {
+    this.logger.debug('roarFeedback pullResponses starts')
     if (!this.token)
-      throw Error('')
+      throw Error('token is not provided')
     const client: any = BoxSDK.getBasicClient(this.token)
     let res = await client.folders.get('0')
     let responsesFolderId: string
@@ -55,10 +63,45 @@ export class RoarFeedback {
 
     let folder = await client.folders.get(responsesFolderId)
     for (let entry of folder.item_collection.entries) {
-      if (entry.type == 'file' && entry.name.endsWith('_response.json')) {
+      let name: string = entry.name
+      if (entry.type == 'file' && name.endsWith('_response.json')) {
         let jsonResponse = await this.downloadFile(entry.id, client)
+        if (this.trace)
+          this.logger.debug(`roarFeedback handling response: ${JSON.stringify(jsonResponse, null, 2)}`)
+        let status = jsonResponse.RecommendtoOnBoard == 'YES' ? 'pass' : 'fail'
+        let permalink = name.substring(0, name.indexOf('_'))
+        let check: any = await this.findCheck(permalink)
+        if (check) {
+          check.responseData = sanitize(jsonResponse).sanitized
+          check.status = status
+          if (this.trace)
+            this.logger.debug(`roarFeedback updating check with response ${JSON.stringify(check, null, 2)}`)
+          else
+            this.logger.debug(`roarFeedback updating check with response`)
+          await this.bot.signAndSave(check)
+          this.logger.debug('roarFeedback check updated')
 
+          // move file to processed responses
+          await client.files.move(entry.id, processedResponsesFolderId)
+          this.logger.debug('roarFeedback moved request into processed')
+        }
       }
+    }
+  }
+
+  findCheck = async (permalink: string) => {
+    try {
+      return await this.bot.db.findOne({
+        filter: {
+          EQ: {
+            [TYPE]: SCREENING_CHECK,
+            'permalink': permalink
+          }
+        }
+      })
+    } catch (err) {
+      this.logger.error(`roarFeedback faile to find check matching to ${permalink}`)
+      return undefined
     }
   }
 

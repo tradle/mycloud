@@ -107,7 +107,6 @@ export const roarFeedback: Executor = async ({ job, components }) => {
 }
 
 
-
 export const warmup: Executor = async ({ job, components }) => {
   await components.bot.lambdaWarmup.warmUp({
     ...DEFAULT_WARMUP_EVENT,
