@@ -82,7 +82,7 @@ export class RoarRequestAPI {
         CustomerType: isIND ? 'IND' : 'ORG',
         CountryOfResidence: person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : '',
         ExistingCustomerInternalId: TRADLE + person._permalink.substring(0, 40),
-        ApplicantID: person._permalink.substring(0, 40),
+        ApplicantID: TRADLE + person._permalink.substring(0, 40),
         Jurisdiction: person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : '', //???
         LastName: (isIND && person.lastName) ? person.lastName : '',
         CountryOfIncorporation: person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : '', //???
@@ -259,7 +259,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         logger.debug(`roarIntegration created check`)
 
       // send to roar
-      let fileName = check._permalink + '_request.json'
+      let fileName = check.permalink + '_request.json'
       await roarRequestAPI.send(fileName, request)
     }
   }
