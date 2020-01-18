@@ -3,7 +3,7 @@ import fetch from 'node-fetch'
 import DataURI from 'strong-data-uri'
 import sizeof from 'image-size'
 import _ from 'lodash'
-import sharp from 'sharp'
+//import sharp from 'sharp'
 import { buildResourceStub } from '@tradle/build-resource'
 import constants from '@tradle/constants'
 import {
@@ -220,6 +220,7 @@ export class JenIdCheckerAPI {
     this.logger.debug(`jenIdChecker imageResize before resize w=${currentWidth}' h=${currentHeight}`)
     //let biggest = currentWidth > currentHeight ? currentWidth : currentHeight
     //let coef: number = 3000 / biggest
+    /*
     if (currentWidth < currentHeight) {
       //if (coef <= 0.9) {
       let width: number = currentHeight  // Math.round(currentWidth * coef)
@@ -229,6 +230,7 @@ export class JenIdCheckerAPI {
       this.logger.debug(`jenIdChecker imageResize after rotate w=${width}' h=${height}`)
       return { url: newDataUrl, width, height }
     }
+    */
     this.logger.debug(`jenIdChecker imageResize no rotate`) //resize coef=${coef}`)
     return { url: dataUrl, width: currentWidth, height: currentHeight }
   }
