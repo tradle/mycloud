@@ -559,9 +559,8 @@
       }
     },
     "@tradle/centrix": {
-      "version": "1.0.0",
-      "resolved": "git://github.com/tradle/centrix.git#a6b234e114b8fd24d576913a4e8cacc10bf024b7",
-      "integrity": "sha1-vpY8dztbsnRzde74x4QY8VchlvU=",
+      "version": "git://github.com/tradle/centrix.git#a6b234e114b8fd24d576913a4e8cacc10bf024b7",
+      "from": "tradle/centrix",
       "optional": true,
       "requires": {
         "co": "^4.6.0",
@@ -3581,7 +3580,7 @@
     },
     "buffer-indexof-polyfill": {
       "version": "1.0.1",
-      "resolved": "http://registry.npmjs.org/buffer-indexof-polyfill/-/buffer-indexof-polyfill-1.0.1.tgz",
+      "resolved": "https://registry.npmjs.org/buffer-indexof-polyfill/-/buffer-indexof-polyfill-1.0.1.tgz",
       "integrity": "sha1-qfuAbOgUXVQoUQznLyeLs2OmOL8="
     },
     "buffer-more-ints": {
@@ -10863,7 +10862,7 @@
     },
     "listenercount": {
       "version": "1.0.1",
-      "resolved": "http://registry.npmjs.org/listenercount/-/listenercount-1.0.1.tgz",
+      "resolved": "https://registry.npmjs.org/listenercount/-/listenercount-1.0.1.tgz",
       "integrity": "sha1-hMinKrWcRyUyFIDJdeZQg0LnCTc="
     },
     "listr": {
@@ -19460,7 +19459,7 @@
       "dependencies": {
         "bluebird": {
           "version": "3.4.7",
-          "resolved": "http://registry.npmjs.org/bluebird/-/bluebird-3.4.7.tgz",
+          "resolved": "https://registry.npmjs.org/bluebird/-/bluebird-3.4.7.tgz",
           "integrity": "sha1-9y12C+Cbf3bQjtj66Ysomo0F+rM="
         },
         "fstream": {
