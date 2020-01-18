@@ -125,7 +125,7 @@ export class RoarRequestAPI {
             Country: countryCode
           }
         ],
-        Jurisdiction: legalEntity.region ? legalEntity.region.id.split('_')[1] : legalEntity.country.id.split('_')[1], //???
+        Jurisdiction: legalEntity.country.id.split('_')[1],
         ApplicantID: TRADLE + legalEntity._permalink.substring(0, 40),
         OnboardingCustomerRelatedCustomer: relatedCustomers,
         CustomerNAICSCode: 'NONE',
