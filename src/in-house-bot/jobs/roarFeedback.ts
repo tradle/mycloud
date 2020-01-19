@@ -6,7 +6,8 @@ import {
 
 import { TYPE } from '@tradle/constants'
 import { enumValue } from '@tradle/build-resource'
-import BoxSDK from 'box-node-sdk'
+//import BoxSDK from 'box-node-sdk'
+import fetch from 'node-fetch'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
@@ -41,10 +42,24 @@ export class RoarFeedback {
     this.logger.debug('roarFeedback pullResponses starts')
     if (!this.token)
       throw Error('token is not provided')
-    const client: any = BoxSDK.getBasicClient(this.token)
-    let res = await client.folders.get('0')
+
+    let entries = await this.folderEntries('0')
+
     let responsesFolderId: string
     let processedResponsesFolderId: string
+    for (let entry of entries) {
+      if (entry.name == RESPONSES) {
+        responsesFolderId = entry.id
+      }
+      else if (entry.name == PROCESSED_RESPONSES) {
+        processedResponsesFolderId = entry.id
+      }
+    }
+
+    /*
+    const client: any = BoxSDK.getBasicClient(this.token)
+    let res = await client.folders.get('0')
+   
     for (let elem of res.item_collection.entries) {
       if (RESPONSES == elem.name) {
         responsesFolderId = elem.id
@@ -53,6 +68,8 @@ export class RoarFeedback {
         processedResponsesFolderId = elem.id
       }
     }
+    */
+
     if (!responsesFolderId) {
       this.logger.error('roarFeedback could not find box folder RESPONSES')
       return
@@ -62,13 +79,17 @@ export class RoarFeedback {
       return
     }
 
-    let folder = await client.folders.get(responsesFolderId)
-    for (let entry of folder.item_collection.entries) {
+    //let folder = await client.folders.get(responsesFolderId)
+    //for (let entry of folder.item_collection.entries) {
+    let folderEntries = await this.folderEntries(responsesFolderId)
+    for (let entry of folderEntries) {
       let name: string = entry.name
       if (entry.type == 'file' && name.endsWith('_response.json')) {
-        let jsonResponse = await this.downloadFile(entry.id, client)
+        let jsonResponse = await this.download(entry.id)
+        //let jsonResponse = await this.downloadFile(entry.id, client)
         if (this.trace)
           this.logger.debug(`roarFeedback handling response: ${JSON.stringify(jsonResponse, null, 2)}`)
+
         let status = jsonResponse.RecommendtoOnBoard == 'YES' ? 'pass' : 'fail'
         let statusEnum = enumValue({
           model: this.bot.models[STATUS],
@@ -87,13 +108,49 @@ export class RoarFeedback {
           this.logger.debug('roarFeedback check updated')
 
           // move file to processed responses
-          await client.files.move(entry.id, processedResponsesFolderId)
+          //await client.files.move(entry.id, processedResponsesFolderId)
+          await this.move(entry.id, processedResponsesFolderId)
           this.logger.debug('roarFeedback moved request into processed')
         }
       }
     }
   }
 
+  move = async (fileid: string, destinationFolderId: string) => {
+    let link = 'https://api.box.com/2.0/files/' + fileid
+    let attr = '{\"parent\":{\"id\":\"' + destinationFolderId + '\"}}'
+    const res = await fetch(link, {
+      method: 'put',
+      headers: {
+        'Authorization': 'Bearer ' + this.token
+      },
+      body: attr
+    })
+  }
+
+  download = async (fileid: string): Promise<any> => {
+    let link = 'https://api.box.com/2.0/files/' + fileid + '/content'
+    const res = await fetch(link, {
+      method: 'get',
+      headers: {
+        'Authorization': 'Bearer ' + this.token
+      }
+    })
+    let json = await res.json()
+    return json
+  }
+
+  folderEntries = async (folderid: string) => {
+    let link = 'https://api.box.com/2.0/folders/' + folderid + '/items'
+    const r = await fetch(link, {
+      method: 'get',
+      headers: {
+        'Authorization': 'Bearer ' + this.token
+      }
+    })
+    let respJson = await r.json()
+    return respJson.entries
+  }
   findCheck = async (permalink: string) => {
     try {
       return await this.bot.db.findOne({

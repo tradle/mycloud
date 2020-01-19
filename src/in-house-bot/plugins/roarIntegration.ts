@@ -21,7 +21,9 @@ import dateformat from 'dateformat'
 
 import validateResource from '@tradle/validate-resource'
 import { SearchResult } from '@tradle/dynamodb'
-import BoxSDK from 'box-node-sdk'
+//import BoxSDK from 'box-node-sdk'
+import FormData from 'form-data'
+import fetch from 'node-fetch'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
@@ -167,6 +169,7 @@ export class RoarRequestAPI {
     return req
   }
 
+  /*
   send = async (fileName: string, request: string) => {
     this.logger.debug('roarIntegration is about to send request to roar')
     const client = BoxSDK.getBasicClient(this.conf.token);
@@ -191,6 +194,47 @@ export class RoarRequestAPI {
       this.logger.error('roarIntegration failed to send request', err)
     }
 
+  }
+  */
+
+  upload = async (fileName: string, request: string) => {
+    let linkToTop = 'https://api.box.com/2.0/folders/0/items'
+    const r = await fetch(linkToTop, {
+      method: 'get',
+      headers: {
+        'Authorization': 'Bearer ' + this.conf.token
+      }
+    })
+    let folderid: string
+    let respJson = await r.json()
+    for (let entry of respJson.entries) {
+      if (entry.name == REQUESTS) {
+        folderid = entry.id
+        break;
+      }
+    }
+    if (!folderid) {
+      this.logger.error('roarIntegration could not find box REQUESTS')
+      return
+    }
+
+    let buffer = Buffer.from(request)
+    const link = 'https://upload.box.com/api/2.0/files/content'
+
+    const dataToUpload = new FormData()
+    let attr = '{\"name\":\"' + fileName + '\", \"parent\":{\"id\":\"' + folderid + '\"}}'
+    dataToUpload.append('data', buffer, {
+      filename: fileName,
+      contentType: 'application/octet-stream'
+    })
+    dataToUpload.append('attributes', attr)
+    const res = await fetch(link, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + this.conf.token,
+      },
+      body: dataToUpload
+    })
   }
 
   public createCheck = async ({ application, form, rawData, req }) => {
@@ -258,7 +302,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       // send to roar
       let fileName = check.permalink + '_request.json'
-      await roarRequestAPI.send(fileName, request)
+      await roarRequestAPI.upload(fileName, request)
     }
   }
   return { plugin }
