@@ -95,12 +95,12 @@ export class RoarFeedback {
         filter: {
           EQ: {
             [TYPE]: SCREENING_CHECK,
-            'permalink': permalink
+            '_permalink': permalink
           }
         }
       })
     } catch (err) {
-      this.logger.error(`roarFeedback faile to find check matching to ${permalink}`)
+      this.logger.error(`roarFeedback failed to find check matching to ${permalink}`)
       return undefined
     }
   }

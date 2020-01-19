@@ -111,6 +111,8 @@ export class RoarRequestAPI {
       relatedCustomers.push(item)
     }
 
+    let id = legalEntity.typeOfOwnership ? legalEntity.typeOfOwnership.id.split('_')[1] : undefined
+    let integrationId = id ? (this.bot.models['tradle.legal.TypeOfOwnership'].enum.find(elm => elm.id === id)).integrationId : ''
     let countryCode = legalEntity.country.id.split('_')[1]
     let req = {
       OnboardingCustomer: {
@@ -150,7 +152,7 @@ export class RoarRequestAPI {
         Website: legalEntity.companyWebsite ? legalEntity.companyWebsite : '',
         CountryOfResidence: countryCode,
         ExistingCustomerInternalId: '',
-        OrganizationLegalStructure: 'LS1', //legatEntity.companyType, // ??????
+        OrganizationLegalStructure: integrationId,
         ApplicationID: TRADLE + legalEntity._permalink.substring(0, 40),
         OrganizationName: legalEntity.companyName,
         CountryOfIncorporation: countryCode,
@@ -215,7 +217,7 @@ export class RoarRequestAPI {
 
     this.logger.debug(`${PROVIDER} Creating roarScreeningCheck`)
     let check: any = await this.applications.createCheck(resource, req)
-    this.logger.debug(`${PROVIDER} Created roarScreeningCheck ${check._permalink}`)
+    this.logger.debug(`${PROVIDER} Created roarScreeningCheck ${check.permalink}`)
     return check
   }
 }
