@@ -83,7 +83,7 @@ export class RoarFeedback {
             this.logger.debug(`roarFeedback updating check with response ${JSON.stringify(check, null, 2)}`)
           else
             this.logger.debug(`roarFeedback updating check with response`)
-          await this.bot.signAndSave(check)
+          await this.bot.versionAndSave(check)
           this.logger.debug('roarFeedback check updated')
 
           // move file to processed responses
