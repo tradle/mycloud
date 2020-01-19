@@ -5,7 +5,7 @@ import {
 } from '../types'
 
 import { TYPE } from '@tradle/constants'
-
+import { enumValue } from '@tradle/build-resource'
 import BoxSDK from 'box-node-sdk'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
@@ -14,6 +14,7 @@ const { sanitize } = validateResource.utils
 const RESPONSES = 'RESPONSES'
 const PROCESSED_RESPONSES = 'PROCESSED_RESPONSES'
 const SCREENING_CHECK = 'tradle.RoarScreeningCheck'
+const STATUS = 'tradle.Status'
 
 export class RoarFeedback {
 
@@ -69,11 +70,15 @@ export class RoarFeedback {
         if (this.trace)
           this.logger.debug(`roarFeedback handling response: ${JSON.stringify(jsonResponse, null, 2)}`)
         let status = jsonResponse.RecommendtoOnBoard == 'YES' ? 'pass' : 'fail'
+        let statusEnum = enumValue({
+          model: this.bot.models[STATUS],
+          value: status
+        })
         let permalink = name.substring(0, name.indexOf('_'))
         let check: any = await this.findCheck(permalink)
         if (check) {
           check.responseData = sanitize(jsonResponse).sanitized
-          check.status = status
+          check.status = statusEnum
           if (this.trace)
             this.logger.debug(`roarFeedback updating check with response ${JSON.stringify(check, null, 2)}`)
           else

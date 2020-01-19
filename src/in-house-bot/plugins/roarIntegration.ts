@@ -11,16 +11,10 @@ import {
   CreatePlugin,
   Applications,
   IPluginLifecycleMethods,
-  ValidatePluginConf,
-  IConfComponents,
-  ITradleObject,
-  IPBApp,
   IPBReq,
   Logger
 } from '../types'
-import Errors from '../../errors'
 
-import AWS from 'aws-sdk'
 import _ from 'lodash'
 
 import dateformat from 'dateformat'
