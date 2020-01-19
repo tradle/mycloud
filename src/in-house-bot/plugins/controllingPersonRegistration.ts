@@ -48,7 +48,7 @@ const unitCoefMap = {
   hours: 60000 * 60,
   days: 60000 * 60 * 24
 }
-
+const DEFAULT_MAX_NOTIFY = 500
 const DEAR_CUSTOMER = 'Dear Customer'
 const DEFAULT_SMS_GATEWAY = 'sns'
 type SMSGatewayName = 'sns'
@@ -292,13 +292,19 @@ class ControllingPersonRegistrationAPI {
     let notify = this.getNotify({ rules, application })
 
     let result = await this.getCP({ application, bot: this.bot })
+    let notifyArr = []
+    if (notify === DEFAULT_MAX_NOTIFY) {
+      notifyArr = result
+      await this.doNotify({ notifyArr, rules, application, result })
+      return
+    }
+
     let { seniorManagement, cPeople, alwaysNotify } = await this.categorizeCP({
       application,
       rules,
       result
     })
 
-    let notifyArr = []
     if (seniorManagement.length) {
       let sm: any = seniorManagement[0]
       if (seniorManagement.length > notify)
@@ -347,6 +353,11 @@ class ControllingPersonRegistrationAPI {
         notifications.find((r: any) => r.form._permalink !== resource._permalink)
       )
     }
+    await this.doNotify({ notifyArr, rules, application, result })
+  }
+  async doNotify({ notifyArr, result, application, rules }) {
+    let { messages, interval } = rules
+
     if (!notifyArr.length) {
       this.bot.logger.debug(
         `No one to notify out of: ${result.filter(
@@ -469,7 +480,12 @@ class ControllingPersonRegistrationAPI {
     } else if (score === 'medium') {
       notify = medium.notify
       if (!notify) return
-    } else notify = high.notify || maxNotifications || 5
+    } else if (high.notify) {
+      if (typeof high.notify === 'number')
+        notify = high.notify
+      else
+        notify = maxNotifications || DEFAULT_MAX_NOTIFY
+    }
     return notify
   }
   async handleClientRequestForNotification({ payload, application }) {
@@ -789,21 +805,9 @@ export const validateConf: ValidatePluginConf = async (opts: ValidatePluginConfO
 
   if (!low || !high || !medium)
     throw new Error(`If rules are assigned all 3: "low", "high" and "medium' should be present`)
-  // if (!low.score || !high.score || !medium.score)
-  //   throw new Error(
-  //     `If rules are assigned all 3: "low", "high" and "medium' should have a "score" attribute`
-  //   )
-  // if (
-  //   typeof low.score !== 'number' ||
-  //   typeof high.score !== 'number' ||
-  //   typeof medium.score !== 'number'
-  // )
-  //   throw new Error(
-  //     `If rules are assigned all 3: "low", "high" and "medium' should have a "score" as a number`
-  //   )
   if (
     (low.notify && typeof low.notify !== 'number') ||
-    (high.notify && typeof high.notify !== 'number') ||
+    // (high.notify && typeof high.notify !== 'number') ||
     (medium.notify && typeof medium.notify !== 'number')
   )
     throw new Error(`If rules are assigned and some have attribute "notify" it should be a number`)
