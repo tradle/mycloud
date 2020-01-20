@@ -24,7 +24,7 @@ import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
-const { TYPE } = constants
+import { TYPE, PERMALINK, LINK } from '@tradle/constants'
 const { VERIFICATION } = constants.TYPES
 const PHOTO_ID = 'tradle.PhotoID'
 const STATUS = 'tradle.Status'
@@ -399,7 +399,7 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
 ) => {
   const documentChecker = new JenIdCheckerAPI({ bot, applications, conf, logger })
   const plugin: IPluginLifecycleMethods = {
-    onFormsCollected: async ({ req }) => {
+    validateForm: async ({ req }) => {
       if (req.skipChecks) return
       const { user, application, applicant, payload } = req
 
@@ -429,6 +429,33 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
       }
       // debugger
       let status = await documentChecker.handleData(form, application)
+
+      const payloadClone = _.cloneDeep(payload)
+      payloadClone[PERMALINK] = payloadClone._permalink
+      payloadClone[LINK] = payloadClone._link
+
+      // debugger
+      let formError: any = {
+        req,
+        user,
+        application
+      }
+      formError.details = {
+        prefill: payloadClone,
+        message: `Please adjust your document id and try to scan again`
+      }
+
+      try {
+        await applications.requestEdit(formError)
+        return {
+          message: 'no request edit',
+          exit: true
+        }
+      } catch (err) {
+        debugger
+      }
+
+      /*
       await documentChecker.createCheck({ application, status, form, req })
       if (status.status === 'pass') {
         await documentChecker.createVerification({
@@ -438,6 +465,7 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
           req
         })
       }
+      */
     }
   }
 
