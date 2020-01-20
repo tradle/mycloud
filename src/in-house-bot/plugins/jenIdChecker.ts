@@ -217,19 +217,37 @@ export class JenIdCheckerAPI {
     let dimensions: any = sizeof(buf);
     let currentWidth: number = dimensions.width
     let currentHeight: number = dimensions.height
-    this.logger.debug(`jenIdChecker imageResize before resize w=${currentWidth}' h=${currentHeight}`)
+
+    this.logger.debug(`jenIdChecker image original w=${currentWidth}' h=${currentHeight}`)
     let biggest = currentWidth > currentHeight ? currentWidth : currentHeight
     let coef: number = 2470 / biggest
-    if (currentWidth < currentHeight) {
-      //(coef <= 0.9) {
-      let width: number = currentHeight  // Math.round(currentWidth * coef)
-      let height: number = currentWidth // Math.round(currentHeight * coef)
-      let resizedBuf = await sharp(buf).rotate(-90).toBuffer()     // resize(width, height).toBuffer()
+
+    if (currentWidth < currentHeight) { // rotate
+      let resizedBuf: any
+      let width: number = currentHeight
+      let height: number = currentWidth
+      if (coef < 1) { // also resize
+        width = Math.round(currentHeight * coef)
+        height = Math.round(currentWidth * coef)
+        resizedBuf = await sharp(buf).rotate(-90).resize(width, height).toBuffer()
+        this.logger.debug(`jenIdChecker image resized and rotated w=${width}' h=${height}`)
+      }
+      else {
+        resizedBuf = await sharp(buf).rotate(-90).toBuffer()
+        this.logger.debug(`jenIdChecker image rotated w=${width}' h=${height}`)
+      }
       let newDataUrl = pref + resizedBuf.toString('base64')
-      this.logger.debug(`jenIdChecker imageResize after rotate w=${width}' h=${height}`)
       return { url: newDataUrl, width, height }
     }
-    this.logger.debug(`jenIdChecker imageResize no rotate`) //resize coef=${coef}`)
+    if (coef < 1) {
+      let width = Math.round(currentWidth * coef)
+      let height = Math.round(currentHeight * coef)
+      let resizedBuf = await sharp(buf).resize(width, height).toBuffer()
+      let newDataUrl = pref + resizedBuf.toString('base64')
+      console.log(`jenIdChecker image resized w=${width}' h=${height}`)
+      return { url: newDataUrl, width, height }
+    }
+    this.logger.debug(`jenIdChecker image no change`)
     return { url: dataUrl, width: currentWidth, height: currentHeight }
   }
 
@@ -284,7 +302,7 @@ export class JenIdCheckerAPI {
   }
 
   public post = async (data: string, conf: IJenIdCheckerConf) => {
-    let auth = new Buffer(conf.username + ':' + conf.password)
+    let auth = Buffer.from(conf.username + ':' + conf.password)
     let basicAuth = auth.toString('base64')
     try {
       const res = await fetch(API_URL + 'create', {
@@ -313,7 +331,7 @@ export class JenIdCheckerAPI {
   }
 
   public get = async (id: string, conf: IJenIdCheckerConf) => {
-    let auth = new Buffer(conf.username + ':' + conf.password)
+    let auth = Buffer.from(conf.username + ':' + conf.password)
     let basicAuth = auth.toString('base64')
     try {
       const res = await fetch(API_URL + id, {
@@ -339,7 +357,7 @@ export class JenIdCheckerAPI {
   }
 
   public del = async (id: string, conf: IJenIdCheckerConf) => {
-    let auth = new Buffer(conf.username + ':' + conf.password)
+    let auth = Buffer.from(conf.username + ':' + conf.password)
     let basicAuth = auth.toString('base64')
     try {
       const res = await fetch(API_URL + id, {
