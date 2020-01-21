@@ -367,6 +367,24 @@ export class Applications implements IHasModels {
   public requestItem = async (opts: RequestItemOpts) => {
     return await this.productsAPI.requestItem(opts)
   }
+  public getApplicationWithPayload = async ({resource, bot}) => {
+    let msg = await bot.getMessageWithPayload({
+      select: ['context', 'payload'],
+      link: resource._link,
+      author: resource._author,
+      inbound: true
+    })
+    let { items } = await bot.db.find({
+      filter: {
+        EQ: {
+          [TYPE]: 'tradle.Application',
+          context: msg.context
+        }
+      }
+    })
+    return items && items[0]
+  }
+
   // public getLatestChecks = async ({ application }: AppInfo): Promise<ITradleCheck[]> => {
   //   const { checks = [] } = application
   //   if (!checks.length) return []
