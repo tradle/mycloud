@@ -33,7 +33,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       }
       if (!legalEntity) return
 
-      let associatedApplication = await applications.getApplicationWithPayload({resource: payload, bot})
+      let associatedApplication = await applications.getApplicationByPayload({resource: payload, bot})
       let resource: any = {
         [TYPE]: REUSE_CHECK,
         status: 'warning',

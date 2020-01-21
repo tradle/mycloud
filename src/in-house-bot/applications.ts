@@ -367,7 +367,7 @@ export class Applications implements IHasModels {
   public requestItem = async (opts: RequestItemOpts) => {
     return await this.productsAPI.requestItem(opts)
   }
-  public getApplicationWithPayload = async ({resource, bot}) => {
+  public getApplicationByPayload = async ({resource, bot}) => {
     let msg = await bot.getMessageWithPayload({
       select: ['context', 'payload'],
       link: resource._link,
