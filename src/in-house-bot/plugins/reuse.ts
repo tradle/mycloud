@@ -16,14 +16,21 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       if (payload[TYPE] !== CP || !payload.controllingEntityCompanyNumber) return
 
-      let legalEntity = await bot.db.findOne({
-        filter: {
-          EQ: {
-            [TYPE]: LEGAL_ENTITY,
-            registrationNumber: payload.controllingEntityCompanyNumber
+
+      let legalEntity
+      try {
+        legalEntity = await bot.db.findOne({
+          filter: {
+            EQ: {
+              [TYPE]: LEGAL_ENTITY,
+              registrationNumber: payload.controllingEntityCompanyNumber
+            }
           }
-        }
-      })
+        })
+      }
+      catch (err) {
+        debugger
+      }
       if (!legalEntity) return
       let resource: any = {
         [TYPE]: REUSE_CHECK,
