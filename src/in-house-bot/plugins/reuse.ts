@@ -32,6 +32,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         debugger
       }
       if (!legalEntity) return
+
+      let associatedApplication = await applications.getApplicationWithPayload({resource: payload, bot})
       let resource: any = {
         [TYPE]: REUSE_CHECK,
         status: 'warning',
@@ -40,8 +42,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         dateChecked: Date.now(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
         aspects: ASPECTS,
         form: payload,
-        message: 'Please overwrite if data can`t be reused'
+        message: 'Please overwrite if data can`t be reused',
+        associatedApplication
       }
+
       await applications.createCheck(resource, req)
     }
   }
