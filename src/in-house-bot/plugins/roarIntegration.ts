@@ -11,22 +11,19 @@ import {
   CreatePlugin,
   Applications,
   IPluginLifecycleMethods,
-  ValidatePluginConf,
-  IConfComponents,
-  ITradleObject,
-  IPBApp,
   IPBReq,
   Logger
 } from '../types'
-import Errors from '../../errors'
 
-import AWS from 'aws-sdk'
 import _ from 'lodash'
 
 import dateformat from 'dateformat'
 
 import validateResource from '@tradle/validate-resource'
 import { SearchResult } from '@tradle/dynamodb'
+//import BoxSDK from 'box-node-sdk'
+import FormData from 'form-data'
+import fetch from 'node-fetch'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
@@ -38,10 +35,17 @@ const COMMERCIAL = 'commercial'
 
 const TRADLE = 'TRADLE_';
 
+const REQUESTS = 'REQUESTS'
+
+interface IRoarIntegrationConf {
+  token: string
+  trace?: boolean
+}
+
 
 export class RoarRequestAPI {
   private bot: Bot
-  private conf: any
+  private conf: IRoarIntegrationConf
   private applications: Applications
   private logger: Logger
 
@@ -74,7 +78,7 @@ export class RoarRequestAPI {
         CustomerType: isIND ? 'IND' : 'ORG',
         CountryOfResidence: person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : '',
         ExistingCustomerInternalId: TRADLE + person._permalink.substring(0, 40),
-        ApplicantID: person._permalink.substring(0, 40),
+        ApplicantID: TRADLE + person._permalink.substring(0, 40),
         Jurisdiction: person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : '', //???
         LastName: (isIND && person.lastName) ? person.lastName : '',
         CountryOfIncorporation: person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : '', //???
@@ -103,6 +107,8 @@ export class RoarRequestAPI {
       relatedCustomers.push(item)
     }
 
+    let id = legalEntity.typeOfOwnership ? legalEntity.typeOfOwnership.id.split('_')[1] : undefined
+    let integrationId = id ? (this.bot.models['tradle.legal.TypeOfOwnership'].enum.find(elm => elm.id === id)).integrationId : ''
     let countryCode = legalEntity.country.id.split('_')[1]
     let req = {
       OnboardingCustomer: {
@@ -117,22 +123,24 @@ export class RoarRequestAPI {
             Country: countryCode
           }
         ],
-        Jurisdiction: legalEntity.region ? legalEntity.region.id.split('_')[1] : legalEntity.country.id.split('_')[1], //???
+        Jurisdiction: legalEntity.country.id.split('_')[1],
         ApplicantID: TRADLE + legalEntity._permalink.substring(0, 40),
         OnboardingCustomerRelatedCustomer: relatedCustomers,
         CustomerNAICSCode: 'NONE',
         LastName: '',
         StockExchange: 'N',
-        OnboardingCustomerAddress: {
-          AddressPurpose: 'P',
-          PostalCode: legalEntity.postalCode ? legalEntity.postalCode : '',
-          State: legalEntity.region ? legalEntity.region.id.split('_')[1] : '',
-          StreetLine1: legalEntity.streetAddress,
-          StreetLine2: '',
-          StreetLine3: '',
-          Country: countryCode,
-          City: legalEntity.city ? legalEntity.city : ''
-        },
+        OnboardingCustomerAddress: [
+          {
+            AddressPurpose: 'P',
+            PostalCode: legalEntity.postalCode ? legalEntity.postalCode : '',
+            State: legalEntity.region ? legalEntity.region.id.split('_')[1] : '',
+            StreetLine1: legalEntity.streetAddress,
+            StreetLine2: '',
+            StreetLine3: '',
+            Country: countryCode,
+            City: legalEntity.city ? legalEntity.city : ''
+          }
+        ],
         FirstName: '',
         CIPExemptFlag: 'N',
         CIPVerifiedFlag: 'Y',
@@ -140,7 +148,7 @@ export class RoarRequestAPI {
         Website: legalEntity.companyWebsite ? legalEntity.companyWebsite : '',
         CountryOfResidence: countryCode,
         ExistingCustomerInternalId: '',
-        OrganizationLegalStructure: 'LS1', //legatEntity.companyType, // ??????
+        OrganizationLegalStructure: integrationId,
         ApplicationID: TRADLE + legalEntity._permalink.substring(0, 40),
         OrganizationName: legalEntity.companyName,
         CountryOfIncorporation: countryCode,
@@ -161,6 +169,74 @@ export class RoarRequestAPI {
     return req
   }
 
+  /*
+  send = async (fileName: string, request: string) => {
+    this.logger.debug('roarIntegration is about to send request to roar')
+    const client = BoxSDK.getBasicClient(this.conf.token);
+    try {
+      let res = await client.folders.get('0')
+      let folderId: string
+      for (let elem of res.item_collection.entries) {
+        if (REQUESTS == elem.name) {
+          folderId = elem.id
+          break
+        }
+      }
+      if (!folderId) {
+        this.logger.error('roarIntegration could not find box REQUESTS')
+        return
+      }
+
+      let buff = Buffer.from(request);
+      await client.files.uploadFile(folderId, fileName, buff)
+      this.logger.debug(`roarIntegration sent ${fileName} to roar`)
+    } catch (err) {
+      this.logger.error('roarIntegration failed to send request', err)
+    }
+
+  }
+  */
+
+  upload = async (fileName: string, request: string) => {
+    let linkToTop = 'https://api.box.com/2.0/folders/0/items'
+    const r = await fetch(linkToTop, {
+      method: 'get',
+      headers: {
+        'Authorization': 'Bearer ' + this.conf.token
+      }
+    })
+    let folderid: string
+    let respJson = await r.json()
+    for (let entry of respJson.entries) {
+      if (entry.name == REQUESTS) {
+        folderid = entry.id
+        break;
+      }
+    }
+    if (!folderid) {
+      this.logger.error('roarIntegration could not find box REQUESTS')
+      return
+    }
+
+    let buffer = Buffer.from(request)
+    const link = 'https://upload.box.com/api/2.0/files/content'
+
+    const dataToUpload = new FormData()
+    let attr = '{\"name\":\"' + fileName + '\", \"parent\":{\"id\":\"' + folderid + '\"}}'
+    dataToUpload.append('data', buffer, {
+      filename: fileName,
+      contentType: 'application/octet-stream'
+    })
+    dataToUpload.append('attributes', attr)
+    const res = await fetch(link, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + this.conf.token,
+      },
+      body: dataToUpload
+    })
+  }
+
   public createCheck = async ({ application, form, rawData, req }) => {
     // debugger
     let resource: any = {
@@ -179,7 +255,7 @@ export class RoarRequestAPI {
 
     this.logger.debug(`${PROVIDER} Creating roarScreeningCheck`)
     let check: any = await this.applications.createCheck(resource, req)
-    this.logger.debug(`${PROVIDER} Created roarScreeningCheck ${check._permalink}`)
+    this.logger.debug(`${PROVIDER} Created roarScreeningCheck ${check.permalink}`)
     return check
   }
 }
@@ -214,13 +290,19 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const legalEntity = await bot.getResource(legalEntityRef)
 
       let roarReq: any = roarRequestAPI.build(legalEntity, controllingPersons)
+      let request = JSON.stringify(roarReq, null, 2)
+
       if (conf.trace)
-        logger.debug(`roarIntegration request: ${JSON.stringify(roarReq, null, 2)}`)
+        logger.debug(`roarIntegration request: ${request}`)
       let check = await roarRequestAPI.createCheck({ application, form: payload, rawData: roarReq, req })
       if (conf.trace)
         logger.debug(`roarIntegration created check: ${JSON.stringify(check, null, 2)}`)
       else
         logger.debug(`roarIntegration created check`)
+
+      // send to roar
+      let fileName = check.permalink + '_request.json'
+      await roarRequestAPI.upload(fileName, request)
     }
   }
   return { plugin }

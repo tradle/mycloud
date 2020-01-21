@@ -19,6 +19,7 @@ import { ImportRefdata } from './importRefdata'
 import { ImportPitchbookData } from './importPitchbook'
 import { ImportMaxmindDb } from './importMaxmindDb'
 import { ImportBasicCompanyData } from './importBasicCompanyData'
+import { RoarFeedback } from './roarFeedback'
 import { Chaser } from './chaser'
 // import { Deployment } from '../deployment'
 
@@ -93,6 +94,15 @@ export const importMaxmindDb: Executor = async ({ job, components }) => {
     importer.execute()
   } catch (err) {
     components.bot.logger.error('job importMaxmindDb failed', err)
+  }
+}
+
+export const roarFeedback: Executor = async ({ job, components }) => {
+  let roar = new RoarFeedback(components.bot, components.conf.bot)
+  try {
+    roar.pullResponses()
+  } catch (err) {
+    components.bot.logger.error('job roarFeedback failed', err)
   }
 }
 

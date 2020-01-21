@@ -371,7 +371,7 @@
       }
     },
     "@tradle/bot-products": {
-      "version": "github:tradle/bot-products#be124f7585ca3163290610cbd8eccd3be9ddbe16",
+      "version": "github:tradle/bot-products#6df95de77d9298f496346aae251afa5fab48894d",
       "from": "github:tradle/bot-products",
       "requires": {
         "@tradle/build-resource": "^4.0.1",
@@ -510,7 +510,7 @@
     "@tradle/centrix": {
       "version": "1.0.0",
       "resolved": "git://github.com/tradle/centrix.git#a6b234e114b8fd24d576913a4e8cacc10bf024b7",
-      "integrity": "sha1-vf9SBmRlv7gfi0+oLuthcDaTyl4=",
+      "integrity": "sha1-vpY8dztbsnRzde74x4QY8VchlvU=",
       "optional": true,
       "requires": {
         "co": "^4.6.0",
@@ -541,7 +541,7 @@
       "from": "tradle/countries"
     },
     "@tradle/custom-models": {
-      "version": "github:tradle/custom-models#c6e0fe8ef0bfe98658b5a1d3343c1d8d5c83ace3",
+      "version": "github:tradle/custom-models#c8ace8aaaa190a0b3fb03740acdfe825d6b0bd25",
       "from": "github:tradle/custom-models",
       "requires": {
         "@tradle/validate-model": "^7.1.18"
@@ -3347,7 +3347,7 @@
     },
     "buffer-indexof-polyfill": {
       "version": "1.0.1",
-      "resolved": "http://registry.npmjs.org/buffer-indexof-polyfill/-/buffer-indexof-polyfill-1.0.1.tgz",
+      "resolved": "https://registry.npmjs.org/buffer-indexof-polyfill/-/buffer-indexof-polyfill-1.0.1.tgz",
       "integrity": "sha1-qfuAbOgUXVQoUQznLyeLs2OmOL8="
     },
     "buffer-more-ints": {
@@ -10144,7 +10144,7 @@
     },
     "listenercount": {
       "version": "1.0.1",
-      "resolved": "http://registry.npmjs.org/listenercount/-/listenercount-1.0.1.tgz",
+      "resolved": "https://registry.npmjs.org/listenercount/-/listenercount-1.0.1.tgz",
       "integrity": "sha1-hMinKrWcRyUyFIDJdeZQg0LnCTc="
     },
     "listr": {
@@ -13168,9 +13168,9 @@
           }
         },
         "readable-stream": {
-          "version": "3.4.0",
-          "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-3.4.0.tgz",
-          "integrity": "sha512-jItXPLmrSR8jmTRmRWJXCnGJsfy85mB3Wd/uINMXA65yrnFo0cPClFIUWzo2najVNSl+mx7/4W8ttlLWJe99pQ==",
+          "version": "3.5.0",
+          "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-3.5.0.tgz",
+          "integrity": "sha512-gSz026xs2LfxBPudDuI41V1lka8cxg64E66SGe78zJlsUofOg/yqwezdIcdfwik6B4h8LFmWPA9ef9X3FiNFLA==",
           "requires": {
             "inherits": "^2.0.3",
             "string_decoder": "^1.1.1",
@@ -14795,16 +14795,16 @@
       "integrity": "sha1-QV9CcC1z2BAzApLMXuhurhoRoXA="
     },
     "sharp": {
-      "version": "0.23.4",
-      "resolved": "https://registry.npmjs.org/sharp/-/sharp-0.23.4.tgz",
-      "integrity": "sha512-fJMagt6cT0UDy9XCsgyLi0eiwWWhQRxbwGmqQT6sY8Av4s0SVsT/deg8fobBQCTDU5iXRgz0rAeXoE2LBZ8g+Q==",
+      "version": "0.24.0",
+      "resolved": "https://registry.npmjs.org/sharp/-/sharp-0.24.0.tgz",
+      "integrity": "sha512-kUtQE6+HJnNqO0H6ueOBtRXahktuqydIBaFMvhDelf/KaK9j/adEdjf4Y3+bbjYOa5i6hi2EAa2Y2G9umP4s2g==",
       "requires": {
         "color": "^3.1.2",
         "detect-libc": "^1.0.3",
         "nan": "^2.14.0",
         "npmlog": "^4.1.2",
         "prebuild-install": "^5.3.3",
-        "semver": "^6.3.0",
+        "semver": "^7.1.1",
         "simple-get": "^3.1.0",
         "tar": "^5.0.5",
         "tunnel-agent": "^0.6.0"
@@ -14877,9 +14877,9 @@
           "integrity": "sha1-IQmtx5ZYh8/AXLvUQsrIv7s2CGM="
         },
         "semver": {
-          "version": "6.3.0",
-          "resolved": "https://registry.npmjs.org/semver/-/semver-6.3.0.tgz",
-          "integrity": "sha512-b39TBaTSfV6yBrapU89p5fKekE2m/NwnDocOVruQFS1/veMgdzuPcnOM34M6CwxW8jH/lxEa5rBoDeUwu5HHTw=="
+          "version": "7.1.1",
+          "resolved": "https://registry.npmjs.org/semver/-/semver-7.1.1.tgz",
+          "integrity": "sha512-WfuG+fl6eh3eZ2qAf6goB7nhiCd7NPXhmyFxigB/TOkQyeLP8w8GsVehvtGNtnNmyboz4TgeK40B1Kbql/8c5A=="
         },
         "simple-get": {
           "version": "3.1.0",
@@ -17242,7 +17242,7 @@
       "dependencies": {
         "bluebird": {
           "version": "3.4.7",
-          "resolved": "http://registry.npmjs.org/bluebird/-/bluebird-3.4.7.tgz",
+          "resolved": "https://registry.npmjs.org/bluebird/-/bluebird-3.4.7.tgz",
           "integrity": "sha1-9y12C+Cbf3bQjtj66Ysomo0F+rM="
         },
         "fstream": {
