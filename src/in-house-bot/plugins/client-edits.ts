@@ -339,7 +339,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       let checks =
         req.latestChecks && req.latestChecks.filter(check => check.form._link === payload._link)
 
-      debugger
+      // debugger
       let check
       if (distance && sourceOfData)
         check = await clientEdits.checkEdits({ req, sourceOfData, distance })
