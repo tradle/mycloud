@@ -371,7 +371,7 @@
       }
     },
     "@tradle/bot-products": {
-      "version": "github:tradle/bot-products#6df95de77d9298f496346aae251afa5fab48894d",
+      "version": "github:tradle/bot-products#be124f7585ca3163290610cbd8eccd3be9ddbe16",
       "from": "github:tradle/bot-products",
       "requires": {
         "@tradle/build-resource": "^4.0.1",
@@ -510,7 +510,7 @@
     "@tradle/centrix": {
       "version": "1.0.0",
       "resolved": "git://github.com/tradle/centrix.git#a6b234e114b8fd24d576913a4e8cacc10bf024b7",
-      "integrity": "sha1-vpY8dztbsnRzde74x4QY8VchlvU=",
+      "integrity": "sha1-vf9SBmRlv7gfi0+oLuthcDaTyl4=",
       "optional": true,
       "requires": {
         "co": "^4.6.0",
@@ -541,7 +541,7 @@
       "from": "tradle/countries"
     },
     "@tradle/custom-models": {
-      "version": "github:tradle/custom-models#c8ace8aaaa190a0b3fb03740acdfe825d6b0bd25",
+      "version": "github:tradle/custom-models#c6e0fe8ef0bfe98658b5a1d3343c1d8d5c83ace3",
       "from": "github:tradle/custom-models",
       "requires": {
         "@tradle/validate-model": "^7.1.18"
@@ -14816,9 +14816,9 @@
           "integrity": "sha512-i70fVHhmV3DtTl6nqvZOnIjbY0Pe4kAUjwHj8z0zAdgBtYrJyYwLKCCuRBQ5ppkyL0AkN7HKRnETdmdp1zqNXw=="
         },
         "fs-minipass": {
-          "version": "2.0.0",
-          "resolved": "https://registry.npmjs.org/fs-minipass/-/fs-minipass-2.0.0.tgz",
-          "integrity": "sha512-40Qz+LFXmd9tzYVnnBmZvFfvAADfUA14TXPK1s7IfElJTIZ97rA8w4Kin7Wt5JBrC3ShnnFJO/5vPjPEeJIq9A==",
+          "version": "2.0.1",
+          "resolved": "https://registry.npmjs.org/fs-minipass/-/fs-minipass-2.0.1.tgz",
+          "integrity": "sha512-22x6v7ceMyTfG8e4Y0YeudTuDNZEIR9pQoEVu1r5e6nLuMAbmrkTXlHADEHsdk2SHYM6opcRnKUbqB9bZ94D3g==",
           "requires": {
             "minipass": "^3.0.0"
           }
