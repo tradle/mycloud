@@ -1,4 +1,4 @@
-/***
+/**
  * Risk Rating follows the Credit score model
  * - it is a number between 1000 and 0, with 1000 being the least risky
  * - the pie is divided between the categories below.
@@ -32,140 +32,487 @@
  * finalScore = countriesScore + industryScore + sanctionsScore + peopleScore + legalStructureScore
  *
  ***/
-import _ from 'lodash'
+import { uniqBy, size, extend } from 'lodash'
 import { TYPE } from '@tradle/constants'
 
-import { enumValue } from '@tradle/build-resource'
+import { enumValue, buildResourceStub } from '@tradle/build-resource'
 
-import { CreatePlugin } from '../types'
-import { getEnumValueId } from '../utils'
-const riskFactors = require('../../../riskFactors.json')
+import { CreatePlugin, Bot, Applications, Logger, IPBApp } from '../types'
+import { getEnumValueId, getFormStubs, getLatestChecks, isSubClassOf } from '../utils'
+
+// const riskFactors = require('../../../riskFactors.json')
+
 const CP_ONBOARDING = 'tradle.legal.ControllingPersonOnboarding'
+const CE_CP = 'tradle.legal.LegalEntityControllingPerson'
+const LE = 'tradle.legal.LegalEntity'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
-const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
+const SPECIAL_APPROVAL_REQUIRED_CHECK = 'tradle.SpecialApprovalRequiredCheck'
+const SPECIAL_APPROVAL_REQUIRED_CHECK_OVERRIDE = 'tradle.SpecialApprovalRequiredCheckOverride'
+const RISK_CLASSIFICATION_CHECK = 'tradle.RiskClassificationCheck'
+const STOCK_EXCHANGE = 'tradle.StockExchange'
+const TYPE_OF_OWNERSHIP = 'tradle.legal.TypeOfOwnership'
+const COUNTRY = 'tradle.Country'
+// const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const STATUS = 'tradle.Status'
 const SCORE_TYPE = 'tradle.ScoreType'
+const BANK_ACCOUNT = 'tradle.BankAccount'
+const BSA_CODES = {
+  fe102: 21
+}
+const defaultMap = {
+  countryOfResidence: 'countryOfResidence',
+  countryOfRegistration: 'countryOfRegistration',
+  countriesOfOperation: 'countriesOfOperation'
+}
+
+class RiscScoreAPI {
+  private bot: Bot
+  private logger: Logger
+  private conf: any
+  private applications: Applications
+  private riskFactors: any
+  constructor({ bot, conf, logger, applications }) {
+    this.bot = bot
+    this.conf = conf
+    this.logger = logger
+    this.applications = applications
+    this.riskFactors = conf.riskFactors
+  }
+  public async getScore({ form, req, map, requestFor }) {
+    let { application } = req
+    const { models } = this.bot
+
+    let countryOfResidence = form[map.countryOfResidence]
+    let countryOfRegistration = form[map.countryOfRegistration]
+
+    let countriesOfOperation = form[map.countriesOfOperation]
+
+    let isCpOnboarding = requestFor === CP_ONBOARDING
+    let isBO = form[TYPE] === CE_CP
+    let scoreDetails: any = {
+      form: buildResourceStub({ resource: form, models })
+    }
+
+    if (countryOfResidence || countryOfRegistration) {
+      // Country of registration or residence
+      let detail = this.checkCountry({ country: countryOfResidence || countryOfRegistration })
+      if (isBO) scoreDetails.boRisk = detail
+      else {
+        scoreDetails.countryOfRegistration = detail
+        if (isCpOnboarding) return scoreDetails
+      }
+    }
+
+    if (countriesOfOperation) {
+      this.checkCountriesOfOperation({ scoreDetails, countriesOfOperation })
+    }
+
+    if (size(scoreDetails) === 1) return
+
+    let { latestChecks, checks } = req
+    // let checks: any = latestChecks || application.checks
+    if (!checks) ({ checks, latestChecks } = await getLatestChecks({ application, bot: this.bot }))
+    if (!latestChecks || !latestChecks.length) return
+    let permalink = form._permalink
+
+    let checksForThisForm = latestChecks.filter(check => check.form._permalink === permalink)
+    let corpExistsCheck = checksForThisForm.find(check => check[TYPE] === CORPORATION_EXISTS)
+    if (
+      corpExistsCheck &&
+      getEnumValueId({ model: models[STATUS], value: corpExistsCheck.status }) !== 'pass'
+    ) {
+      debugger
+      scoreDetails.companyNotFound = true
+    }
+    return scoreDetails
+    // let sanctionsChecks = checksForThisForm.filter(
+    //   check =>
+    //     check.form._permalink === permalink &&
+    //     check[TYPE] === 'tradle.SanctionsCheck' &&
+    //     getEnumValueId({ model: models[STATUS], value: check.status }) !== 'pass' &&
+    //     check.rawData.pep
+    // )
+
+    // if (sanctionsChecks && sanctionsChecks.length) {
+    //   let defaultH = historicalBehaviorRisk.default || defaultValue
+    //   let value = (defaultH * weights.historicalBehaviorRisk) / 100
+    //   scoreDetails.historicalBehaviorRisk = this.addDetailScore({ value, coef: 1 })
+    // }
+    // return scoreDetails
+  }
+  public async calcScore({ application, forms }: { application: IPBApp; forms?: any }) {
+    let { scoreDetails } = application
+    let { details, summary } = scoreDetails
+    const { baseRisk, weights, transactionalRisk, historicalBehaviorRisk } = this.riskFactors
+
+    extend(summary, {
+      baseRisk: (baseRisk.default * weights.baseRisk) / 100,
+      transactionalRisk: (transactionalRisk.default * weights.transactionalRisk) / 100,
+      beneficialOwnersRisk: this.calcOneCategoryScore({ name: 'boRisk', details }),
+      countryOfRegistration: this.calcOneCategoryScore({ name: 'countryOfRegistration', details }),
+      countriesOfOperation: this.calcOneCategoryScore({ name: 'countriesOfOperation', details })
+    })
+    if (details && details.length) {
+      let accounts = details.find(r => r.numberOfAccounts)
+      if (accounts) summary.accountsType = accounts.score
+    }
+
+    let moreChecks =
+      application.checks &&
+      application.checks.filter(
+        check =>
+          check[TYPE] === SPECIAL_APPROVAL_REQUIRED_CHECK ||
+          check[TYPE] === RISK_CLASSIFICATION_CHECK
+      )
+    if (moreChecks && moreChecks.length) {
+      moreChecks.sort((a: any, b: any) => b._time - a._time)
+      moreChecks = uniqBy(moreChecks, TYPE)
+
+      let checks = await Promise.all(moreChecks.map(r => this.bot.getResource(r)))
+      let checkOverrideBSA, checkOverrideDDR
+      checks.forEach((check: any) => {
+        let ctype = check[TYPE]
+        if (ctype === SPECIAL_APPROVAL_REQUIRED_CHECK) {
+          checkOverrideBSA = check.checkOverride
+        } else if (ctype === RISK_CLASSIFICATION_CHECK) checkOverrideDDR = check.checkOverride
+      })
+      if (checkOverrideBSA) {
+        checkOverrideBSA = await this.bot.getResource(checkOverrideBSA)
+        let code = checkOverrideBSA.bsaCode
+        let coef = BSA_CODES[code] || 100
+        summary.bsaCodeRisk = (weights.bsaCodeRisk * coef) / 100
+      }
+      if (checkOverrideDDR) {
+        checkOverrideDDR = await this.bot.getResource(checkOverrideDDR)
+        if (checkOverrideDDR.ddr)
+          summary.historicalBehaviorRisk =
+            (historicalBehaviorRisk * weights.historicalBehaviorRisk) / 100
+      }
+    }
+
+    let legalEntity = forms && forms.find(d => d[TYPE] === LE)
+    let preOnboarding = forms && forms.find(d => d[TYPE].indexOf('.PreOnboarding') !== -1)
+
+    let { models } = this.bot
+
+    summary.legalStructureRisk = weights.legalStructure
+    if (legalEntity)
+      this.getLegalStructureScore(legalEntity, application)
+    if (summary.legalStructureRisk  ||  !('legalStructureRisk' in summary)) {
+      if (preOnboarding)
+        this.getLegalStructureScore(preOnboarding, application)
+    }
+    if (!size(summary)) {
+      // application.score = 100
+      return
+    }
+    this.calcApplicatinScore(application)
+  }
+  getLegalStructureScore(payload, application) {
+    let { summary, details } = application.scoreDetails
+    let { weights } = this.riskFactors
+
+    if (('legalStructureRisk' in summary)  &&  !summary.legalStructureRisk)
+      return
+    summary.legalStructureRisk = weights.legalStructure
+
+    let { isRegulated, country, typeOfOwnership, tradedOnExchange } = payload
+    let { models } = this.bot
+
+    if (isRegulated) {
+      let id = getEnumValueId({ model: models[COUNTRY], value: country })
+      if (id === 'DE' || id === 'GB') {
+        summary.legalStructureRisk = 0
+        return
+      }
+    }
+    else if (typeOfOwnership && tradedOnExchange) {
+      if (
+        getEnumValueId({ model: models[TYPE_OF_OWNERSHIP], value: typeOfOwnership }) ===
+        'publiclyTraded'
+      ) {
+        let exchange = getEnumValueId({ model: models[STOCK_EXCHANGE], value: tradedOnExchange })
+        if (exchange === 'NYSE' || exchange === 'NASDAQ')
+          summary.legalStructureRisk = 0
+      }
+    }
+  }
+  calcOneCategoryScore({ name, details }) {
+    if (!details || !details.length) return 0
+    let scoresForTheName = details.filter(r => r[name])
+    let scores = scoresForTheName.map(r => r[name].score)
+    if (!scores.length) return 0
+    return Math.max(...scores)
+  }
+  public checkCountriesOfOperation = ({ scoreDetails, countriesOfOperation }) => {
+    if (!countriesOfOperation.length) {
+      return
+    }
+    let { defaultValue, weights, countries, countriesRiskByCategory } = this.riskFactors
+    let defaultC = countries.default || defaultValue
+    let weight = weights.countryOfOperation //weights.countryOfOperation / countriesOfOperation.length
+    let details: any = {}
+    countriesOfOperation.forEach(c => {
+      let cid = c.id.split('_')[1]
+
+      let riskType = countries.find(c => c.code === cid)
+      let risk = riskType.risk
+
+      let coef = countriesRiskByCategory[risk]['Operations']
+      if (coef) details[cid] = this.addDetailScore({ value: (defaultC * weight) / 100, coef })
+    })
+    let score: number[] = Object.values(details).map((detail: any) => detail.score)
+    scoreDetails.countriesOfOperation = {
+      score: Math.max(...score),
+      details
+    }
+  }
+  public checkCountry({ country }) {
+    let cid = country.id.split('_')[1]
+
+    let { defaultValue, weights, countries, countriesRiskByCategory } = this.riskFactors
+
+    let riskType = countries.find(c => c.code === cid)
+    let risk = riskType.risk
+    let coef = countriesRiskByCategory[risk]['Registration']
+
+    if (!coef) return
+    let weight = weights.countryOfRegistration
+    let defaultC = countries.default || defaultValue
+    let detail = this.addDetailScore({ value: (defaultC * weight) / 100, coef })
+    return {
+      [cid]: detail,
+      score: detail.score
+    }
+    // scoreDetails.countryOfRegistration = {
+    //   [cid]: this.addDetailScore({ value: (defaultC * weight) / 100, coef })
+    // }
+    // scoreDetails.countryOfRegistration.score = scoreDetails.countryOfRegistration[cid].score
+  }
+  public roundScore = score => {
+    return (score && Math.round(score * 100) / 100) || score
+  }
+  public resetBsaRiskWithOverride({ payload, application }) {
+    let { summary } = application.scoreDetails
+    let bsaCodeRisc = summary.bsaCodeRisk
+
+    let code = payload.bsaCode
+    if (!code) return
+
+    let coef = (code === 'fe102' && 21) || 100
+    let { weights } = this.riskFactors
+    summary.bsaCodeRisk = this.roundScore((weights.bsaCodeRisk * coef) / 100)
+
+    this.calcApplicatinScore(application)
+  }
+  public getAccountScore({ stubs }) {
+    const weight = this.riskFactors.weights.accountTypeRisk
+    const { models } = this.bot
+    let accounts = stubs.filter(stub => isSubClassOf(BANK_ACCOUNT, models[stub[TYPE]], models))
+    let score = this.roundScore((weight * (4 + accounts.length - 1) * 3) / 100)
+    if (score > weight) score = weight
+    return {
+      score,
+      name: 'Account Type Risk',
+      numberOfAccounts: accounts.length
+    }
+  }
+  public getBsaScore(form, application) {
+    let code =
+      form.bsaListPI ||
+      form.bsaListDE ||
+      form.bsaListFE ||
+      form.bsaListMS ||
+      form.bsaListRT ||
+      form.bsaListNG ||
+      form.bsaListOR
+
+    if (!code) return
+    const weight = this.riskFactors.weights.bsaCodeRisk
+    code = code.id.split('_')[1]
+    let coef = BSA_CODES[code] || 100
+    let { summary, details } = application.scoreDetails
+    summary.bsaCodeRisk = (weight * coef) / 100
+    this.calcApplicatinScore(application)
+    details.push({
+      form: buildResourceStub({ resource: form, models: this.bot.models }),
+      bsaCodeRisk: {
+        [code]: summary.bsaCodeRisk
+      }
+    })
+  }
+  public calcApplicatinScore(application) {
+    let { summary } = application.scoreDetails
+    let { baseRisk } = summary
+    if (!baseRisk) {
+      const { baseRisk, weights, transactionalRisk } = this.riskFactors
+      extend(summary, {
+        baseRisk: (baseRisk.default * weights.baseRisk) / 100,
+        transactionalRisk: (transactionalRisk.default * weights.transactionalRisk) / 100
+      })
+    }
+    let scores: number[] = Object.values(summary)
+    let score = scores.reduce((a, b) => a + b, 0)
+    application.score = this.roundScore(score)
+    application.scoreType = this.getScoreType(application.score, this.bot.models)
+  }
+  public getScoreType = (score, models) => {
+    const { low, high, medium, autohigh } = this.riskFactors
+    let value
+    if (score < low) value = 'low'
+    else if (score < medium) value = 'medium'
+    else if (score < high) value = 'high'
+    else if (score < autohigh) value = 'autohigh'
+
+    return enumValue({
+      model: models[SCORE_TYPE],
+      value
+    })
+  }
+  public resetScoreFor({ name, detail, application }) {
+    let { scoreDetails } = application
+    if (!scoreDetails) {
+      scoreDetails = { details: [], summary: {} }
+      application.scoreDetails = scoreDetails
+    }
+    let { details, summary } = scoreDetails
+    // scoreDetails = scoreDetails.scoreDetails || scoreDetails.result
+    let idx = details && details.findIndex(r => r.name === detail.name)
+    if (idx !== -1) details.splice(idx, 1, detail)
+    else details.push(detail)
+
+    summary.accountTypeRisk = detail.score
+    this.calcApplicatinScore(application)
+  }
+
+  public addDetailScore = ({ value, coef }) => {
+    return { /*value, coef,*/ score: Math.round(value * coef) / 100 }
+  }
+  // public getDdrScore = ({ payload }) => {
+  //   let { ddr } = payload
+  //   if (!ddr) return
+  //   ddr = ddr.replace(/\s/g, '')
+  //   if (!ddr.length) return
+  //   // historical behavior
+  //   const { historicalBehaviorRisk } = riskFactors.weights
+  //   return {
+  //     score: (historicalBehaviorRisk * riskFactors.defaultValue) / 100,
+  //     historicalBehaviorRisk: true,
+  //     name: 'Historical Behavior Risk'
+  //   }
+  // }
+}
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
+  const rsApi = new RiscScoreAPI({
+    bot,
+    conf,
+    logger,
+    applications
+  })
+
   const plugin = {
     async onmessage(req) {
-      const { user, application, payload } = req
+      const { application, payload } = req
       if (!application) return
+
+      const { models } = bot
+
+      if (payload[TYPE] === SPECIAL_APPROVAL_REQUIRED_CHECK_OVERRIDE) {
+        rsApi.resetBsaRiskWithOverride({ payload, application })
+        return
+      }
+
       let { requestFor } = application
-      let formType = conf.products[requestFor]
-      if (!formType) return
+
+      let riskFactors = conf.riskFactors
+      if (!riskFactors) return
+
+      let forms = conf.products[requestFor]
       let ptype = payload[TYPE]
+      if (!forms || !forms.includes(ptype)) return
 
-      if (typeof formType === 'string') {
-        if (ptype !== formType) return
-      } else if (!formType[ptype]) return
+      let stubs = getFormStubs({ forms: application.forms }).reverse()
+      stubs = uniqBy(stubs, '_permalink')
 
-      let { defaultValue, weights, countries, legalStructure, historicalBehaviorRisk } = riskFactors
-
-      if (!application.scoreDetails) application.scoreDetails = {}
-      let { scoreDetails } = application
-
-      const models = bot.models
-      let { country, countriesOfOperation } = payload
-      if (country) {
-        let cid = country.id.split('_')[1]
-        let coef = countries[cid]
-        if (coef) {
-          let weight = weights.countryOfRegistration
-          let defaultC = countries.default || defaultValue
-          scoreDetails.countryOfRegistration = {
-            [cid]: addDetailScore({ value: (defaultC * weight) / 100, coef })
-          }
-          scoreDetails.countryOfRegistration.score = scoreDetails.countryOfRegistration[cid].score
-          if (requestFor === CP_ONBOARDING) {
-            application.score = getScore(scoreDetails, riskFactors)
-            application.scoreType = getScoreType(application.score, riskFactors, models)
-            return
-          }
-        }
-      }
-      if (countriesOfOperation) {
-        checkCountriesOfOperation({ scoreDetails, countriesOfOperation, riskFactors })
-      }
-      let { latestChecks } = req
-      let checks = latestChecks || application.checks
-      checks = checks.filter(
-        check => check[TYPE] === CORPORATION_EXISTS || check[TYPE] === BENEFICIAL_OWNER_CHECK
+      stubs = stubs.filter(
+        stub => forms.includes(stub[TYPE]) && stub._permalink !== payload._permalink
       )
-      if (!checks) {
-        application.score = getScore(scoreDetails, riskFactors)
-        application.scoreType = getScoreType(application.score, riskFactors, models)
+
+      let scoreDetails
+      let isAccount = isSubClassOf(BANK_ACCOUNT, models[payload[TYPE]], models)
+      if (isAccount) {
+        stubs = stubs.slice()
+        stubs.push(buildResourceStub({ resource: payload, models }))
+        let accountScore: any = rsApi.getAccountScore({ stubs })
+
+        rsApi.resetScoreFor({ name: 'accountTypeRisk', detail: accountScore, application })
         return
       }
-      let sanctionsChecks
-      if (!latestChecks) {
-        checks = await Promise.all(checks.map(check => bot.getResource(check)))
-        checks.sort((a, b) => b._time - a._time)
-        sanctionsChecks = checks.filter(check => check[TYPE] === 'tradle.SanctionsCheck')
-        sanctionsChecks.sort((a, b) => b.time - a.time)
-        sanctionsChecks = _.uniqBy(sanctionsChecks, 'propertyName')
-      } else {
-        sanctionsChecks = latestChecks.filter(check => check[TYPE] === 'tradle.SanctionsCheck')
+      if (ptype.indexOf('PreOnboarding') !== -1) {
+        if (!application.scoreDetails)
+          application.scoreDetails = {
+            details: [],
+            summary: {}
+          }
+
+        rsApi.getBsaScore(payload, application)
+        rsApi.getLegalStructureScore(payload, application)
+        return
       }
-      if (sanctionsChecks) {
-        let failedCheck = sanctionsChecks.find(
-          check => getEnumValueId({ model: bot.models[STATUS], value: check.status }) !== 'pass'
+      let scoreForms
+      debugger
+      if (stubs.length) scoreForms = await Promise.all(stubs.map(stub => bot.getResource(stub)))
+      else scoreForms = []
+      scoreForms.push(payload)
+
+      scoreDetails = await Promise.all(
+        scoreForms.map(form =>
+          rsApi.getScore({ form, req, map: conf.propertyMap[form[TYPE]] || defaultMap, requestFor })
         )
-        if (failedCheck) {
-          let defaultH = historicalBehaviorRisk.default || defaultValue
-          let value = (defaultH * weights.historicalBehaviorRisk) / 100
-          scoreDetails.historicalBehaviorRisk = addDetailScore({ value, coef: 1 })
-        }
-      }
-      checks = _.uniqBy(checks, TYPE)
-      let corpExistsCheck = checks.find(
-        check =>
-          check[TYPE] === CORPORATION_EXISTS &&
-          getEnumValueId({ model: models[STATUS], value: check.status }) === 'pass'
       )
-      if (corpExistsCheck) checkOfficers({ scoreDetails, corpExistsCheck, riskFactors })
+      scoreDetails = scoreDetails.filter(r => r)
+      if (!scoreDetails.length) return
 
-      let beneRiskCheck = checks.find(
-        check =>
-          check[TYPE] === BENEFICIAL_OWNER_CHECK &&
-          getEnumValueId({ model: models[STATUS], value: check.status }) === 'pass'
-      )
-      if (!beneRiskCheck || !beneRiskCheck.rawData || !beneRiskCheck.rawData.length) {
-        let score = getScore(scoreDetails, riskFactors)
-        application.score = Math.round(score)
-        application.scoreType = getScoreType(application.score, riskFactors, models)
-        return
-      }
-      let { rawData } = beneRiskCheck
-      let boScore = {}
-      rawData.forEach(elm => {
-        let { data } = elm
-        if (!data) return
-        let { kind, identification, address, natures_of_control, ceased_on } = data
-        if (ceased_on) return
-        if (natures_of_control && !natures_of_control.length) {
-          // no control
-          return
-        }
-        let isIndividual = kind.startsWith('individual-')
-        if (isIndividual) {
-        } else {
-          let legalForm = identification && identification.legal_form
-          if (legalForm) {
-            let coef = legalStructure[legalForm.toLowerCase().replace(/\s/g, '_')]
-            if (coef) {
-              let defaultL = legalStructure.default || defaultValue
-              let value = (defaultL * weights.legalStructure) / 100
-              boScore[legalForm] = addDetailScore({ value, coef })
-            }
+      // scoreDetails = scoreDetails.filter(r => size(r) > 1)
+      let oldScoreDetails = application.scoreDetails
+      if (oldScoreDetails && oldScoreDetails.length) {
+        let notChanged = oldScoreDetails.filter(r => {
+          let { form, name } = r
+          if (form) {
+            let permalink = form._permalink
+            return scoreDetails.findIndex(rr => rr.form._permalink === permalink) === -1
+          } else {
+            return scoreDetails.findIndex(rr => rr.name === name) === -1
           }
-        }
-      })
-
-      if (_.size(boScore)) scoreDetails.boScore = boScore
-      application.score = getScore(scoreDetails, riskFactors)
-      application.scoreType = getScoreType(application.score, riskFactors, models)
+        })
+        scoreDetails = scoreDetails.concat(notChanged)
+      }
+      application.scoreDetails = {
+        details: scoreDetails,
+        summary: (application.scoreDetails && application.scoreDetails.summary) || {}
+      }
+      await rsApi.calcScore({ application, forms: scoreForms })
+      rsApi.calcApplicatinScore(application)
+      // HACK
+      application.scoreDetails.details = application.scoreDetails.details.filter(r => size(r) > 1)
+      debugger
     },
+    // resetScore({ name, detail, application }) {
+    //   let { scoreDetails } = application
+    //   if (!scoreDetails) {
+    //     scoreDetails = { details: [], summary: {} }
+    //     application.scoreDetails = scoreDetails
+    //   }
+    //   let { details, summary } = scoreDetails
+    //   // scoreDetails = scoreDetails.scoreDetails || scoreDetails.result
+    //   let idx = details && details.findIndex(r => r.name === detail.name)
+    //   if (idx !== -1) details.splice(idx, 1, detail)
+    //   else details.push(detail)
+
+    //   summary.accountTypeRisk = detail.score
+    //   rsApi.calcApplicatinScore(application)
+    // },
     onFormsCollected: async ({ req }) => {
       // debugger
       const { user, application, payload } = req
@@ -178,7 +525,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (typeof formType === 'string') {
         if (ptype !== formType) return
       } else if (!formType[ptype]) return
-      let { defaultValue } = riskFactors
+      let { defaultValue } = conf.riskFactors
       await checkParent({ application, defaultValue, bot, applications })
     }
   }
@@ -197,114 +544,4 @@ async function checkParent({ application, defaultValue, bot, applications }) {
   await applications.updateApplication(parentApp)
   if (parentApp.parent)
     await checkParent({ application: parentApp, defaultValue, bot, applications })
-}
-
-function addDetailScore({ value, coef }) {
-  return { value, coef, score: Math.round(value * coef * 100) / 100 }
-}
-function getScore(scoreDetails, riskFactors) {
-  const { baseRisk, weights, transactionalRisk } = riskFactors
-  let score = 0
-  scoreDetails.baseRisk = (baseRisk.default * weights.baseRisk) / 100
-  scoreDetails.transactionalRisk = (transactionalRisk.default * weights.transactionalRisk) / 100
-  score = calcScore(scoreDetails, score)
-  return roundScore(score)
-}
-
-function calcScore(scoreDetails, score) {
-  for (let p in scoreDetails) {
-    if (scoreDetails[p].score) score += scoreDetails[p].score
-    else if (typeof scoreDetails[p] === 'number') score += scoreDetails[p]
-    else score = calcScore(scoreDetails[p], score)
-  }
-  return score
-}
-function checkCountriesOfOperation({ scoreDetails, countriesOfOperation, riskFactors }) {
-  if (!countriesOfOperation.length) {
-    return
-  }
-  let { defaultValue, weights, countries } = riskFactors
-  let defaultC = countries.default || defaultValue
-  let weight = weights.countryOfOperation / countriesOfOperation.length
-  let score: any = {}
-  countriesOfOperation.forEach(c => {
-    let cid = c.id.split('_')[1]
-    let coef = countries[cid]
-
-    if (coef) score[cid] = addDetailScore({ value: (defaultC * weight) / 100, coef })
-  })
-  if (_.size(score)) {
-    scoreDetails.countriesOfOperation = score
-    let totalScore = 0
-    for (let p in score) totalScore += score[p].score
-    scoreDetails.countriesOfOperation.score = totalScore
-  }
-}
-function checkOfficers({ scoreDetails, corpExistsCheck, riskFactors }) {
-  let { industry_codes, officers } = corpExistsCheck.rawData[0].company
-
-  let { defaultValue, weights, industries, lengthOfRelationship } = riskFactors
-  let defaultO = lengthOfRelationship.default || defaultValue
-
-  let score: any = {}
-  if (industry_codes && industry_codes.length) {
-    let ic = industry_codes.filter(icode => {
-      let { code, code_scheme_id } = icode.industry_code
-      if (code_scheme_id) return code_scheme_id.startsWith('isic_') && industries[code + '']
-      else return industries[code + '']
-    })
-    if (ic.length) {
-      let weight = weights.industry
-      let industryCoef = 0
-      ic.forEach((item: any) => {
-        let coef = industries[item.industry_code.code + '']
-        if (coef && coef > industryCoef) industryCoef = coef
-      })
-      score = addDetailScore({ value: (defaultO * weight) / 100, coef: industryCoef })
-    }
-  }
-  if (score.value) scoreDetails.industries = score
-  if (!officers || !officers.length) return
-  if (officers.length)
-    officers = officers.filter(o => o.officer.position !== 'agent' && !o.officer.inactive)
-  if (!officers.length) return
-  // let weight = weights.lengthOfRelationship
-  let part = Math.round(defaultO / officers.length / 100) * 100
-  // let newScore = score + score * weight
-  let newScore = {}
-  officers.forEach(o => {
-    let startDate = o.officer.start_date
-    if (!startDate) return
-    let endDate = o.officer.end_date
-    if (endDate) endDate = new Date().getTime()
-    else endDate = Date.now()
-    let delta = endDate - new Date(startDate).getTime()
-    let day = 1000 * 60 * 60 * 24
-    let years = Math.round(delta / day / 365)
-    if (years < 1) years = 1
-    let coef = lengthOfRelationship[years + '']
-    if (coef) newScore[o.officer.name] = addDetailScore({ value: part / 100, coef })
-  })
-  if (_.size(newScore)) {
-    scoreDetails.lengthOfRelationship = newScore
-    let totalScore = 0
-    for (let p in newScore) totalScore += newScore[p].score
-    scoreDetails.lengthOfRelationship.score = totalScore
-  }
-}
-function roundScore(score) {
-  return (score && Math.round(score * 100) / 100) || score
-}
-function getScoreType(score, riskFactors, models) {
-  const { low, high, medium, autohigh } = riskFactors
-  let value
-  if (score < low) value = 'low'
-  else if (score < medium) value = 'medium'
-  else if (score < high) value = 'high'
-  else if (score < autohigh) value = 'autohigh'
-
-  return enumValue({
-    model: models[SCORE_TYPE],
-    value
-  })
 }

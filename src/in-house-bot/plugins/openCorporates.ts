@@ -555,7 +555,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       }
       // CHECK PASS
       if (status === 'pass' && hits.length === 1) {
-        if (!application.applicantName) application.applicantName = payload.companyName
+        if (!application.applicantName) application.applicantName = payload[map.companyName]
       }
       pchecks.push(
         openCorporates.createCorporateCheck({

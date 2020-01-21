@@ -34,7 +34,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         city: associatedRes.controllingEntityRegion,
         postalCode: associatedRes.controllingEntityPostalCode,
         companyEmail: associatedRes.emailAddress,
-        companyType: associatedRes.companyType
+        companyType: associatedRes.companyType,
+        typeOfOwnership: associatedRes.typeOfOwnership
       }
       prefill = sanitize(prefill).sanitized
       debugger

@@ -507,14 +507,8 @@ export const doesCheckNeedToBeCreated = async ({
   if (!application.checks || !application.checks.length) return true
   if (!req.checks) {
     let startTime = Date.now()
-    req.checks = await Promise.all(application.checks.map(checkStub => bot.getResource(checkStub)))
-    const timeDesc = req.checks.slice().sort((a, b) => b._time - a._time)
-    req.latestChecks = _.uniqBy(timeDesc, TYPE)
-    let sanctionsChecks = timeDesc.filter(check => check[TYPE] === SANCTIONS_CHECK)
-    sanctionsChecks = _.uniqBy(sanctionsChecks, 'propertyName')
-
-    req.latestChecks = _.uniqBy(req.latestChecks.concat(sanctionsChecks), '_permalink')
-
+    let { checks = [], latestChecks = [] } = await getLatestChecks({ application, bot })
+    _.extend(req, { checks, latestChecks })
     bot.logger.debug(`getChecks took: ${Date.now() - startTime}`)
   }
   let items = req.checks.filter(check => check.provider === provider)
@@ -531,6 +525,34 @@ export const doesCheckNeedToBeCreated = async ({
   if (checkForThisForm[0].status.id.endsWith('_error')) return true
   return hasChanged
 }
+export const getLatestChecks = async ({ application, bot }) => {
+  if (!application.checks || !application.checks.length) return {}
+  let checks: any = await Promise.all(
+    application.checks
+      .map(stub => _.omit(parseStub(stub), 'link'))
+      .map(stub => bot.getResource(stub))
+  )
+
+  const timeDesc = checks.slice().sort((a, b) => b._time - a._time)
+
+  let latestChecks = _.uniqBy(timeDesc, (check: any) =>
+    [check.form._permalink, check.propertyName, check[TYPE], check.provider].join(',')
+  )
+  let sanctionsChecks = _.uniqBy(
+    timeDesc.filter(check => check[TYPE] === SANCTIONS_CHECK),
+    (check: any) =>
+      [check.form._permalink, check.propertyName, check[TYPE], check.provider].join(',')
+  )
+
+  // debugger
+  // let latestChecks1 = _.uniqBy(timeDesc, TYPE)
+  // let sanctionsChecks = timeDesc.filter(check => check[TYPE] === SANCTIONS_CHECK)
+  // sanctionsChecks = _.uniqBy(sanctionsChecks, 'propertyName')
+
+  latestChecks = _.uniqBy(latestChecks.concat(sanctionsChecks), '_permalink')
+  return { latestChecks, checks }
+}
+
 export const getChecks = async ({
   bot,
   type,

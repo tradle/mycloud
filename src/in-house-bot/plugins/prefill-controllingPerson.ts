@@ -17,6 +17,7 @@ const CLIENT_ACTION_REQUIRED_CHECK = 'tradle.ClientActionRequiredCheck'
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
 const CHECK_STATUS = 'tradle.Status'
+const TYPE_OF_OWNERSHIP = 'tradle.legal.TypeOfOwnership'
 const COUNTRY = 'tradle.Country'
 const COMPANIES_HOUSE = 'Companies House'
 
@@ -154,6 +155,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       }
       // prefill = sanitize(prefill).sanitized
       let cePrefill = { ...prefill }
+      cePrefill = sanitize(cePrefill).sanitized
       let provider = enumValue({
         model: bot.models[REFERENCE_DATA_SOURCES],
         // HACK
@@ -183,6 +185,16 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           }
         }
       }
+      prefill.typeOfOwnership =
+        prefill.typeOfOwnership ||
+        enumValue({
+          model: bot.models[TYPE_OF_OWNERSHIP],
+          // HACK
+          value: 'individual'
+        })
+
+      await this.addOwnsTypeOfOwnership({ formRequest, prefill })
+
       formRequest.dataLineage = dataLineage
       if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
       formRequest.prefill = {
@@ -275,6 +287,12 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           })
         }
       }
+      prefill.typeOfOwnership = enumValue({
+        model: bot.models[TYPE_OF_OWNERSHIP],
+        // HACK
+        value: 'individual'
+      })
+
       this.addNatureOfControl(prefill, natures_of_control)
     },
     prefillCompany(prefill, bo) {
@@ -344,6 +362,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         )
         beneficialOwners = uniqBy(beneficialOwners, 'data.name')
       }
+      let legalEntity
       for (let i = 0; i < beneficialOwners.length; i++) {
         let bene = beneficialOwners[i]
         let { data } = bene
@@ -366,17 +385,12 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           name,
           prefilledName: name
         }
+        await this.addOwnsTypeOfOwnership({ formRequest, prefill })
+
         if (isIndividual) {
           this.prefillIndividual(prefill, bene)
-          // prefill.dateOfBirth =
-          //   date_of_birth && new Date(date_of_birth.year, date_of_birth.month).getTime()
-          // if (country_of_residence) {
-          //   let country = getCountryByTitle(country_of_residence, bot.models)
-          //   if (country) prefill.controllingEntityCountry = country
-          // }
         } else {
           this.prefillCompany(prefill, bene)
-          if (formRequest.prefill) prefill.owns = formRequest.prefill.legalEntity
         }
         prefill = sanitize(prefill).sanitized
         if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
@@ -393,6 +407,14 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         formRequest.message = `Please review and correct the data below **for ${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
         return true
       }
+    },
+    async addOwnsTypeOfOwnership({ formRequest, prefill }) {
+      if (!formRequest.prefill || prefill.ownsTypeOfOwnership) return
+      let legalEntityStub = formRequest.prefill.legalEntity
+      if (!legalEntityStub) return
+      prefill.owns = legalEntityStub
+      let legalEntity = await bot.getResource(legalEntityStub)
+      if (legalEntity.typeOfOwnership) prefill.ownsTypeOfOwnership = legalEntity.typeOfOwnership
     }
   }
 

@@ -15,6 +15,7 @@ import {
   getEnumValueId,
   isSubClassOf
 } from '../utils'
+import { debug } from 'util'
 // import { printCommand } from '../commands/help'
 
 const { FORM } = TYPES
@@ -409,7 +410,7 @@ class ComplyAdvantageAPI {
           else if (tt.startsWith('pep')) application.pepHit = true
         })
       })
-      rawData = {...screening, ...rawData}
+      rawData = { ...screening, ...rawData }
     } else {
       status = {
         status: 'pass'
@@ -532,7 +533,11 @@ export const createPlugin: CreatePlugin<void> = (
       let checks = req.checks
       if (checks) checks = checks.filter(check => check[TYPE] === CORPORATION_EXISTS)
       else {
-        checks = await bot.getResource(payload, { backlinks: ['checks'] })
+        try {
+          checks = await bot.getResource(payload, { backlinks: ['checks'] })
+        } catch (err) {
+          debugger
+        }
         if (!checks || !checks.length) return
         checks = checks.filter(check => check[TYPE] === CORPORATION_EXISTS)
         if (!checks || !checks.length) return

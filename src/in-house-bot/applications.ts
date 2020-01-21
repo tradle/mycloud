@@ -11,7 +11,7 @@ import isEmpty from 'lodash/isEmpty'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import { parseStub } from '../utils'
-import { isPassedCheck, removeRoleFromUser } from './utils'
+import { isPassedCheck, removeRoleFromUser, getLatestChecks } from './utils'
 import Errors from '../errors'
 import { mixin as modelsMixin } from '../models-mixin'
 import { TYPE, PERMALINK } from '../constants'
@@ -111,6 +111,7 @@ export class Applications implements IHasModels {
       throw new Error('expected type and "application"')
     }
     let { application, latestChecks, checks } = req
+
     if (application.top) {
       let checkModel = models[type]
       if (checkModel.properties.top) props.top = application.top
@@ -124,7 +125,7 @@ export class Applications implements IHasModels {
       .set(props)
       .signAndSave()
 
-    let checkResource = check.toJSON({virtual: true})
+    let checkResource = check.toJSON({ virtual: true })
 
     let checksCount = application.checksCount
     application.checksCount = (checksCount && ++application.checksCount) || 1
@@ -133,7 +134,14 @@ export class Applications implements IHasModels {
       if (checks) {
         const timeDesc = req.checks.slice().sort((a, b) => b._time - a._time)
         latestChecks = uniqBy(timeDesc, TYPE)
-      } else latestChecks = await this.getLatestChecks({ application })
+      } else {
+        ;({ latestChecks = [], checks = [] } = await getLatestChecks({
+          application,
+          bot: this.bot
+        }))
+
+        req.checks = checks
+      }
       req.latestChecks = latestChecks
     }
     let idx = latestChecks.findIndex(c => c[TYPE] === props[TYPE])
@@ -359,29 +367,46 @@ export class Applications implements IHasModels {
   public requestItem = async (opts: RequestItemOpts) => {
     return await this.productsAPI.requestItem(opts)
   }
-
-  public getLatestChecks = async ({ application }: AppInfo): Promise<ITradleCheck[]> => {
-    const { checks = [] } = application
-    if (!checks.length) return []
-    // let startTime = new Date().getTime()
-    const bodies = await Promise.all(
-      checks
-        // get latest version of those checks
-        .map(stub => omit(parseStub(stub), 'link'))
-        .map(stub => this.bot.getResource(stub))
-    )
-    // this.logger.debug(`ending getLatestChecks: ${new Date().getTime() - startTime}`)
-
-    const timeDesc = bodies.slice().sort((a, b) => b._time - a._time)
-    return uniqBy(timeDesc, TYPE)
+  public getApplicationByPayload = async ({resource, bot}) => {
+    let msg = await bot.getMessageWithPayload({
+      select: ['context', 'payload'],
+      link: resource._link,
+      author: resource._author,
+      inbound: true
+    })
+    let { items } = await bot.db.find({
+      filter: {
+        EQ: {
+          [TYPE]: 'tradle.Application',
+          context: msg.context
+        }
+      }
+    })
+    return items && items[0]
   }
+
+  // public getLatestChecks = async ({ application }: AppInfo): Promise<ITradleCheck[]> => {
+  //   const { checks = [] } = application
+  //   if (!checks.length) return []
+  //   // let startTime = new Date().getTime()
+  //   const bodies = await Promise.all(
+  //     checks
+  //       // get latest version of those checks
+  //       .map(stub => omit(parseStub(stub), 'link'))
+  //       .map(stub => this.bot.getResource(stub))
+  //   )
+  //   // this.logger.debug(`ending getLatestChecks: ${new Date().getTime() - startTime}`)
+
+  //   const timeDesc = bodies.slice().sort((a, b) => b._time - a._time)
+  //   return uniqBy(timeDesc, TYPE)
+  // }
 
   public haveAllChecksPassed = async ({ application }: AppInfo) => {
     const { checks = [] } = application
     if (!checks.length) return true
 
-    const checkResources = await this.getLatestChecks({ application })
-    const byAPI: any = groupBy(checkResources, 'provider')
+    const { latestChecks } = await getLatestChecks({ application, bot: this.bot })
+    const byAPI: any = groupBy(latestChecks, 'provider')
     const latest = Object.keys(byAPI).map(provider => byAPI[provider].pop())
     const allPassed = latest.every(check => isPassedCheck(check))
     this.logger.silly('have all checks passed?', {

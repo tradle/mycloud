@@ -2,6 +2,7 @@
 // import validateResource from '@tradle/validate-resource'
 import { TYPE } from '@tradle/constants'
 import { isPassedCheck } from '../utils'
+import { getEnumValueId, getLatestChecks } from '../utils'
 
 import {
   Bot,
@@ -17,6 +18,7 @@ import {
 // const { parseStub } = validateResource.utils
 
 // export const name = 'conditional-auto-approve'
+const STATUS = 'tradle.Status'
 
 const getResourceType = resource => resource[TYPE]
 
@@ -71,17 +73,17 @@ export class ConditionalAutoApprove {
         formsSubmitted.push(f[TYPE])
     })
     if (forms.length !== productForms.length) return
-    const checkResources = await this.applications.getLatestChecks({ application })
+    let { latestChecks } = await getLatestChecks({ application, bot: this.bot })
     // check that just passed may not have had correponding ApplicationSubmission created yet
     // and so may not be in the result
-    const idx = checkResources.findIndex(c => c._permalink === check._permalink)
+    const idx = latestChecks.findIndex((c: any) => c._permalink === check._permalink)
     if (idx === -1) {
-      checkResources.push(check)
+      latestChecks.push(check)
     } else {
-      checkResources[idx] = check
+      latestChecks[idx] = check
     }
 
-    const foundChecks = checkResources.filter(check => {
+    const foundChecks = latestChecks.filter((check: any) => {
       return isPassedCheck(check) && checksToCheck.includes(check[TYPE])
     })
 
@@ -125,13 +127,16 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       // debugger
 
       if (checkTypes.length) {
-        let checks = await applications.getLatestChecks({ application })
+        let latestChecks: any = req.latestChecks
+        if (!latestChecks) ({ latestChecks } = await getLatestChecks({ application, bot }))
         let foundChecks = 0
-        for (let i = 0; i < checks.length; i++) {
-          let c = checks[i]
+        for (let i = 0; i < latestChecks.length; i++) {
+          let c = latestChecks[i]
           if (!checkTypes.includes(c[TYPE])) continue
           foundChecks++
-          if (c.status.title.toLowerCase() !== 'pass') return
+
+          if (getEnumValueId({ model: bot.models[STATUS], value: c.status }) !== 'pass') return
+          // if (c.status.title.toLowerCase() !== 'pass') return
         }
         if (foundChecks === checkTypes.length) await applications.approve({ application })
       } else if (await applications.haveAllChecksPassed({ application }))
