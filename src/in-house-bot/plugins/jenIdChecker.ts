@@ -4,7 +4,6 @@ import DataURI from 'strong-data-uri'
 import sizeof from 'image-size'
 import _ from 'lodash'
 import sharp from 'sharp'
-import { buildResourceStub } from '@tradle/build-resource'
 import constants from '@tradle/constants'
 import {
   Bot,
@@ -189,26 +188,51 @@ export class JenIdCheckerAPI {
       if (processingstatus.code !== '0') {
         return {
           status: 'fail',
-          message: `Check failed: ${processingstatus.description}`,
-          rawData: result.data
+          message: `Check failed: ${processingstatus.description}.`,
+          rawData: result.data,
+          repeat: true
         }
       } else if (+securitystatus.overallriskvalue >= this.conf.threshold) {
+        if (result.data.body.data.facedata[0].exists == '-1') {
+          return {
+            status: 'fail',
+            message: 'Check failed, photo of your face missing or obscured.',
+            rawData: result.data,
+            repeat: true
+          }
+        }
+        let msg = this.collectMsg(result.data.body.security)
         return {
           status: 'fail',
-          message: `Check failed: ${securitystatus.statusdescription}`,
-          rawData: result.data
+          message: 'Suspicion of fraud.' + msg,
+          rawData: result.data,
+          repeat: false
         }
       }
       return {
         status: 'pass',
         message: `Check passed: ${securitystatus.statusdescription}`,
-        rawData: result.data
+        rawData: result.data,
+        repeat: false
       }
     } else {
-      const status = { status: 'error', message: response.error, rawData: {} }
+      const status = { status: 'error', message: response.error, rawData: {}, repeat: false }
       this.logger.debug(`Failed get data from ${PROVIDER}, error : ${response.error}`)
       return status
     }
+  }
+
+  collectMsg = (security: any) => {
+    let msg = ''
+    let keys = Object.keys(security)
+    for (let key of keys) {
+      let arr = security[key]
+      for (let elem of arr) {
+        if (elem.verified == '-1')
+          msg += elem.statusMsg
+      }
+    }
+    return msg
   }
 
   imageResize = async (dataUrl: string) => {
@@ -404,12 +428,9 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
       const { user, application, applicant, payload } = req
 
       if (!application) return
-
-      const formStub = getParsedFormStubs(application).find(form => form.type === PHOTO_ID)
-      if (!formStub) return
-
-      const form = await bot.getResource(formStub)
-
+      if (payload[TYPE] != PHOTO_ID)
+        return
+      let form = payload
       // debugger
       let toCheck = await doesCheckNeedToBeCreated({
         bot,
@@ -428,34 +449,36 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
         return
       }
       // debugger
-      let status = await documentChecker.handleData(form, application)
+      let status: any = await documentChecker.handleData(form, application)
 
-      const payloadClone = _.cloneDeep(payload)
-      payloadClone[PERMALINK] = payloadClone._permalink
-      payloadClone[LINK] = payloadClone._link
+      if (status.repeat) {
 
-      // debugger
-      let formError: any = {
-        req,
-        user,
-        application
-      }
-      formError.details = {
-        prefill: payloadClone,
-        message: `Please adjust your document id and try to scan again`
-      }
+        const payloadClone = _.cloneDeep(payload)
+        payloadClone[PERMALINK] = payloadClone._permalink
+        payloadClone[LINK] = payloadClone._link
 
-      try {
-        await applications.requestEdit(formError)
-        return {
-          message: 'no request edit',
-          exit: true
+        // debugger
+        let formError: any = {
+          req,
+          user,
+          application
         }
-      } catch (err) {
-        debugger
+        formError.details = {
+          prefill: payloadClone,
+          message: `${status.message} Please adjust or change your id and try to scan again.`
+        }
+
+        try {
+          await applications.requestEdit(formError)
+          return {
+            message: 'no request edit',
+            exit: true
+          }
+        } catch (err) {
+          debugger
+        }
       }
 
-      /*
       await documentChecker.createCheck({ application, status, form, req })
       if (status.status === 'pass') {
         await documentChecker.createVerification({
@@ -465,7 +488,6 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
           req
         })
       }
-      */
     }
   }
 
