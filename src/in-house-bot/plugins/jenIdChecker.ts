@@ -72,7 +72,9 @@ export class JenIdCheckerAPI {
   public handleData = async (form, application) => {
     await this.bot.resolveEmbeds(form)
     this.logger.debug('jenIdChecker handleData called')
-    let frontImageInfo = await this.imageResize(form.scan.url)
+    let isPassport = form.documentType && form.documentType.id.split('_')[1] == 'passport' ? true : false
+
+    let frontImageInfo = await this.imageResize(form.scan.url, isPassport)
 
     let jsonFrontImage = {
       mmHeight: 0,
@@ -93,7 +95,7 @@ export class JenIdCheckerAPI {
     let jsonInputImages = [jsonTransactionFrontInputImage]
 
     if (form.otherSideScan) {
-      let backImageInfo = await this.imageResize(form.otherSideScan.url)
+      let backImageInfo = await this.imageResize(form.otherSideScan.url, isPassport)
 
       let jsonBackImage = {
         mmHeight: 0,
@@ -235,7 +237,7 @@ export class JenIdCheckerAPI {
     return msg
   }
 
-  imageResize = async (dataUrl: string) => {
+  imageResize = async (dataUrl: string, isPassport: boolean) => {
     let pref = dataUrl.substring(0, dataUrl.indexOf(',') + 1)
     let buf = DataURI.decode(dataUrl)
     let dimensions: any = sizeof(buf);
@@ -244,7 +246,7 @@ export class JenIdCheckerAPI {
 
     this.logger.debug(`jenIdChecker image original w=${currentWidth}' h=${currentHeight}`)
     let biggest = currentWidth > currentHeight ? currentWidth : currentHeight
-    let coef: number = 2470 / biggest
+    let coef: number = (isPassport ? 2000 : 1500) / biggest
 
     if (currentWidth < currentHeight) { // rotate
       let resizedBuf: any
