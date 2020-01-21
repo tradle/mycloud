@@ -507,7 +507,7 @@ export const doesCheckNeedToBeCreated = async ({
   if (!application.checks || !application.checks.length) return true
   if (!req.checks) {
     let startTime = Date.now()
-    let { checks=[], latestChecks=[] } = await getLatestChecks({ application, bot })
+    let { checks = [], latestChecks = [] } = await getLatestChecks({ application, bot })
     _.extend(req, { checks, latestChecks })
     bot.logger.debug(`getChecks took: ${Date.now() - startTime}`)
   }
