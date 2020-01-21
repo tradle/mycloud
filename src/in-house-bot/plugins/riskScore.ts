@@ -152,6 +152,22 @@ class RiscScoreAPI {
       countryOfRegistration: this.calcOneCategoryScore({ name: 'countryOfRegistration', details }),
       countriesOfOperation: this.calcOneCategoryScore({ name: 'countriesOfOperation', details })
     })
+    let { countryOfRegistration, countriesOfOperation } = summary
+    if (countriesOfOperation && countryOfRegistration) {
+      let countriesOfOp = details.find(d => d.countriesOfOperation).countriesOfOperation
+
+      if (Object.values(countriesOfOp).length > 2) summary.crossBorderRisk = weights.crossBorderRisk
+      else {
+        let legalEntity = forms && forms.find(d => d[TYPE] === LE)
+        let countryReg = getEnumValueId({
+          model: this.bot.models[COUNTRY],
+          value: legalEntity.country
+        })
+        if (!countriesOfOp[countryReg]) summary.crossBorderRisk = weights.crossBorderRisk
+      }
+    }
+    if (!('crossBorderRisk' in summary)) summary.crossBorderRisk = 0
+    summary.lengthOfRelationship = weights.lengthOfRelationship
     if (details && details.length) {
       let accounts = details.find(r => r.numberOfAccounts)
       if (accounts) summary.accountsType = accounts.score
@@ -196,11 +212,9 @@ class RiscScoreAPI {
     let { models } = this.bot
 
     summary.legalStructureRisk = weights.legalStructure
-    if (legalEntity)
-      this.getLegalStructureScore(legalEntity, application)
-    if (summary.legalStructureRisk  ||  !('legalStructureRisk' in summary)) {
-      if (preOnboarding)
-        this.getLegalStructureScore(preOnboarding, application)
+    if (legalEntity) this.getLegalStructureScore(legalEntity, application)
+    if (summary.legalStructureRisk || !('legalStructureRisk' in summary)) {
+      if (preOnboarding) this.getLegalStructureScore(preOnboarding, application)
     }
     if (!size(summary)) {
       // application.score = 100
@@ -212,28 +226,25 @@ class RiscScoreAPI {
     let { summary, details } = application.scoreDetails
     let { weights } = this.riskFactors
 
-    if (('legalStructureRisk' in summary)  &&  !summary.legalStructureRisk)
-      return
+    if ('legalStructureRisk' in summary && !summary.legalStructureRisk) return
     summary.legalStructureRisk = weights.legalStructure
 
-    let { isRegulated, country, typeOfOwnership, tradedOnExchange } = payload
+    let { regulated, country, typeOfOwnership, tradedOnExchange } = payload
     let { models } = this.bot
 
-    if (isRegulated) {
+    if (regulated) {
       let id = getEnumValueId({ model: models[COUNTRY], value: country })
       if (id === 'DE' || id === 'GB') {
         summary.legalStructureRisk = 0
         return
       }
-    }
-    else if (typeOfOwnership && tradedOnExchange) {
+    } else if (typeOfOwnership && tradedOnExchange) {
       if (
         getEnumValueId({ model: models[TYPE_OF_OWNERSHIP], value: typeOfOwnership }) ===
         'publiclyTraded'
       ) {
         let exchange = getEnumValueId({ model: models[STOCK_EXCHANGE], value: tradedOnExchange })
-        if (exchange === 'NYSE' || exchange === 'NASDAQ')
-          summary.legalStructureRisk = 0
+        if (exchange === 'NYSE' || exchange === 'NASDAQ') summary.legalStructureRisk = 0
       }
     }
   }
@@ -250,10 +261,12 @@ class RiscScoreAPI {
     }
     let { defaultValue, weights, countries, countriesRiskByCategory } = this.riskFactors
     let defaultC = countries.default || defaultValue
-    let weight = weights.countryOfOperation //weights.countryOfOperation / countriesOfOperation.length
+    let weight = weights.countriesOfOperation //weights.countryOfOperation / countriesOfOperation.length
     let details: any = {}
     countriesOfOperation.forEach(c => {
       let cid = c.id.split('_')[1]
+      // HACK - need to fix in app multiselect
+      if (!cid.length) return
 
       let riskType = countries.find(c => c.code === cid)
       let risk = riskType.risk
@@ -261,10 +274,12 @@ class RiscScoreAPI {
       let coef = countriesRiskByCategory[risk]['Operations']
       if (coef) details[cid] = this.addDetailScore({ value: (defaultC * weight) / 100, coef })
     })
+    // HACK - need to fix in app multiselect
+    if (!size(details)) return
     let score: number[] = Object.values(details).map((detail: any) => detail.score)
     scoreDetails.countriesOfOperation = {
       score: Math.max(...score),
-      details
+      ...details
     }
   }
   public checkCountry({ country }) {
@@ -294,7 +309,7 @@ class RiscScoreAPI {
   }
   public resetBsaRiskWithOverride({ payload, application }) {
     let { summary } = application.scoreDetails
-    let bsaCodeRisc = summary.bsaCodeRisk
+    let { bsaCodeRisc } = summary
 
     let code = payload.bsaCode
     if (!code) return
