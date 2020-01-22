@@ -70,7 +70,7 @@ const COMMON_JOBS: Job[] = [
   {
     name: 'roarFeedback',
     function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: 10 * MINUTE
+    period: 1 * MINUTE
   },
   {
     name: 'importBasicCompanyData',
