@@ -56,16 +56,18 @@ const COUNTRY = 'tradle.Country'
 const STATUS = 'tradle.Status'
 const SCORE_TYPE = 'tradle.ScoreType'
 const BANK_ACCOUNT = 'tradle.BankAccount'
+const AUTOHIGH = '*AUTOHIGH*'
 const BSA_CODES = {
   fe102: 21
 }
 const defaultMap = {
   countryOfResidence: 'countryOfResidence',
   countryOfRegistration: 'countryOfRegistration',
-  countriesOfOperation: 'countriesOfOperation'
+  countriesOfOperation: 'countriesOfOperation',
+  countriesOfSignificantLink: 'countriesOfSignificantLink'
 }
 
-class RiscScoreAPI {
+class RiskScoreAPI {
   private bot: Bot
   private logger: Logger
   private conf: any
@@ -86,6 +88,7 @@ class RiscScoreAPI {
     let countryOfRegistration = form[map.countryOfRegistration]
 
     let countriesOfOperation = form[map.countriesOfOperation]
+    let countriesOfSignificantLink = form[map.countriesOfSignificantLink]
 
     let isCpOnboarding = requestFor === CP_ONBOARDING
     let isBO = form[TYPE] === CE_CP
@@ -95,18 +98,28 @@ class RiscScoreAPI {
 
     if (countryOfResidence || countryOfRegistration) {
       // Country of registration or residence
-      let detail = this.checkCountry({ country: countryOfResidence || countryOfRegistration })
-      if (isBO) scoreDetails.boRisk = detail
+      let detail: any = this.checkCountry({ country: countryOfResidence || countryOfRegistration })
+      if (isBO) scoreDetails.beneficialOwnerRisk = detail
       else {
         scoreDetails.countryOfRegistration = detail
+        if (detail.risk) scoreDetails.risk = detail.risk
         if (isCpOnboarding) return scoreDetails
       }
     }
 
-    if (countriesOfOperation) {
-      this.checkCountriesOfOperation({ scoreDetails, countriesOfOperation })
-    }
+    if (countriesOfOperation)
+      this.checkCountries({
+        scoreDetails,
+        countriesToCheck: countriesOfOperation,
+        name: 'countriesOfOperation'
+      })
 
+    if (countriesOfSignificantLink)
+      this.checkCountries({
+        scoreDetails,
+        countriesToCheck: countriesOfSignificantLink,
+        name: 'countriesOfSignificantLink'
+      })
     if (size(scoreDetails) === 1) return
 
     let { latestChecks, checks } = req
@@ -148,10 +161,17 @@ class RiscScoreAPI {
     extend(summary, {
       baseRisk: (baseRisk.default * weights.baseRisk) / 100,
       transactionalRisk: (transactionalRisk.default * weights.transactionalRisk) / 100,
-      beneficialOwnersRisk: this.calcOneCategoryScore({ name: 'boRisk', details }),
+      beneficialOwnersRisk: this.calcOneCategoryScore({ name: 'beneficialOwnerRisk', details }),
       countryOfRegistration: this.calcOneCategoryScore({ name: 'countryOfRegistration', details }),
       countriesOfOperation: this.calcOneCategoryScore({ name: 'countriesOfOperation', details })
     })
+    let countriesOfSignificantLinkScore = this.calcOneCategoryScore({
+      name: 'countriesOfSignificantLink',
+      details
+    })
+    if (countriesOfSignificantLinkScore > summary.countriesOfOperation)
+      summary.countriesOfOperation = countriesOfSignificantLinkScore
+
     let { countryOfRegistration, countriesOfOperation } = summary
     if (countriesOfOperation && countryOfRegistration) {
       let countriesOfOp = details.find(d => d.countriesOfOperation).countriesOfOperation
@@ -255,15 +275,16 @@ class RiscScoreAPI {
     if (!scores.length) return 0
     return Math.max(...scores)
   }
-  public checkCountriesOfOperation = ({ scoreDetails, countriesOfOperation }) => {
-    if (!countriesOfOperation.length) {
+  public checkCountries = ({ scoreDetails, countriesToCheck, name }) => {
+    if (!countriesToCheck.length) {
       return
     }
     let { defaultValue, weights, countries, countriesRiskByCategory } = this.riskFactors
     let defaultC = countries.default || defaultValue
     let weight = weights.countriesOfOperation //weights.countryOfOperation / countriesOfOperation.length
     let details: any = {}
-    countriesOfOperation.forEach(c => {
+    let hasAutohigh
+    countriesToCheck.forEach(c => {
       let cid = c.id.split('_')[1]
       // HACK - need to fix in app multiselect
       if (!cid.length) return
@@ -273,14 +294,19 @@ class RiscScoreAPI {
 
       let coef = countriesRiskByCategory[risk]['Operations']
       if (coef) details[cid] = this.addDetailScore({ value: (defaultC * weight) / 100, coef })
+      if (risk === 'autohigh') {
+        extend(details[cid], { risk: AUTOHIGH })
+        hasAutohigh = true
+      }
     })
     // HACK - need to fix in app multiselect
     if (!size(details)) return
     let score: number[] = Object.values(details).map((detail: any) => detail.score)
-    scoreDetails.countriesOfOperation = {
+    scoreDetails[name] = {
       score: Math.max(...score),
       ...details
     }
+    if (hasAutohigh) scoreDetails.risk = AUTOHIGH
   }
   public checkCountry({ country }) {
     let cid = country.id.split('_')[1]
@@ -295,10 +321,12 @@ class RiscScoreAPI {
     let weight = weights.countryOfRegistration
     let defaultC = countries.default || defaultValue
     let detail = this.addDetailScore({ value: (defaultC * weight) / 100, coef })
-    return {
+    let scoreDetail = {
       [cid]: detail,
       score: detail.score
     }
+    if (risk === 'autohigh') extend(scoreDetail, { risk: AUTOHIGH })
+    return scoreDetail
     // scoreDetails.countryOfRegistration = {
     //   [cid]: this.addDetailScore({ value: (defaultC * weight) / 100, coef })
     // }
@@ -308,8 +336,8 @@ class RiscScoreAPI {
     return (score && Math.round(score * 100) / 100) || score
   }
   public resetBsaRiskWithOverride({ payload, application }) {
-    let { summary } = application.scoreDetails
-    let { bsaCodeRisc } = summary
+    let { summary, details } = application.scoreDetails
+    let { bsaCodeRisk } = summary
 
     let code = payload.bsaCode
     if (!code) return
@@ -317,6 +345,13 @@ class RiscScoreAPI {
     let coef = (code === 'fe102' && 21) || 100
     let { weights } = this.riskFactors
     summary.bsaCodeRisk = this.roundScore((weights.bsaCodeRisk * coef) / 100)
+    debugger
+    let bsaDetail = details.find(d => d.bsaCodeRisk)
+
+    // bsaDetail.previousBsaScore = bsaDetail.bsaCodeRisk[code]
+
+    if (coef === 100) bsaDetail.risk = AUTOHIGH
+    bsaDetail.bsaCodeRisk[code] = summary.bsaCodeRisk
 
     this.calcApplicatinScore(application)
   }
@@ -347,17 +382,21 @@ class RiscScoreAPI {
     code = code.id.split('_')[1]
     let coef = BSA_CODES[code] || 100
     let { summary, details } = application.scoreDetails
-    summary.bsaCodeRisk = (weight * coef) / 100
+    summary.bsaCodeRisk = this.roundScore((weight * coef) / 100)
     this.calcApplicatinScore(application)
-    details.push({
+    let detail: any = {
       form: buildResourceStub({ resource: form, models: this.bot.models }),
       bsaCodeRisk: {
         [code]: summary.bsaCodeRisk
       }
-    })
+    }
+    if (coef === 100) detail.risk = AUTOHIGH
+    let idx = details.findIndex(d => d.bsaCodeRisk)
+    if (idx !== -1) details.splice(idx, 1, detail)
+    else details.push(detail)
   }
   public calcApplicatinScore(application) {
-    let { summary } = application.scoreDetails
+    let { summary, details } = application.scoreDetails
     let { baseRisk } = summary
     if (!baseRisk) {
       const { baseRisk, weights, transactionalRisk } = this.riskFactors
@@ -370,6 +409,17 @@ class RiscScoreAPI {
     let score = scores.reduce((a, b) => a + b, 0)
     application.score = this.roundScore(score)
     application.scoreType = this.getScoreType(application.score, this.bot.models)
+
+    let autohigh = details.filter(d => d.risk)
+    if (autohigh.length) {
+      application.ruledBasedScore = 100
+      return
+    }
+    let bsaCodeRiskDetail = details.find(d => d.bsaCodeRisk)
+    if (bsaCodeRiskDetail && bsaCodeRiskDetail.bsaCodeRisk) {
+      for (let p in BSA_CODES)
+        if (bsaCodeRiskDetail.bsaCodeRisk[p]) application.ruledBasedScore = 21
+    }
   }
   public getScoreType = (score, models) => {
     const { low, high, medium, autohigh } = this.riskFactors
@@ -419,7 +469,7 @@ class RiscScoreAPI {
 }
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
-  const rsApi = new RiscScoreAPI({
+  const rsApi = new RiskScoreAPI({
     bot,
     conf,
     logger,
@@ -473,7 +523,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
         rsApi.getBsaScore(payload, application)
         rsApi.getLegalStructureScore(payload, application)
-        return
+        rsApi.calcApplicatinScore(application)
+
+        // return
       }
       let scoreForms
       debugger
@@ -491,12 +543,12 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       // scoreDetails = scoreDetails.filter(r => size(r) > 1)
       let oldScoreDetails = application.scoreDetails
-      if (oldScoreDetails && oldScoreDetails.length) {
-        let notChanged = oldScoreDetails.filter(r => {
+      if (oldScoreDetails && oldScoreDetails.details.length) {
+        let notChanged = oldScoreDetails.details.filter(r => {
           let { form, name } = r
           if (form) {
-            let permalink = form._permalink
-            return scoreDetails.findIndex(rr => rr.form._permalink === permalink) === -1
+            if (r.bsaCodeRisk || r.accountTypeRisk) return true
+            return scoreDetails.findIndex(rr => rr.form._permalink === form._permalink) === -1
           } else {
             return scoreDetails.findIndex(rr => rr.name === name) === -1
           }
