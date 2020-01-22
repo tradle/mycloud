@@ -36,6 +36,7 @@ const COMMERCIAL = 'commercial'
 const TRADLE = 'TRADLE_';
 
 const REQUESTS = 'REQUESTS'
+const IDLENGHT = 38
 
 interface IRoarIntegrationConf {
   token: string
@@ -77,8 +78,8 @@ export class RoarRequestAPI {
         ],
         CustomerType: isIND ? 'IND' : 'ORG',
         CountryOfResidence: person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : '',
-        ExistingCustomerInternalId: TRADLE + person._permalink.substring(0, 40),
-        ApplicantID: TRADLE + person._permalink.substring(0, 40),
+        ExistingCustomerInternalId: TRADLE + person._permalink.substring(0, IDLENGHT),
+        ApplicantID: TRADLE + person._permalink.substring(0, IDLENGHT),
         Jurisdiction: person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : '', //???
         LastName: (isIND && person.lastName) ? person.lastName : '',
         CountryOfIncorporation: person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : '', //???
@@ -124,7 +125,7 @@ export class RoarRequestAPI {
           }
         ],
         Jurisdiction: legalEntity.country.id.split('_')[1],
-        ApplicantID: TRADLE + legalEntity._permalink.substring(0, 40),
+        ApplicantID: TRADLE + legalEntity._permalink.substring(0, IDLENGHT),
         OnboardingCustomerRelatedCustomer: relatedCustomers,
         CustomerNAICSCode: 'NONE',
         LastName: '',
@@ -149,7 +150,7 @@ export class RoarRequestAPI {
         CountryOfResidence: countryCode,
         ExistingCustomerInternalId: '',
         OrganizationLegalStructure: integrationId,
-        ApplicationID: TRADLE + legalEntity._permalink.substring(0, 40),
+        ApplicationID: TRADLE + legalEntity._permalink.substring(0, IDLENGHT),
         OrganizationName: legalEntity.companyName,
         CountryOfIncorporation: countryCode,
         CIPVerifiedStatus: 'Auto Pass',
@@ -161,7 +162,7 @@ export class RoarRequestAPI {
         Alias: legalEntity.alsoKnownAs ? legalEntity.alsoKnownAs : ''
       },
       locale: 'en_US', //???
-      applicationId: TRADLE + legalEntity._permalink.substring(0, 40),
+      applicationId: TRADLE + legalEntity._permalink.substring(0, IDLENGHT),
       PMFProcess: 'Onboarding_KYC',
       infodom: 'FCCMINFODOM',
       requestUserId: 'SVBUSER'
