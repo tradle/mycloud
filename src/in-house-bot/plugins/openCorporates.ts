@@ -34,8 +34,11 @@ const COMPANIES_HOUSE = 'Companies House'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
+const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 const COUNTRY = 'tradle.Country'
 const STATUS = 'tradle.Status'
+const API = 'tradle.API'
+const API_BASED_VERIFIED_METHOD = 'tradle.APIBasedVerificationMethod'
 
 interface IOpenCorporatesConf {
   products: any
@@ -167,7 +170,7 @@ class OpenCorporatesAPI {
       }
     }
 
-    let foundCompanyName, foundNumber, foundCountry, foundDate
+    let foundCompanyName, foundNumber, foundCountry, foundDate, noDateFetched
     let rightCompanyName, rightNumber, rightCountry, rightDate
     let message
 
@@ -194,11 +197,14 @@ class OpenCorporatesAPI {
         // &&  new Date(c.company.incorporation_date).getFullYear() !== new Date(registrationDate).getFullYear()) {
         let regDate = toISODateString(registrationDate)
         if (regDate !== incorporation_date) {
-          if (!foundDate) rightDate = incorporation_date
-          return false
+          if (incorporation_date) {
+            if (!foundDate) rightDate = incorporation_date
+            return false
+          }
+          noDateFetched = true
         }
+        foundDate = true
       }
-      foundDate = true
 
       let countryCode = country.id.split('_')[1]
       // if (c.company.registered_address  &&  c.company.registered_address.country) {
@@ -247,17 +253,20 @@ class OpenCorporatesAPI {
         message = `The company name "${companyName}" is different from the found one ${rightCompanyName} which corresponds to registration number "${registrationNumber}"`
     } else {
       if ((foundDate && registrationDate) || foundCountry)
-        message = 'The following aspects matched:'
+        message = 'The following aspects matched:\n'
       if (foundCompanyName && companyName && !rightCompanyName) message += `\nCompany name`
-      if (foundDate && registrationDate) message += `\nRegistration date`
+      if (foundDate && registrationDate && !noDateFetched) message += `\nRegistration date`
       if (foundCountry && !rightCompanyName) message += `\nCountry of registration`
       if (rightCompanyName) {
         message += `\n\nWarning: Company name is not the exact match: ${companyName} vs. ${rightCompanyName}`
       }
+      if (noDateFetched) {
+        message += '\n\nWarning: No registration date was fetched\n\n'
+      }
     }
     if (companies.length === 1) url = companies[0].company.opencorporates_url
     return {
-      rawData: rawData,
+      rawData,
       message,
       hits: companies,
       status: companies.length ? 'pass' : 'fail',
@@ -307,9 +316,9 @@ class OpenCorporatesAPI {
   public createVerification = async ({ application, form, rawData, req }) => {
     // debugger
     const method: any = {
-      [TYPE]: 'tradle.APIBasedVerificationMethod',
+      [TYPE]: API_BASED_VERIFIED_METHOD,
       api: {
-        [TYPE]: 'tradle.API',
+        [TYPE]: API,
         name: OPEN_CORPORATES
       },
       aspect: 'company existence',
@@ -554,9 +563,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         logger.debug(`creating verification for: ${resource.companyName}`)
       }
       // CHECK PASS
-      if (status === 'pass' && hits.length === 1) {
-        if (!application.applicantName) application.applicantName = payload[map.companyName]
-      }
+      if (status === 'pass' && hits.length === 1)
+        if (ptype === LEGAL_ENTITY && !application.applicantName)
+          application.applicantName = payload[map.companyName]
+
       pchecks.push(
         openCorporates.createCorporateCheck({
           provider,
@@ -587,7 +597,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       // debugger
       if (!application) return
 
-      if (payload[TYPE] !== 'tradle.legal.LegalEntity') return
+      if (payload[TYPE] !== LEGAL_ENTITY) return
       let { propertyMap, companiesHouseApiKey } = conf
       let map = propertyMap && propertyMap[payload[TYPE]]
       if (map) map = { ...defaultPropMap, ...map }
@@ -634,8 +644,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
 
         let previousNames = previous_company_names || previous_names
         if (previousNames) {
-          prefill.alsoKnownAs = previousNames[0]
-          if (previousNames.length > 1) prefill.formerlyKnownAs = previousNames[1]
+          let isObject = typeof previousNames[0] === 'object'
+          prefill.alsoKnownAs = (isObject && previousNames[0].company_name) || previousNames[0]
+          if (previousNames.length > 1)
+            prefill.formerlyKnownAs =
+              (isObject && previousNames[1]) || previousNames[1].company_name
         }
 
         if (incorporation_date) prefill.registrationDate = new Date(incorporation_date).getTime()
