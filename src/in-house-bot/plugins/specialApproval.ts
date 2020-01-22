@@ -13,8 +13,7 @@ const SPECIAL_APPROVAL_CHECK = 'tradle.SpecialApprovalRequiredCheck'
 const OVERRIDE_STATUS = 'tradle.OverrideStatus'
 const COUNTRY = 'tradle.Country'
 const CLIENT_ONBOARDING_TEAM = 'tradle.ClientOnboardingTeam'
-const ASPECTS = 'Business of interest'
-const PRE_ASPECTS = 'Business of interest'
+const ASPECTS = 'Business or country of interest'
 const PROVIDER = 'Tradle'
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
@@ -113,9 +112,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         provider: PROVIDER,
         application,
         dateChecked: Date.now(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
-        aspects: PRE_ASPECTS,
+        aspects: ASPECTS,
         form: payload,
-        message: 'FinCrime needs to review this application'
+        message: 'RM needs to review this application'
       }
       resource = sanitize(resource).sanitized
       application.assignedToTeam = enumValue({ model: models[CLIENT_ONBOARDING_TEAM], value: 'ro' })
