@@ -374,15 +374,18 @@ export class Applications implements IHasModels {
       author: resource._author,
       inbound: true
     })
-    let { items } = await bot.db.find({
-      filter: {
-        EQ: {
-          [TYPE]: 'tradle.Application',
-          context: msg.context
+    try {
+      return await bot.db.findOne({
+        filter: {
+          EQ: {
+            [TYPE]: 'tradle.Application',
+            context: msg.context
+          }
         }
-      }
-    })
-    return items && items[0]
+      })
+    } catch(err) {
+      debugger
+    }
   }
 
   // public getLatestChecks = async ({ application }: AppInfo): Promise<ITradleCheck[]> => {
