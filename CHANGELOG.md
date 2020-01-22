@@ -2,34 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.50](https://github.com/tradle/mycloud/compare/v2.5.1-rc.49...v2.5.1-rc.50) (2020-01-21)
-
-
-### Bug Fixes
-
-* check for check shouldn't be presumptious ([c7372d6](https://github.com/tradle/mycloud/commit/c7372d6))
-* getLatestChecks was uniqued by type should be by type, form and provider ([b153433](https://github.com/tradle/mycloud/commit/b153433))
-* getLatestChecks was uniqued by type should be by type, form and provider; moved to utils ([f176741](https://github.com/tradle/mycloud/commit/f176741))
-* models ([961ca4d](https://github.com/tradle/mycloud/commit/961ca4d))
-* models ([4a3a06a](https://github.com/tradle/mycloud/commit/4a3a06a))
-* notifications ([97a0ca3](https://github.com/tradle/mycloud/commit/97a0ca3))
-* SM didn't get notification even though it absolutely had to ([c9c5933](https://github.com/tradle/mycloud/commit/c9c5933))
-* typo ([5f5abf1](https://github.com/tradle/mycloud/commit/5f5abf1))
-* validateConf for sender email ([267cb17](https://github.com/tradle/mycloud/commit/267cb17))
+## [2.5.1-rc.51](https://github.com/tradle/mycloud/compare/v2.5.1-rc.50...v2.5.1-rc.51) (2020-01-22)
 
 
 ### Features
 
-* added more risk categories ([1e48944](https://github.com/tradle/mycloud/commit/1e48944))
-* complex onboarding ([66cc01e](https://github.com/tradle/mycloud/commit/66cc01e))
-* complex onboarding ([e9fe526](https://github.com/tradle/mycloud/commit/e9fe526))
-* complex onboarding - risk score ([aeaa12e](https://github.com/tradle/mycloud/commit/aeaa12e))
-* find application by payload ([cfec334](https://github.com/tradle/mycloud/commit/cfec334))
-* reuse previously onboarded entity ([bbfa529](https://github.com/tradle/mycloud/commit/bbfa529))
-* set a reference to already existing application if there is one ([6890092](https://github.com/tradle/mycloud/commit/6890092))
-* set a reference to already existing application if there is one ([81555c7](https://github.com/tradle/mycloud/commit/81555c7))
-* set type of ownership ([7a9341b](https://github.com/tradle/mycloud/commit/7a9341b))
-* set type of ownership (TOS) and owns TOS; fix: psc DL didn't show up ([7104373](https://github.com/tradle/mycloud/commit/7104373))
+* change check message ([48eaf2e](https://github.com/tradle/mycloud/commit/48eaf2e))
+* complex onboarding ([161b03b](https://github.com/tradle/mycloud/commit/161b03b))
+* complex onboarding ([b2b4a3a](https://github.com/tradle/mycloud/commit/b2b4a3a))
 
 
 
