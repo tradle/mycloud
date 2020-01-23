@@ -52,6 +52,7 @@ const QUERY = "select company_number, data from psc where company_number = '%s'"
 interface IPscAthenaConf {
   type: string
   check: string
+  countryProperty: string
 }
 
 interface IPscConf {
@@ -295,6 +296,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       logger.debug(`pscCheck called for type ${payload[TYPE]} to check ${subject.check}`)
 
       if (!payload[subject.check]) return
+      // serving only GB
+      let country = payload[subject.countryProperty]
+      if (!country || country.id.split('_')[1] !== 'GB')
+        return
 
       let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, application, bot })
       if (!check || isPassedCheck(check.status)) return
@@ -411,6 +416,9 @@ export const validateConf: ValidatePluginConf = async ({
     }
     if (!model.properties[subject.check]) {
       throw new Errors.InvalidInput(`property ${subject.check} was not found in ${subject.type}`)
+    }
+    if (!model.properties[subject.countryProperty]) {
+      throw new Errors.InvalidInput(`property ${subject.countryProperty} was not found in ${subject.type}`)
     }
   })
 }
