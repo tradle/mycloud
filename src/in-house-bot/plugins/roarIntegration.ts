@@ -30,7 +30,7 @@ const { sanitize } = validateResource.utils
 const FORM_TYPE = 'tradle.legal.LegalEntityControllingPerson'
 const SCREENING_CHECK = 'tradle.RoarScreeningCheck'
 const PROVIDER = 'KYC Engine'
-const ASPECTS = 'screening'
+const ASPECTS = 'KYC Engine screening: sanctions, PEPs, adverse media'
 const COMMERCIAL = 'commercial'
 
 const TRADLE = 'TRADLE_';
@@ -57,7 +57,7 @@ export class RoarRequestAPI {
     this.logger = logger
   }
 
-  build = (legalEntity: any, legalEntityControllingPersons: Array<any>): any => {
+  build = (legalEntity: any, teamCode: any, legalEntityControllingPersons: Array<any>): any => {
 
     let relatedCustomers = []
     for (let person of legalEntityControllingPersons) {
@@ -113,10 +113,12 @@ export class RoarRequestAPI {
 
     let id = legalEntity.typeOfOwnership ? legalEntity.typeOfOwnership.id.split('_')[1] : undefined
     let integrationId = id ? (this.bot.models['tradle.legal.TypeOfOwnership'].enum.find(elm => elm.id === id)).integrationId : ''
+    let tradedOnExchange = legalEntity.tradedOnExchange ? legalEntity.tradedOnExchange.id.split('_')[1] : 'N'
+
     let countryCode = legalEntity.country.id.split('_')[1]
     let req = {
       OnboardingCustomer: {
-        PrimaryCitizenship: countryCode,
+        PrimaryCitizenship: '',
         OnboardingCustomerCountry: [
           {
             RelationshipType: 'O',
@@ -132,7 +134,7 @@ export class RoarRequestAPI {
         OnboardingCustomerRelatedCustomer: relatedCustomers,
         CustomerNAICSCode: 'NONE',
         LastName: '',
-        StockExchange: 'N',
+        StockExchange: tradedOnExchange,
         OnboardingCustomerAddress: [
           {
             AddressPurpose: 'P',
@@ -150,7 +152,7 @@ export class RoarRequestAPI {
         CIPVerifiedFlag: 'Y',
         CustomerType: 'ORG',
         Website: legalEntity.companyWebsite ? legalEntity.companyWebsite : '',
-        CountryOfResidence: countryCode,
+        CountryOfResidence: '',
         ExistingCustomerInternalId: '',
         OrganizationLegalStructure: integrationId,
         ApplicationID: TRADLE + legalEntity._permalink.substring(0, IDLENGHT),
@@ -159,7 +161,7 @@ export class RoarRequestAPI {
         CIPVerifiedStatus: 'Auto Pass',
         TypeofRequest: 'New CIF Set-Up',
         PrimaryCustomer: 'Y',
-        RelationshipTeamCode: '30F',
+        RelationshipTeamCode: teamCode ? teamCode.id.split('_')[1] : '',
         SecondaryCitizenship: '',
         MiddleName: '',
         Alias: legalEntity.alsoKnownAs ? legalEntity.alsoKnownAs : ''
@@ -293,7 +295,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       const legalEntity = await bot.getResource(legalEntityRef)
 
-      let roarReq: any = roarRequestAPI.build(legalEntity, controllingPersons)
+      let roarReq: any = roarRequestAPI.build(legalEntity, application.teamCode, controllingPersons)
       let request = JSON.stringify(roarReq, null, 2)
 
       if (conf.trace)
