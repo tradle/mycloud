@@ -46,8 +46,13 @@ const CP_ONBOARDING = 'tradle.legal.ControllingPersonOnboarding'
 const CE_CP = 'tradle.legal.LegalEntityControllingPerson'
 const LE = 'tradle.legal.LegalEntity'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
+
 const SPECIAL_APPROVAL_REQUIRED_CHECK = 'tradle.SpecialApprovalRequiredCheck'
 const SPECIAL_APPROVAL_REQUIRED_CHECK_OVERRIDE = 'tradle.SpecialApprovalRequiredCheckOverride'
+
+const PRE_SPECIAL_APPROVAL_CHECK = 'tradle.PreSpecialApprovalCheck'
+const PRE_SPECIAL_APPROVAL_CHECK_OVERRIDE = 'tradle.PreSpecialApprovalCheckOverride'
+
 const RISK_CLASSIFICATION_CHECK = 'tradle.RiskClassificationCheck'
 const STOCK_EXCHANGE = 'tradle.StockExchange'
 const TYPE_OF_OWNERSHIP = 'tradle.legal.TypeOfOwnership'
@@ -174,16 +179,26 @@ class RiskScoreAPI {
 
     let { countryOfRegistration, countriesOfOperation } = summary
     if (countriesOfOperation && countryOfRegistration) {
-      let countriesOfOp = details.find(d => d.countriesOfOperation).countriesOfOperation
-
-      if (Object.values(countriesOfOp).length > 2) summary.crossBorderRisk = weights.crossBorderRisk
-      else {
-        let legalEntity = forms && forms.find(d => d[TYPE] === LE)
-        let countryReg = getEnumValueId({
-          model: this.bot.models[COUNTRY],
-          value: legalEntity.country
+      let countriesOfOp = details.filter(
+        d => d.countriesOfOperation || d.countriesOfSignificantLink
+      )
+      let countries = []
+      if (countriesOfOp.length) {
+        countriesOfOp.forEach(c => {
+          let cc = c.countriesOfOperation || c.countriesOfSignificantLink
+          countries = countries.concat(Object.keys(cc))
         })
-        if (!countriesOfOp[countryReg]) summary.crossBorderRisk = weights.crossBorderRisk
+      }
+      if (countries.length) {
+        if (countries.length > 2) summary.crossBorderRisk = weights.crossBorderRisk
+        else {
+          let legalEntity = forms && forms.find(d => d[TYPE] === LE)
+          let countryReg = getEnumValueId({
+            model: this.bot.models[COUNTRY],
+            value: legalEntity.country
+          })
+          if (!countries.includes(countryReg)) summary.crossBorderRisk = weights.crossBorderRisk
+        }
       }
     }
     if (!('crossBorderRisk' in summary)) summary.crossBorderRisk = 0
@@ -198,31 +213,35 @@ class RiskScoreAPI {
       application.checks.filter(
         check =>
           check[TYPE] === SPECIAL_APPROVAL_REQUIRED_CHECK ||
-          check[TYPE] === RISK_CLASSIFICATION_CHECK
+          check[TYPE] === PRE_SPECIAL_APPROVAL_CHECK
       )
     if (moreChecks && moreChecks.length) {
       moreChecks.sort((a: any, b: any) => b._time - a._time)
       moreChecks = uniqBy(moreChecks, TYPE)
 
       let checks = await Promise.all(moreChecks.map(r => this.bot.getResource(r)))
-      let checkOverrideBSA, checkOverrideDDR
+      let checkOverride, checkOverridePre
       checks.forEach((check: any) => {
         let ctype = check[TYPE]
         if (ctype === SPECIAL_APPROVAL_REQUIRED_CHECK) {
-          checkOverrideBSA = check.checkOverride
-        } else if (ctype === RISK_CLASSIFICATION_CHECK) checkOverrideDDR = check.checkOverride
+          checkOverride = check.checkOverride
+        } else if (ctype === PRE_SPECIAL_APPROVAL_CHECK) checkOverridePre = check.checkOverride
       })
-      if (checkOverrideBSA) {
-        checkOverrideBSA = await this.bot.getResource(checkOverrideBSA)
-        let code = checkOverrideBSA.bsaCode
-        let coef = BSA_CODES[code] || 100
-        summary.bsaCodeRisk = (weights.bsaCodeRisk * coef) / 100
+      let bsaCode, ddr
+      if (checkOverridePre) {
+        checkOverridePre = await this.bot.getResource(checkOverridePre)
+        bsaCode = checkOverridePre.bsaCode
+        ddr = checkOverridePre.ddr
       }
-      if (checkOverrideDDR) {
-        checkOverrideDDR = await this.bot.getResource(checkOverrideDDR)
-        if (checkOverrideDDR.ddr)
-          summary.historicalBehaviorRisk =
-            (historicalBehaviorRisk * weights.historicalBehaviorRisk) / 100
+      if (checkOverride) {
+        checkOverride = await this.bot.getResource(checkOverride)
+        if (checkOverride.ddr) ddr = checkOverride.ddr
+        if (checkOverride.bsaCode) bsaCode = checkOverride.bsaCode
+      }
+      if (ddr) summary.historicalBehaviorRisk = weights.historicalBehaviorRisk
+      if (bsaCode) {
+        let coef = BSA_CODES[bsaCode] || 100
+        summary.bsaCodeRisk = (weights.bsaCodeRisk * coef) / 100
       }
     }
 
@@ -353,6 +372,11 @@ class RiskScoreAPI {
     if (coef === 100) bsaDetail.risk = AUTOHIGH
     bsaDetail.bsaCodeRisk[code] = summary.bsaCodeRisk
 
+    if (payload.ddr) {
+      summary.historicalBehaviorRisk = weights.historicalBehaviorRisk
+      bsaDetail.historicalBehaviorRisk = { [payload.ddr]: summary.historicalBehaviorRisk }
+    }
+
     this.calcApplicatinScore(application)
   }
   public getAccountScore({ stubs }) {
@@ -481,20 +505,24 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const { application, payload } = req
       if (!application) return
 
+      let { riskFactors, products, propertyMap } = conf
+      if (!riskFactors || !products) return
+
       const { models } = bot
 
-      if (payload[TYPE] === SPECIAL_APPROVAL_REQUIRED_CHECK_OVERRIDE) {
+      let ptype = payload[TYPE]
+
+      if (
+        ptype === SPECIAL_APPROVAL_REQUIRED_CHECK_OVERRIDE ||
+        ptype === PRE_SPECIAL_APPROVAL_CHECK_OVERRIDE
+      ) {
         rsApi.resetBsaRiskWithOverride({ payload, application })
         return
       }
 
       let { requestFor } = application
 
-      let riskFactors = conf.riskFactors
-      if (!riskFactors) return
-
-      let forms = conf.products[requestFor]
-      let ptype = payload[TYPE]
+      let forms = products[requestFor]
       if (!forms || !forms.includes(ptype)) return
 
       let stubs = getFormStubs({ forms: application.forms }).reverse()
@@ -535,7 +563,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       scoreDetails = await Promise.all(
         scoreForms.map(form =>
-          rsApi.getScore({ form, req, map: conf.propertyMap[form[TYPE]] || defaultMap, requestFor })
+          rsApi.getScore({ form, req, map: propertyMap[form[TYPE]] || defaultMap, requestFor })
         )
       )
       scoreDetails = scoreDetails.filter(r => r)
@@ -582,17 +610,20 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     // },
     onFormsCollected: async ({ req }) => {
       // debugger
+      let { riskFactors, products } = conf
+      if (!riskFactors || !products) return
+
       const { user, application, payload } = req
       if (!application) return
       let { requestFor } = application
-      let formType = conf.products[requestFor]
+      let formType = products[requestFor]
       if (!formType) return
       let ptype = payload[TYPE]
 
       if (typeof formType === 'string') {
         if (ptype !== formType) return
       } else if (!formType[ptype]) return
-      let { defaultValue } = conf.riskFactors
+      let { defaultValue } = riskFactors
       await checkParent({ application, defaultValue, bot, applications })
     }
   }

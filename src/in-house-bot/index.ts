@@ -713,7 +713,7 @@ export const loadComponentsAndPlugins = ({
       'regulatorRegistration',
       'pscCheck',
       // needs to move
-      'bsa',
+      'specialApproval',
       'riskScore',
       'boSimulator',
       'pitchbookCheck',

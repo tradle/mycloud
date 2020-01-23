@@ -16,24 +16,26 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       if (payload[TYPE] !== CP || !payload.controllingEntityCompanyNumber) return
 
-
-      let legalEntity
+      let items
       try {
-        legalEntity = await bot.db.findOne({
+        ({ items } = await bot.db.find({
           filter: {
             EQ: {
               [TYPE]: LEGAL_ENTITY,
               registrationNumber: payload.controllingEntityCompanyNumber
             }
           }
-        })
+        }))
       }
       catch (err) {
         debugger
       }
-      if (!legalEntity) return
+      if (!items  ||  !items.length) return
+      let leStub = payload.legalEntity
+      items = items.filter(item => item._permalink !== leStub._permalink)
 
-      let associatedApplication = await applications.getApplicationByPayload({resource: payload, bot})
+      let apps = await Promise.all(items.map(item => applications.getApplicationByPayload({resource: item, bot})))
+
       let resource: any = {
         [TYPE]: REUSE_CHECK,
         status: 'warning',
@@ -43,10 +45,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         aspects: ASPECTS,
         form: payload,
         message: 'Please overwrite if data can`t be reused',
-        associatedApplication
+        // associatedApplication
       }
 
-      await applications.createCheck(resource, req)
+      // await applications.createCheck(resource, req)
     }
   }
 
