@@ -48,6 +48,7 @@ interface IJenIdCheckerConf {
   password: string
   threshold?: number
   deleteAfter?: boolean
+  requestCorrectionFromClient?: boolean
 }
 
 const DEFAULT_CONF = {
@@ -190,7 +191,7 @@ export class JenIdCheckerAPI {
       if (processingstatus.code !== '0') {
         return {
           status: 'fail',
-          message: `Check failed: ${processingstatus.description}.`,
+          message: processingstatus.description,
           rawData: result.data,
           repeat: true
         }
@@ -198,7 +199,7 @@ export class JenIdCheckerAPI {
         if (result.data.body.data.facedata[0].exists == '-1') {
           return {
             status: 'fail',
-            message: 'Check failed, photo of your face missing or obscured.',
+            message: 'Photo of your face missing or obscured.',
             rawData: result.data,
             repeat: true
           }
@@ -213,7 +214,7 @@ export class JenIdCheckerAPI {
       }
       return {
         status: 'pass',
-        message: `Check passed: ${securitystatus.statusdescription}`,
+        message: securitystatus.statusdescription,
         rawData: result.data,
         repeat: false
       }
@@ -453,8 +454,7 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
       // debugger
       let status: any = await documentChecker.handleData(form, application)
 
-      if (status.repeat) {
-
+      if (conf.requestCorrectionFromClient && status.repeat) {
         const payloadClone = _.cloneDeep(payload)
         payloadClone[PERMALINK] = payloadClone._permalink
         payloadClone[LINK] = payloadClone._link
@@ -501,7 +501,7 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
 
 export const validateConf: ValidatePluginConf = async opts => {
   const pluginConf = opts.pluginConf as IJenIdCheckerConf
-  const { username, password, threshold, deleteAfter } = pluginConf
+  const { username, password, threshold, deleteAfter, requestCorrectionFromClient } = pluginConf
 
   let err = ''
   if (!password) err = '\nExpected "password".'
@@ -513,6 +513,8 @@ export const validateConf: ValidatePluginConf = async opts => {
     else if (threshold < 0 || threshold > 100) err += '\nExpected  0 <= threshold <= 100.'
   } else if (typeof deleteAfter !== 'undefined') {
     if (typeof deleteAfter !== 'boolean') err += '\nExpected deleteAfter to be a boolean.'
+  } else if (typeof requestCorrectionFromClient !== 'undefined') {
+    if (typeof requestCorrectionFromClient !== 'boolean') err += '\nExpected requestCorrectionFromClient to be a boolean.'
   }
   if (err.length) throw new Error(err)
 }

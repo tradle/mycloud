@@ -2,7 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.49](https://github.com/tradle/mycloud/compare/v2.5.1-rc.48...v2.5.1-rc.49) (2020-01-16)
+## [2.5.1-rc.51](https://github.com/tradle/mycloud/compare/v2.5.1-rc.50...v2.5.1-rc.51) (2020-01-22)
+
+
+### Features
+
+* change check message ([48eaf2e](https://github.com/tradle/mycloud/commit/48eaf2e))
+* complex onboarding ([161b03b](https://github.com/tradle/mycloud/commit/161b03b))
+* complex onboarding ([b2b4a3a](https://github.com/tradle/mycloud/commit/b2b4a3a))
 
 
 
