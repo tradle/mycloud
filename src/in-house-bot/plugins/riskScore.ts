@@ -69,7 +69,8 @@ const defaultMap = {
   countryOfResidence: 'countryOfResidence',
   countryOfRegistration: 'countryOfRegistration',
   countriesOfOperation: 'countriesOfOperation',
-  countriesOfSignificantLink: 'countriesOfSignificantLink'
+  countriesOfSignificantLink: 'countriesOfSignificantLink',
+  countriesOfCitizenship: 'countriesOfCitizenship'
 }
 
 class RiskScoreAPI {
@@ -94,6 +95,7 @@ class RiskScoreAPI {
 
     let countriesOfOperation = form[map.countriesOfOperation]
     let countriesOfSignificantLink = form[map.countriesOfSignificantLink]
+    let countriesOfCitizenship = form[map.countriesOfCitizenship]
 
     let isCpOnboarding = requestFor === CP_ONBOARDING
     let isBO = form[TYPE] === CE_CP
@@ -106,25 +108,38 @@ class RiskScoreAPI {
       let detail: any = this.checkCountry({ country: countryOfResidence || countryOfRegistration })
       if (isBO) scoreDetails.beneficialOwnerRisk = detail
       else {
-        scoreDetails.countryOfRegistration = detail
+        if (isCpOnboarding) scoreDetails.countryOfResidence = detail
+        else scoreDetails.countryOfRegistration = detail
         if (detail.risk) scoreDetails.risk = detail.risk
-        if (isCpOnboarding) return scoreDetails
       }
     }
+    if (countriesOfCitizenship) {
+      this.checkCountries({
+        scoreDetails,
+        countriesToCheck: countriesOfCitizenship,
+        name: 'countriesOfCitizenship',
+        category: 'Citizenship'
+      })
+    }
+
+    if (isCpOnboarding) return scoreDetails
 
     if (countriesOfOperation)
       this.checkCountries({
         scoreDetails,
         countriesToCheck: countriesOfOperation,
-        name: 'countriesOfOperation'
+        name: 'countriesOfOperation',
+        category: 'Operations'
       })
 
     if (countriesOfSignificantLink)
       this.checkCountries({
         scoreDetails,
         countriesToCheck: countriesOfSignificantLink,
-        name: 'countriesOfSignificantLink'
+        name: 'countriesOfSignificantLink',
+        category: 'Operations'
       })
+
     if (size(scoreDetails) === 1) return
 
     let { latestChecks, checks } = req
@@ -259,7 +274,7 @@ class RiskScoreAPI {
       // application.score = 100
       return
     }
-    this.calcApplicatinScore(application)
+    this.calcApplicatinScore({ application })
   }
   getLegalStructureScore(payload, application) {
     let { summary, details } = application.scoreDetails
@@ -294,7 +309,7 @@ class RiskScoreAPI {
     if (!scores.length) return 0
     return Math.max(...scores)
   }
-  public checkCountries = ({ scoreDetails, countriesToCheck, name }) => {
+  public checkCountries = ({ scoreDetails, countriesToCheck, name, category }) => {
     if (!countriesToCheck.length) {
       return
     }
@@ -309,9 +324,10 @@ class RiskScoreAPI {
       if (!cid.length) return
 
       let riskType = countries.find(c => c.code === cid)
-      let risk = riskType.risk
 
-      let coef = countriesRiskByCategory[risk]['Operations']
+      let risk = (riskType && riskType.risk) || 'missingInvalid'
+
+      let coef = countriesRiskByCategory[risk][category]
       if (coef) details[cid] = this.addDetailScore({ value: (defaultC * weight) / 100, coef })
       if (risk === 'autohigh') {
         extend(details[cid], { risk: AUTOHIGH })
@@ -377,7 +393,7 @@ class RiskScoreAPI {
       bsaDetail.historicalBehaviorRisk = { [payload.ddr]: summary.historicalBehaviorRisk }
     }
 
-    this.calcApplicatinScore(application)
+    this.calcApplicatinScore({ application })
   }
   public getAccountScore({ stubs }) {
     const weight = this.riskFactors.weights.accountTypeRisk
@@ -407,7 +423,7 @@ class RiskScoreAPI {
     let coef = BSA_CODES[code] || 100
     let { summary, details } = application.scoreDetails
     summary.bsaCodeRisk = this.roundScore((weight * coef) / 100)
-    this.calcApplicatinScore(application)
+    this.calcApplicatinScore({ application })
     let detail: any = {
       form: buildResourceStub({ resource: form, models: this.bot.models }),
       bsaCodeRisk: {
@@ -419,15 +435,23 @@ class RiskScoreAPI {
     if (idx !== -1) details.splice(idx, 1, detail)
     else details.push(detail)
   }
-  public calcApplicatinScore(application) {
+  public calcApplicatinScore({
+    application,
+    isCpOnboarding
+  }: {
+    application: IPBApp
+    isCpOnboarding?: boolean
+  }) {
     let { summary, details } = application.scoreDetails
-    let { baseRisk } = summary
-    if (!baseRisk) {
-      const { baseRisk, weights, transactionalRisk } = this.riskFactors
-      extend(summary, {
-        baseRisk: (baseRisk.default * weights.baseRisk) / 100,
-        transactionalRisk: (transactionalRisk.default * weights.transactionalRisk) / 100
-      })
+    if (!isCpOnboarding) {
+      let { baseRisk } = summary
+      if (!baseRisk) {
+        const { baseRisk, weights, transactionalRisk } = this.riskFactors
+        extend(summary, {
+          baseRisk: (baseRisk.default * weights.baseRisk) / 100,
+          transactionalRisk: (transactionalRisk.default * weights.transactionalRisk) / 100
+        })
+      }
     }
     let scores: number[] = Object.values(summary)
     let score = scores.reduce((a, b) => a + b, 0)
@@ -439,6 +463,8 @@ class RiskScoreAPI {
       application.ruledBasedScore = 100
       return
     }
+    if (isCpOnboarding) return
+
     let bsaCodeRiskDetail = details.find(d => d.bsaCodeRisk)
     if (bsaCodeRiskDetail && bsaCodeRiskDetail.bsaCodeRisk) {
       for (let p in BSA_CODES)
@@ -471,7 +497,7 @@ class RiskScoreAPI {
     else details.push(detail)
 
     summary.accountTypeRisk = detail.score
-    this.calcApplicatinScore(application)
+    this.calcApplicatinScore({ application })
   }
 
   public addDetailScore = ({ value, coef }) => {
@@ -551,20 +577,23 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
         rsApi.getBsaScore(payload, application)
         rsApi.getLegalStructureScore(payload, application)
-        rsApi.calcApplicatinScore(application)
+        rsApi.calcApplicatinScore({ application })
 
         // return
       }
       let scoreForms
-      debugger
+      // debugger
       if (stubs.length) scoreForms = await Promise.all(stubs.map(stub => bot.getResource(stub)))
       else scoreForms = []
       scoreForms.push(payload)
 
       scoreDetails = await Promise.all(
-        scoreForms.map(form =>
-          rsApi.getScore({ form, req, map: propertyMap[form[TYPE]] || defaultMap, requestFor })
-        )
+        scoreForms.map(form => {
+          let map = propertyMap[form[TYPE]]
+          if (map) map = { ...defaultMap, ...map }
+          else map = defaultMap
+          return rsApi.getScore({ form, req, map, requestFor })
+        })
       )
       scoreDetails = scoreDetails.filter(r => r)
       if (!scoreDetails.length) return
@@ -587,11 +616,24 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         details: scoreDetails,
         summary: (application.scoreDetails && application.scoreDetails.summary) || {}
       }
-      await rsApi.calcScore({ application, forms: scoreForms })
-      rsApi.calcApplicatinScore(application)
+      let isCpOnboarding = requestFor === CP_ONBOARDING
+      if (isCpOnboarding) {
+        let { details } = application.scoreDetails
+        let countriesDetails = details.filter(d => d.countryOfResidence || d.countriesOfCitizenship)
+        let scores = countriesDetails.map(
+          d =>
+            (d.countryOfResidence && d.countryOfResidence.score) ||
+            (d.countriesOfCitizenship && d.countriesOfCitizenship.score)
+        )
+        let score = Math.max(...scores)
+        application.scoreDetails.summary = {
+          beneficialOwnerRisk: score
+        }
+      } else await rsApi.calcScore({ application, forms: scoreForms })
+      rsApi.calcApplicatinScore({ application, isCpOnboarding })
       // HACK
       application.scoreDetails.details = application.scoreDetails.details.filter(r => size(r) > 1)
-      debugger
+      // debugger
     },
     // resetScore({ name, detail, application }) {
     //   let { scoreDetails } = application
@@ -630,15 +672,15 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   return { plugin }
 }
 async function checkParent({ application, defaultValue, bot, applications }) {
-  let { score } = application
-  if (score === defaultValue || !application.parent) return
+  let { ruledBasedScore } = application
+  if (ruledBasedScore === defaultValue || !application.parent) return
   let parentApp = await bot.getResource({
     [TYPE]: application[TYPE],
     _permalink: application.parent._permalink
   })
-  let pscore = parentApp.score
-  if (pscore && pscore < score) return
-  parentApp.score = score
+  let parentRuledBasedScore = parentApp.ruledBasedScore
+  if (parentRuledBasedScore && parentRuledBasedScore < ruledBasedScore) return
+  parentApp.ruledBasedScore = ruledBasedScore
   await applications.updateApplication(parentApp)
   if (parentApp.parent)
     await checkParent({ application: parentApp, defaultValue, bot, applications })
