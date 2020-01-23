@@ -16,9 +16,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
   const plugin: IPluginLifecycleMethods = {
     name: 'interFormConditionals',
     getRequiredForms: async ({ user, application }) => {
-      if (!application || !application.forms || !application.forms.length) return
+      if (!application) return
 
       if (application.processingDataBundle) return []
+      // || !application.forms || !application.forms.length) return
 
       bot.logger.debug(`interFormConditionals: for ${application.requestFor}`)
       const { requestFor } = application
