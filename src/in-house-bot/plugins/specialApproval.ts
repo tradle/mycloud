@@ -16,7 +16,7 @@ const COUNTRY = 'tradle.Country'
 const CLIENT_ONBOARDING_TEAM = 'tradle.ClientOnboardingTeam'
 const ASPECTS = 'Business or country of interest'
 const PROVIDER = 'Tradle'
-const LEGAL_ENTITY = 'tradle.LegalEntity'
+const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 const PHOTO_ID = 'tradle.PhotoID'
 
 class SpecialApprovalAPI {
