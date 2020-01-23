@@ -461,6 +461,11 @@ class RiskScoreAPI {
     let autohigh = details.filter(d => d.risk)
     if (autohigh.length) {
       application.ruledBasedScore = 100
+      application.scoreType = enumValue({
+        model: this.bot.models[SCORE_TYPE],
+        value: 'autohigh'
+      })
+
       return
     }
     if (isCpOnboarding) return
