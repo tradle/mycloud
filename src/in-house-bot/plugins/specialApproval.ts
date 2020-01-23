@@ -72,6 +72,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         if (countries.length)
           countries = countries.map(code => enumValue({ model: countryModel, value: code }))
       }
+      let hasCountries = countries && countries.length
+
       let code =
         payload.bsaListPI ||
         payload.bsaListDE ||
@@ -81,16 +83,15 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         payload.bsaListNG ||
         payload.bsaListOR
 
-      let hasCountries = countries && countries.length
-
-      if (!code && !hasCountries) return
-
       let codeId = code && code.id.split('_')[1]
-
-      if (!codeId.endsWith('SA')) {
-        if (!hasCountries) return
-        codeId = null
+      if (codeId) {
+        if (!codeId.endsWith('SA')) {
+          let idx = codeId.indexOf('SA')
+          if (idx === -1) codeId = null
+          else if (isNaN(codeId.slice(idx + 2))) codeId = null
+        }
       }
+      if (!hasCountries && !codeId) return
 
       let createCheck = await doesCheckNeedToBeCreated({
         bot,
