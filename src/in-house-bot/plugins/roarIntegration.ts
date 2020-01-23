@@ -71,18 +71,21 @@ export class RoarRequestAPI {
       if (isIND && person.controllingEntityDateOfBirth) {
         dob = dateformat(person.controllingEntityDateOfBirth, 'mm-dd-yyyy')
       }
+      let residence = person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : ''
+      let country = person.controllingEntityCountry ? person.controllingEntityCountry.id.split('_')[1] : ''
+
       let item = {
-        PrimaryCitizenship: person.controllingEntityCountry ? person.controllingEntityCountry.id.split('_')[1] : '',
+        PrimaryCitizenship: isIND ? country : '',
         OnboardingCustomerRelationship: [
           { RelationshipCode: person.isSeniorManager ? 'CP' : 'BO' }
         ],
         CustomerType: isIND ? 'IND' : 'ORG',
-        CountryOfResidence: person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : '',
+        CountryOfResidence: isIND ? residence : '',
         ExistingCustomerInternalId: TRADLE + person._permalink.substring(0, IDLENGHT),
         ApplicantID: TRADLE + person._permalink.substring(0, IDLENGHT),
-        Jurisdiction: person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : '', //???
+        Jurisdiction: isIND ? residence : country,
         LastName: (isIND && person.lastName) ? person.lastName : '',
-        CountryOfIncorporation: person.controllingEntityCountryOfResidence ? person.controllingEntityCountryOfResidence.id.split('_')[1] : '', //???
+        CountryOfIncorporation: isIND ? '' : country,
         OrganizationName: (!isIND && person.name) ? person.name : '',
         CIPVerifiedStatus: 'Auto Pass',
         DateOfBirth: dob,
@@ -96,7 +99,7 @@ export class RoarRequestAPI {
             StreetLine1: person.controllingEntityStreetAddress ? person.controllingEntityStreetAddress : '',
             StreetLine2: '',
             StreetLine3: '',
-            Country: person.controllingEntityCountry ? person.controllingEntityCountry.id.split('_')[1] : '',
+            Country: country,
             City: person.controllingEntityCity ? person.controllingEntityCity : ''
           }
         ],

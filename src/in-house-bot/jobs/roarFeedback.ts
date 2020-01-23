@@ -85,12 +85,17 @@ export class RoarFeedback {
     for (let entry of folderEntries) {
       let name: string = entry.name
       if (entry.type == 'file' && name.endsWith('_response.json')) {
-        let jsonResponse = await this.download(entry.id)
+        let jsonResponse: any = await this.download(entry.id)
         //let jsonResponse = await this.downloadFile(entry.id, client)
         if (this.trace)
           this.logger.debug(`roarFeedback handling response: ${JSON.stringify(jsonResponse, null, 2)}`)
 
-        let status = jsonResponse.RecommendtoOnBoard == 'YES' ? 'pass' : 'fail'
+        let status: any
+        if (jsonResponse.RecommendtoOnBoard)
+          status = jsonResponse.RecommendtoOnBoard == 'YES' ? 'pass' : 'fail'
+        else
+          status = 'error'
+
         let statusEnum = enumValue({
           model: this.bot.models[STATUS],
           value: status
@@ -136,7 +141,13 @@ export class RoarFeedback {
         'Authorization': 'Bearer ' + this.token
       }
     })
-    let json = await res.json()
+    let text = await res.text()
+    let json: any
+    try {
+      json = JSON.parse(text)
+    } catch (err) {
+      json = { error: text }
+    }
     return json
   }
 
