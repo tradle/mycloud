@@ -136,7 +136,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         }
       })
       if (!bundle) return
-      application.processingDataBundle = true
+      // application.processingDataBundle = true
       formRequest.message = `Please review and complete the application for **${
         bot.models[application.requestFor].title
       }**`
