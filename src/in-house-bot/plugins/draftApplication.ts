@@ -121,7 +121,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         template: CONFIRMATION_EMAIL_DATA_TEMPLATE
       })
       debugger
-      // await applications.updateApplication(payload)
     },
     async willRequestForm({ application, formRequest }) {
       if (!application || formRequest.form !== PRODUCT_BUNDLE) return
