@@ -13,6 +13,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
       let type = payload[TYPE]
       if (type === DATA_BUNDLE) {
         application.dataBundle = payload._permalink
+        application.processingDataBundle = true
         return
       }
       if (type === DATA_BUNDLE_SUBMITTED) {
