@@ -170,6 +170,7 @@ class ClientEditsAPI {
         prevResource._sourceOfData._permalink !== payload._sourceOfData._permalink
       ) {
         ;({ prefill } = await this.createDataLineageModification({ req }))
+        if (prefill)
         isInitialSubmission = true
       }
     } else if (payload[TYPE] === PHOTO_ID && payload.scanJson)
@@ -281,7 +282,7 @@ class ClientEditsAPI {
           }
         })
       } catch (err) {
-        debugger
+        // debugger
       }
       let properties = {}
       if (props) {

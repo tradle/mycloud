@@ -121,7 +121,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         template: CONFIRMATION_EMAIL_DATA_TEMPLATE
       })
       debugger
-      // await applications.updateApplication(payload)
     },
     async willRequestForm({ application, formRequest }) {
       if (!application || formRequest.form !== PRODUCT_BUNDLE) return
@@ -136,7 +135,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         }
       })
       if (!bundle) return
-      application.processingDataBundle = true
+      // application.processingDataBundle = true
       formRequest.message = `Please review and complete the application for **${
         bot.models[application.requestFor].title
       }**`

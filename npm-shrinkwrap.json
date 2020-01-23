@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "2.5.1-rc.51",
+  "version": "2.5.1-rc.52",
   "lockfileVersion": 1,
   "requires": true,
   "dependencies": {
@@ -747,7 +747,7 @@
       "from": "tradle/models-cloud-services"
     },
     "@tradle/models-corporate-onboarding": {
-      "version": "github:tradle/models-corporate-onboarding#432be4cc7db1077bd30ecda2c9886b197a5eea1c",
+      "version": "github:tradle/models-corporate-onboarding#039fc7290acb38339b77f1e6e5569b3a5b6fe5ad",
       "from": "github:tradle/models-corporate-onboarding"
     },
     "@tradle/models-nz": {

@@ -2,14 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.51](https://github.com/tradle/mycloud/compare/v2.5.1-rc.50...v2.5.1-rc.51) (2020-01-22)
+## [2.5.1-rc.52](https://github.com/tradle/mycloud/compare/v2.5.1-rc.51...v2.5.1-rc.52) (2020-01-23)
+
+
+### Bug Fixes
+
+* allow the bsa code to end with SA or SA[number] ([310897f](https://github.com/tradle/mycloud/commit/310897f))
+* data lineage caused by not prefilled FormError ([0c48657](https://github.com/tradle/mycloud/commit/0c48657))
+* don't feed forms while bundle is processing ([a29b5ea](https://github.com/tradle/mycloud/commit/a29b5ea))
+* forms are sometimes not sent over ([e744cb0](https://github.com/tradle/mycloud/commit/e744cb0))
+* if third party didn't return inc date but everything else is checked out consider the check passed ([0302374](https://github.com/tradle/mycloud/commit/0302374))
 
 
 ### Features
 
-* change check message ([48eaf2e](https://github.com/tradle/mycloud/commit/48eaf2e))
-* complex onboarding ([161b03b](https://github.com/tradle/mycloud/commit/161b03b))
-* complex onboarding ([b2b4a3a](https://github.com/tradle/mycloud/commit/b2b4a3a))
+* risk score for CP -  countries of citizenship ([4d1d540](https://github.com/tradle/mycloud/commit/4d1d540))
 
 
 
