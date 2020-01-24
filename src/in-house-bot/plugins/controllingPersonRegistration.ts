@@ -724,7 +724,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       await bot.versionAndSave({
         ...value,
         ...moreProps
-        // dateLastModified: Date.now()
       })
     },
     async getNextManager({ application, conf, timesNotified, value }) {
@@ -743,7 +742,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         return { form: value.form, abandon: true }
       }
       let result: any = await cp.getCP({ application, stubs })
-      // result = result.filter(r => r.typeOfControllingEntity.id === CP_PERSON)
       if (result.length === notifiedParties.length) {
         debugger
         return { form: value.form, abandon: true }
