@@ -180,7 +180,7 @@ export class PscCheckAPI {
       }
       if (result == 'SUCCEEDED') break
 
-      if (timePassed > 10000) {
+      if (timePassed > 20000) {
         this.logger.debug('pscCheck athena error', 'result timeout')
         return { status: false, error: 'result timeout', data: null }
       }
