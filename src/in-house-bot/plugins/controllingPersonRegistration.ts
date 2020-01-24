@@ -48,7 +48,7 @@ const unitCoefMap = {
   hours: 60000 * 60,
   days: 60000 * 60 * 24
 }
-const DEFAULT_MAX_NOTIFY = 500
+const DEFAULT_MAX_NOTIFY = 5000
 const DEAR_CUSTOMER = 'Dear Customer'
 const DEFAULT_SMS_GATEWAY = 'sns'
 type SMSGatewayName = 'sns'
@@ -315,11 +315,12 @@ class ControllingPersonRegistrationAPI {
       }
     }
     if (alwaysNotify) {
-      if (seniorManagement.length) {
-        alwaysNotify.forEach((r: any) => notifyArr.push(r))
-        seniorManagement.forEach((r: any) => {
-          if (!alwaysNotify.find((sm: any) => sm._permalink === r._permalink)) notifyArr.push(r)
+      if (notifyArr.length) {
+        let arr = []
+        alwaysNotify.forEach((r: any) => {
+          if (!notifyArr.find((sm: any) => sm._permalink === r._permalink)) arr.push(r)
         })
+        notifyArr = notifyArr.concat(arr)
       } else {
         notifyArr = notifyArr.concat(alwaysNotify)
       }
@@ -395,7 +396,7 @@ class ControllingPersonRegistrationAPI {
     let cPeople = result.filter(
       (r: any) =>
         r.typeOfControllingEntity.id === CP_PERSON &&
-        !r.isSeniorManagement &&
+        !r.isSeniorManager &&
         !r.doNotReachOut &&
         (!r.percentageOfOwnership || r.percentageOfOwnership < alwaysNotifyIfShares)
     )
@@ -465,7 +466,7 @@ class ControllingPersonRegistrationAPI {
     return await Promise.all(stubs.map(stub => bot.getResource(stub)))
   }
   public getNotify({ rules, application }) {
-    const { low, medium, high, maxNotifications } = rules
+    const { low, medium, high } = rules
     let score
     if (application.scoreType)
       score = getEnumValueId({ model: this.bot.models[SCORE_TYPE], value: application.scoreType })
@@ -480,12 +481,8 @@ class ControllingPersonRegistrationAPI {
     } else if (score === 'medium') {
       notify = medium.notify
       if (!notify) return
-    } else if (high.notify) {
-      if (typeof high.notify === 'number')
-        notify = high.notify
-      else
-        notify = maxNotifications || DEFAULT_MAX_NOTIFY
-    }
+    } else if (score.indexOf('high')) notify = high.notify || DEFAULT_MAX_NOTIFY
+
     return notify
   }
   async handleClientRequestForNotification({ payload, application }) {
@@ -660,6 +657,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         timesNotified,
         value
       })
+      if (!form) debugger
       if (form && (abandon || isNewManager)) {
         await this.abandonManager(form, value)
         if (abandon) return
@@ -723,7 +721,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         return { form: value.form, abandon: true }
       }
       let result: any = await cp.getCP({ application, bot, stubs })
-      result = result.filter(r => r.typeOfControllingEntity.id === CP_PERSON)
+      // result = result.filter(r => r.typeOfControllingEntity.id === CP_PERSON)
       if (result.length === notifiedParties.length) {
         debugger
         return { form: value.form, abandon: true }
@@ -753,6 +751,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let notNotified: any = seniorManagement.filter(
         (item: any) => !notifiedParties.find((r: any) => r.form._permalink === item._permalink)
       )
+      if (!notNotified.length) return { form: value.form, abandon: true }
+
       let form
       if (isSeniorManagement) {
         let smArr = cp.getSeniorManagement({ notify: 1, positions, seniorManagement: notNotified })
