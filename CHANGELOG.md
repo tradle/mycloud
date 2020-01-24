@@ -2,21 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.52](https://github.com/tradle/mycloud/compare/v2.5.1-rc.51...v2.5.1-rc.52) (2020-01-23)
+## [2.5.1-rc.53](https://github.com/tradle/mycloud/compare/v2.5.1-rc.52...v2.5.1-rc.53) (2020-01-24)
 
 
 ### Bug Fixes
 
-* allow the bsa code to end with SA or SA[number] ([310897f](https://github.com/tradle/mycloud/commit/310897f))
-* data lineage caused by not prefilled FormError ([0c48657](https://github.com/tradle/mycloud/commit/0c48657))
-* don't feed forms while bundle is processing ([a29b5ea](https://github.com/tradle/mycloud/commit/a29b5ea))
-* forms are sometimes not sent over ([e744cb0](https://github.com/tradle/mycloud/commit/e744cb0))
-* if third party didn't return inc date but everything else is checked out consider the check passed ([0302374](https://github.com/tradle/mycloud/commit/0302374))
+* change scoreType if autohigh ([21f26b1](https://github.com/tradle/mycloud/commit/21f26b1))
+* double send to the same person; number of notifications more by 1 before abandoning ([3b3c1e7](https://github.com/tradle/mycloud/commit/3b3c1e7))
+* typo ([454b6d7](https://github.com/tradle/mycloud/commit/454b6d7))
 
 
 ### Features
 
-* risk score for CP -  countries of citizenship ([4d1d540](https://github.com/tradle/mycloud/commit/4d1d540))
+* application signoff reporting ([63e64a0](https://github.com/tradle/mycloud/commit/63e64a0))
+* models upgrade ([af2a4c4](https://github.com/tradle/mycloud/commit/af2a4c4))
+* respect all conf settings againt countries of interest ([3b51d0f](https://github.com/tradle/mycloud/commit/3b51d0f))
+* set autohigh if ruled score is ([fa1840b](https://github.com/tradle/mycloud/commit/fa1840b))
 
 
 
