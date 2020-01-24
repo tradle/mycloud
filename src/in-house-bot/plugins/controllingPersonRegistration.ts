@@ -18,7 +18,7 @@ import * as Templates from '../templates'
 import Errors from '../../errors'
 import { TYPE } from '../../constants'
 // import { useRealSES } from '../../aws/config'
-import { enumValue } from '@tradle/build-resource'
+import { enumValue, buildResourceStub } from '@tradle/build-resource'
 
 import { hasPropertiesChanged, getEnumValueId, getLatestCheck } from '../utils'
 import { appLinks } from '../../app-links'
@@ -291,7 +291,7 @@ class ControllingPersonRegistrationAPI {
 
     let notify = this.getNotify({ rules, application })
 
-    let result = await this.getCP({ application, bot: this.bot })
+    let result = await this.getCP({ application })
     let notifyArr = []
     if (notify === DEFAULT_MAX_NOTIFY) {
       notifyArr = result
@@ -461,9 +461,9 @@ class ControllingPersonRegistrationAPI {
     cpStubs = cpStubs.map(stub => stub.submission).sort((a, b) => (b.time = a.time))
     return uniqBy(cpStubs, '_permalink')
   }
-  public async getCP({ application, bot, stubs }: { application: IPBApp; bot: Bot; stubs?: any }) {
+  public async getCP({ application, stubs }: { application: IPBApp; stubs?: any }) {
     if (!stubs) stubs = this.getCpStubs(application)
-    return await Promise.all(stubs.map(stub => bot.getResource(stub)))
+    return await Promise.all(stubs.map(stub => this.bot.getResource(stub)))
   }
   public getNotify({ rules, application }) {
     const { low, medium, high } = rules
@@ -533,6 +533,38 @@ class ControllingPersonRegistrationAPI {
       dateLastNotified: Date.now()
     })
   }
+  async checkAndNotifyAll({ application, rules }) {
+    let { notifications } = application
+    if (!notifications) {
+      let appNotifications = await this.bot.getResource(buildResourceStub(application), {
+        backlinks: ['notifications']
+      })
+      notifications = appNotifications.notifications
+      if (!notifications) return
+    }
+    let stubs = this.getCpStubs(application)
+    if (notifications.length === stubs.length) return
+    let notNotified = await this.getNotNotified(notifications, application)
+    if (notNotified.length)
+      await this.doNotify({ notifyArr: notNotified, result: notNotified, rules, application })
+    debugger
+  }
+  async getNotNotified(notifications, application) {
+    let notifiedParties: any = await Promise.all(
+      notifications.map(item => this.bot.getResource(item))
+    )
+    notifiedParties = uniqBy(notifiedParties, 'form._permalink')
+
+    let stubs = this.getCpStubs(application)
+    let result: any = await this.getCP({ application, stubs })
+    let notNotified: any = result.filter(
+      (item: any) =>
+        !notifiedParties.find((r: any) => {
+          return r.form._permalink === item._permalink
+        })
+    )
+    return notNotified
+  }
 }
 
 export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
@@ -562,6 +594,9 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let { products, rules } = conf
       if (!products || !products[productId]) return
 
+      if (rules && application.ruledBasedScore === 100)
+        await cp.checkAndNotifyAll({ application, rules })
+
       let ptype = payload[TYPE]
 
       if (rules && ptype === NEXT_FORM_REQUEST) {
@@ -582,7 +617,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         logger.error(`controlling person: no email address and no phone provided`)
         return
       }
-
       const legalEntity = await bot.getResource(payload.legalEntity)
 
       if (
@@ -637,18 +671,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       })
 
       let now = Date.now()
-      // let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, application, bot })
-      // if (getEnumValueId(check.status) !== 'pass') {
-      //   await bot.versionAndSave({
-      //     ...value,
-      //     status: enumValue({
-      //       model: bot.models[NOTIFICATION_STATUS],
-      //       value: 'stopped'
-      //     }),
-      //     dateLastNotified: now
-      //   })
-      //   return
-      // }
 
       // do we need to choose another participant?
       let { isNewManager, form, abandon } = await this.getNextManager({
@@ -702,7 +724,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       await bot.versionAndSave({
         ...value,
         ...moreProps
-        // dateLastModified: Date.now()
       })
     },
     async getNextManager({ application, conf, timesNotified, value }) {
@@ -720,8 +741,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         debugger
         return { form: value.form, abandon: true }
       }
-      let result: any = await cp.getCP({ application, bot, stubs })
-      // result = result.filter(r => r.typeOfControllingEntity.id === CP_PERSON)
+      let result: any = await cp.getCP({ application, stubs })
       if (result.length === notifiedParties.length) {
         debugger
         return { form: value.form, abandon: true }
@@ -735,7 +755,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       } else if (seniorManagement.length < notify && result.length > seniorManagement.length) {
         if (result.length > notify) {
           let notNotified: any = result.filter(
-            (item: any) => !notifiedParties.find((r: any) => r._permalink !== item._permalink)
+            (item: any) => !notifiedParties.find((r: any) => r.form._permalink !== item._permalink)
           )
 
           seniorManagement = seniorManagement.concat(

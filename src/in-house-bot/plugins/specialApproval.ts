@@ -55,7 +55,7 @@ class SpecialApprovalAPI {
     })
   }
   public async handlePreSpecialApproval(req, countriesOfInterest, countryProps) {
-    debugger
+    // debugger
     let { application, payload } = req
     let models = this.bot.models
 
