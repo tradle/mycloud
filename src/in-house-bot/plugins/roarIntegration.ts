@@ -59,7 +59,7 @@ export class RoarRequestAPI {
   }
 
   build = (legalEntity: any, teamCode: any, legalEntityControllingPersons: Array<any>): any => {
-
+    this.logger.debug(`roarIntegration build called`)
     let relatedCustomers = []
     for (let person of legalEntityControllingPersons) {
       if (this.conf.trace)
@@ -287,7 +287,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         let legalEntityRef = payload['legalEntity']
         if (!legalEntityRef)
           return
-
+        logger.debug(`roarIntegrationSender called for ${FORM_TYPE_CP}`)
         const filter: any = {
           EQ: {
             [TYPE]: FORM_TYPE_CP,
@@ -303,6 +303,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         legalEntity = await bot.getResource(legalEntityRef)
       }
       else {
+        logger.debug(`roarIntegrationSender called for ${FORM_TYPE_LE}`)
         legalEntity = payload
         const filter: any = {
           EQ: {
