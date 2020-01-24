@@ -27,7 +27,8 @@ import fetch from 'node-fetch'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
-const FORM_TYPE = 'tradle.legal.LegalEntityControllingPerson'
+const FORM_TYPE_CP = 'tradle.legal.LegalEntityControllingPerson'
+const FORM_TYPE_LE = 'tradle.legal.LegalEntity'
 const SCREENING_CHECK = 'tradle.RoarScreeningCheck'
 const PROVIDER = 'KYC Engine'
 const ASPECTS = 'KYC Engine screening: sanctions, PEPs, adverse media'
@@ -58,7 +59,7 @@ export class RoarRequestAPI {
   }
 
   build = (legalEntity: any, teamCode: any, legalEntityControllingPersons: Array<any>): any => {
-
+    this.logger.debug(`roarIntegration build called`)
     let relatedCustomers = []
     for (let person of legalEntityControllingPersons) {
       if (this.conf.trace)
@@ -275,25 +276,47 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const { application, payload } = req
       if (!application) return
 
-      if (FORM_TYPE != payload[TYPE]) return
+      let type = payload[TYPE]
+      if (FORM_TYPE_CP != type && FORM_TYPE_LE != type) return
+      let typeCP = FORM_TYPE_CP == type
 
-      let legalEntityRef = payload['legalEntity']
-      if (!legalEntityRef)
-        return
+      let controllingPersons: Array<any>
+      let legalEntity: any
 
-      const filter: any = {
-        EQ: {
-          [TYPE]: FORM_TYPE,
-          'legalEntity._permalink': legalEntityRef._permalink
+      if (typeCP) {
+        let legalEntityRef = payload['legalEntity']
+        if (!legalEntityRef)
+          return
+        logger.debug(`roarIntegrationSender called for ${FORM_TYPE_CP}`)
+        const filter: any = {
+          EQ: {
+            [TYPE]: FORM_TYPE_CP,
+            'legalEntity._permalink': legalEntityRef._permalink
+          }
         }
+
+        const result: SearchResult = await bot.db.find({
+          filter
+        })
+        controllingPersons = result.items
+
+        legalEntity = await bot.getResource(legalEntityRef)
       }
+      else {
+        logger.debug(`roarIntegrationSender called for ${FORM_TYPE_LE}`)
+        legalEntity = payload
+        const filter: any = {
+          EQ: {
+            [TYPE]: FORM_TYPE_CP,
+            'legalEntity._permalink': legalEntity._permalink
+          }
+        }
 
-      const result: SearchResult = await bot.db.find({
-        filter
-      })
-      let controllingPersons: Array<any> = result.items
-
-      const legalEntity = await bot.getResource(legalEntityRef)
+        const result: SearchResult = await bot.db.find({
+          filter
+        })
+        controllingPersons = result.items
+      }
 
       let roarReq: any = roarRequestAPI.build(legalEntity, application.teamCode, controllingPersons)
       let request = JSON.stringify(roarReq, null, 2)
