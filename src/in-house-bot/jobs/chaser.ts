@@ -17,7 +17,7 @@ export class Chaser {
   }
 
   public async chase() {
-    debugger
+    // debugger
     let eqClause = {
       [TYPE]: NOTIFICATION
     }
