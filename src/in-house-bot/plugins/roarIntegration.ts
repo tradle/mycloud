@@ -303,9 +303,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!application) return
       if (!application.submissions) return
 
-      let wasApplicationSubmitted = application.submissions(sub => sub.submission[TYPE] === 'tradle.ApplicationSubmitted')
+      let wasApplicationSubmitted = application.submissions.find(sub => sub.submission[TYPE] === 'tradle.ApplicationSubmitted')
       if (!wasApplicationSubmitted) return
-
+      logger.debug('roarIntegrationSender onmessage can proceed since application was submitted')
       let type = payload[TYPE]
       if (FORM_TYPE_CP != type && FORM_TYPE_LE != type) return
       let typeCP = FORM_TYPE_CP == type
