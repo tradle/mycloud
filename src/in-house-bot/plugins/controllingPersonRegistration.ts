@@ -25,6 +25,7 @@ import { appLinks } from '../../app-links'
 import { SMSBasedVerifier } from '../sms-based-verifier'
 // import { compare } from '@tradle/dynamodb/lib/utils'
 
+const REUSE_CHECK = 'tradle.ReuseOfDataCheck'
 const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const AGENCY = 'tradle.Agency'
 const CP_ONBOARDING = 'tradle.legal.ControllingPersonOnboarding'
@@ -341,6 +342,7 @@ class ControllingPersonRegistrationAPI {
     let cpEntities = result.filter(
       (r: any) => r.typeOfControllingEntity.id !== CP_PERSON && !r.doNotReachOutToMembers
     )
+    cpEntities = await this.filterOutAlreadyOnboarded(cpEntities, application)
     notifyArr = notifyArr.concat(cpEntities)
     // }
 
@@ -355,6 +357,14 @@ class ControllingPersonRegistrationAPI {
       )
     }
     await this.doNotify({ notifyArr, rules, application, result })
+  }
+  async filterOutAlreadyOnboarded(cpEntities, application) {
+    let reuseChecks = application.checks.filter(check => check[TYPE] === REUSE_CHECK)
+    if (!reuseChecks.length) return cpEntities
+    let result = await Promise.all(reuseChecks.map(check => this.bot.getResource(check)))
+    return cpEntities.filter(
+      r => !result.find((check: any) => check.form._permalink === r._permalink)
+    )
   }
   async doNotify({ notifyArr, result, application, rules }) {
     let { messages, interval } = rules
