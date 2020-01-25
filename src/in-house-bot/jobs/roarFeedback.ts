@@ -9,6 +9,8 @@ import { enumValue } from '@tradle/build-resource'
 //import BoxSDK from 'box-node-sdk'
 import fetch from 'node-fetch'
 import validateResource from '@tradle/validate-resource'
+import dateformat from 'dateformat'
+
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
@@ -85,8 +87,12 @@ export class RoarFeedback {
     for (let entry of folderEntries) {
       let name: string = entry.name
       if (entry.type == 'file' && name.endsWith('_response.json')) {
+        let permalink = name.substring(0, name.indexOf('_'))
+        let check: any = await this.findCheck(permalink)
+        if (!check)
+          continue
+
         let jsonResponse: any = await this.download(entry.id)
-        //let jsonResponse = await this.downloadFile(entry.id, client)
         if (this.trace)
           this.logger.debug(`roarFeedback handling response: ${JSON.stringify(jsonResponse, null, 2)}`)
 
@@ -100,23 +106,21 @@ export class RoarFeedback {
           model: this.bot.models[STATUS],
           value: status
         })
-        let permalink = name.substring(0, name.indexOf('_'))
-        let check: any = await this.findCheck(permalink)
-        if (check) {
-          check.responseData = sanitize(jsonResponse).sanitized
-          check.status = statusEnum
-          if (this.trace)
-            this.logger.debug(`roarFeedback updating check with response ${JSON.stringify(check, null, 2)}`)
-          else
-            this.logger.debug(`roarFeedback updating check with response`)
-          await this.bot.versionAndSave(check)
-          this.logger.debug('roarFeedback check updated')
 
-          // move file to processed responses
-          //await client.files.move(entry.id, processedResponsesFolderId)
-          await this.move(entry.id, processedResponsesFolderId)
-          this.logger.debug('roarFeedback moved request into processed')
-        }
+        check.responseData = sanitize(jsonResponse).sanitized
+        check.responseData.receivedDate = dateformat(new Date(), 'yyyy-mm-dd HH:MM:ss')
+        check.status = statusEnum
+        if (this.trace)
+          this.logger.debug(`roarFeedback updating check with response ${JSON.stringify(check, null, 2)}`)
+        else
+          this.logger.debug(`roarFeedback updating check with response`)
+        await this.bot.versionAndSave(check)
+        this.logger.debug('roarFeedback check updated')
+
+        // move file to processed responses
+        //await client.files.move(entry.id, processedResponsesFolderId)
+        await this.move(entry.id, processedResponsesFolderId)
+        this.logger.debug('roarFeedback moved request into processed')
       }
     }
   }

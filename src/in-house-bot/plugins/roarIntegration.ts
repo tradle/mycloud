@@ -3,7 +3,6 @@ import { TYPE } from '@tradle/constants'
 // @ts-ignore
 import {
   getStatusMessageForCheck,
-  doesCheckNeedToBeCreated
 } from '../utils'
 
 import {
@@ -12,8 +11,12 @@ import {
   Applications,
   IPluginLifecycleMethods,
   IPBReq,
-  Logger
+  Logger,
+  ValidatePluginConf,
+  IConfComponents
 } from '../types'
+import { getLatestForms } from '../utils'
+import Errors from '../../errors'
 
 import _ from 'lodash'
 
@@ -32,7 +35,7 @@ const FORM_TYPE_LE = 'tradle.legal.LegalEntity'
 const SCREENING_CHECK = 'tradle.RoarScreeningCheck'
 const PROVIDER = 'KYC Engine'
 const ASPECTS = 'KYC Engine screening: sanctions, PEPs, adverse media'
-const COMMERCIAL = 'commercial'
+const COMMERCIAL = 'commercialAPI'
 
 const TRADLE = 'TRADLE_';
 
@@ -40,7 +43,8 @@ const REQUESTS = 'REQUESTS'
 const IDLENGHT = 38
 
 interface IRoarIntegrationConf {
-  token: string
+  token: string,
+  product: string,
   trace?: boolean
 }
 
@@ -58,7 +62,9 @@ export class RoarRequestAPI {
     this.logger = logger
   }
 
-  build = (legalEntity: any, teamCode: any, legalEntityControllingPersons: Array<any>): any => {
+  buildAndSend = async (legalEntity: any, legalEntityControllingPersons: Array<any>,
+    { application, form, req }) => {
+
     this.logger.debug(`roarIntegration build called`)
     let relatedCustomers = []
     for (let person of legalEntityControllingPersons) {
@@ -66,6 +72,9 @@ export class RoarRequestAPI {
         this.logger.debug(`roarIntegration controlling person: ${JSON.stringify(person, null, 2)}`)
       else
         this.logger.debug(`roarIntegration controlling person: ${person._permalink}`)
+
+      if (person.inactive)
+        continue
 
       let isIND = person.typeOfControllingEntity.id.split('_')[1] == 'person' ? true : false
       let dob = ''
@@ -117,7 +126,8 @@ export class RoarRequestAPI {
     let tradedOnExchange = legalEntity.tradedOnExchange ? legalEntity.tradedOnExchange.id.split('_')[1] : 'N'
 
     let countryCode = legalEntity.country.id.split('_')[1]
-    let req = {
+    let roarReq = {
+      sentDate: dateformat(new Date(), 'yyyy-mm-dd HH:MM:ss'),
       OnboardingCustomer: {
         PrimaryCitizenship: '',
         OnboardingCustomerCountry: [
@@ -162,7 +172,7 @@ export class RoarRequestAPI {
         CIPVerifiedStatus: 'Auto Pass',
         TypeofRequest: 'New CIF Set-Up',
         PrimaryCustomer: 'Y',
-        RelationshipTeamCode: teamCode ? teamCode.id.split('_')[1] : '',
+        RelationshipTeamCode: application.teamCode ? application.teamCode.id.split('_')[1] : '',
         SecondaryCitizenship: '',
         MiddleName: '',
         Alias: legalEntity.alsoKnownAs ? legalEntity.alsoKnownAs : ''
@@ -173,36 +183,21 @@ export class RoarRequestAPI {
       infodom: 'FCCMINFODOM',
       requestUserId: 'SVBUSER'
     }
-    return req
+
+    let request = JSON.stringify(roarReq, null, 2)
+
+    if (this.conf.trace)
+      this.logger.debug(`roarIntegration request: ${request}`)
+    let check = await this.createCheck({ application, form, rawData: roarReq, req })
+    if (this.conf.trace)
+      this.logger.debug(`roarIntegration created check: ${JSON.stringify(check, null, 2)}`)
+    else
+      this.logger.debug(`roarIntegration created check`)
+
+    // send to roar
+    let fileName = check.permalink + '_request.json'
+    await this.upload(fileName, request)
   }
-
-  /*
-  send = async (fileName: string, request: string) => {
-    this.logger.debug('roarIntegration is about to send request to roar')
-    const client = BoxSDK.getBasicClient(this.conf.token);
-    try {
-      let res = await client.folders.get('0')
-      let folderId: string
-      for (let elem of res.item_collection.entries) {
-        if (REQUESTS == elem.name) {
-          folderId = elem.id
-          break
-        }
-      }
-      if (!folderId) {
-        this.logger.error('roarIntegration could not find box REQUESTS')
-        return
-      }
-
-      let buff = Buffer.from(request);
-      await client.files.uploadFile(folderId, fileName, buff)
-      this.logger.debug(`roarIntegration sent ${fileName} to roar`)
-    } catch (err) {
-      this.logger.error('roarIntegration failed to send request', err)
-    }
-
-  }
-  */
 
   upload = async (fileName: string, request: string) => {
     let linkToTop = 'https://api.box.com/2.0/folders/0/items'
@@ -271,10 +266,44 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   const roarRequestAPI = new RoarRequestAPI({ bot, conf, applications, logger })
   // debugger
   const plugin: IPluginLifecycleMethods = {
+    async onFormsCollected({ req }) {
+      logger.debug('roarIntegrationSender called onFormsCollected')
+      const { user, application, payload } = req
+      if (!application) return
+
+      const productId = application.requestFor
+      if (productId != conf['product'])
+        return
+      // debugger
+      const latestForms = getLatestForms(application)
+      const legalEntityStub = latestForms.find(form => form.type === FORM_TYPE_LE)
+      if (!legalEntityStub)
+        return
+      let legalEntity = await bot.getResource(legalEntityStub)
+      const filter: any = {
+        EQ: {
+          [TYPE]: FORM_TYPE_CP,
+          'legalEntity._permalink': legalEntity._permalink,
+          inactive: false
+        }
+      }
+
+      const result: SearchResult = await bot.db.find({
+        filter
+      })
+      let controllingPersons = result.items
+      logger.debug('roarIntegrationSender onFormsCollected build and send')
+      await roarRequestAPI.buildAndSend(legalEntity, controllingPersons,
+        { application, form: payload, req })
+
+    },
     async onmessage(req: IPBReq) {
       logger.debug('roarIntegrationSender called onmessage')
       const { application, payload } = req
       if (!application) return
+
+      let wasApplicationSubmitted = application.submissions(sub => sub.submission[TYPE] === 'tradle.ApplicationSubmitted')
+      if (!wasApplicationSubmitted) return
 
       let type = payload[TYPE]
       if (FORM_TYPE_CP != type && FORM_TYPE_LE != type) return
@@ -284,6 +313,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let legalEntity: any
 
       if (typeCP) {
+        if (payload['inactive'])
+          return
         let legalEntityRef = payload['legalEntity']
         if (!legalEntityRef)
           return
@@ -291,7 +322,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         const filter: any = {
           EQ: {
             [TYPE]: FORM_TYPE_CP,
-            'legalEntity._permalink': legalEntityRef._permalink
+            'legalEntity._permalink': legalEntityRef._permalink,
+            inactive: false
           }
         }
 
@@ -301,6 +333,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         controllingPersons = result.items
 
         legalEntity = await bot.getResource(legalEntityRef)
+        logger.debug('roarIntegrationSender onmessage for CP build and send')
       }
       else {
         logger.debug(`roarIntegrationSender called for ${FORM_TYPE_LE}`)
@@ -308,7 +341,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         const filter: any = {
           EQ: {
             [TYPE]: FORM_TYPE_CP,
-            'legalEntity._permalink': legalEntity._permalink
+            'legalEntity._permalink': legalEntity._permalink,
+            inactive: false
           }
         }
 
@@ -316,23 +350,29 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           filter
         })
         controllingPersons = result.items
+        logger.debug('roarIntegrationSender onmessage for LE build and send')
       }
 
-      let roarReq: any = roarRequestAPI.build(legalEntity, application.teamCode, controllingPersons)
-      let request = JSON.stringify(roarReq, null, 2)
-
-      if (conf.trace)
-        logger.debug(`roarIntegration request: ${request}`)
-      let check = await roarRequestAPI.createCheck({ application, form: payload, rawData: roarReq, req })
-      if (conf.trace)
-        logger.debug(`roarIntegration created check: ${JSON.stringify(check, null, 2)}`)
-      else
-        logger.debug(`roarIntegration created check`)
-
-      // send to roar
-      let fileName = check.permalink + '_request.json'
-      await roarRequestAPI.upload(fileName, request)
+      await roarRequestAPI.buildAndSend(legalEntity, controllingPersons,
+        { application, form: payload, req })
     }
   }
   return { plugin }
-}  
+}
+
+export const validateConf: ValidatePluginConf = async ({
+  bot,
+  conf,
+  pluginConf
+}: {
+  bot: Bot
+  conf: IConfComponents
+  pluginConf: IRoarIntegrationConf
+}) => {
+  const { models } = bot
+  if (!pluginConf.token) throw new Errors.InvalidInput(`property token is not found`)
+  if (!pluginConf.product) throw new Errors.InvalidInput(`property product is not found`)
+  const model = models[pluginConf.product]
+  if (!model)
+    throw new Errors.InvalidInput(`model not found for pruduct: ${pluginConf.product}`)
+}
