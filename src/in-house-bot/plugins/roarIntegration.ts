@@ -301,6 +301,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       logger.debug('roarIntegrationSender called onmessage')
       const { application, payload } = req
       if (!application) return
+      if (!application.submissions) return
 
       let wasApplicationSubmitted = application.submissions(sub => sub.submission[TYPE] === 'tradle.ApplicationSubmitted')
       if (!wasApplicationSubmitted) return
