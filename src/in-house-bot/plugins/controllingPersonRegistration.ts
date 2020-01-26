@@ -18,13 +18,15 @@ import * as Templates from '../templates'
 import Errors from '../../errors'
 import { TYPE } from '../../constants'
 // import { useRealSES } from '../../aws/config'
-import { enumValue } from '@tradle/build-resource'
+import { enumValue, buildResourceStub } from '@tradle/build-resource'
 
 import { hasPropertiesChanged, getEnumValueId, getLatestCheck } from '../utils'
 import { appLinks } from '../../app-links'
 import { SMSBasedVerifier } from '../sms-based-verifier'
 // import { compare } from '@tradle/dynamodb/lib/utils'
 
+const REUSE_CHECK = 'tradle.ReuseOfDataCheck'
+const REUSE_CHECK_OVERRIDE = 'tradle.ReuseOfDataCheckOverride'
 const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const AGENCY = 'tradle.Agency'
 const CP_ONBOARDING = 'tradle.legal.ControllingPersonOnboarding'
@@ -48,7 +50,7 @@ const unitCoefMap = {
   hours: 60000 * 60,
   days: 60000 * 60 * 24
 }
-const DEFAULT_MAX_NOTIFY = 500
+const DEFAULT_MAX_NOTIFY = 5000
 const DEAR_CUSTOMER = 'Dear Customer'
 const DEFAULT_SMS_GATEWAY = 'sns'
 type SMSGatewayName = 'sns'
@@ -291,7 +293,7 @@ class ControllingPersonRegistrationAPI {
 
     let notify = this.getNotify({ rules, application })
 
-    let result = await this.getCP({ application, bot: this.bot })
+    let result = await this.getCP({ application })
     let notifyArr = []
     if (notify === DEFAULT_MAX_NOTIFY) {
       notifyArr = result
@@ -315,11 +317,12 @@ class ControllingPersonRegistrationAPI {
       }
     }
     if (alwaysNotify) {
-      if (seniorManagement.length) {
-        alwaysNotify.forEach((r: any) => notifyArr.push(r))
-        seniorManagement.forEach((r: any) => {
-          if (!alwaysNotify.find((sm: any) => sm._permalink === r._permalink)) notifyArr.push(r)
+      if (notifyArr.length) {
+        let arr = []
+        alwaysNotify.forEach((r: any) => {
+          if (!notifyArr.find((sm: any) => sm._permalink === r._permalink)) arr.push(r)
         })
+        notifyArr = notifyArr.concat(arr)
       } else {
         notifyArr = notifyArr.concat(alwaysNotify)
       }
@@ -340,6 +343,7 @@ class ControllingPersonRegistrationAPI {
     let cpEntities = result.filter(
       (r: any) => r.typeOfControllingEntity.id !== CP_PERSON && !r.doNotReachOutToMembers
     )
+    cpEntities = await this.filterOutAlreadyOnboarded(cpEntities, application)
     notifyArr = notifyArr.concat(cpEntities)
     // }
 
@@ -354,6 +358,31 @@ class ControllingPersonRegistrationAPI {
       )
     }
     await this.doNotify({ notifyArr, rules, application, result })
+  }
+  async filterOutAlreadyOnboarded(cpEntities, application) {
+    let reuseChecks = application.checks.filter(check => check[TYPE] === REUSE_CHECK)
+    if (!reuseChecks.length) return cpEntities
+
+    let result: any = await Promise.all(reuseChecks.map(check => this.bot.getResource(check)))
+
+    let checkOverride = result[0].checkOverride
+    if (checkOverride) {
+      checkOverride = await this.bot.getResource(checkOverride)
+      if (checkOverride.reachOut) return cpEntities
+    }
+    return cpEntities.filter(
+      r => !result.find((check: any) => check.form._permalink === r._permalink)
+    )
+  }
+  async reachOut({ payload, application, rules }) {
+    if (!payload.reachOut) return
+    let resource: any = await this.bot.getResource(payload.form)
+    await this.doNotify({
+      notifyArr: [resource],
+      result: [resource],
+      application,
+      rules
+    })
   }
   async doNotify({ notifyArr, result, application, rules }) {
     let { messages, interval } = rules
@@ -395,7 +424,7 @@ class ControllingPersonRegistrationAPI {
     let cPeople = result.filter(
       (r: any) =>
         r.typeOfControllingEntity.id === CP_PERSON &&
-        !r.isSeniorManagement &&
+        !r.isSeniorManager &&
         !r.doNotReachOut &&
         (!r.percentageOfOwnership || r.percentageOfOwnership < alwaysNotifyIfShares)
     )
@@ -460,12 +489,12 @@ class ControllingPersonRegistrationAPI {
     cpStubs = cpStubs.map(stub => stub.submission).sort((a, b) => (b.time = a.time))
     return uniqBy(cpStubs, '_permalink')
   }
-  public async getCP({ application, bot, stubs }: { application: IPBApp; bot: Bot; stubs?: any }) {
+  public async getCP({ application, stubs }: { application: IPBApp; stubs?: any }) {
     if (!stubs) stubs = this.getCpStubs(application)
-    return await Promise.all(stubs.map(stub => bot.getResource(stub)))
+    return await Promise.all(stubs.map(stub => this.bot.getResource(stub)))
   }
   public getNotify({ rules, application }) {
-    const { low, medium, high, maxNotifications } = rules
+    const { low, medium, high } = rules
     let score
     if (application.scoreType)
       score = getEnumValueId({ model: this.bot.models[SCORE_TYPE], value: application.scoreType })
@@ -480,12 +509,8 @@ class ControllingPersonRegistrationAPI {
     } else if (score === 'medium') {
       notify = medium.notify
       if (!notify) return
-    } else if (high.notify) {
-      if (typeof high.notify === 'number')
-        notify = high.notify
-      else
-        notify = maxNotifications || DEFAULT_MAX_NOTIFY
-    }
+    } else if (score.indexOf('high')) notify = high.notify || DEFAULT_MAX_NOTIFY
+
     return notify
   }
   async handleClientRequestForNotification({ payload, application }) {
@@ -536,6 +561,41 @@ class ControllingPersonRegistrationAPI {
       dateLastNotified: Date.now()
     })
   }
+  async checkAndNotifyAll({ application, rules }) {
+    let { notifications } = application
+    if (!notifications) return
+    let stubs = this.getCpStubs(application)
+    if (!stubs.length) return
+    // if (!notifications) {
+    //   let stub = buildResourceStub({ resource: application, models: this.bot.models })
+    //   let appNotifications = await this.bot.getResource(stub, {
+    //     backlinks: ['notifications']
+    //   })
+    //   notifications = appNotifications.notifications
+    //   if (!notifications) return
+    // }
+    if (notifications.length === stubs.length) return
+    let notNotified = await this.getNotNotified(notifications, application)
+    if (notNotified.length)
+      await this.doNotify({ notifyArr: notNotified, result: notNotified, rules, application })
+    debugger
+  }
+  async getNotNotified(notifications, application) {
+    let notifiedParties: any = await Promise.all(
+      notifications.map(item => this.bot.getResource(item))
+    )
+    notifiedParties = uniqBy(notifiedParties, 'form._permalink')
+
+    let stubs = this.getCpStubs(application)
+    let result: any = await this.getCP({ application, stubs })
+    let notNotified: any = result.filter(
+      (item: any) =>
+        !notifiedParties.find((r: any) => {
+          return r.form._permalink === item._permalink
+        })
+    )
+    return notNotified
+  }
 }
 
 export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
@@ -565,6 +625,9 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let { products, rules } = conf
       if (!products || !products[productId]) return
 
+      if (rules && application.ruledBasedScore === 100)
+        await cp.checkAndNotifyAll({ application, rules })
+
       let ptype = payload[TYPE]
 
       if (rules && ptype === NEXT_FORM_REQUEST) {
@@ -573,7 +636,10 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           await cp.checkRules({ application, forms: products[productId], rules })
         return
       }
-
+      if (ptype === REUSE_CHECK_OVERRIDE) {
+        cp.reachOut({ payload, application, rules })
+        return
+      }
       if (ptype === CE_NOTIFICATION) {
         await cp.handleClientRequestForNotification({ application, payload })
         return
@@ -585,7 +651,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         logger.error(`controlling person: no email address and no phone provided`)
         return
       }
-
       const legalEntity = await bot.getResource(payload.legalEntity)
 
       if (
@@ -640,18 +705,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       })
 
       let now = Date.now()
-      // let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, application, bot })
-      // if (getEnumValueId(check.status) !== 'pass') {
-      //   await bot.versionAndSave({
-      //     ...value,
-      //     status: enumValue({
-      //       model: bot.models[NOTIFICATION_STATUS],
-      //       value: 'stopped'
-      //     }),
-      //     dateLastNotified: now
-      //   })
-      //   return
-      // }
 
       // do we need to choose another participant?
       let { isNewManager, form, abandon } = await this.getNextManager({
@@ -660,6 +713,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         timesNotified,
         value
       })
+      if (!form) debugger
       if (form && (abandon || isNewManager)) {
         await this.abandonManager(form, value)
         if (abandon) return
@@ -704,7 +758,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       await bot.versionAndSave({
         ...value,
         ...moreProps
-        // dateLastModified: Date.now()
       })
     },
     async getNextManager({ application, conf, timesNotified, value }) {
@@ -722,8 +775,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         debugger
         return { form: value.form, abandon: true }
       }
-      let result: any = await cp.getCP({ application, bot, stubs })
-      result = result.filter(r => r.typeOfControllingEntity.id === CP_PERSON)
+      let result: any = await cp.getCP({ application, stubs })
       if (result.length === notifiedParties.length) {
         debugger
         return { form: value.form, abandon: true }
@@ -737,7 +789,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       } else if (seniorManagement.length < notify && result.length > seniorManagement.length) {
         if (result.length > notify) {
           let notNotified: any = result.filter(
-            (item: any) => !notifiedParties.find((r: any) => r._permalink !== item._permalink)
+            (item: any) => !notifiedParties.find((r: any) => r.form._permalink !== item._permalink)
           )
 
           seniorManagement = seniorManagement.concat(
@@ -753,6 +805,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let notNotified: any = seniorManagement.filter(
         (item: any) => !notifiedParties.find((r: any) => r.form._permalink === item._permalink)
       )
+      if (!notNotified.length) return { form: value.form, abandon: true }
+
       let form
       if (isSeniorManagement) {
         let smArr = cp.getSeniorManagement({ notify: 1, positions, seniorManagement: notNotified })

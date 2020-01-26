@@ -106,12 +106,12 @@ class RiskScoreAPI {
     if (countryOfResidence || countryOfRegistration) {
       // Country of registration or residence
       let detail: any = this.checkCountry({ country: countryOfResidence || countryOfRegistration })
-      if (isBO) scoreDetails.beneficialOwnerRisk = detail
-      else {
-        if (isCpOnboarding) scoreDetails.countryOfResidence = detail
-        else scoreDetails.countryOfRegistration = detail
-        if (detail.risk) scoreDetails.risk = detail.risk
-      }
+      if (isBO) {
+        scoreDetails.beneficialOwnerRisk = detail
+      } else if (isCpOnboarding) scoreDetails.countryOfResidence = detail
+      else scoreDetails.countryOfRegistration = detail
+
+      if (detail.risk) scoreDetails.risk = detail.risk
     }
     if (countriesOfCitizenship) {
       this.checkCountries({

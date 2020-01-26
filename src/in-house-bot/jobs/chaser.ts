@@ -17,7 +17,7 @@ export class Chaser {
   }
 
   public async chase() {
-    debugger
+    // debugger
     let eqClause = {
       [TYPE]: NOTIFICATION
     }
@@ -40,7 +40,9 @@ export class Chaser {
     items = items.filter(item => getEnumValueId({ model, value: item.status }) !== 'abandoned')
     // items.sort((a, b) => b._time - a._time)
     let now = Date.now()
-    let notify = items.filter(item => now - item.dateLastNotified > (item.interval || 24 * 60 * MINUTE))
+    let notify = items.filter(
+      item => now - item.dateLastNotified > (item.interval || 24 * 60 * MINUTE)
+    )
     let result = await Promise.all(
       notify.map(item =>
         this.bot.versionAndSave({
