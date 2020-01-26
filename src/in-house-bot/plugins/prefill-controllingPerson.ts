@@ -20,6 +20,7 @@ const CHECK_STATUS = 'tradle.Status'
 const TYPE_OF_OWNERSHIP = 'tradle.legal.TypeOfOwnership'
 const COUNTRY = 'tradle.Country'
 const COMPANIES_HOUSE = 'Companies House'
+const OPEN_CORPORATES = 'Open Corporates'
 
 const countryMap = {
   England: 'United Kingdom',
@@ -152,7 +153,15 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
           extend(prefill, { firstName, lastName, middleName })
         }
+      } else if (check.provider === OPEN_CORPORATES) {
+        let parts = name.split(' ')
+        let lastName = parts[parts.length - 1]
+        let middleName = parts.length > 2 && parts[parts.length - 2]
+        let firstName =
+          (parts.length === 3 && parts[0]) || parts.slice(0, parts.length - 2).join(' ')
+        extend(prefill, { firstName, lastName, middleName })
       }
+
       // prefill = sanitize(prefill).sanitized
       let cePrefill = { ...prefill }
       cePrefill = sanitize(cePrefill).sanitized
