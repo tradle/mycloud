@@ -574,10 +574,7 @@ class ControllingPersonRegistrationAPI {
     //   notifications = appNotifications.notifications
     //   if (!notifications) return
     // }
-    if (notifications.length === stubs.length) {
-      debugger
-      return
-    }
+    if (notifications.length === stubs.length) return
     let notNotified = await this.getNotNotified(notifications, application)
     if (notNotified.length)
       await this.doNotify({ notifyArr: notNotified, result: notNotified, rules, application })
