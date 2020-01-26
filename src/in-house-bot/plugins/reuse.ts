@@ -7,6 +7,7 @@ import { getEnumValueId } from '../../utils'
 const CP = 'tradle.legal.LegalEntityControllingPerson'
 const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 const REUSE_CHECK = 'tradle.ReuseOfDataCheck'
+const COUNTRY = 'tradle.Country'
 const ASPECTS = 'Reusing previously onboarded entity'
 const PROVIDER = 'Tradle'
 
@@ -26,9 +27,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (controllingEntityCompanyNumber.length >= 7) legalEntity = payload.legalEntity
       else {
         legalEntity = await bot.getResource(payload.legalEntity)
-        if (
-          getEnumValueId({ model: bot.models[LEGAL_ENTITY], value: legalEntity.country }) === 'GB'
-        ) {
+        if (getEnumValueId({ model: bot.models[COUNTRY], value: legalEntity.country }) === 'GB') {
           if (
             /^\d/.test(controllingEntityCompanyNumber) &&
             controllingEntityCompanyNumber.length < 8
@@ -65,7 +64,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         dateChecked: Date.now(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
         aspects: ASPECTS,
         form: payload,
-        message: 'Please overwrite if data can`t be reused',
+        message: 'Please override if data can`t be reused',
         associatedApplication: apps[0]
       }
 
