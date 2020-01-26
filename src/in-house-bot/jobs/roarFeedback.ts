@@ -97,8 +97,11 @@ export class RoarFeedback {
           this.logger.debug(`roarFeedback handling response: ${JSON.stringify(jsonResponse, null, 2)}`)
 
         let status: any
-        if (jsonResponse.RecommendtoOnBoard)
+        let message: string
+        if (jsonResponse.RecommendtoOnBoard) {
           status = jsonResponse.RecommendtoOnBoard == 'YES' ? 'pass' : 'fail'
+          message = jsonResponse.RecommendtoOnBoard == 'YES' ? 'Recommended for onboarding' : 'Not recommended for onboarding'
+        }
         else
           status = 'error'
 
@@ -110,6 +113,8 @@ export class RoarFeedback {
         check.responseData = sanitize(jsonResponse).sanitized
         check.responseData.receivedDate = dateformat(new Date(), 'yyyy-mm-dd HH:MM:ss')
         check.status = statusEnum
+        if (message)
+          check.message = message
         if (this.trace)
           this.logger.debug(`roarFeedback updating check with response ${JSON.stringify(check, null, 2)}`)
         else
