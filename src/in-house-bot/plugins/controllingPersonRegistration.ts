@@ -26,6 +26,7 @@ import { SMSBasedVerifier } from '../sms-based-verifier'
 // import { compare } from '@tradle/dynamodb/lib/utils'
 
 const REUSE_CHECK = 'tradle.ReuseOfDataCheck'
+const REUSE_CHECK_OVERRIDE = 'tradle.ReuseOfDataCheckOverride'
 const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const AGENCY = 'tradle.Agency'
 const CP_ONBOARDING = 'tradle.legal.ControllingPersonOnboarding'
@@ -361,10 +362,27 @@ class ControllingPersonRegistrationAPI {
   async filterOutAlreadyOnboarded(cpEntities, application) {
     let reuseChecks = application.checks.filter(check => check[TYPE] === REUSE_CHECK)
     if (!reuseChecks.length) return cpEntities
-    let result = await Promise.all(reuseChecks.map(check => this.bot.getResource(check)))
+
+    let result: any = await Promise.all(reuseChecks.map(check => this.bot.getResource(check)))
+
+    let checkOverride = result[0].checkOverride
+    if (checkOverride) {
+      checkOverride = await this.bot.getResource(checkOverride)
+      if (checkOverride.reachOut) return cpEntities
+    }
     return cpEntities.filter(
       r => !result.find((check: any) => check.form._permalink === r._permalink)
     )
+  }
+  async reachOut({ payload, application, rules }) {
+    if (!payload.reachOut) return
+    let resource: any = await this.bot.getResource(payload.form)
+    await this.doNotify({
+      notifyArr: [resource],
+      result: [resource],
+      application,
+      rules
+    })
   }
   async doNotify({ notifyArr, result, application, rules }) {
     let { messages, interval } = rules
@@ -545,15 +563,21 @@ class ControllingPersonRegistrationAPI {
   }
   async checkAndNotifyAll({ application, rules }) {
     let { notifications } = application
-    if (!notifications) {
-      let appNotifications = await this.bot.getResource(buildResourceStub(application), {
-        backlinks: ['notifications']
-      })
-      notifications = appNotifications.notifications
-      if (!notifications) return
-    }
+    if (!notifications) return
     let stubs = this.getCpStubs(application)
-    if (notifications.length === stubs.length) return
+    if (!stubs.length) return
+    // if (!notifications) {
+    //   let stub = buildResourceStub({ resource: application, models: this.bot.models })
+    //   let appNotifications = await this.bot.getResource(stub, {
+    //     backlinks: ['notifications']
+    //   })
+    //   notifications = appNotifications.notifications
+    //   if (!notifications) return
+    // }
+    if (notifications.length === stubs.length) {
+      debugger
+      return
+    }
     let notNotified = await this.getNotNotified(notifications, application)
     if (notNotified.length)
       await this.doNotify({ notifyArr: notNotified, result: notNotified, rules, application })
@@ -615,7 +639,10 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           await cp.checkRules({ application, forms: products[productId], rules })
         return
       }
-
+      if (ptype === REUSE_CHECK_OVERRIDE) {
+        cp.reachOut({ payload, application, rules })
+        return
+      }
       if (ptype === CE_NOTIFICATION) {
         await cp.handleClientRequestForNotification({ application, payload })
         return
