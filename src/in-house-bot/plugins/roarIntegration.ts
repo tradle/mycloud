@@ -294,7 +294,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let controllingPersons = result.items
       logger.debug('roarIntegrationSender onFormsCollected build and send')
       await roarRequestAPI.buildAndSend(legalEntity, controllingPersons,
-        { application, form: payload, req })
+        { application, form: legalEntityStub, req })
 
     },
     async onmessage(req: IPBReq) {
