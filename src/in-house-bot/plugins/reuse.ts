@@ -51,9 +51,12 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!items || !items.length) return
       items = items.filter(item => item._permalink !== legalEntity._permalink)
 
-      let apps = await Promise.all(
+      let apps:any = await Promise.all(
         items.map(item => applications.getApplicationByPayload({ resource: item, bot }))
       )
+      apps = apps.filter(a => !a.draft)
+      if (!apps.length) return
+
       apps.sort((a: IPBApp, b: IPBApp) => b._time - a._time)
       debugger
       let resource: any = {

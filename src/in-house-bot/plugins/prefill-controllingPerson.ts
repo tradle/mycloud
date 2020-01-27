@@ -2,7 +2,7 @@ import uniqBy from 'lodash/uniqBy'
 import extend from 'lodash/extend'
 import size from 'lodash/size'
 
-import { Bot, Logger, CreatePlugin, IPluginLifecycleMethods, ITradleObject } from '../types'
+import { Bot, Logger, CreatePlugin, IPluginLifecycleMethods } from '../types'
 
 import { TYPE } from '../../constants'
 import validateResource from '@tradle/validate-resource'
