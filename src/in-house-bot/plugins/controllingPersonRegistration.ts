@@ -564,13 +564,13 @@ class ControllingPersonRegistrationAPI {
   }
   async checkAndNotifyAll({ application, rules }) {
     let { notNotified } = await this.getNotNotified(application)
-    if (notNotified.length)
+    if (notNotified && notNotified.length)
       await this.doNotify({ notifyArr: notNotified, result: notNotified, rules, application })
     debugger
   }
   async getNotNotified(application) {
     let { notifications } = application
-    if (!notifications) return
+    if (!notifications) return {}
     let stubs = this.getCpStubs(application)
     if (!stubs.length) return {}
 
