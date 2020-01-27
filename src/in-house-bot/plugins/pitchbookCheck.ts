@@ -32,7 +32,9 @@ const { sanitize } = validateResource.utils
 const POLL_INTERVAL = 250
 const ATHENA_OUTPUT = 'temp/athena'
 
-const FORM_TYPE = 'tradle.legal.LegalEntity'
+const FORM_TYPE_CP = 'tradle.legal.LegalEntityControllingPerson'
+const FORM_TYPE_LE = 'tradle.legal.LegalEntity'
+
 const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const PROVIDER = 'PitchBook Data, Inc.'
 const ASPECTS = 'Beneficial owner'
@@ -57,16 +59,24 @@ interface IPitchbookConf {
   athenaMaps: [IPitchbookthenaConf]
 }
 
-const companyChecks = {
+const companyChecksLE = {
   companyWebsite: 'website',
   companyName: 'company name',
   formerlyKnownAs: 'company former name',
   alsoKnownAs: 'company also known as'
 }
 
-const fundChecks = {
+const fundChecksLE = {
   companyName: 'fund name',
   formerlyKnownAs: 'fund former name'
+}
+
+const companyChecksCP = {
+  name: 'company name'
+}
+
+const fundChecksCP = {
+  name: 'fund name'
 }
 
 /*
@@ -233,7 +243,7 @@ export class PitchbookCheckAPI {
     }
   }
 
-  public async lookup(form: any, application: IPBApp, req: IPBReq) {
+  public async lookup(form: any, application: IPBApp, req: IPBReq, companyChecks: any, fundChecks: any) {
     let status
     this.logger.debug('pitchbookCheck lookup() called')
     let cnt = 0;
@@ -423,17 +433,36 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const { application, payload } = req
       if (!application) return
 
-      if (FORM_TYPE != payload[TYPE]) return
-      logger.debug(`pitchbookCheck called for type ${payload[TYPE]} to check ${Object.keys(companyChecks)}`)
+      if (FORM_TYPE_LE != payload[TYPE] && FORM_TYPE_CP != payload[TYPE]) return
+      let isLE: boolean = false
+      if (FORM_TYPE_LE == payload[TYPE]) {
+        logger.debug(`pitchbookCheck called for type ${payload[TYPE]} to check ${Object.keys(companyChecksLE)}`)
 
-      let inpayload = false
-      for (let check of Object.keys(companyChecks)) {
-        if (payload[check]) {
-          inpayload = true
+        let inpayload = false
+        for (let check of Object.keys(companyChecksLE)) {
+          if (payload[check]) {
+            inpayload = true
+          }
         }
+        if (!inpayload)
+          return
+        isLE = true
       }
-      if (!inpayload)
-        return
+      else if (FORM_TYPE_CP == payload[TYPE]) {
+        if (payload['typeOfControllingEntity'].id.split('_')[1] == 'person')
+          return
+
+        logger.debug(`pitchbookCheck called for type ${payload[TYPE]} to check ${Object.keys(companyChecksCP)}`)
+
+        let inpayload = false
+        for (let check of Object.keys(companyChecksCP)) {
+          if (payload[check]) {
+            inpayload = true
+          }
+        }
+        if (!inpayload)
+          return
+      }
 
       logger.debug('pitchbookCheck before doesCheckNeedToBeCreated')
       let createCheck = await doesCheckNeedToBeCreated({
@@ -442,14 +471,16 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         application,
         provider: PROVIDER,
         form: payload,
-        propertiesToCheck: ['companyName'],
+        propertiesToCheck: isLE ? ['companyName'] : ['name'],
         prop: 'form',
         req
       })
       logger.debug(`pitchbookCheck after doesCheckNeedToBeCreated with createCheck=${createCheck}`)
 
       if (!createCheck) return
-      let r = await pitchbookCheckAPI.lookup(payload, application, req)
+      let r = await pitchbookCheckAPI.lookup(payload, application, req,
+        isLE ? companyChecksLE : companyChecksCP,
+        isLE ? fundChecksLE : fundChecksCP)
     }
   }
   return { plugin }
