@@ -1,5 +1,5 @@
 import https from 'https'
-import HttpsProxyAgent from 'https-proxy-agent'
+//import HttpsProxyAgent from 'https-proxy-agent'
 import fs from 'fs'
 import path from 'path'
 import nunjucks from 'nunjucks'
@@ -172,8 +172,8 @@ export class CifasCheckAPI {
       passphrase: this.conf.passphrase
     }
 
-    if (this.conf.proxy)
-      options.agent = new HttpsProxyAgent(this.conf.proxy)
+    //if (this.conf.proxy)
+    //  options.agent = new HttpsProxyAgent(this.conf.proxy)
 
     try {
       let xml: string = await this.httpRequest(options, data)
