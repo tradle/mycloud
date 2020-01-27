@@ -37,7 +37,7 @@ class SpecialApprovalAPI {
     // create SPECIAL_APPROVAL_CHECK
     let resource: any = {
       [TYPE]: SPECIAL_APPROVAL_CHECK,
-      status: 'pass',
+      status: 'warning',
       bsaCode: payload.bsaCode,
       ddr: payload.ddr,
       provider: PROVIDER,
