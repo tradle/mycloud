@@ -325,13 +325,13 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         let {
           registration_number,
           legal_authority,
-          legal_form,
+          // legal_form,
           country_registered,
           place_registered
         } = identification
         extend(prefill, {
           controllingEntityCompanyNumber: registration_number,
-          companyType: legal_form
+          // companyType: legal_form
         })
       }
       this.addNatureOfControl(prefill, natures_of_control)
