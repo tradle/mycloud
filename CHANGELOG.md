@@ -2,20 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.55](https://github.com/tradle/mycloud/compare/v2.5.1-rc.54...v2.5.1-rc.55) (2020-01-26)
+## [2.5.1-rc.56](https://github.com/tradle/mycloud/compare/v2.5.1-rc.55...v2.5.1-rc.56) (2020-01-27)
 
 
 ### Bug Fixes
 
-* minor changes ([bd57fea](https://github.com/tradle/mycloud/commit/bd57fea))
+* no reuse for drafts ([88a9d49](https://github.com/tradle/mycloud/commit/88a9d49))
+* prefill first and last name if provider OC ([b5f6b12](https://github.com/tradle/mycloud/commit/b5f6b12))
 
 
 ### Features
 
-* models upgrade ([1fb3a44](https://github.com/tradle/mycloud/commit/1fb3a44))
-* notify or not the previously onboarded customer based on reuse check ([5597210](https://github.com/tradle/mycloud/commit/5597210))
-* notify or not the previously onboarded customer based on reuse check ([b002b58](https://github.com/tradle/mycloud/commit/b002b58))
-* reuse customer data project ([2e1750b](https://github.com/tradle/mycloud/commit/2e1750b))
+* sendnotificatins only to active parties ([15964f2](https://github.com/tradle/mycloud/commit/15964f2))
 
 
 
