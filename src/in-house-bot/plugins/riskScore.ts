@@ -140,7 +140,6 @@ class RiskScoreAPI {
     if (size(scoreDetails) === 1) return
 
     let { latestChecks, checks } = req
-    // let checks: any = latestChecks || application.checks
     if (!checks) ({ checks, latestChecks } = await getLatestChecks({ application, bot: this.bot }))
     if (!latestChecks || !latestChecks.length) return
     let permalink = form._permalink
@@ -155,20 +154,6 @@ class RiskScoreAPI {
       scoreDetails.companyNotFound = true
     }
     return scoreDetails
-    // let sanctionsChecks = checksForThisForm.filter(
-    //   check =>
-    //     check.form._permalink === permalink &&
-    //     check[TYPE] === 'tradle.SanctionsCheck' &&
-    //     getEnumValueId({ model: models[STATUS], value: check.status }) !== 'pass' &&
-    //     check.rawData.pep
-    // )
-
-    // if (sanctionsChecks && sanctionsChecks.length) {
-    //   let defaultH = historicalBehaviorRisk.default || defaultValue
-    //   let value = (defaultH * weights.historicalBehaviorRisk) / 100
-    //   scoreDetails.historicalBehaviorRisk = this.addDetailScore({ value, coef: 1 })
-    // }
-    // return scoreDetails
   }
   public async calcScore({ application, forms }: { application: IPBApp; forms?: any }) {
     let { scoreDetails } = application
