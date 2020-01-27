@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
 import { CreatePlugin, IPBReq, IPluginLifecycleMethods } from '../types'
-import { getLatestForms, doesCheckNeedToBeCreated } from '../utils'
+import { doesCheckNeedToBeCreated } from '../utils'
 
 const RM_SIGNOFF_CHECK = 'tradle.RelationshipOwnerSignoffCheck'
 const ASPECTS = 'Application signoff'
