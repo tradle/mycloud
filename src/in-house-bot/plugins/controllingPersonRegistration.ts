@@ -563,32 +563,32 @@ class ControllingPersonRegistrationAPI {
     })
   }
   async checkAndNotifyAll({ application, rules }) {
-    let { notifications } = application
-    if (!notifications) return
-    let stubs = this.getCpStubs(application)
-    if (!stubs.length) return
-    if (notifications.length === stubs.length) return
-    let notNotified = await this.getNotNotified(notifications, application)
+    let { notNotified } = await this.getNotNotified(application)
     if (notNotified.length)
       await this.doNotify({ notifyArr: notNotified, result: notNotified, rules, application })
     debugger
   }
-  async getNotNotified(notifications, application) {
+  async getNotNotified(application) {
+    let { notifications } = application
+    if (!notifications) return
+    let stubs = this.getCpStubs(application)
+    if (!stubs.length) return {}
+
+    if (notifications.length === stubs.length) return {}
     let notifiedParties: any = await Promise.all(
       notifications.map(item => this.bot.getResource(item))
     )
     notifiedParties = uniqBy(notifiedParties, 'form._permalink')
 
-    let stubs = this.getCpStubs(application)
-    let result: any = await this.getCP({ application, stubs })
-    let notNotified: any = result.filter(
+    let allCp: any = await this.getCP({ application, stubs })
+    let notNotified: [] = allCp.filter(
       (item: any) =>
         !notifiedParties.find((r: any) => {
           return r.form._permalink === item._permalink
         })
     )
 
-    return notNotified
+    return { notNotified, allCp }
   }
 }
 
@@ -618,10 +618,20 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       let { products, rules } = conf
       if (!products || !products[productId]) return
-
-      if (rules && application.ruledBasedScore === 100)
-        await cp.checkAndNotifyAll({ application, rules })
-
+      let { models } = bot
+      if (rules && application.notifications) {
+        let scoreType = getEnumValueId({ model: models[SCORE_TYPE], value: application.scoreType })
+        let previousScoreType = getEnumValueId({
+          model: models[SCORE_TYPE],
+          value: application.previousScoreType
+        })
+        if (application.ruledBasedScore === 100 || scoreType.indexOf('high') !== -1) {
+          if (!previousScoreType || previousScoreType.indexOf('high') === -1) {
+            await cp.checkAndNotifyAll({ application, rules })
+            return
+          }
+        }
+      }
       let ptype = payload[TYPE]
 
       if (rules && ptype === NEXT_FORM_REQUEST) {
@@ -755,14 +765,19 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       })
     },
     async getNextManager({ application, conf, timesNotified, value }) {
-      let { notifications } = application
       let { maxNotifications, positions } = conf.rules
+
+      if (timesNotified < maxNotifications) return { form: value.form }
+
+      // let { notNotified, result } = this.getNotNotified(application)
+      // if (!notNotified) return { form: value.form, abandon: true }
+
+      let { notifications } = application
       let notify = cp.getNotify({ rules: conf.rules, application })
       let notifiedParties: any = await Promise.all(notifications.map(item => bot.getResource(item)))
       notifiedParties = uniqBy(notifiedParties, 'form._permalink')
 
       debugger
-      if (timesNotified < maxNotifications) return { form: value.form }
 
       let stubs = cp.getCpStubs(application)
       if (stubs.length === notifiedParties.length) {
