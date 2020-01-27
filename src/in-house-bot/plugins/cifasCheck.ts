@@ -1,4 +1,5 @@
 import https from 'https'
+import HttpsProxyAgent from 'https-proxy-agent'
 import fs from 'fs'
 import path from 'path'
 import nunjucks from 'nunjucks'
@@ -38,7 +39,7 @@ const PROVIDER = 'Cifas.org'
 const ASPECTS = 'Fraud prevention'
 const COMMERCIAL = 'commercial'
 
-const CIFRA_HOST = 'training-services.find-cifas.org.uk'
+const CIFAS_HOST = 'training-services.find-cifas.org.uk'
 
 const BASIC_SEARCH_REQUEST_TEMPLATE = `<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" 
@@ -81,11 +82,13 @@ interface ICifasCheck {
 }
 
 interface ICifasConf {
+  cifasHost: string,
   requestingInstitution: string,
   owningMemberNumber: string,
   managingMemberNumber: string,
   currentUser: string,
-  passphrase: string
+  passphrase: string,
+  proxy?: string
 }
 
 interface BasicSearchQuery {
@@ -155,8 +158,8 @@ export class CifasCheckAPI {
 
     const data = nunjucks.renderString(BASIC_SEARCH_REQUEST_TEMPLATE, input)
 
-    const options = {
-      hostname: CIFRA_HOST,
+    let options: any = {
+      hostname: this.conf.cifasHost,
       port: 443,
       path: '/Direct/Cifas/Request.asmx',
       method: 'POST',
@@ -168,6 +171,10 @@ export class CifasCheckAPI {
       pfx: fs.readFileSync(path.resolve(__dirname, '../../../data/cifas-training.pfx')),
       passphrase: this.conf.passphrase
     }
+
+    if (this.conf.proxy)
+      options.agent = new HttpsProxyAgent(this.conf.proxy)
+
     try {
       let xml: string = await this.httpRequest(options, data)
       return { xml, error: null }
@@ -284,7 +291,9 @@ export const validateConf: ValidatePluginConf = async ({
   conf: IConfComponents
   pluginConf: ICifasConf
 }) => {
-  const { models } = bot
+  if (!pluginConf.cifasHost || typeof pluginConf.cifasHost != 'string') {
+    throw new Errors.InvalidInput(`property 'cifasHost' is not set`)
+  }
   if (!pluginConf.requestingInstitution || typeof pluginConf.requestingInstitution != 'string') {
     throw new Errors.InvalidInput(`property 'requestingInstitution' is not set`)
   }
