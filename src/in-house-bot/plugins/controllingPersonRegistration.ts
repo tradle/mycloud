@@ -304,7 +304,7 @@ class ControllingPersonRegistrationAPI {
     let { seniorManagement, cPeople, alwaysNotify } = await this.categorizeCP({
       application,
       rules,
-      result
+      activeCP: result
     })
 
     if (seniorManagement.length) {
@@ -414,14 +414,14 @@ class ControllingPersonRegistrationAPI {
       )
     )
   }
-  async categorizeCP({ application, rules, result }) {
+  async categorizeCP({ application, rules, activeCP }) {
     let { alwaysNotifyIfShares } = rules
     if (!alwaysNotifyIfShares) alwaysNotifyIfShares = defaultAlwaysNotifyIfShares
 
-    let seniorManagement = result.filter((r: any) => r.isSeniorManager && !r.doNotReachOut)
-    let alwaysNotify = result.filter((r: any) => r.percentageOfOwnership >= alwaysNotifyIfShares)
+    let seniorManagement = activeCP.filter((r: any) => r.isSeniorManager && !r.doNotReachOut)
+    let alwaysNotify = activeCP.filter((r: any) => r.percentageOfOwnership >= alwaysNotifyIfShares)
 
-    let cPeople = result.filter(
+    let cPeople = activeCP.filter(
       (r: any) =>
         r.typeOfControllingEntity.id === CP_PERSON &&
         !r.isSeniorManager &&
@@ -491,7 +491,8 @@ class ControllingPersonRegistrationAPI {
   }
   public async getCP({ application, stubs }: { application: IPBApp; stubs?: any }) {
     if (!stubs) stubs = this.getCpStubs(application)
-    return await Promise.all(stubs.map(stub => this.bot.getResource(stub)))
+    let allCP = await Promise.all(stubs.map(stub => this.bot.getResource(stub)))
+    return allCP.filter((cp: any) => !cp.inactive)
   }
   public getNotify({ rules, application }) {
     const { low, medium, high } = rules
@@ -566,14 +567,6 @@ class ControllingPersonRegistrationAPI {
     if (!notifications) return
     let stubs = this.getCpStubs(application)
     if (!stubs.length) return
-    // if (!notifications) {
-    //   let stub = buildResourceStub({ resource: application, models: this.bot.models })
-    //   let appNotifications = await this.bot.getResource(stub, {
-    //     backlinks: ['notifications']
-    //   })
-    //   notifications = appNotifications.notifications
-    //   if (!notifications) return
-    // }
     if (notifications.length === stubs.length) return
     let notNotified = await this.getNotNotified(notifications, application)
     if (notNotified.length)
@@ -594,6 +587,7 @@ class ControllingPersonRegistrationAPI {
           return r.form._permalink === item._permalink
         })
     )
+
     return notNotified
   }
 }
