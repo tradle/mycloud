@@ -1,5 +1,5 @@
 import https from 'https'
-//import HttpsProxyAgent from 'https-proxy-agent'
+import HttpsProxyAgent from 'https-proxy-agent'
 import fs from 'fs'
 import path from 'path'
 import nunjucks from 'nunjucks'
@@ -42,7 +42,7 @@ const COMMERCIAL = 'commercial'
 const CIFAS_HOST = 'training-services.find-cifas.org.uk'
 
 const BASIC_SEARCH_REQUEST_TEMPLATE = `<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" 
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
                xmlns:fh="http://header.find-cifas.org.uk"
                xmlns:doc="http://objects.find-cifas.org.uk/Direct">
   <soap:Header>
@@ -172,8 +172,8 @@ export class CifasCheckAPI {
       passphrase: this.conf.passphrase
     }
 
-    //if (this.conf.proxy)
-    //  options.agent = new HttpsProxyAgent(this.conf.proxy)
+    if (this.conf.proxy)
+     options.agent = new HttpsProxyAgent(this.conf.proxy)
 
     try {
       let xml: string = await this.httpRequest(options, data)

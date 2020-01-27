@@ -214,6 +214,7 @@
     "freemail": "github:tradle/freemail",
     "fs-extra": "https://registry.npmjs.org/fs-extra/-/fs-extra-0.30.0.tgz",
     "graphql": "^0.10.5",
+    "https-proxy-agent": "^4.0.0",
     "image-size": "^0.6.2",
     "ip": "~1.1.5",
     "is-generator-function": "^1.0.6",
