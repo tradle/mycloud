@@ -471,7 +471,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         application,
         provider: PROVIDER,
         form: payload,
-        propertiesToCheck: ['companyName'],
+        propertiesToCheck: isLE ? ['companyName'] : ['name'],
         prop: 'form',
         req
       })
