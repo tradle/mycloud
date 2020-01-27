@@ -141,7 +141,8 @@ class SpecialApprovalAPI {
 
     if (codeId) {
       const { bsaList } = this.conf
-      if (!bsaList.includes(codeId.toLowerCase())) codeId = null
+      let codeIdNorm = codeId.toLowerCase()
+      if (!bsaList[codeIdNorm] && !bsaList.includes(codeIdNorm)) codeId = null
       // if (!bsaList.find(bsaCode => bsaCode === normilizedCodeId)) codeId = null
     }
     if (!hasCountries && !codeId) return

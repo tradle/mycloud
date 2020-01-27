@@ -62,9 +62,6 @@ const STATUS = 'tradle.Status'
 const SCORE_TYPE = 'tradle.ScoreType'
 const BANK_ACCOUNT = 'tradle.BankAccount'
 const AUTOHIGH = '*AUTOHIGH*'
-const BSA_CODES = {
-  fe102: 21
-}
 const defaultMap = {
   countryOfResidence: 'countryOfResidence',
   countryOfRegistration: 'countryOfRegistration',
@@ -223,18 +220,18 @@ class RiskScoreAPI {
       if (accounts) summary.accountsType = accounts.score
     }
 
-    let moreChecks =
+    let specialApprovalChecks =
       application.checks &&
       application.checks.filter(
         check =>
           check[TYPE] === SPECIAL_APPROVAL_REQUIRED_CHECK ||
           check[TYPE] === PRE_SPECIAL_APPROVAL_CHECK
       )
-    if (moreChecks && moreChecks.length) {
-      moreChecks.sort((a: any, b: any) => b._time - a._time)
-      moreChecks = uniqBy(moreChecks, TYPE)
+    if (specialApprovalChecks && specialApprovalChecks.length) {
+      specialApprovalChecks.sort((a: any, b: any) => b._time - a._time)
+      specialApprovalChecks = uniqBy(specialApprovalChecks, TYPE)
 
-      let checks = await Promise.all(moreChecks.map(r => this.bot.getResource(r)))
+      let checks = await Promise.all(specialApprovalChecks.map(r => this.bot.getResource(r)))
       let checkOverride, checkOverridePre
       checks.forEach((check: any) => {
         let ctype = check[TYPE]
@@ -243,6 +240,8 @@ class RiskScoreAPI {
         } else if (ctype === PRE_SPECIAL_APPROVAL_CHECK) checkOverridePre = check.checkOverride
       })
       let bsaCode, ddr
+      let { bsaList, ddrList } = this.conf
+
       if (checkOverridePre) {
         checkOverridePre = await this.bot.getResource(checkOverridePre)
         bsaCode = checkOverridePre.bsaCode
@@ -253,10 +252,14 @@ class RiskScoreAPI {
         if (checkOverride.ddr) ddr = checkOverride.ddr
         if (checkOverride.bsaCode) bsaCode = checkOverride.bsaCode
       }
-      if (ddr) summary.historicalBehaviorRisk = weights.historicalBehaviorRisk
+      if (ddr) {
+        let ddrcoef = ddrList[ddr] || (ddrList.autohigh.includes(ddr.toUpperCase()) && 100) || 0
+        summary.historicalBehaviorRisk = (weights.historicalBehaviorRisk * ddrcoef) / 100
+      }
       if (bsaCode) {
-        let coef = BSA_CODES[bsaCode] || 100
-        summary.bsaCodeRisk = (weights.bsaCodeRisk * coef) / 100
+        let bsacoef =
+          bsaList[bsaCode] || (bsaList.autohigh.includes(bsaCode.toLowerCase()) && 100) || 0
+        summary.bsaCodeRisk = (weights.bsaCodeRisk * bsacoef) / 100
       }
     }
 
@@ -274,7 +277,7 @@ class RiskScoreAPI {
       // application.score = 100
       return
     }
-    this.calcApplicatinScore({ application })
+    // this.calcApplicatinScore({ application })
   }
   getLegalStructureScore(payload, application) {
     let { summary, details } = application.scoreDetails
@@ -310,6 +313,7 @@ class RiskScoreAPI {
     return Math.max(...scores)
   }
   public checkCountries = ({ scoreDetails, countriesToCheck, name, category }) => {
+    if (typeof countriesToCheck === 'string') countriesToCheck = [countriesToCheck]
     if (!countriesToCheck.length) {
       return
     }
@@ -373,27 +377,41 @@ class RiskScoreAPI {
   public resetBsaRiskWithOverride({ payload, application }) {
     let { summary, details } = application.scoreDetails
     let { bsaCodeRisk } = summary
+    let { bsaList, ddrList } = this.conf
 
-    let code = payload.bsaCode
-    if (!code) return
+    let { bsaCode, ddr } = payload
+    if (!bsaCode) return
 
-    let coef = (code === 'fe102' && 21) || 100
+    let coef = bsaList[bsaCode] || (bsaList.autohigh.find(c => c === bsaCode) && 100)
+
     let { weights } = this.riskFactors
-    summary.bsaCodeRisk = this.roundScore((weights.bsaCodeRisk * coef) / 100)
-    debugger
+
     let bsaDetail = details.find(d => d.bsaCodeRisk)
+    if (coef) {
+      // let coef = (code === 'fe102' && 21) || 100
+      summary.bsaCodeRisk = this.roundScore((weights.bsaCodeRisk * coef) / 100)
+      debugger
 
-    // bsaDetail.previousBsaScore = bsaDetail.bsaCodeRisk[code]
+      // bsaDetail.previousBsaScore = bsaDetail.bsaCodeRisk[code]
 
-    if (coef === 100) bsaDetail.risk = AUTOHIGH
-    bsaDetail.bsaCodeRisk[code] = summary.bsaCodeRisk
-
-    if (payload.ddr) {
-      summary.historicalBehaviorRisk = weights.historicalBehaviorRisk
-      bsaDetail.historicalBehaviorRisk = { [payload.ddr]: summary.historicalBehaviorRisk }
+      if (coef === 100) bsaDetail.risk = AUTOHIGH
+      bsaDetail.bsaCodeRisk[bsaCode] = summary.bsaCodeRisk
+    } else {
+      summary.bsaCodeRisk = 0
+      bsaDetail.bsaCodeRisk[bsaCode] = summary.bsaCodeRisk
+    }
+    if (ddr) {
+      let coef = ddrList[ddr] || ddrList.find(d => d === ddr)
+      if (coef) {
+        summary.historicalBehaviorRisk = weights.historicalBehaviorRisk
+        bsaDetail.historicalBehaviorRisk = { [ddr]: summary.historicalBehaviorRisk }
+      } else {
+        summary.historicalBehaviorRisk = 0
+        bsaDetail.historicalBehaviorRisk = { [ddr]: 0 }
+      }
     }
 
-    this.calcApplicatinScore({ application })
+    // this.calcApplicatinScore({ application })
   }
   public getAccountScore({ stubs }) {
     const weight = this.riskFactors.weights.accountTypeRisk
@@ -420,10 +438,13 @@ class RiskScoreAPI {
     if (!code) return
     const weight = this.riskFactors.weights.bsaCodeRisk
     code = code.id.split('_')[1]
-    let coef = BSA_CODES[code] || 100
+
+    let { bsaList } = this.conf
+    let coef =
+      bsaList[code.toLowerCase()] || (bsaList.autohigh.includes(code.toLowerCase()) && 100) || 0
+
     let { summary, details } = application.scoreDetails
     summary.bsaCodeRisk = this.roundScore((weight * coef) / 100)
-    this.calcApplicatinScore({ application })
     let detail: any = {
       form: buildResourceStub({ resource: form, models: this.bot.models }),
       bsaCodeRisk: {
@@ -456,7 +477,9 @@ class RiskScoreAPI {
     let scores: number[] = Object.values(summary)
     let score = scores.reduce((a, b) => a + b, 0)
     application.score = this.roundScore(score)
+    if (application.scoreType) application.previousScoreType = application.scoreType
     application.scoreType = this.getScoreType(application.score, this.bot.models)
+    application.ruledBasedScore = 0
 
     let autohigh = details.filter(d => d.risk)
     if (autohigh.length) {
@@ -469,11 +492,17 @@ class RiskScoreAPI {
       return
     }
     if (isCpOnboarding) return
-
-    let bsaCodeRiskDetail = details.find(d => d.bsaCodeRisk)
-    if (bsaCodeRiskDetail && bsaCodeRiskDetail.bsaCodeRisk) {
-      for (let p in BSA_CODES)
-        if (bsaCodeRiskDetail.bsaCodeRisk[p]) application.ruledBasedScore = 21
+    if (summary.historicalBehaviorRisk) application.ruledBasedScore = summary.historicalBehaviorRisk
+    else summary.historicalBehaviorRisk = 0
+    if (summary.bsaCodeRisk) {
+      if (summary.bsaCodeRisk > summary.historicalBehaviorRisk)
+        application.ruledBasedScore = summary.historicalBehaviorRisk
+    } else summary.bsaCodeRisk = 0
+    if (application.ruledBasedScore === 100) {
+      application.scoreType = enumValue({
+        model: this.bot.models[SCORE_TYPE],
+        value: 'autohigh'
+      })
     }
   }
   public getScoreType = (score, models) => {
@@ -502,7 +531,7 @@ class RiskScoreAPI {
     else details.push(detail)
 
     summary.accountTypeRisk = detail.score
-    this.calcApplicatinScore({ application })
+    // this.calcApplicatinScore({ application })
   }
 
   public addDetailScore = ({ value, coef }) => {
@@ -536,7 +565,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const { application, payload } = req
       if (!application) return
 
-      let { riskFactors, products, propertyMap } = conf
+      let { riskFactors, products, propertyMap, bsaList, ddrList } = conf
       if (!riskFactors || !products) return
 
       const { models } = bot
@@ -548,6 +577,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         ptype === PRE_SPECIAL_APPROVAL_CHECK_OVERRIDE
       ) {
         rsApi.resetBsaRiskWithOverride({ payload, application })
+        rsApi.calcApplicatinScore({ application })
+
         return
       }
 
@@ -571,6 +602,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         let accountScore: any = rsApi.getAccountScore({ stubs })
 
         rsApi.resetScoreFor({ name: 'accountTypeRisk', detail: accountScore, application })
+        rsApi.calcApplicatinScore({ application })
         return
       }
       if (ptype.indexOf('PreOnboarding') !== -1) {
