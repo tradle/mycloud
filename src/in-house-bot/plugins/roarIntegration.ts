@@ -345,8 +345,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         const filter: any = {
           EQ: {
             [TYPE]: FORM_TYPE_CP,
-            'legalEntity._permalink': legalEntityRef._permalink,
-            inactive: false
+            'legalEntity._permalink': legalEntityRef._permalink
           }
         }
 
@@ -364,8 +363,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         const filter: any = {
           EQ: {
             [TYPE]: FORM_TYPE_CP,
-            'legalEntity._permalink': legalEntity._permalink,
-            inactive: false
+            'legalEntity._permalink': legalEntity._permalink
           }
         }
 
