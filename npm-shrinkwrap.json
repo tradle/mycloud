@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "2.5.1-rc.56",
+  "version": "2.5.1-rc.57",
   "lockfileVersion": 1,
   "requires": true,
   "dependencies": {
@@ -510,7 +510,11 @@
     "@tradle/centrix": {
       "version": "1.0.0",
       "resolved": "git://github.com/tradle/centrix.git#a6b234e114b8fd24d576913a4e8cacc10bf024b7",
+<<<<<<< HEAD
       "integrity": "sha1-vpY8dztbsnRzde74x4QY8VchlvU=",
+=======
+      "integrity": "sha1-QfZFU09EnuxnESYjZBOjugwfyfk=",
+>>>>>>> d96e4889d93e69b8780f7aa87a5b93d251f6d002
       "optional": true,
       "requires": {
         "co": "^4.6.0",
@@ -735,11 +739,7 @@
       }
     },
     "@tradle/models": {
-<<<<<<< HEAD
       "version": "github:tradle/models#c637aaec48cc38596744068c41b5129d3a4b9bad",
-=======
-      "version": "github:tradle/models#f860f9769b5cd6e0a3fa62f68c4e91500ae2c115",
->>>>>>> af59e3dea7fccffd7c3315907722666fe7909dfc
       "from": "github:tradle/models"
     },
     "@tradle/models-cloud": {
@@ -751,11 +751,7 @@
       "from": "tradle/models-cloud-services"
     },
     "@tradle/models-corporate-onboarding": {
-<<<<<<< HEAD
       "version": "github:tradle/models-corporate-onboarding#d55d1283d1e50911189ebdd55986305b8bb6bf18",
-=======
-      "version": "github:tradle/models-corporate-onboarding#d6595bd529d5256282e38f9c2fac918efc8bc483",
->>>>>>> af59e3dea7fccffd7c3315907722666fe7909dfc
       "from": "github:tradle/models-corporate-onboarding"
     },
     "@tradle/models-nz": {
