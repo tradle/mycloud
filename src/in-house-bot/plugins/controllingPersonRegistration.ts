@@ -621,11 +621,11 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let { models } = bot
       if (rules && application.notifications) {
         let scoreType = getEnumValueId({ model: models[SCORE_TYPE], value: application.scoreType })
-        let previousScoreType = getEnumValueId({
-          model: models[SCORE_TYPE],
-          value: application.previousScoreType
-        })
         if (application.ruledBasedScore === 100 || scoreType.indexOf('high') !== -1) {
+          let previousScoreType = getEnumValueId({
+            model: models[SCORE_TYPE],
+            value: application.previousScoreType
+          })
           if (!previousScoreType || previousScoreType.indexOf('high') === -1) {
             await cp.checkAndNotifyAll({ application, rules })
             return
