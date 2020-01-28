@@ -46,6 +46,8 @@ interface IRoarIntegrationConf {
   token: string,
   product: string,
   trace?: boolean
+  jurisdictionForm: string,
+  jurisdictionProperty: string
 }
 
 
@@ -62,7 +64,7 @@ export class RoarRequestAPI {
     this.logger = logger
   }
 
-  buildAndSend = async (legalEntity: any, legalEntityControllingPersons: Array<any>,
+  buildAndSend = async (legalEntity: any, legalEntityControllingPersons: Array<any>, jurisdictionCountry: string,
     { application, form, req }) => {
 
     this.logger.debug(`roarIntegration build called`)
@@ -93,7 +95,7 @@ export class RoarRequestAPI {
         CountryOfResidence: isIND ? residence : '',
         ExistingCustomerInternalId: TRADLE + person._permalink.substring(0, IDLENGHT),
         ApplicantID: TRADLE + person._permalink.substring(0, IDLENGHT),
-        Jurisdiction: isIND ? residence : country,
+        Jurisdiction: jurisdictionCountry,
         LastName: (isIND && person.lastName) ? person.lastName : '',
         CountryOfIncorporation: isIND ? '' : country,
         OrganizationName: (!isIND && person.name) ? person.name : '',
@@ -140,7 +142,7 @@ export class RoarRequestAPI {
             Country: countryCode
           }
         ],
-        Jurisdiction: legalEntity.country.id.split('_')[1],
+        Jurisdiction: jurisdictionCountry,
         ApplicantID: TRADLE + legalEntity._permalink.substring(0, IDLENGHT),
         OnboardingCustomerRelatedCustomer: relatedCustomers,
         CustomerNAICSCode: 'NONE',
@@ -260,6 +262,22 @@ export class RoarRequestAPI {
     this.logger.debug(`${PROVIDER} Created roarScreeningCheck ${check.permalink}`)
     return check
   }
+
+  public findJurisdictionCountry = async (latestForms: any) => {
+    const jurisdictionFormStub = latestForms.find(form => form.type === this.conf.jurisdictionForm)
+    if (!jurisdictionFormStub) {
+      this.logger.error('roarIntegration onFormsCollected jurisdiction form not found')
+      return undefined
+    }
+    let jurisdictionForm = await this.bot.getResource(jurisdictionFormStub)
+    let jurisdiction = jurisdictionForm[this.conf.jurisdictionProperty]
+    if (!jurisdiction) {
+      this.logger.error('roarIntegration onFormsCollected jurisdiction country is not found')
+      return undefined
+    }
+    let jurisdictionCountry = jurisdiction.id.split('_')[1]
+    return jurisdictionCountry
+  }
 }
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
@@ -292,20 +310,24 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         filter
       })
       let controllingPersons = result.items
-      logger.debug('roarIntegrationSender onFormsCollected build and send')
-      await roarRequestAPI.buildAndSend(legalEntity, controllingPersons,
-        { application, form: legalEntity, req })
 
+      // find jurisdiction
+      const jurisdictionCountry: string = await roarRequestAPI.findJurisdictionCountry(latestForms)
+      if (!jurisdictionCountry)
+        return
+      logger.debug('roarIntegration onFormsCollected build and send')
+      await roarRequestAPI.buildAndSend(legalEntity, controllingPersons, jurisdictionCountry,
+        { application, form: legalEntity, req })
     },
     async onmessage(req: IPBReq) {
-      logger.debug('roarIntegrationSender called onmessage')
+      logger.debug('roarIntegration called onmessage')
       const { application, payload } = req
       if (!application) return
       if (!application.submissions) return
 
       let wasApplicationSubmitted = application.submissions.find(sub => sub.submission[TYPE] === 'tradle.ApplicationSubmitted')
       if (!wasApplicationSubmitted) return
-      logger.debug('roarIntegrationSender onmessage can proceed since application was submitted')
+      logger.debug('roarIntegration onmessage can proceed since application was submitted')
       let type = payload[TYPE]
       if (FORM_TYPE_CP != type && FORM_TYPE_LE != type) return
       let typeCP = FORM_TYPE_CP == type
@@ -319,7 +341,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         let legalEntityRef = payload['legalEntity']
         if (!legalEntityRef)
           return
-        logger.debug(`roarIntegrationSender called for ${FORM_TYPE_CP}`)
+        logger.debug(`roarIntegration called for ${FORM_TYPE_CP}`)
         const filter: any = {
           EQ: {
             [TYPE]: FORM_TYPE_CP,
@@ -334,10 +356,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         controllingPersons = result.items
 
         legalEntity = await bot.getResource(legalEntityRef)
-        logger.debug('roarIntegrationSender onmessage for CP build and send')
+        logger.debug('roarIntegration onmessage for CP build and send')
       }
       else {
-        logger.debug(`roarIntegrationSender called for ${FORM_TYPE_LE}`)
+        logger.debug(`roarIntegration called for ${FORM_TYPE_LE}`)
         legalEntity = payload
         const filter: any = {
           EQ: {
@@ -351,10 +373,14 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           filter
         })
         controllingPersons = result.items
-        logger.debug('roarIntegrationSender onmessage for LE build and send')
+        logger.debug('roarIntegration onmessage for LE build and send')
       }
 
-      await roarRequestAPI.buildAndSend(legalEntity, controllingPersons,
+      const latestForms = getLatestForms(application)
+      const jurisdictionCountry: string = await roarRequestAPI.findJurisdictionCountry(latestForms)
+      if (!jurisdictionCountry)
+        return
+      await roarRequestAPI.buildAndSend(legalEntity, controllingPersons, jurisdictionCountry,
         { application, form: payload, req })
     }
   }
@@ -375,5 +401,15 @@ export const validateConf: ValidatePluginConf = async ({
   if (!pluginConf.product) throw new Errors.InvalidInput(`property product is not found`)
   const model = models[pluginConf.product]
   if (!model)
-    throw new Errors.InvalidInput(`model not found for pruduct: ${pluginConf.product}`)
+    throw new Errors.InvalidInput(`model not found for product: ${pluginConf.product}`)
+
+  if (!pluginConf.jurisdictionForm) throw new Errors.InvalidInput(`property jurisdictionForm is not found`)
+  const jurModel = models[pluginConf.jurisdictionForm]
+  if (!jurModel)
+    throw new Errors.InvalidInput(`model not found for jurisdictionForm: ${pluginConf.jurisdictionForm}`)
+
+  if (!pluginConf.jurisdictionProperty) throw new Errors.InvalidInput(`property jurisdictionProperty is not found`)
+  if (!jurModel.properties[pluginConf.jurisdictionProperty])
+    throw new Errors.InvalidInput(`model of ${pluginConf.jurisdictionForm} does not contain property ${pluginConf.jurisdictionProperty}`)
+
 }
