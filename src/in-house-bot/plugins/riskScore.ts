@@ -590,6 +590,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         rsApi.calcApplicatinScore({ application })
         return
       }
+      let hasScoreChanged
       if (ptype.indexOf('PreOnboarding') !== -1) {
         if (!application.scoreDetails)
           application.scoreDetails = {
@@ -599,7 +600,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
         rsApi.getBsaScore(payload, application)
         rsApi.getLegalStructureScore(payload, application)
-        rsApi.calcApplicatinScore({ application })
+        hasScoreChanged = true
+        // rsApi.calcApplicatinScore({ application })
 
         // return
       }
@@ -617,8 +619,12 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           return rsApi.getScore({ form, req, map, requestFor })
         })
       )
+      let isCpOnboarding = requestFor === CP_ONBOARDING
       scoreDetails = scoreDetails.filter(r => r)
-      if (!scoreDetails.length) return
+      if (!scoreDetails.length) {
+        if (hasScoreChanged) rsApi.calcApplicatinScore({ application, isCpOnboarding })
+        return
+      }
 
       // scoreDetails = scoreDetails.filter(r => size(r) > 1)
       let oldScoreDetails = application.scoreDetails
@@ -638,7 +644,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         details: scoreDetails,
         summary: (application.scoreDetails && application.scoreDetails.summary) || {}
       }
-      let isCpOnboarding = requestFor === CP_ONBOARDING
       if (isCpOnboarding) {
         let { details } = application.scoreDetails
         let countriesDetails = details.filter(d => d.countryOfResidence || d.countriesOfCitizenship)
