@@ -156,9 +156,11 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       } else if (check.provider === OPEN_CORPORATES) {
         let parts = name.split(' ')
         let lastName = parts[parts.length - 1]
-        let middleName = parts.length > 2 && parts[parts.length - 2]
-        let firstName =
-          (parts.length === 3 && parts[0]) || parts.slice(0, parts.length - 2).join(' ')
+        let middleName
+        if (parts.length > 2) middleName = parts[parts.length - 2]
+        let firstName
+        if (parts.length <= 3) firstName = parts[0]
+        else firstName = parts.slice(0, parts.length - 2).join(' ')
         extend(prefill, { firstName, lastName, middleName })
       }
 
@@ -325,13 +327,13 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         let {
           registration_number,
           legal_authority,
-          legal_form,
+          // legal_form,
           country_registered,
           place_registered
         } = identification
         extend(prefill, {
-          controllingEntityCompanyNumber: registration_number,
-          companyType: legal_form
+          controllingEntityCompanyNumber: registration_number
+          // companyType: legal_form
         })
       }
       this.addNatureOfControl(prefill, natures_of_control)

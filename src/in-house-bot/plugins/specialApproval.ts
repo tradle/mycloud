@@ -1,6 +1,14 @@
 import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
-import { Applications, Bot, Logger, CreatePlugin, IPBReq, IPluginLifecycleMethods } from '../types'
+import {
+  Applications,
+  Bot,
+  Logger,
+  CreatePlugin,
+  IPBReq,
+  IPluginLifecycleMethods,
+  ValidatePluginConf
+} from '../types'
 import { doesCheckNeedToBeCreated, getEnumValueId } from '../utils'
 import { enumValue } from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
@@ -19,6 +27,11 @@ const PROVIDER = 'Tradle'
 const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 const PHOTO_ID = 'tradle.PhotoID'
 
+interface ISpecialApprovalsConf {
+  bsaList: string[]
+  countriesOfInterest: any
+  forms: any
+}
 class SpecialApprovalAPI {
   private bot: Bot
   private logger: Logger
@@ -37,7 +50,7 @@ class SpecialApprovalAPI {
     // create SPECIAL_APPROVAL_CHECK
     let resource: any = {
       [TYPE]: SPECIAL_APPROVAL_CHECK,
-      status: 'pass',
+      status: 'warning',
       bsaCode: payload.bsaCode,
       ddr: payload.ddr,
       provider: PROVIDER,
@@ -125,12 +138,12 @@ class SpecialApprovalAPI {
     //   payload.bsaListOR
 
     let codeId = code && code.id.split('_')[1]
+
     if (codeId) {
-      if (!codeId.endsWith('SA')) {
-        let idx = codeId.indexOf('SA')
-        if (idx === -1) codeId = null
-        else if (isNaN(codeId.slice(idx + 2))) codeId = null
-      }
+      const { bsaList } = this.conf
+      let codeIdNorm = codeId.toLowerCase()
+      if (!bsaList[codeIdNorm] && !bsaList.includes(codeIdNorm)) codeId = null
+      // if (!bsaList.find(bsaCode => bsaCode === normilizedCodeId)) codeId = null
     }
     if (!hasCountries && !codeId) return
     let propertiesToCheck = countryProps.slice()
@@ -188,4 +201,36 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   }
 
   return { plugin }
+}
+export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
+  const { models } = bot
+  const { bsaList, forms, countriesOfInterest } = pluginConf as ISpecialApprovalsConf
+  if (!bsaList) throw new Error(`'bsaList' is not present`)
+  if (!forms) throw new Error(`'forms' are not present`)
+  if (!countriesOfInterest) throw new Error(`'countriesOfInterest' are not present`)
+  let formIDs = Object.keys(forms)
+  formIDs.forEach(f => {
+    if (!models[f]) throw new Error(`${f} is undefined`)
+    let properties = models[f].properties
+    let countryProps = forms[f]
+    if (!countryProps || !Array.isArray(countryProps))
+      throw new Error(`props for ${f} should be array`)
+    countryProps.forEach(p => {
+      if (
+        !properties[p] ||
+        (properties[p].ref !== COUNTRY &&
+          (!properties[p].items || properties[p].items.ref !== COUNTRY))
+      )
+        throw new Error(`property ${p} for ${f} should have ref ${COUNTRY}`)
+    })
+  })
+  let cenum = models[COUNTRY].enum
+  Object.keys(countriesOfInterest).forEach(c => {
+    if (!cenum.find(code => code.id === c)) throw new Error(`country ${c} was not found`)
+  })
+  Object.values(countriesOfInterest).forEach((countries: string[]) => {
+    countries.forEach(c => {
+      if (!cenum.find(code => code.id === c)) throw new Error(`country ${c} was not found`)
+    })
+  })
 }

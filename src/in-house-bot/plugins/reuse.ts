@@ -23,11 +23,14 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let latestChecks: any = req.latestChecks || (await getLatestChecks({ application, bot }))
       if (latestChecks && latestChecks.find(check => check[TYPE] === REUSE_CHECK)) return
 
-      let legalEntity
-      if (controllingEntityCompanyNumber.length >= 7) legalEntity = payload.legalEntity
-      else {
-        legalEntity = await bot.getResource(payload.legalEntity)
-        if (getEnumValueId({ model: bot.models[COUNTRY], value: legalEntity.country }) === 'GB') {
+      const { models } = bot
+
+      const countryCode = getEnumValueId({
+        model: models[COUNTRY],
+        value: payload.controllingEntityCountry
+      })
+      if (controllingEntityCompanyNumber.length < 8) {
+        if (countryCode === 'GB') {
           if (
             /^\d/.test(controllingEntityCompanyNumber) &&
             controllingEntityCompanyNumber.length < 8
@@ -49,12 +52,17 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         debugger
       }
       if (!items || !items.length) return
-      items = items.filter(item => item._permalink !== legalEntity._permalink)
-
-      let apps:any = await Promise.all(
+      items = items.filter(
+        item => getEnumValueId({ model: models[COUNTRY], value: item.country }) === countryCode
+      )
+      if (!items.length) return
+      let apps: any = await Promise.all(
         items.map(item => applications.getApplicationByPayload({ resource: item, bot }))
       )
-      apps = apps.filter(a => !a.draft)
+      apps = apps.filter((a: IPBApp) => {
+        if (!a.draft && a.status === 'approved') return true
+        else return false
+      })
       if (!apps.length) return
 
       apps.sort((a: IPBApp, b: IPBApp) => b._time - a._time)
@@ -68,7 +76,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         aspects: ASPECTS,
         form: payload,
         message: 'Please override if data can`t be reused',
-        associatedApplication: apps[0]
+        reusableApplication: apps[0]
       }
 
       await applications.createCheck(resource, req)

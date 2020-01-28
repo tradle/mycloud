@@ -42,7 +42,7 @@ const COMMERCIAL = 'commercial'
 const CIFAS_HOST = 'training-services.find-cifas.org.uk'
 
 const BASIC_SEARCH_REQUEST_TEMPLATE = `<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" 
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
                xmlns:fh="http://header.find-cifas.org.uk"
                xmlns:doc="http://objects.find-cifas.org.uk/Direct">
   <soap:Header>

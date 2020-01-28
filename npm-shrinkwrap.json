@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "2.5.1-rc.55",
+  "version": "2.5.1-rc.56",
   "lockfileVersion": 1,
   "requires": true,
   "dependencies": {
@@ -735,7 +735,11 @@
       }
     },
     "@tradle/models": {
+<<<<<<< HEAD
       "version": "github:tradle/models#c637aaec48cc38596744068c41b5129d3a4b9bad",
+=======
+      "version": "github:tradle/models#f860f9769b5cd6e0a3fa62f68c4e91500ae2c115",
+>>>>>>> af59e3dea7fccffd7c3315907722666fe7909dfc
       "from": "github:tradle/models"
     },
     "@tradle/models-cloud": {
@@ -747,7 +751,11 @@
       "from": "tradle/models-cloud-services"
     },
     "@tradle/models-corporate-onboarding": {
+<<<<<<< HEAD
       "version": "github:tradle/models-corporate-onboarding#d55d1283d1e50911189ebdd55986305b8bb6bf18",
+=======
+      "version": "github:tradle/models-corporate-onboarding#d6595bd529d5256282e38f9c2fac918efc8bc483",
+>>>>>>> af59e3dea7fccffd7c3315907722666fe7909dfc
       "from": "github:tradle/models-corporate-onboarding"
     },
     "@tradle/models-nz": {
@@ -3334,7 +3342,7 @@
     },
     "buffer-indexof-polyfill": {
       "version": "1.0.1",
-      "resolved": "https://registry.npmjs.org/buffer-indexof-polyfill/-/buffer-indexof-polyfill-1.0.1.tgz",
+      "resolved": "http://registry.npmjs.org/buffer-indexof-polyfill/-/buffer-indexof-polyfill-1.0.1.tgz",
       "integrity": "sha1-qfuAbOgUXVQoUQznLyeLs2OmOL8="
     },
     "buffer-more-ints": {
@@ -10144,7 +10152,7 @@
     },
     "listenercount": {
       "version": "1.0.1",
-      "resolved": "https://registry.npmjs.org/listenercount/-/listenercount-1.0.1.tgz",
+      "resolved": "http://registry.npmjs.org/listenercount/-/listenercount-1.0.1.tgz",
       "integrity": "sha1-hMinKrWcRyUyFIDJdeZQg0LnCTc="
     },
     "listr": {
@@ -17271,7 +17279,7 @@
       "dependencies": {
         "bluebird": {
           "version": "3.4.7",
-          "resolved": "https://registry.npmjs.org/bluebird/-/bluebird-3.4.7.tgz",
+          "resolved": "http://registry.npmjs.org/bluebird/-/bluebird-3.4.7.tgz",
           "integrity": "sha1-9y12C+Cbf3bQjtj66Ysomo0F+rM="
         },
         "fstream": {
