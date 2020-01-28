@@ -302,7 +302,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         EQ: {
           [TYPE]: FORM_TYPE_CP,
           'legalEntity._permalink': legalEntity._permalink,
-          inactive: false
         }
       }
 
