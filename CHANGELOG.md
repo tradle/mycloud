@@ -2,19 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.57](https://github.com/tradle/mycloud/compare/v2.5.1-rc.56...v2.5.1-rc.57) (2020-01-28)
-
-
-### Bug Fixes
-
-* chaser didn't chase on autohigh ([ecee3a8](https://github.com/tradle/mycloud/commit/ecee3a8))
-* create check SA with warning status; added validateConf ([4c67565](https://github.com/tradle/mycloud/commit/4c67565))
-* minor changes ([70e325a](https://github.com/tradle/mycloud/commit/70e325a))
-* notifications were not send when risk score changed to high; notifications could be sent before all CPs submitted ([6156762](https://github.com/tradle/mycloud/commit/6156762))
-* parsing name ([54d31e5](https://github.com/tradle/mycloud/commit/54d31e5))
-* reuse approved applications and check for country and number ([12f1bfc](https://github.com/tradle/mycloud/commit/12f1bfc))
-* risk score with more conditions ([2cb1a08](https://github.com/tradle/mycloud/commit/2cb1a08))
-* warning for SA ([25a968c](https://github.com/tradle/mycloud/commit/25a968c))
+## [2.5.1-rc.58](https://github.com/tradle/mycloud/compare/v2.5.1-rc.57...v2.5.1-rc.58) (2020-01-28)
 
 
 
