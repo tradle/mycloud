@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "2.5.1-rc.57",
+  "version": "2.5.1-rc.58",
   "lockfileVersion": 1,
   "requires": true,
   "dependencies": {
@@ -510,7 +510,7 @@
     "@tradle/centrix": {
       "version": "1.0.0",
       "resolved": "git://github.com/tradle/centrix.git#a6b234e114b8fd24d576913a4e8cacc10bf024b7",
-      "integrity": "sha1-vf9SBmRlv7gfi0+oLuthcDaTyl4=",
+      "integrity": "sha1-QfZFU09EnuxnESYjZBOjugwfyfk=",
       "optional": true,
       "requires": {
         "co": "^4.6.0",
