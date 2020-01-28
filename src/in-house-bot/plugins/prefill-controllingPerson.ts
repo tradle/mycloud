@@ -81,6 +81,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           })
 
         if (
+          !pscCheck &&
           pitchbookCheck &&
           getEnumValueId({ model: statusM, value: pitchbookCheck.status }) === 'pass'
         )
@@ -119,10 +120,9 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       }
       let dataSource
       if (!officer) {
-        let found
         if (pscCheck && pscCheck.status.id === `${CHECK_STATUS}_pass`) {
           let currenPrefill = { ...formRequest.prefill }
-          found = await this.prefillBeneficialOwner({
+          await this.prefillBeneficialOwner({
             items,
             forms,
             officers,
@@ -131,10 +131,9 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           })
           dataSource = 'psc'
           this.addRefDataSource({ dataSource, formRequest, currenPrefill })
-        }
-        if (!found && carCheck && carCheck.status.id === `${CHECK_STATUS}_pass`) {
+        } else if (carCheck && carCheck.status.id === `${CHECK_STATUS}_pass`) {
           // let currenPrefill = formRequest.prefill
-          found = await this.prefillBeneficialOwner({
+          await this.prefillBeneficialOwner({
             items,
             forms,
             officers,
@@ -143,9 +142,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           })
           dataSource = 'clientAction'
           // this.addRefDataSource({ dataSource: 'clientAction', formRequest, currenPrefill })
-        }
-        if (
-          !found &&
+        } else if (
           pitchbookCheck &&
           getEnumValueId({ model: statusM, value: pitchbookCheck.status }) === 'pass'
         ) {
