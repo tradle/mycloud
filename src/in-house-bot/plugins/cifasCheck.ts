@@ -176,6 +176,7 @@ export class CifasCheckAPI {
       options.agent = new HttpsProxyAgent(this.conf.proxy)
 
     try {
+      this.logger.debug(`cifasCheck before httpRequest`)
       let xml: string = await this.httpRequest(options, data)
       this.logger.debug(`cifasCheck returned xml: ${xml}`)
       return { xml, error: null }
@@ -186,6 +187,7 @@ export class CifasCheckAPI {
   }
 
   searchCifas = async (payload: any, application: IPBApp, req: IPBReq) => {
+    this.logger.debug('cifasCheck searchCifas called')
     let q: BasicSearchQuery = {
       firstName: payload.firstName,
       lastName: payload.lastName,
