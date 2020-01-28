@@ -173,7 +173,7 @@ export class CifasCheckAPI {
     }
 
     if (this.conf.proxy)
-     options.agent = new HttpsProxyAgent(this.conf.proxy)
+      options.agent = new HttpsProxyAgent(this.conf.proxy)
 
     try {
       let xml: string = await this.httpRequest(options, data)
