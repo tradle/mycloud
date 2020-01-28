@@ -53,11 +53,9 @@ const SPECIAL_APPROVAL_REQUIRED_CHECK_OVERRIDE = 'tradle.SpecialApprovalRequired
 const PRE_SPECIAL_APPROVAL_CHECK = 'tradle.PreSpecialApprovalCheck'
 const PRE_SPECIAL_APPROVAL_CHECK_OVERRIDE = 'tradle.PreSpecialApprovalCheckOverride'
 
-const RISK_CLASSIFICATION_CHECK = 'tradle.RiskClassificationCheck'
 const STOCK_EXCHANGE = 'tradle.StockExchange'
 const TYPE_OF_OWNERSHIP = 'tradle.legal.TypeOfOwnership'
 const COUNTRY = 'tradle.Country'
-// const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const STATUS = 'tradle.Status'
 const SCORE_TYPE = 'tradle.ScoreType'
 const BANK_ACCOUNT = 'tradle.BankAccount'

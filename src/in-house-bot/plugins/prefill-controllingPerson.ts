@@ -8,6 +8,7 @@ import { TYPE } from '../../constants'
 import validateResource from '@tradle/validate-resource'
 import { enumValue } from '@tradle/build-resource'
 import { regions } from '@tradle/aws-s3-client'
+import { getEnumValueId } from '../../utils'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
@@ -60,8 +61,11 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           c[TYPE] === BENEFICIAL_OWNER_CHECK &&
           c.provider === 'http://download.companieshouse.gov.uk/en_pscdata.html'
       )
+      let pitchbookCheck = result.find(
+        c => c[TYPE] === BENEFICIAL_OWNER_CHECK && c.provider === 'PitchBook Data, Inc.'
+      )
       let carCheck = result.find(c => c[TYPE] === CLIENT_ACTION_REQUIRED_CHECK)
-
+      const statusM = bot.models[CHECK_STATUS]
       let forms = application.forms.filter(form => form.submission[TYPE] === CONTROLLING_PERSON)
       let officers, items
       if (check.status.id !== `${CHECK_STATUS}_pass`) {
@@ -76,6 +80,12 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
             pscCheck: carCheck
           })
 
+        if (
+          !pscCheck &&
+          pitchbookCheck &&
+          getEnumValueId({ model: statusM, value: pitchbookCheck.status }) === 'pass'
+        )
+          await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pitchbookCheck })
         return
       }
 
@@ -108,21 +118,47 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           }
         }
       }
+      let dataSource
       if (!officer) {
+        let found
         if (pscCheck && pscCheck.status.id === `${CHECK_STATUS}_pass`) {
           let currenPrefill = { ...formRequest.prefill }
-          await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
-          this.addRefDataSource({ dataSource: 'psc', formRequest, currenPrefill })
+          found = await this.prefillBeneficialOwner({
+            items,
+            forms,
+            officers,
+            formRequest,
+            pscCheck
+          })
+          dataSource = 'psc'
+          this.addRefDataSource({ dataSource, formRequest, currenPrefill })
         } else if (carCheck && carCheck.status.id === `${CHECK_STATUS}_pass`) {
           // let currenPrefill = formRequest.prefill
-          await this.prefillBeneficialOwner({
+          found = await this.prefillBeneficialOwner({
             items,
             forms,
             officers,
             formRequest,
             pscCheck: carCheck
           })
+          dataSource = 'clientAction'
           // this.addRefDataSource({ dataSource: 'clientAction', formRequest, currenPrefill })
+        }
+        if (
+          !found &&
+          pitchbookCheck &&
+          getEnumValueId({ model: statusM, value: pitchbookCheck.status }) === 'pass'
+        ) {
+          dataSource = 'pitchbook.fund'
+          let currenPrefill = { ...formRequest.prefill }
+          await this.prefillBeneficialOwner({
+            items,
+            forms,
+            officers,
+            formRequest,
+            pscCheck: pitchbookCheck
+          })
+          this.addRefDataSource({ dataSource, formRequest, currenPrefill })
         }
         return
       }
@@ -196,6 +232,25 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           }
         }
       }
+      this.findAndPrefillBeneficialOwner(pitchbookCheck, officer, prefill)
+      prefill = sanitize(prefill).sanitized
+      if (size(prefill) !== size(cePrefill)) {
+        let pitchbookPrefill = []
+        for (let p in prefill) {
+          if (!cePrefill[p]) pitchbookPrefill.push(p)
+        }
+        let pscProvider = enumValue({
+          model: bot.models[REFERENCE_DATA_SOURCES],
+          value: dataSource
+        })
+        dataLineage = {
+          ...dataLineage,
+          [pscProvider.id]: {
+            properties: pitchbookPrefill
+          }
+        }
+      }
+
       prefill.typeOfOwnership =
         prefill.typeOfOwnership ||
         enumValue({
@@ -248,6 +303,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let bo = beneficialOwners.find(bo => this.compare(officer.name, bo))
       if (!bo) return
       this.prefillIndividual(prefill, bo)
+      return true
     },
 
     compare(officerName, bo) {

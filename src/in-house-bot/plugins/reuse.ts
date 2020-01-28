@@ -52,10 +52,14 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         debugger
       }
       if (!items || !items.length) return
+logger.debug(`Found ${items.length} LE with number: ${controllingEntityCompanyNumber}`)
       items = items.filter(
         item => getEnumValueId({ model: models[COUNTRY], value: item.country }) === countryCode
       )
-      if (!items.length) return
+      if (!items.length) {
+logger.debug(`No LE found in ${countryCode} with number: ${controllingEntityCompanyNumber}`)
+        return
+      }
       let apps: any = await Promise.all(
         items.map(item => applications.getApplicationByPayload({ resource: item, bot }))
       )
@@ -63,9 +67,12 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         if (!a.draft && a.status === 'approved') return true
         else return false
       })
-      if (!apps.length) return
-
+      if (!apps.length) {
+logger.debug(`No approved applications found for: ${controllingEntityCompanyNumber}`)
+        return
+      }
       apps.sort((a: IPBApp, b: IPBApp) => b._time - a._time)
+logger.debug(`Creating reuse check for: ${controllingEntityCompanyNumber}`)
       debugger
       let resource: any = {
         [TYPE]: REUSE_CHECK,
