@@ -639,12 +639,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let ptype = payload[TYPE]
 
       if (rules && ptype === NEXT_FORM_REQUEST) {
-        let ftype
-        for (let i = 0; i < application.forms.length; i++) {
-          ftype = application.forms[i].submission[TYPE]
-          let m = models[ftype]
-          if (m.subClassOf !== CHECK_OVERRIDE) break
-        }
+        let ftype = payload.after
         if (products[productId].includes(ftype))
           await cp.checkRules({ application, forms: products[productId], rules })
         return
