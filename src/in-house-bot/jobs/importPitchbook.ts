@@ -49,7 +49,7 @@ export class ImportPitchbookData {
     await this.moveFile('Fund.csv', 'fund', 'fund', current)
     await this.moveFile('LimitedPartner.csv', 'limited_partner', 'lp', current)
     await this.moveFile('CompanyToFundRelation.csv', 'company_fund_relation', undefined, current)
-    await this.moveFile('FundToLimitedPartnerRelation.csv', 'company_lp_relation', undefined, current)
+    await this.moveFile('FundToLimitedPartnerRelation.csv', 'fund_lp_relation', undefined, current)
   }
 
   list = async (): Promise<Array<string>> => {
