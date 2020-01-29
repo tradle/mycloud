@@ -176,14 +176,18 @@ export class CifasCheckAPI {
       options.agent = new HttpsProxyAgent(this.conf.proxy)
 
     try {
+      this.logger.debug(`cifasCheck before httpRequest`)
       let xml: string = await this.httpRequest(options, data)
+      this.logger.debug(`cifasCheck returned xml: ${xml}`)
       return { xml, error: null }
     } catch (err) {
+      this.logger.debug(`cifasCheck returned err: ${err}`)
       return { xml: undefined, error: err.message }
     }
   }
 
   searchCifas = async (payload: any, application: IPBApp, req: IPBReq) => {
+    this.logger.debug('cifasCheck searchCifas called')
     let q: BasicSearchQuery = {
       firstName: payload.firstName,
       lastName: payload.lastName,
@@ -204,7 +208,7 @@ export class CifasCheckAPI {
       let jsonObj = parser.parseStringSync(res.xml)
       this.logger.debug(JSON.stringify(jsonObj, null, 2))
       rawData = jsonObj
-
+      this.logger.debug(`cifasCheck returned json: ${JSON.stringify(jsonObj, null, 2)}`)
       if (jsonObj["soap:Envelope"]["soap:Body"].BasicSearchResponse.BasicSearchResult) {
         // fraud suspect
         status = {
