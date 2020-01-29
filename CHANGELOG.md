@@ -2,22 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.59](https://github.com/tradle/mycloud/compare/v2.5.1-rc.58...v2.5.1-rc.59) (2020-01-29)
-
-
-### Bug Fixes
-
-* better message for check ([93641a2](https://github.com/tradle/mycloud/commit/93641a2))
-* handle reuse ([b241a73](https://github.com/tradle/mycloud/commit/b241a73))
-* optimizations ([34c42a6](https://github.com/tradle/mycloud/commit/34c42a6))
-* prefill from pitchbook check only if no psc check ([fb9a2ce](https://github.com/tradle/mycloud/commit/fb9a2ce))
-* prefill from ptichbook ([5ef9825](https://github.com/tradle/mycloud/commit/5ef9825))
-* should check main company CorpExist check ([0d225bf](https://github.com/tradle/mycloud/commit/0d225bf))
-
-
-### Features
-
-* added pitchbook check for BO prefill ([8394ec4](https://github.com/tradle/mycloud/commit/8394ec4))
+## [2.5.1-rc.60](https://github.com/tradle/mycloud/compare/v2.5.1-rc.59...v2.5.1-rc.60) (2020-01-29)
 
 
 
