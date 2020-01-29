@@ -17,6 +17,7 @@ const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const CLIENT_ACTION_REQUIRED_CHECK = 'tradle.ClientActionRequiredCheck'
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
+const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 const CHECK_STATUS = 'tradle.Status'
 const TYPE_OF_OWNERSHIP = 'tradle.legal.TypeOfOwnership'
 const COUNTRY = 'tradle.Country'
@@ -54,8 +55,16 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       result.sort((a, b) => b._time - a._time)
 
-      result = uniqBy(result, r => r[TYPE] && r.provider)
-      let check = result.find(c => c[TYPE] === CORPORATION_EXISTS)
+      // result = uniqBy(result, r => r[TYPE] && r.provider && r.form._permalink)
+      result = uniqBy(result, (r: any) =>
+        [r.form._permalink, r.propertyName, r[TYPE], r.provider].join(',')
+      )
+
+      let legalEntity = application.forms.find(f => f.submission[TYPE] === LEGAL_ENTITY)
+      let legalEntityPermalink = legalEntity.submission._permalink
+      let check = result.find(
+        c => c[TYPE] === CORPORATION_EXISTS && c.form._permalink === legalEntityPermalink
+      )
       let pscCheck = result.find(
         c =>
           c[TYPE] === BENEFICIAL_OWNER_CHECK &&
@@ -241,7 +250,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         }
         let pscProvider = enumValue({
           model: bot.models[REFERENCE_DATA_SOURCES],
-          value: dataSource
+          value: 'pitchbook.fund'
         })
         dataLineage = {
           ...dataLineage,
