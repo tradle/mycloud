@@ -52,14 +52,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         debugger
       }
       if (!items || !items.length) return
-logger.debug(`Found ${items.length} LE with number: ${controllingEntityCompanyNumber}`)
       items = items.filter(
         item => getEnumValueId({ model: models[COUNTRY], value: item.country }) === countryCode
       )
-      if (!items.length) {
-logger.debug(`No LE found in ${countryCode} with number: ${controllingEntityCompanyNumber}`)
-        return
-      }
+      if (!items.length) return
       let apps: any = await Promise.all(
         items.map(item => applications.getApplicationByPayload({ resource: item, bot }))
       )
@@ -67,12 +63,9 @@ logger.debug(`No LE found in ${countryCode} with number: ${controllingEntityComp
         if (!a.draft && a.status === 'approved') return true
         else return false
       })
-      if (!apps.length) {
-logger.debug(`No approved applications found for: ${controllingEntityCompanyNumber}`)
-        return
-      }
+      if (!apps.length) return
+
       apps.sort((a: IPBApp, b: IPBApp) => b._time - a._time)
-logger.debug(`Creating reuse check for: ${controllingEntityCompanyNumber}`)
       debugger
       let resource: any = {
         [TYPE]: REUSE_CHECK,
@@ -82,7 +75,7 @@ logger.debug(`Creating reuse check for: ${controllingEntityCompanyNumber}`)
         dateChecked: Date.now(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
         aspects: ASPECTS,
         form: payload,
-        message: 'Please override if data can`t be reused',
+        message: 'Please make a decision if data can be reused.',
         reusableApplication: apps[0]
       }
 

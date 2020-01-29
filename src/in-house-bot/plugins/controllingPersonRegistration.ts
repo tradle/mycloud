@@ -40,6 +40,7 @@ const NOTIFICATION = 'tradle.Notification'
 const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
 const SCORE_TYPE = 'tradle.ScoreType'
 const SM_POSITIONS = 'tradle.SeniorManagerPosition'
+const CHECK_OVERRIDE = 'tradle.CheckOverride'
 
 const defaultAlwaysNotifyIfShares = 25
 
@@ -363,11 +364,13 @@ class ControllingPersonRegistrationAPI {
     let reuseChecks = application.checks.filter(check => check[TYPE] === REUSE_CHECK)
     if (!reuseChecks.length) return cpEntities
 
-    let result: any = await Promise.all(reuseChecks.map(check => this.bot.getResource(check)))
+    let result: any = await Promise.all(
+      reuseChecks.map(check => this.bot.getResource(check, { backlinks: ['checkOverride'] }))
+    )
 
     let checkOverride = result[0].checkOverride
-    if (checkOverride) {
-      checkOverride = await this.bot.getResource(checkOverride)
+    if (checkOverride && checkOverride.length) {
+      checkOverride = await this.bot.getResource(checkOverride[0])
       if (checkOverride.reachOut) return cpEntities
     }
     return cpEntities.filter(
@@ -376,10 +379,11 @@ class ControllingPersonRegistrationAPI {
   }
   async reachOut({ payload, application, rules }) {
     if (!payload.reachOut) return
-    let resource: any = await this.bot.getResource(payload.form)
+    let check: any = await this.bot.getResource(payload.check)
+    let form: any = await this.bot.getResource(check.form)
     await this.doNotify({
-      notifyArr: [resource],
-      result: [resource],
+      notifyArr: [form],
+      result: [form],
       application,
       rules
     })
@@ -635,12 +639,12 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let ptype = payload[TYPE]
 
       if (rules && ptype === NEXT_FORM_REQUEST) {
-        let ftype = application.forms[0].submission[TYPE]
+        let ftype = payload.after
         if (products[productId].includes(ftype))
           await cp.checkRules({ application, forms: products[productId], rules })
         return
       }
-      if (ptype === REUSE_CHECK_OVERRIDE) {
+      if (ptype === REUSE_CHECK_OVERRIDE && application.notifications) {
         cp.reachOut({ payload, application, rules })
         return
       }

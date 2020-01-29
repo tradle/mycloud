@@ -285,7 +285,7 @@ class ComplyAdvantageAPI {
       criteria,
       application
     })
-    debugger
+    // debugger
     return await this.createChecksAndVerifications({ r, req, aspects, name, propertyName })
   }
   async createChecksAndVerifications({
