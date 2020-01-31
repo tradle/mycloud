@@ -196,7 +196,7 @@ export class JenIdCheckerAPI {
           repeat: true
         }
       } else if (+securitystatus.overallriskvalue >= this.conf.threshold) {
-        if (result.data.body.data.facedata[0].exists == '-1') {
+        if (this.noFace(result.data.body.data)) {
           return {
             status: 'fail',
             message: 'Photo of your face missing or obscured.',
@@ -223,6 +223,16 @@ export class JenIdCheckerAPI {
       this.logger.debug(`Failed get data from ${PROVIDER}, error : ${response.error}`)
       return status
     }
+  }
+
+  noFace = (data: any) => {
+    if (data.facedata) {
+      for (let face of data.facedata) {
+        if (face.image == 'VISIBLE' && face.exists == '-1')
+          return true
+      }
+    }
+    return false
   }
 
   collectMsg = (security: any) => {
