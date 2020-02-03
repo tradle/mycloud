@@ -171,7 +171,16 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         }
         return
       }
-      let { name, inactive, start_date, end_date, occupation, position } = officer
+      let {
+        name,
+        inactive,
+        start_date,
+        end_date,
+        occupation,
+        position,
+        nationality,
+        country_of_residence
+      } = officer
       let prefill: any = {
         name,
         prefilledName: name,
@@ -181,6 +190,16 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         position,
         endDate: end_date && new Date(end_date).getTime()
       }
+      if (country_of_residence) {
+        let country = getCountryByTitle(country_of_residence, bot.models)
+        if (country) prefill.controllingEntityCountryOfResidence = country
+      }
+      if (nationality) {
+        nationality = this.getNationality(nationality, prefill.controllingEntityCountryOfResidence)
+        if (!nationality && country_of_residence)
+          nationality = prefill.controllingEntityCountryOfResidence
+      }
+
       if (check.provider === COMPANIES_HOUSE) {
         let [lastName, otherNames] = name.split(', ')
         if (otherNames) {
@@ -345,13 +364,27 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       }
     },
     prefillIndividual(prefill, bo) {
-      let { country_of_residence, date_of_birth, natures_of_control, name_elements } = bo.data
+      let {
+        country_of_residence,
+        date_of_birth,
+        natures_of_control,
+        name_elements,
+        nationality
+      } = bo.data
 
       prefill.controllingEntityDateOfBirth =
         date_of_birth && new Date(date_of_birth.year, date_of_birth.month - 1).getTime()
       if (country_of_residence) {
         let country = getCountryByTitle(country_of_residence, bot.models)
-        if (country) prefill.controllingEntityCountryOfResidence = country
+        if (country) {
+          prefill.controllingEntityCountryOfResidence = country
+          prefill.nationality = country
+        }
+      }
+      if (nationality) {
+        nationality = this.getNationality(nationality, prefill.controllingEntityCountryOfResidence)
+        if (!nationality && country_of_residence)
+          nationality = prefill.controllingEntityCountryOfResidence
       }
       if (name_elements) {
         let { firstName, lastName } = prefill
@@ -370,6 +403,16 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       })
 
       this.addNatureOfControl(prefill, natures_of_control)
+    },
+    getNationality(nationality, countryOfResidence) {
+      let model = bot.models[COUNTRY]
+      let items = model.enum.filter(c => c.nationality === nationality)
+      if (!items || !items.length) return
+      if (items.length === 1) return enumValue({ model, value: items[0].id })
+      else {
+        let cid = getEnumValueId({ model: bot.models[COUNTRY], value: countryOfResidence })
+        return items.find(item => item.id === cid)
+      }
     },
     prefillCompany(prefill, bo) {
       let { address, identification, position, occupation, natures_of_control } = bo.data
