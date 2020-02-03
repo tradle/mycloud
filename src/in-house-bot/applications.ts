@@ -8,7 +8,7 @@ import uniqBy from 'lodash/uniqBy'
 import flatMap from 'lodash/flatMap'
 import flatten from 'lodash/flatten'
 import isEmpty from 'lodash/isEmpty'
-import buildResource from '@tradle/build-resource'
+import buildResource, { buildResourceStub } from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import { parseStub } from '../utils'
 import { isPassedCheck, removeRoleFromUser, getLatestChecks } from './utils'
@@ -112,14 +112,22 @@ export class Applications implements IHasModels {
     }
     let { application, latestChecks, checks } = req
 
-    if (application.top) {
-      let checkModel = models[type]
+    let checkModel = models[type]
+    if (application.top)
       if (checkModel.properties.top) props.top = application.top
-    } else {
-      let checkModel = models[type]
-      if (checkModel.properties.top) props.top = application
-    }
+      else if (checkModel.properties.top) props.top = application
 
+    let oldCheck
+    if (checkModel.properties.previousCheck && props.form._permalink !== props.form._link) {
+      oldCheck = checks.find(
+        check =>
+          check.provider === props.provider &&
+          !check.inactive &&
+          check.form._permalink === props.form._permalink &&
+          !check.nextCheck
+      )
+      if (oldCheck) props.previousCheck = buildResourceStub({ resource: oldCheck })
+    }
     let check = await bot
       .draft({ type })
       .set(props)
@@ -173,6 +181,14 @@ export class Applications implements IHasModels {
         if (application.screeningCheckCount !== sanctionsChecks.length)
           application.screeningCheckCount = sanctionsChecks.length
       }
+    }
+    if (oldCheck && checkModel.properties.nextCheck) {
+      debugger
+      await this.bot.versionAndSave({
+        ...oldCheck,
+        nextCheck: buildResourceStub({ resource: checkResource }),
+        isInactive: true
+      })
     }
     return check
   }
@@ -367,7 +383,7 @@ export class Applications implements IHasModels {
   public requestItem = async (opts: RequestItemOpts) => {
     return await this.productsAPI.requestItem(opts)
   }
-  public getApplicationByPayload = async ({resource, bot}) => {
+  public getApplicationByPayload = async ({ resource, bot }) => {
     let msg = await bot.getMessageWithPayload({
       select: ['context', 'payload'],
       link: resource._link,
@@ -383,7 +399,7 @@ export class Applications implements IHasModels {
           }
         }
       })
-    } catch(err) {
+    } catch (err) {
       debugger
     }
   }
@@ -480,6 +496,7 @@ export class Applications implements IHasModels {
     form?: ITradleObject
     req?: IPBReq
   }) => {
+    if (true) return
     let checks
     if (req) checks = req.checks
     else {
