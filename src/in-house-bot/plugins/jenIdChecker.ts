@@ -196,14 +196,14 @@ export class JenIdCheckerAPI {
           repeat: true
         }
       } else if (+securitystatus.overallriskvalue >= this.conf.threshold) {
-        if (this.noFace(result.data.body.data)) {
-          return {
-            status: 'fail',
-            message: 'Photo of your face missing or obscured.',
-            rawData: result.data,
-            repeat: true
-          }
-        }
+        //if (this.noFace(result.data.body.data)) {
+        //  return {
+        //    status: 'fail',
+        //    message: 'Photo of your face missing or obscured.',
+        //    rawData: result.data,
+        //    repeat: true
+        //  }
+        //}
         let msg = this.collectMsg(result.data.body.security)
         return {
           status: 'fail',
