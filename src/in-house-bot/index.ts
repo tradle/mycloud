@@ -604,18 +604,28 @@ export const loadComponentsAndPlugins = ({
         onmessage: async req => {
           let { application, payload } = req
           if (!application) return
-          let m = bot.models[payload[TYPE]]
+          let ptype = payload[TYPE]
+          let m = bot.models[ptype]
           if (m.subClassOf !== FORM || !application.forms) return
 
           let forms = []
+          let hasFormsOfPayloadType
           application.forms.forEach(stub => {
             let sub = stub.submission
-            if (sub[TYPE] === PRODUCT_REQUEST) return
-            if (bot.models[sub[TYPE]].subClassOf === FORM) forms.push(sub)
+            let subType = sub[TYPE]
+            if (subType === PRODUCT_REQUEST) return
+            if (bot.models[subType].subClassOf === FORM) {
+              forms.push(sub)
+              if (sub[TYPE] === ptype && sub._permalink !== payload._permalink)
+                hasFormsOfPayloadType = true
+            }
           })
-          if (forms.length) forms = _.uniqBy(forms, '_permalink')
+          if (forms.length) forms = _.uniqBy(forms, TYPE)
 
-          application.submittedFormTypesCount = _.uniqBy(forms, TYPE).length + 1
+          application.submittedFormTypesCount = forms.length
+          if (!hasFormsOfPayloadType) application.submittedFormTypesCount++
+          if (!application.maxFormTypesCount)
+            application.maxFormTypesCount = bot.models[application.requestFor].forms.length
         }
       } as PluginLifecycle.Methods,
       true
