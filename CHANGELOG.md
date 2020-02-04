@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.60](https://github.com/tradle/mycloud/compare/v2.5.1-rc.59...v2.5.1-rc.60) (2020-01-29)
+## [2.5.1-rc.61](https://github.com/tradle/mycloud/compare/v2.5.1-rc.60...v2.5.1-rc.61) (2020-02-04)
+
+
+### Features
+
+* checks link list ([01eb9e2](https://github.com/tradle/mycloud/commit/01eb9e2))
+* nationality prefilled ([9daf72d](https://github.com/tradle/mycloud/commit/9daf72d))
 
 
 
