@@ -3,13 +3,11 @@ import Promise from 'bluebird'
 import groupBy from 'lodash/groupBy'
 import maxBy from 'lodash/maxBy'
 import pick from 'lodash/pick'
-import omit from 'lodash/omit'
 import uniqBy from 'lodash/uniqBy'
 import flatMap from 'lodash/flatMap'
 import flatten from 'lodash/flatten'
 import isEmpty from 'lodash/isEmpty'
-import buildResource, { buildResourceStub } from '@tradle/build-resource'
-import validateResource from '@tradle/validate-resource'
+import { buildResourceStub } from '@tradle/build-resource'
 import { parseStub } from '../utils'
 import { isPassedCheck, removeRoleFromUser, getLatestChecks } from './utils'
 import Errors from '../errors'
@@ -183,7 +181,7 @@ export class Applications implements IHasModels {
       }
     }
     if (oldCheck && checkModel.properties.nextCheck) {
-      debugger
+      // debugger
       await this.bot.versionAndSave({
         ...oldCheck,
         nextCheck: buildResourceStub({ resource: checkResource }),
