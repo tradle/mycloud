@@ -9,6 +9,7 @@ import validateResource from '@tradle/validate-resource'
 import { enumValue } from '@tradle/build-resource'
 import { regions } from '@tradle/aws-s3-client'
 import { getEnumValueId } from '../../utils'
+import { isSubClassOf } from '../utils'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
@@ -19,6 +20,7 @@ const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
 const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 const CHECK_STATUS = 'tradle.Status'
+const ENUM = 'tradle.Enum'
 const TYPE_OF_OWNERSHIP = 'tradle.legal.TypeOfOwnership'
 const COUNTRY = 'tradle.Country'
 const COMPANIES_HOUSE = 'Companies House'
@@ -31,7 +33,7 @@ const countryMap = {
 
 export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
   let { bot } = components
-  let { logger } = pluginOpts
+  let { logger, conf } = pluginOpts
   const plugin: IPluginLifecycleMethods = {
     async willRequestForm({ application, formRequest }) {
       let { form } = formRequest
@@ -129,6 +131,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       }
       let dataSource
       if (!officer) {
+        if (await this.doSkipBO(application)) return
         let found
         if (pscCheck && pscCheck.status.id === `${CHECK_STATUS}_pass`) {
           let currenPrefill = { ...formRequest.prefill }
@@ -278,15 +281,13 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           }
         }
       }
-
-      prefill.typeOfOwnership =
-        prefill.typeOfOwnership ||
-        enumValue({
+      if (!prefill.typeOfOwnership) {
+        prefill.typeOfOwnership = enumValue({
           model: bot.models[TYPE_OF_OWNERSHIP],
           // HACK
           value: 'individual'
         })
-
+      }
       await this.addOwnsTypeOfOwnership({ formRequest, prefill })
 
       formRequest.dataLineage = dataLineage
@@ -299,6 +300,54 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         }
       }
       formRequest.message = `Please review and correct the data below **for ${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+    },
+    async doSkipBO(application) {
+      let pconf = conf[application.requestFor]
+      if (!pconf) return false
+      let { skipBo } = pconf
+      if (!skipBo) return false
+
+      let forms = Object.keys(skipBo)
+      let cforms: any = application.forms.filter(f => forms.includes(f.submission[TYPE]))
+      if (!cforms.length) return false
+
+      cforms = await Promise.all(cforms.map(f => bot.getResource(f.submission)))
+      cforms.sort((a, b) => b._time - a._time)
+      cforms = uniqBy(cforms, '_permalink')
+
+      let { models } = bot
+      for (let i = 0; i < cforms.length; i++) {
+        let f = cforms[i]
+        let conditions = skipBo[f[TYPE]]
+        let props = models[f[TYPE]].properties
+        if (!this.checkCondition(conditions, props, f)) return false
+      }
+      return true
+    },
+    checkCondition(conditions, props, form) {
+      let { models } = bot
+      for (let p in conditions) {
+        if (!(p in form)) return false
+
+        let condition = conditions[p]
+        let val = form[p]
+        let { type, ref } = props[p]
+
+        if (type === 'array') return false
+
+        if (type !== 'object') {
+          if (type === 'string') {
+            if (form[p].toLowerCase() !== condition.toLowerCase()) return false
+          } else if (form[p] !== condition) return false
+          continue
+        }
+        if (!isSubClassOf(ENUM, models[ref], models)) return false
+        let eid = getEnumValueId({ model: models[ref], value: form[p] })
+        if (typeof condition === 'string') {
+          if (eid !== val) return false
+        } else if (!condition.includes(eid)) return false
+      }
+      return true
     },
     addRefDataSource({ dataSource, currenPrefill, formRequest }) {
       let { prefill } = formRequest

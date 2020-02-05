@@ -719,6 +719,7 @@ export const loadComponentsAndPlugins = ({
       'document-ocr',
       'bundleUpload',
       'draftApplication',
+      'prefill-controllingPerson',
       'interFormConditionals',
       'regulatorRegistration',
       'pscCheck',
@@ -737,8 +738,7 @@ export const loadComponentsAndPlugins = ({
       'forms-counter',
       'documentValidity',
       'fill-myproduct',
-      'checkOverride',
-      'prefill-controllingPerson'
+      'checkOverride'
     ].forEach(name => attachPlugin({ name, requiresConf: false }))
 
     // used for some demo
