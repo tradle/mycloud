@@ -637,6 +637,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
           incorporation_date,
           current_status,
           company_number,
+          number_of_employees,
+          registry_url,
           name,
           previous_company_names,
           previous_names
@@ -666,7 +668,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         if (wrongName) prefill.companyName = name
         let wrongNumber = company_number.toLowerCase() !== payload.registrationNumber.toLowerCase()
         if (wrongNumber) prefill.registrationNumber = company_number
-
+        prefill.registryUrl = registry_url
+        if (number_of_employees) prefill.numberOfEmployees = number_of_employees
         prefill = sanitize(prefill).sanitized
         if (!_.size(prefill)) return
         try {
