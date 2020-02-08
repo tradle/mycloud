@@ -167,7 +167,8 @@ export class AccountsMonthlyAPI {
     let remapped = []
     if (find.status) {
       for (let one of find.data) {
-        let rec: any = this.bot.draft({ type: this.conf.prefillType }).toJSON()
+        let rec: any = { [TYPE]: this.conf.prefillType }
+
         let startDate = one[START_DATE]
         if (startDate && map[START_DATE]) {
           rec[map[START_DATE]] = this.getTime(startDate)
