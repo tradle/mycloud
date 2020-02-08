@@ -230,6 +230,12 @@ export const createPlugin: CreatePlugin<AccountsMonthlyAPI> = (
 
       if (payload[TYPE] != conf.form) return
       if (!payload[conf.lookupProperty]) return
+      if (payload[conf.inlineProperty]) {
+        let arr = payload[conf.inlineProperty]
+        if (arr instanceof Array && arr.length > 0)
+          return
+      }
+      logger.debug(`accountsMontly entered prefill`)
 
       let registerationNumber: string = payload[conf.lookupProperty]
       let foundData: Array<any> = await documentLookup.lookup(registerationNumber, conf.athenaMap)
@@ -259,6 +265,10 @@ export const createPlugin: CreatePlugin<AccountsMonthlyAPI> = (
         }
         try {
           await applications.requestEdit(formError)
+          return {
+            message: 'no request edit',
+            exit: true
+          }
         } catch (err) {
           debugger
         }
