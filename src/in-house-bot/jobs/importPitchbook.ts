@@ -50,6 +50,8 @@ export class ImportPitchbookData {
     await this.moveFile('LimitedPartner.csv', 'limited_partner', 'lp', current)
     await this.moveFile('CompanyToFundRelation.csv', 'company_fund_relation', undefined, current)
     await this.moveFile('FundToLimitedPartnerRelation.csv', 'fund_lp_relation', undefined, current)
+
+    await this.moveCompaniesHouseData('financials.csv', 'accounts_monthly')
   }
 
   list = async (): Promise<Array<string>> => {
@@ -64,6 +66,57 @@ export class ImportPitchbookData {
       keys.push(content.Key)
     }
     return keys
+  }
+
+  moveCompaniesHouseData = async (fileName: string, table: string) => {
+    this.logger.debug('importCompaniesHouseData' + fileName)
+    try {
+      let localfile = TEMP + 'companieshouse/' + fileName
+      let key = `refdata/gb/${table}/${fileName}`
+      fs.ensureDirSync(TEMP + 'companieshouse')
+      await this.s3downloadhttp('public/companieshouse/' + fileName, localfile)
+      this.logger.debug('importCompaniesHouseData moved file for ' + fileName)
+      let md5: string = await this.checksumFile('MD5', localfile)
+      this.logger.debug('importCompaniesHouseData calculated md5 for ' + fileName + ', md5=' + md5)
+
+      let params = {
+        Bucket: this.outputLocation,
+        Prefix: 'refdata/gb/' + table + '/'
+      }
+      let keys = []
+      let data = await s3.listObjectsV2(params).promise()
+
+      for (let content of data.Contents) {
+        keys.push(content.Key)
+      }
+
+      if (keys.includes(key)) {
+        // check md5
+        let hash = await this.currentMD5(key)
+        if (md5 == hash) {
+          fs.unlinkSync(localfile)
+          this.logger.debug(`importCompaniesHouseData, do not import ${fileName} data, no change`)
+          return
+        }
+      }
+
+      let rstream: fs.ReadStream = fs.createReadStream(localfile)
+
+      let contentToPost = {
+        Bucket: this.outputLocation,
+        Key: key,
+        Metadata: { md5 },
+        Body: rstream
+      }
+      this.logger.debug('importCompaniesHouseData about to upload for ' + fileName)
+      let res = await s3.upload(contentToPost).promise()
+
+      this.logger.debug(`importCompaniesHouseData imported ${fileName} data`)
+      fs.unlinkSync(localfile)
+
+    } catch (err) {
+      this.logger.error(`importCompaniesHouseData failed for ${fileName}`, err)
+    }
   }
 
   moveFile = async (fileName: string, table: string, id: string, current: Array<string>) => {
