@@ -259,7 +259,7 @@ export const createPlugin: CreatePlugin<AccountsMonthlyAPI> = (
           user,
           application,
           details: {
-            payloadClone,
+            prefill: payloadClone,
             message: `Please review and confirm`
           }
         }
