@@ -2,13 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.63](https://github.com/tradle/mycloud/compare/v2.5.1-rc.62...v2.5.1-rc.63) (2020-02-06)
+## [2.5.1-rc.64](https://github.com/tradle/mycloud/compare/v2.5.1-rc.63...v2.5.1-rc.64) (2020-02-09)
+
+
+### Bug Fixes
+
+* minor change ([b258058](https://github.com/tradle/mycloud/commit/b258058))
 
 
 ### Features
 
-* allow to skip BO if conf conditions are met ([1876bb0](https://github.com/tradle/mycloud/commit/1876bb0))
-* more props to extract from OC ([ce24f55](https://github.com/tradle/mycloud/commit/ce24f55))
+* application tree ([316102a](https://github.com/tradle/mycloud/commit/316102a))
 
 
 
