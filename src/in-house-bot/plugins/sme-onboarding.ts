@@ -38,7 +38,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         typeOfOwnership: associatedRes.typeOfOwnership
       }
       prefill = sanitize(prefill).sanitized
-      debugger
+      // debugger
       if (!formRequest.prefill) formRequest.prefill = { [TYPE]: form }
       formRequest.prefill = {
         ...formRequest.prefill,
