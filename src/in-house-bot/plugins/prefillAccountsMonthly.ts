@@ -167,7 +167,8 @@ export class AccountsMonthlyAPI {
     let remapped = []
     if (find.status) {
       for (let one of find.data) {
-        let rec: any = this.bot.draft({ type: this.conf.prefillType }).toJSON()
+        let rec: any = { [TYPE]: this.conf.prefillType }
+
         let startDate = one[START_DATE]
         if (startDate && map[START_DATE]) {
           rec[map[START_DATE]] = this.getTime(startDate)
@@ -175,32 +176,32 @@ export class AccountsMonthlyAPI {
         let equaty: string = one[EQUITY]
         if (equaty && equaty.length > 0 && map[EQUITY]) {
           rec[map[EQUITY]] = this.bot.draft({ type: MONEY })
-            .set({ value: Number(equaty.replace(/,/g, '')), currency: 'GBP' }).toJSON()
+            .set({ value: Number(equaty.replace(/,/g, '')), currency: '£' }).toJSON()
         }
         let fixedAssets: string = one[FIXED_ASSETS]
         if (fixedAssets && fixedAssets.length > 0 && map[FIXED_ASSETS]) {
           rec[map[FIXED_ASSETS]] = this.bot.draft({ type: MONEY })
-            .set({ value: Number(fixedAssets.replace(/,/g, '')), currency: 'GBP' }).toJSON()
+            .set({ value: Number(fixedAssets.replace(/,/g, '')), currency: '£' }).toJSON()
         }
         let currentAssets: string = one[CURRENT_ASSETS]
         if (currentAssets && currentAssets.length > 0 && map[CURRENT_ASSETS]) {
           rec[map[CURRENT_ASSETS]] = this.bot.draft({ type: MONEY })
-            .set({ value: Number(currentAssets.replace(/,/g, '')), currency: 'GBP' }).toJSON()
+            .set({ value: Number(currentAssets.replace(/,/g, '')), currency: '£' }).toJSON()
         }
         let creditors: string = one[CREDITORS]
         if (creditors && creditors.length > 0 && map[CREDITORS]) {
           rec[map[CREDITORS]] = this.bot.draft({ type: MONEY })
-            .set({ value: Number(creditors.replace(/,/g, '')), currency: 'GBP' }).toJSON()
+            .set({ value: Number(creditors.replace(/,/g, '')), currency: '£' }).toJSON()
         }
         let net: string = one[NET_CURRENT_ASSETS_LIABILITIES]
         if (net && net.length > 0 && map[NET_CURRENT_ASSETS_LIABILITIES]) {
           rec[map[NET_CURRENT_ASSETS_LIABILITIES]] = this.bot.draft({ type: MONEY })
-            .set({ value: Number(net.replace(/,/g, '')), currency: 'GBP' }).toJSON()
+            .set({ value: Number(net.replace(/,/g, '')), currency: '£' }).toJSON()
         }
         let total: string = one[TOTAL_ASSETS_LESS_CURRENT_LIABILITIES]
         if (total && total.length > 0 && map[TOTAL_ASSETS_LESS_CURRENT_LIABILITIES]) {
           rec[map[TOTAL_ASSETS_LESS_CURRENT_LIABILITIES]] = this.bot.draft({ type: MONEY })
-            .set({ value: Number(total.replace(/,/g, '')), currency: 'GBP' }).toJSON()
+            .set({ value: Number(total.replace(/,/g, '')), currency: '£' }).toJSON()
         }
         remapped.push(rec)
       }
@@ -259,7 +260,7 @@ export const createPlugin: CreatePlugin<AccountsMonthlyAPI> = (
           user,
           application,
           details: {
-            payloadClone,
+            prefill: payloadClone,
             message: `Please review and confirm`
           }
         }

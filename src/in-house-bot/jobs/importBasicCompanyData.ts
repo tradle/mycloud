@@ -119,9 +119,10 @@ export class ImportBasicCompanyData {
           this.logger.debug(`importBasicCompanyData fetch returned stream, file ${cnt}`)
           break
         } catch (err) {
-          this.logger.debug(`importBasicCompanyData attempt ${times++}, fetch err`, err)
-          if (times > 5)
+          if (times > 5) {
+            this.logger.error(`importBasicCompanyData attempted ${times++}, fetch err`, err)
             throw err
+          }
         }
       }
       let stream: Readable = res.body.pipe(unzipper.ParseOne()).pipe(zlib.createGzip())

@@ -268,9 +268,10 @@ export class ImportPsc {
           this.logger.debug(`fetch returned stream, file ${cnt}`)
           break
         } catch (err) {
-          this.logger.error(`importPsc download attempt ${times++}, fetch err`, err)
-          if (times > 5)
+          if (times > 5) {
+            this.logger.error(`importPsc download attempted ${times++}, fetch err`, err)
             throw err
+          }
         }
       }
       let stream: Readable = res.body.pipe(unzipper.ParseOne()).pipe(zlib.createGzip())
