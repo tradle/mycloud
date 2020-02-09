@@ -1,5 +1,7 @@
 import _ from 'lodash'
-// import validateResource from '@tradle/validate-resource'
+import validateResource from '@tradle/validate-resource'
+// @ts-ignore
+const { sanitize } = validateResource.utils
 import { TYPE } from '@tradle/constants'
 import { buildResourceStub, enumValue } from '@tradle/build-resource'
 import {
@@ -16,6 +18,7 @@ import {
 } from '../types'
 import { getAssociateResources } from '../utils'
 import { valueFromAST } from 'graphql'
+import { getEnumValueId } from '../../utils'
 
 const CP = 'tradle.legal.LegalEntityControllingPerson'
 // const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
@@ -24,6 +27,7 @@ const APPLICATION = 'tradle.Application'
 const APPLICATION_SUBMITTED = 'tradle.ApplicationSubmitted'
 const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
 const NOTIFICATION = 'tradle.Notification'
+const SCORE_TYPE = 'tradle.ScoreType'
 
 const getResourceType = resource => resource[TYPE]
 
@@ -252,10 +256,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const { application, payload } = req
       if (!application || !application.forms || !conf.length || application.draft) return
 
-      if (application.parent) {
-        await smeVerifierAPI.checkAndUpdateNotification(application)
-        return
-      }
+      // if (application.parent) {
+      //   await smeVerifierAPI.checkAndUpdateNotification(application)
+      //   return
+      // }
       const { requestFor } = application
 
       let pairs = conf.filter(pair => requestFor === pair.child)
@@ -263,10 +267,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!pairs.length) return
       logger.debug('Child application was submitted')
       let { parentApp, associatedRes } = await getAssociateResources({ application, bot })
+      const { models } = bot
       if (!parentApp) {
         if (!application.tree) {
-          application.tree = buildResourceStub({ resource: application, models: bot.models })
-          application.tree.top = buildResourceStub({ resource: payload, models: bot.models })
+          application.tree = buildResourceStub({ resource: application, models })
+          application.tree.top = buildResourceStub({ resource: payload, models })
         }
         return
       }
@@ -275,31 +280,27 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       //   return
       // debugger
       // application.parent = parentApp
-      let stub = buildResourceStub({ resource: parentApp, models: bot.models })
-      application.parent = stub
-      application.top = parentApp.top || stub
-
-      await this.findAndInsertTreeNode({
-        application,
-        parentApp,
-        payload
-      })
-
+      if (!application.parent) {
+        let stub = buildResourceStub({ resource: parentApp, models })
+        application.parent = stub
+        application.top = parentApp.top || stub
+      }
       application.associatedResource = buildResourceStub({
         resource: associatedRes,
-        models: bot.models
+        models
       })
+      await this.findAndInsertTreeNode({
+        req
+      })
+
       await smeVerifierAPI.checkAndUpdateNotification(application)
     },
-    async findAndInsertTreeNode({ application, parentApp, payload }) {
+    async findAndInsertTreeNode({ req }) {
+      let { application, payload } = req
       let { top, parent } = application
 
       let topApp = await bot.getLatestResource(top)
       debugger
-      const models = bot.models
-      let appStub = buildResourceStub({ resource: application, models })
-      appStub.requestFor = application.requestFor
-      let payloadStub = buildResourceStub({ resource: payload, models })
       let node
       let nodes
       if (topApp.tree.top && topApp.tree.top.nodes) node = findNode(topApp.tree.top.nodes, parent)
@@ -307,12 +308,91 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!node.top.nodes) node.top.nodes = {}
       nodes = node.top.nodes
 
+      const { models } = bot
+      let appStub
+      if (nodes[application._permalink]) {
+        appStub = nodes[application._permalink]
+      } else {
+        appStub = buildResourceStub({ resource: application, models })
+        let payloadStub = buildResourceStub({ resource: payload, models })
+        appStub.top = payloadStub
+      }
+      let prefill = await this.fillNode({ req })
+      _.extend(appStub, prefill)
+
       nodes[application._permalink] = {
-        ...appStub,
-        top: payloadStub
+        ...appStub
       }
       topApp.tree = { ...topApp.tree }
       await applications.updateApplication(topApp)
+    },
+    async fillNode({ req }) {
+      let { application } = req
+      let ok = (req.latestChecks && req.latestChecks.length) || application.checksCount
+
+      if (application.numberOfChecksFailed) ok -= application.numberOfChecksFailed
+      if (application.numberOfCheckOverrides) {
+        let checksOverride = application.checksOverride
+        if (!checksOverride)
+          checksOverride = await bot.getResource(application, { backlinks: ['checksOverride'] })
+        checksOverride = Promise.all(
+          application.checkOverrides.map(co => bot.objects.get(co._link))
+        )
+        let failed = 0
+        let pass = 0
+        checksOverride.forEach(co => {
+          let status = getEnumValueId({ model: bot.models[co[TYPE]], value: co.status })
+          if (status === 'pass') pass++
+          else failed++
+        })
+        ok = ok + pass - failed
+      }
+      let hours = 3600 * 60 * 24
+      let {
+        requestFor,
+        maxFormTypesCount,
+        submittedFormTypesCount,
+        numberOfChecksFailed,
+        numberOfCheckOverrides,
+        checksCount,
+        reviewer,
+        lastMsgToClientTime,
+        formsCount,
+        dateStarted,
+        dateCompleted,
+        status,
+        assignedToTeam,
+        associatedResource,
+        parent,
+        score,
+        scoreType
+      } = application
+      let node = {}
+      _.extend(node, {
+        new: true,
+        requestFor,
+        numberOfChecksFailed,
+        submittedFormTypesCount,
+        maxFormTypesCount,
+        progress: Math.round((submittedFormTypesCount / maxFormTypesCount) * 100),
+        numberOfCheckOverrides,
+        associatedResource: associatedResource._permalink,
+        parent: parent._permalink,
+        ok,
+        RM: reviewer && reviewer._displayName,
+        lastMsgToClientTime,
+        dateStarted,
+        dateCompleted,
+        stalled: lastMsgToClientTime && Math.round((Date.now() - lastMsgToClientTime) / hours),
+        waiting: (status === 'completed' && Math.round((Date.now() - dateCompleted) / hours)) || 0,
+        delayed: dateCompleted && Math.round((dateCompleted - dateStarted) / hours),
+        formsCount,
+        status,
+        assignedToTeam,
+        score: Math.round(score),
+        scoreType
+      })
+      return sanitize(node).sanitized
     }
   }
   return { plugin }
