@@ -3,14 +3,13 @@ import { TYPE, PERMALINK, LINK } from '@tradle/constants'
 import {
   Bot,
   Logger,
-  IPBApp,
-  IPBReq,
-  ITradleObject,
   CreatePlugin,
   Applications,
   IPluginLifecycleMethods,
-  ValidatePluginConf
+  ValidatePluginConf,
+  IConfComponents
 } from '../types'
+import Errors from '../../errors'
 
 import AWS from 'aws-sdk'
 import _ from 'lodash'
@@ -279,4 +278,39 @@ export const createPlugin: CreatePlugin<AccountsMonthlyAPI> = (
   return {
     plugin
   }
-}      
+}
+
+export const validateConf: ValidatePluginConf = async ({
+  bot,
+  conf,
+  pluginConf
+}: {
+  bot: Bot
+  conf: IConfComponents
+  pluginConf: IAccountsMonthlyConf
+}) => {
+  const { models } = bot
+  const model = models[pluginConf.form]
+  if (!model) {
+    throw new Errors.InvalidInput(`model not found for: ${pluginConf.form}`)
+  }
+  if (!model.properties[pluginConf.inlineProperty]) {
+    throw new Errors.InvalidInput(`property ${pluginConf.inlineProperty} not found in ${pluginConf.form}`)
+  }
+  if (!model.properties[pluginConf.lookupProperty]) {
+    throw new Errors.InvalidInput(`property ${pluginConf.lookupProperty} not found in ${pluginConf.form}`)
+  }
+  const prefillModel = models[pluginConf.prefillType]
+  if (!prefillModel) {
+    throw new Errors.InvalidInput(`model not found for: ${pluginConf.prefillType}`)
+  }
+  if (!pluginConf.athenaMap)
+    throw new Errors.InvalidInput('athenaMap not found')
+
+  Object.values(pluginConf.athenaMap).forEach(propName => {
+    if (!prefillModel.properties[propName]) {
+      throw new Errors.InvalidInput(`property ${propName} not found in ${pluginConf.prefillType}`)
+    }
+  })
+
+}
