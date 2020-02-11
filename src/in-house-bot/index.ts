@@ -710,7 +710,6 @@ export const loadComponentsAndPlugins = ({
       'jenIdChecker',
       'cibiChecker',
       'gdcChecker',
-      'sme-auto-approve',
       'sme-onboarding',
       'new-bo-simulation',
       'controllingEntityValidation',
@@ -732,7 +731,8 @@ export const loadComponentsAndPlugins = ({
       'pitchbookCheck',
       'cifasCheck',
       'client-edits',
-      'roarIntegration'
+      'roarIntegration',
+      'sme-auto-approve'
     ].forEach(name => attachPlugin({ name }))
       ;[
         'hand-sig',
