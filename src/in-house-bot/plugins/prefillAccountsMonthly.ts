@@ -229,13 +229,17 @@ export const createPlugin: CreatePlugin<AccountsMonthlyAPI> = (
       const { user, application, applicant, payload } = req
 
       if (payload[TYPE] != conf.form) return
+      logger.debug(`accountsMonthly first encounter for type ${payload[TYPE]}`)
       if (!payload[conf.lookupProperty]) return
+      logger.debug(`accountsMonthly property set ${payload[conf.lookupProperty]}`)
       if (payload[conf.inlineProperty]) {
         let arr = payload[conf.inlineProperty]
-        if (arr instanceof Array && arr.length > 0)
+        if (arr instanceof Array && arr.length > 0) {
+          logger.debug(`accountsMonthly inline array is set, exiting`)
           return
+        }
       }
-      logger.debug(`accountsMontly entered prefill`)
+      logger.debug(`accountsMonthly entered prefill`)
 
       let registerationNumber: string = payload[conf.lookupProperty]
       let foundData: Array<any> = await documentLookup.lookup(registerationNumber, conf.athenaMap)
