@@ -244,7 +244,7 @@ export const createPlugin: CreatePlugin<AccountsMonthlyAPI> = (
       let registerationNumber: string = payload[conf.lookupProperty]
       let foundData: Array<any> = await documentLookup.lookup(registerationNumber, conf.athenaMap)
       if (foundData.length > 0) {
-        logger.debug(`accountsMontly prefill: ${JSON.stringify(foundData, null, 2)}`)
+        logger.debug(`accountsMonthly prefill: ${JSON.stringify(foundData, null, 2)}`)
         const payloadClone = _.cloneDeep(payload)
         payloadClone[PERMALINK] = payloadClone._permalink
         payloadClone[LINK] = payloadClone._link
