@@ -238,6 +238,7 @@ export const createPlugin: CreatePlugin<AccountsMonthlyAPI> = (
 
       // serving only GB
       let country = lookupForm[conf.lookupFormCountryProperty]
+      logger.debug(`accountsMonthly country: ${JSON.stringify(country)}`)
       if (!country || country.id.split('_')[1] !== 'GB')
         return
 
