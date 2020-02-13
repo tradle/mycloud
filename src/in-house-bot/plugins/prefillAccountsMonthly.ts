@@ -233,7 +233,7 @@ export const createPlugin: CreatePlugin<AccountsMonthlyAPI> = (
       logger.debug(`accountsMonthly first encounter for type ${conf.form}`)
       let stub = application.submissions.find(form => form.submission[TYPE] === conf.lookupPropertyForm)
       if (!stub) return
-      let lookupForm = await this.bot.getResource(stub.submission)
+      let lookupForm = await bot.getResource(stub.submission)
       let lookupPropertyValue = lookupForm[conf.lookupProperty]
       if (!lookupPropertyValue) return
       logger.debug(`accountsMonthly found value for ${conf.lookupProperty}`)
