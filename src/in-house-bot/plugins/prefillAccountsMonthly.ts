@@ -34,6 +34,8 @@ const TOTAL_ASSETS_LESS_CURRENT_LIABILITIES: string = 'total_assets_less_current
 interface IAccountsMonthlyConf {
   form: string,
   athenaMap: Object,
+
+  lookupPropertyForm: string,
   lookupProperty: string
   prefillType: string
   inlineProperty: string
@@ -215,7 +217,6 @@ export class AccountsMonthlyAPI {
     var dt = new Date(Number(year), Number(month) - 1, Number(day));
     return dt.getTime()
   }
-
 }
 
 export const createPlugin: CreatePlugin<AccountsMonthlyAPI> = (
@@ -224,57 +225,24 @@ export const createPlugin: CreatePlugin<AccountsMonthlyAPI> = (
 ) => {
   const documentLookup = new AccountsMonthlyAPI({ bot, applications, conf, logger })
   const plugin: IPluginLifecycleMethods = {
-    validateForm: async ({ req }) => {
-      if (req.skipChecks) return
-      const { user, application, applicant, payload } = req
 
-      if (payload[TYPE] != conf.form) return
-      logger.debug(`accountsMonthly first encounter for type ${payload[TYPE]}`)
-      if (!payload[conf.lookupProperty]) return
-      logger.debug(`accountsMonthly property set ${payload[conf.lookupProperty]}`)
-      if (payload[conf.inlineProperty]) {
-        let arr = payload[conf.inlineProperty]
-        if (arr instanceof Array && arr.length > 0) {
-          logger.debug(`accountsMonthly inline array is set, exiting`)
-          return
-        }
-      }
-      logger.debug(`accountsMonthly entered prefill`)
-
-      let registerationNumber: string = payload[conf.lookupProperty]
-      let foundData: Array<any> = await documentLookup.lookup(registerationNumber, conf.athenaMap)
+    willRequestForm: async ({ req, application, formRequest }) => {
+      if (!application) return
+      let { form } = formRequest
+      if (form !== conf.form) return
+      logger.debug(`accountsMonthly first encounter for type ${conf.form}`)
+      let stub = application.submissions.find(form => form.submission[TYPE] === conf.lookupPropertyForm)
+      if (!stub) return
+      let lookupForm = await this.bot.getResource(stub.submission)
+      let lookupPropertyValue = lookupForm[conf.lookupProperty]
+      if (!lookupPropertyValue) return
+      logger.debug(`accountsMonthly found value for ${conf.lookupProperty}`)
+      let foundData: Array<any> = await documentLookup.lookup(lookupPropertyValue, conf.athenaMap)
       if (foundData.length > 0) {
         logger.debug(`accountsMonthly prefill: ${JSON.stringify(foundData, null, 2)}`)
-        const payloadClone = _.cloneDeep(payload)
-        payloadClone[PERMALINK] = payloadClone._permalink
-        payloadClone[LINK] = payloadClone._link
-
-        let arr = payloadClone[conf.inlineProperty]
-        if (!arr) {
-          arr = []
-          payloadClone[conf.inlineProperty] = arr
-        }
-        for (let rec of foundData) {
-          arr.push(rec)
-        }
-
-        let formError: any = {
-          req,
-          user,
-          application,
-          details: {
-            prefill: payloadClone,
-            message: `Please review and confirm`
-          }
-        }
-        try {
-          await applications.requestEdit(formError)
-          return {
-            message: 'no request edit',
-            exit: true
-          }
-        } catch (err) {
-          debugger
+        formRequest.prefill = {
+          [TYPE]: conf.form,
+          [conf.inlineProperty]: foundData
         }
       }
     }
@@ -282,6 +250,13 @@ export const createPlugin: CreatePlugin<AccountsMonthlyAPI> = (
   return {
     plugin
   }
+}
+
+const findForm = async (application, formName: string) => {
+  let stub = application.submissions.find(form => form.submission[TYPE] === formName)
+  if (!stub) return
+
+  return await this.bot.getResource(stub.submission)
 }
 
 export const validateConf: ValidatePluginConf = async ({
@@ -301,8 +276,12 @@ export const validateConf: ValidatePluginConf = async ({
   if (!model.properties[pluginConf.inlineProperty]) {
     throw new Errors.InvalidInput(`property ${pluginConf.inlineProperty} not found in ${pluginConf.form}`)
   }
-  if (!model.properties[pluginConf.lookupProperty]) {
-    throw new Errors.InvalidInput(`property ${pluginConf.lookupProperty} not found in ${pluginConf.form}`)
+  const lookupModel = models[pluginConf.lookupPropertyForm]
+  if (!lookupModel) {
+    throw new Errors.InvalidInput(`model not found for: ${pluginConf.lookupPropertyForm}`)
+  }
+  if (!lookupModel.properties[pluginConf.lookupProperty]) {
+    throw new Errors.InvalidInput(`property ${pluginConf.lookupProperty} not found in ${pluginConf.lookupPropertyForm}`)
   }
   const prefillModel = models[pluginConf.prefillType]
   if (!prefillModel) {
