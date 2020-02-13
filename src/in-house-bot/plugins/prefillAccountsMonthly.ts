@@ -36,7 +36,8 @@ interface IAccountsMonthlyConf {
   athenaMap: Object,
 
   lookupPropertyForm: string,
-  lookupProperty: string
+  lookupProperty: string,
+  lookupPropertyFormCountryProperty: string
   prefillType: string
   inlineProperty: string
 }
@@ -234,8 +235,15 @@ export const createPlugin: CreatePlugin<AccountsMonthlyAPI> = (
       let stub = application.submissions.find(form => form.submission[TYPE] === conf.lookupPropertyForm)
       if (!stub) return
       let lookupForm = await bot.getResource(stub.submission)
+
+      // serving only GB
+      let country = lookupForm[conf.lookupFormCountryProperty]
+      if (!country || country.id.split('_')[1] !== 'GB')
+        return
+
       let lookupPropertyValue = lookupForm[conf.lookupProperty]
       if (!lookupPropertyValue) return
+
       logger.debug(`accountsMonthly found value for ${conf.lookupProperty}`)
       let foundData: Array<any> = await documentLookup.lookup(lookupPropertyValue, conf.athenaMap)
       if (foundData.length > 0) {
@@ -282,6 +290,9 @@ export const validateConf: ValidatePluginConf = async ({
   }
   if (!lookupModel.properties[pluginConf.lookupProperty]) {
     throw new Errors.InvalidInput(`property ${pluginConf.lookupProperty} not found in ${pluginConf.lookupPropertyForm}`)
+  }
+  if (!lookupModel.properties[pluginConf.lookupPropertyFormCountryProperty]) {
+    throw new Errors.InvalidInput(`property ${pluginConf.lookupPropertyFormCountryProperty} not found in ${pluginConf.lookupPropertyForm}`)
   }
   const prefillModel = models[pluginConf.prefillType]
   if (!prefillModel) {
