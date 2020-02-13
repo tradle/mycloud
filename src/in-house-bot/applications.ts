@@ -137,17 +137,17 @@ export class Applications implements IHasModels {
     application.checksCount = (checksCount && ++application.checksCount) || 1
 
     if (!latestChecks) {
-      if (checks) {
-        const timeDesc = req.checks.slice().sort((a, b) => b._time - a._time)
-        latestChecks = uniqBy(timeDesc, TYPE)
-      } else {
-        ;({ latestChecks = [], checks = [] } = await getLatestChecks({
-          application,
-          bot: this.bot
-        }))
+      // if (checks) {
+      //   const timeDesc = req.checks.slice().sort((a, b) => b._time - a._time)
+      //   latestChecks = uniqBy(timeDesc, TYPE)
+      // } else {
+      ;({ latestChecks = [], checks = [] } = await getLatestChecks({
+        application,
+        bot: this.bot
+      }))
 
-        req.checks = checks
-      }
+      req.checks = checks
+      // }
       req.latestChecks = latestChecks
     }
     let idx = latestChecks.findIndex(c => c[TYPE] === props[TYPE])
