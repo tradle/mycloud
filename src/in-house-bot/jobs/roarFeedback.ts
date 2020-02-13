@@ -44,9 +44,19 @@ export class RoarFeedback {
     this.logger.debug('roarFeedback pullResponses starts')
     if (!this.token)
       throw Error('token is not provided')
-
-    let entries = await this.folderEntries('0')
-
+    let entries
+    let cnt = 0;
+    while (true) {
+      try {
+        entries = await this.folderEntries('0')
+        break;
+      } catch (err) {
+        if (++cnt < 3)
+          this.sleep(10000)
+        else
+          break
+      }
+    }
     let responsesFolderId: string
     let processedResponsesFolderId: string
     for (let entry of entries) {
@@ -182,7 +192,7 @@ export class RoarFeedback {
         }
       })
     } catch (err) {
-      this.logger.error(`roarFeedback failed to find check matching to ${permalink}`)
+      //this.logger.error(`roarFeedback failed to find check matching to ${permalink}`)
       return undefined
     }
   }
@@ -205,5 +215,13 @@ export class RoarFeedback {
       })
     })
     return JSON.parse(response)
+  }
+
+  sleep = async (ms: number) => {
+    await this._sleep(ms);
+  }
+
+  _sleep = (ms: number) => {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
