@@ -238,7 +238,7 @@ export class TreeBuilder {
     let { top, parent, associatedResource } = application
 
     let topApp = await this.bot.getLatestResource(top)
-    debugger
+    // debugger
     let node
     let nodes
     let associatedNode
@@ -551,11 +551,16 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       logger.debug('Child application was submitted')
       let { parentApp, associatedRes } = await getAssociateResources({ application, bot })
       const { models } = bot
-      if (payload[TYPE] === NEXT_FORM_REQUEST) {
-        if (payload.after === CP && application.notifications) {
-          await treeBuilderAPI.updateWithNotifications({ application, tree: application.tree })
-        }
+
+      if (application.notifications) {
+        await treeBuilderAPI.updateWithNotifications({ application, tree: application.tree })
       }
+
+      // if (payload[TYPE] === NEXT_FORM_REQUEST) {
+      //   if (payload.after === CP && application.notifications) {
+      //     await treeBuilderAPI.updateWithNotifications({ application, tree: application.tree })
+      //   }
+      // }
       if (!parentApp) {
         if (!application.tree) {
           application.tree = buildResourceStub({ resource: application, models })
