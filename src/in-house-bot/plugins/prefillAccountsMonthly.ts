@@ -235,7 +235,7 @@ export const createPlugin: CreatePlugin<AccountsMonthlyAPI> = (
       let stub = application.submissions.find(form => form.submission[TYPE] === conf.lookupPropertyForm)
       if (!stub) return
       let lookupForm = await bot.getResource(stub.submission)
-
+      logger.debug(`accountsMonthly lookupForm: ${JSON.stringify(lookupForm, null, 2)}`)
       // serving only GB
       let country = lookupForm[conf.lookupFormCountryProperty]
       logger.debug(`accountsMonthly country: ${JSON.stringify(country)}`)
