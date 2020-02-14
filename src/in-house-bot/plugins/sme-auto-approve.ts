@@ -251,6 +251,7 @@ export class TreeBuilder {
 
     if (topApp.tree.top && topApp.tree.top.nodes)
       node = this.findNode({ tree: topApp.tree.top.nodes, node: parent })
+
     if (!node) node = topApp.tree
     if (!node.top.nodes) node.top.nodes = {}
     nodes = node.top.nodes
@@ -396,7 +397,8 @@ export class TreeBuilder {
       numberOfChecksFailed: fail,
       numberOfCheckOverrides,
       parent: application._permalink,
-      ok
+      ok,
+      percentageOfOwnership: payload.percentageOfOwnership
     }
     return sanitize(node).sanitized
   }
@@ -407,7 +409,10 @@ export class TreeBuilder {
         if (n) return n
         continue
       }
-      if (tree[p]._permalink === node._permalink) {
+      if (
+        tree[p]._permalink === node._permalink ||
+        tree[p].associatedResource === node._permalink
+      ) {
         let foundNode = tree[p]
         if (doDelete) delete tree[p]
         return foundNode
@@ -546,6 +551,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       logger.debug('Child application was submitted')
       let { parentApp, associatedRes } = await getAssociateResources({ application, bot })
       const { models } = bot
+      if (payload[TYPE] === NEXT_FORM_REQUEST) {
+        if (payload.after === CP && application.notifications) {
+          await treeBuilderAPI.updateWithNotifications({ application, tree: application.tree })
+        }
+      }
       if (!parentApp) {
         if (!application.tree) {
           application.tree = buildResourceStub({ resource: application, models })
@@ -556,13 +566,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           if (!application.tree.top.nodes) application.tree.top.nodes = {}
           await treeBuilderAPI.updateCpNode(req)
         }
-
         return
-      }
-      if (payload[TYPE] === NEXT_FORM_REQUEST) {
-        if (payload.after === CP && application.notifications) {
-          await treeBuilderAPI.updateWithNotifications({ application, tree: application.tree })
-        }
       }
       // pairs = pairs.find(pair => pair.parent === parentApp.requestFor)
       // if (!pairs)
