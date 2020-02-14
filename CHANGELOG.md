@@ -2,18 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.66](https://github.com/tradle/mycloud/compare/v2.5.1-rc.65...v2.5.1-rc.66) (2020-02-13)
-
-
-### Bug Fixes
-
-* number of checks calculations ([ca0e70a](https://github.com/tradle/mycloud/commit/ca0e70a))
-* submitted form types calculations ([eb523e3](https://github.com/tradle/mycloud/commit/eb523e3))
+## [2.5.1-rc.67](https://github.com/tradle/mycloud/compare/v2.5.1-rc.66...v2.5.1-rc.67) (2020-02-14)
 
 
 ### Features
 
-* application tree ([d241fb9](https://github.com/tradle/mycloud/commit/d241fb9))
+* fix notifications in app tree ([1201f8f](https://github.com/tradle/mycloud/commit/1201f8f))
 
 
 
