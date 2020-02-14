@@ -27,7 +27,9 @@ const APPLICATION = 'tradle.Application'
 const APPLICATION_SUBMITTED = 'tradle.ApplicationSubmitted'
 const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
 const NOTIFICATION = 'tradle.Notification'
+const NEXT_FORM_REQUEST = 'tradle.NextFormRequest'
 const SCORE_TYPE = 'tradle.ScoreType'
+const STATUS = 'tradle.Status'
 
 const getResourceType = resource => resource[TYPE]
 
@@ -176,9 +178,250 @@ export class SmeVerifier {
     })
   }
 }
+export class TreeBuilder {
+  private bot: Bot
+  private applications: Applications
+  private logger: Logger
+  constructor({ bot, applications, logger }) {
+    this.bot = bot
+    this.applications = applications
+    this.logger = logger
+  }
 
+  public async updateCpNode(req) {
+    let node
+    let { application, payload } = req
+    let { tree } = application
+    if (tree.top.nodes) node = this.findNode({ tree: tree.top.nodes, node: payload })
+    else tree.top.nodes = {}
+
+    if (!node) {
+      tree.top.nodes[payload._permalink] = {}
+      node = tree.top.nodes[payload._permalink]
+    }
+
+    const { models } = this.bot
+    let payloadStub = buildResourceStub({ resource: payload, models })
+
+    let prefill = await this.fillCpNode(req)
+    _.extend(payloadStub, prefill)
+    _.extend(node, payloadStub)
+
+    application.tree = { ...application.tree }
+  }
+  async updateWithNotifications({ application, tree }) {
+    let notifications = await Promise.all(
+      application.notifications.map(n => this.bot.getResource(n))
+    )
+    let top
+    if (tree) top = application
+    else {
+      let { _permalink, _t } = application.top
+      top = await this.bot.getResource({ _permalink, _t })
+      tree = top.tree
+    }
+    notifications.forEach((n: any) => {
+      let form = n.form
+      let node = this.findNode({ tree: tree.top.nodes, node: form })
+      node.lastNotified = n.dateLastNotified
+      node.timesNotified = n.timesNotified
+      node.notifiedStatus = getEnumValueId({
+        model: this.bot.models[NOTIFICATION_STATUS],
+        value: n.status
+      })
+    })
+    top.tree = { ...top.tree }
+    await this.applications.updateApplication(top)
+  }
+  public async findAndInsertTreeNode({ req, isInit }) {
+    let { application, payload } = req
+    let { top, parent, associatedResource } = application
+
+    let topApp = await this.bot.getLatestResource(top)
+    debugger
+    let node
+    let nodes
+    let associatedNode
+    if (isInit)
+      associatedNode = this.findNode({
+        tree: topApp.tree.top.nodes,
+        node: associatedResource,
+        doDelete: isInit
+      })
+
+    if (topApp.tree.top && topApp.tree.top.nodes)
+      node = this.findNode({ tree: topApp.tree.top.nodes, node: parent })
+    if (!node) node = topApp.tree
+    if (!node.top.nodes) node.top.nodes = {}
+    nodes = node.top.nodes
+
+    const { models } = this.bot
+    let appStub
+    if (nodes[application._permalink]) {
+      let stub = buildResourceStub({ resource: application, models })
+      appStub = nodes[application._permalink]
+    } else {
+      appStub = buildResourceStub({ resource: application, models })
+      let payloadStub = buildResourceStub({ resource: payload, models })
+      appStub.top = payloadStub
+    }
+    let prefill = await this.fillNode({ req })
+    _.extend(appStub, prefill)
+    if (associatedNode) {
+      let { timesNotified, notifiedStatus, dateLastNotified } = associatedNode
+      _.extend(appStub, { timesNotified, notifiedStatus, dateLastNotified })
+      appStub = sanitize(appStub).sanitized
+    } else if (payload && payload[TYPE] === CP) {
+      if (!appStub.top.nodes) appStub.top.nodes = {}
+      let payloadStub = buildResourceStub({ resource: payload, models })
+      if (!appStub.top.nodes[payload._permalink])
+        appStub.top.nodes[payload._permalink] = payloadStub
+      await this.updateCpNode({ application: topApp, payload, latestChecks: req.latestChecks })
+    }
+
+    nodes[application._permalink] = {
+      ...appStub
+    }
+    topApp.tree = { ...topApp.tree }
+    await this.applications.updateApplication(topApp)
+  }
+  public async fillNode({ req }) {
+    let { application } = req
+    let ok = (req.latestChecks && req.latestChecks.length) || application.checksCount
+
+    if (application.numberOfChecksFailed) ok -= application.numberOfChecksFailed
+    if (application.numberOfCheckOverrides) {
+      let checksOverride = application.checksOverride
+      if (!checksOverride)
+        checksOverride = await this.bot.getResource(application, { backlinks: ['checksOverride'] })
+      checksOverride = Promise.all(
+        application.checkOverrides.map(co => this.bot.objects.get(co._link))
+      )
+      let failed = 0
+      let pass = 0
+      checksOverride.forEach(co => {
+        let status = getEnumValueId({ model: this.bot.models[co[TYPE]], value: co.status })
+        if (status === 'pass') pass++
+        else failed++
+      })
+      ok = ok + pass - failed
+    }
+    let hours = 3600 * 60 * 24
+    let {
+      requestFor,
+      maxFormTypesCount,
+      submittedFormTypesCount,
+      numberOfChecksFailed,
+      numberOfCheckOverrides,
+      checksCount,
+      reviewer,
+      lastMsgToClientTime,
+      formsCount,
+      dateStarted,
+      dateCompleted,
+      status,
+      assignedToTeam,
+      associatedResource,
+      parent,
+      score,
+      scoreType
+    } = application
+    let node = {}
+    let progress = Math.round((submittedFormTypesCount / maxFormTypesCount) * 100)
+    progress = Math.min(progress, 100)
+    _.extend(node, {
+      new: true,
+      requestFor,
+      numberOfChecksFailed,
+      submittedFormTypesCount,
+      maxFormTypesCount,
+      progress,
+      numberOfCheckOverrides,
+      associatedResource: associatedResource._permalink,
+      parent: parent._permalink,
+      ok,
+      RM: reviewer && reviewer._displayName,
+      lastMsgToClientTime,
+      dateStarted,
+      dateCompleted,
+      // stalled: lastMsgToClientTime && Math.round((Date.now() - lastMsgToClientTime) / hours),
+      // waiting: (status === 'completed' && Math.round((Date.now() - dateCompleted) / hours)) || 0,
+      // delayed: dateCompleted && Math.round((dateCompleted - dateStarted) / hours),
+      formsCount,
+      status,
+      assignedToTeam,
+      score: Math.round(score),
+      scoreType
+    })
+    return sanitize(node).sanitized
+  }
+  async fillCpNode(req) {
+    let { application, payload, latestChecks } = req
+    let ok, fail
+    if (latestChecks && latestChecks.length) {
+      let checks = latestChecks.filter(check => check.form._permalink === payload._permalink)
+      if (checks.length) {
+        ok = checks.filter(
+          check =>
+            getEnumValueId({ model: this.bot.models[STATUS], value: check.status }) === 'pass'
+        ).length
+        fail = checks.filter(
+          check =>
+            getEnumValueId({ model: this.bot.models[STATUS], value: check.status }) === 'fail'
+        ).length
+      }
+    }
+    let numberOfCheckOverrides
+    if (application.numberOfCheckOverrides) {
+      let checksOverride = application.checksOverride
+      if (!checksOverride)
+        checksOverride = await this.bot.getResource(application, { backlinks: ['checksOverride'] })
+      checksOverride = Promise.all(
+        application.checkOverrides.map(co => this.bot.objects.get(co._link))
+      )
+
+      let failed = 0
+      let pass = 0
+      checksOverride.forEach(co => {
+        if (!co.form._permalink === payload._permalink) return
+        let status = getEnumValueId({ model: this.bot.models[co[TYPE]], value: co.status })
+        if (status === 'pass') pass++
+        else failed++
+      })
+      ok = ok + pass - failed
+      numberOfCheckOverrides = pass + failed
+    }
+    let node = {
+      new: true,
+      numberOfChecksFailed: fail,
+      numberOfCheckOverrides,
+      parent: application._permalink,
+      ok
+    }
+    return sanitize(node).sanitized
+  }
+  findNode({ tree, node, doDelete }: { tree: any; node: any; doDelete?: boolean }) {
+    for (let p in tree) {
+      if (p === 'nodes') {
+        let n = this.findNode({ tree: tree[p], node, doDelete })
+        if (n) return n
+        continue
+      }
+      if (tree[p]._permalink === node._permalink) {
+        let foundNode = tree[p]
+        if (doDelete) delete tree[p]
+        return foundNode
+      }
+      if (typeof tree[p] === 'object') {
+        let n = this.findNode({ tree: tree[p], node, doDelete })
+        if (n) return n
+      }
+    }
+  }
+}
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
   const smeVerifierAPI = new SmeVerifier({ bot, conf, applications, logger })
+  const treeBuilderAPI = new TreeBuilder({ bot, applications, logger })
   // debugger
   const plugin: IPluginLifecycleMethods = {
     didApproveApplication: async (opts: IWillJudgeAppArg, certificate: ITradleObject) => {
@@ -199,6 +442,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let childProduct = makeMyProductModelID(pairs[0].child)
       // debugger
       if (certificate[TYPE] === childProduct) {
+        await treeBuilderAPI.findAndInsertTreeNode({
+          req: { application },
+          isInit: false
+        })
+
         logger.debug(
           'New child application was approved. Check if parent application can be auto-approved'
         )
@@ -243,6 +491,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           }
         }
       })
+      await treeBuilderAPI.findAndInsertTreeNode({
+        req,
+        isInit: false
+      })
 
       if (notification)
         await bot.versionAndSave({
@@ -250,6 +502,32 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           // dateLastModified: Date.now(),
           status: enumValue({ model: bot.models[NOTIFICATION_STATUS], value: 'completed' })
         })
+    },
+    async onResourceCreated(value) {
+      // useRealSES(bot)
+      if (value[TYPE] !== NOTIFICATION) return
+      let application = await bot.getResource(value.application)
+      let topApp
+      if (application.top) topApp = await bot.getResource(application.top)
+      else topApp = application
+      await this.updateWithNotifications({ application, tree: topApp.tree })
+      await this.applications.updateApplication(topApp)
+    },
+
+    async onResourceChanged({ old, value }) {
+      // useRealSES(bot)
+      if (value[TYPE] !== NOTIFICATION) return
+      if (
+        old.status.id !== value.status.id ||
+        value.status.id === `${NOTIFICATION_STATUS}_completed`
+      )
+        return
+      let application = await bot.getResource(value.application)
+      let topApp
+      if (application.top) topApp = await bot.getResource(application.top)
+      else topApp = application
+      await this.updateWithNotifications({ application, tree: topApp.tree })
+      await this.applications.updateApplication(topApp)
     },
     async onmessage(req: IPBReq) {
       // debugger
@@ -272,127 +550,42 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         if (!application.tree) {
           application.tree = buildResourceStub({ resource: application, models })
           application.tree.top = buildResourceStub({ resource: payload, models })
+          return
         }
+        if (payload[TYPE] === CP) {
+          if (!application.tree.top.nodes) application.tree.top.nodes = {}
+          await treeBuilderAPI.updateCpNode(req)
+        }
+
         return
+      }
+      if (payload[TYPE] === NEXT_FORM_REQUEST) {
+        if (payload.after === CP && application.notifications) {
+          await treeBuilderAPI.updateWithNotifications({ application, tree: application.tree })
+        }
       }
       // pairs = pairs.find(pair => pair.parent === parentApp.requestFor)
       // if (!pairs)
       //   return
       // debugger
       // application.parent = parentApp
+      let isInit
       if (!application.parent) {
         let stub = buildResourceStub({ resource: parentApp, models })
         application.parent = stub
+        isInit = true
         application.top = parentApp.top || stub
       }
       application.associatedResource = buildResourceStub({
         resource: associatedRes,
         models
       })
-      await this.findAndInsertTreeNode({
-        req
+      await treeBuilderAPI.findAndInsertTreeNode({
+        req,
+        isInit
       })
 
       await smeVerifierAPI.checkAndUpdateNotification(application)
-    },
-    async findAndInsertTreeNode({ req }) {
-      let { application, payload } = req
-      let { top, parent } = application
-
-      let topApp = await bot.getLatestResource(top)
-      debugger
-      let node
-      let nodes
-      if (topApp.tree.top && topApp.tree.top.nodes) node = findNode(topApp.tree.top.nodes, parent)
-      if (!node) node = topApp.tree
-      if (!node.top.nodes) node.top.nodes = {}
-      nodes = node.top.nodes
-
-      const { models } = bot
-      let appStub
-      if (nodes[application._permalink]) {
-        appStub = nodes[application._permalink]
-      } else {
-        appStub = buildResourceStub({ resource: application, models })
-        let payloadStub = buildResourceStub({ resource: payload, models })
-        appStub.top = payloadStub
-      }
-      let prefill = await this.fillNode({ req })
-      _.extend(appStub, prefill)
-
-      nodes[application._permalink] = {
-        ...appStub
-      }
-      topApp.tree = { ...topApp.tree }
-      await applications.updateApplication(topApp)
-    },
-    async fillNode({ req }) {
-      let { application } = req
-      let ok = (req.latestChecks && req.latestChecks.length) || application.checksCount
-
-      if (application.numberOfChecksFailed) ok -= application.numberOfChecksFailed
-      if (application.numberOfCheckOverrides) {
-        let checksOverride = application.checksOverride
-        if (!checksOverride)
-          checksOverride = await bot.getResource(application, { backlinks: ['checksOverride'] })
-        checksOverride = Promise.all(
-          application.checkOverrides.map(co => bot.objects.get(co._link))
-        )
-        let failed = 0
-        let pass = 0
-        checksOverride.forEach(co => {
-          let status = getEnumValueId({ model: bot.models[co[TYPE]], value: co.status })
-          if (status === 'pass') pass++
-          else failed++
-        })
-        ok = ok + pass - failed
-      }
-      let hours = 3600 * 60 * 24
-      let {
-        requestFor,
-        maxFormTypesCount,
-        submittedFormTypesCount,
-        numberOfChecksFailed,
-        numberOfCheckOverrides,
-        checksCount,
-        reviewer,
-        lastMsgToClientTime,
-        formsCount,
-        dateStarted,
-        dateCompleted,
-        status,
-        assignedToTeam,
-        associatedResource,
-        parent,
-        score,
-        scoreType
-      } = application
-      let node = {}
-      _.extend(node, {
-        new: true,
-        requestFor,
-        numberOfChecksFailed,
-        submittedFormTypesCount,
-        maxFormTypesCount,
-        progress: Math.round((submittedFormTypesCount / maxFormTypesCount) * 100),
-        numberOfCheckOverrides,
-        associatedResource: associatedResource._permalink,
-        parent: parent._permalink,
-        ok,
-        RM: reviewer && reviewer._displayName,
-        lastMsgToClientTime,
-        dateStarted,
-        dateCompleted,
-        // stalled: lastMsgToClientTime && Math.round((Date.now() - lastMsgToClientTime) / hours),
-        // waiting: (status === 'completed' && Math.round((Date.now() - dateCompleted) / hours)) || 0,
-        // delayed: dateCompleted && Math.round((dateCompleted - dateStarted) / hours),
-        formsCount,
-        status,
-        assignedToTeam,
-        score: Math.round(score),
-        scoreType
-      })
-      return sanitize(node).sanitized
     }
   }
   return { plugin }
@@ -421,19 +614,4 @@ function makeMyProductModelID(modelId) {
   let parts = modelId.split('.')
   parts[parts.length - 1] = 'My' + parts[parts.length - 1]
   return parts.join('.')
-}
-
-function findNode(tree, node) {
-  for (let p in tree) {
-    if (p === 'nodes') {
-      let n = findNode(tree[p], node)
-      if (n) return n
-      continue
-    }
-    if (tree[p]._permalink === node._permalink) return tree[p]
-    if (typeof tree[p] === 'object') {
-      let n = findNode(tree[p], node)
-      if (n) return n
-    }
-  }
 }

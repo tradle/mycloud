@@ -289,7 +289,7 @@ export const loadComponentsAndPlugins = ({
     let api
     let plugin
     try {
-      ; ({ api, plugin } = Plugins.get(name).createPlugin(components, {
+      ;({ api, plugin } = Plugins.get(name).createPlugin(components, {
         conf: pConf,
         logger: logger.sub(`plugin-${name}`)
       }))
@@ -606,7 +606,7 @@ export const loadComponentsAndPlugins = ({
           if (!application) return
           let ptype = payload[TYPE]
           let m = bot.models[ptype]
-          if (m.subClassOf !== FORM || !application.forms) return
+          if (!isSubClassOf(FORM, m, bot.models) || !application.forms) return
 
           let forms = []
           let hasFormsOfPayloadType
@@ -734,14 +734,14 @@ export const loadComponentsAndPlugins = ({
       'roarIntegration',
       'sme-auto-approve'
     ].forEach(name => attachPlugin({ name }))
-      ;[
-        'hand-sig',
-        'forms-counter',
-        'documentValidity',
-        'fill-myproduct',
-        'checkOverride',
-        'prefill-controllingPerson'
-      ].forEach(name => attachPlugin({ name, requiresConf: false }))
+    ;[
+      'hand-sig',
+      'forms-counter',
+      'documentValidity',
+      'fill-myproduct',
+      'checkOverride',
+      'prefill-controllingPerson'
+    ].forEach(name => attachPlugin({ name, requiresConf: false }))
     // used for some demo
     // ;[
     //   'plugin1',
