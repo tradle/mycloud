@@ -21,17 +21,12 @@ import { valueFromAST } from 'graphql'
 import { getEnumValueId } from '../../utils'
 
 const CP = 'tradle.legal.LegalEntityControllingPerson'
-// const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const APPLICATION = 'tradle.Application'
 const APPLICATION_SUBMITTED = 'tradle.ApplicationSubmitted'
 const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
 const NOTIFICATION = 'tradle.Notification'
-const NEXT_FORM_REQUEST = 'tradle.NextFormRequest'
-const SCORE_TYPE = 'tradle.ScoreType'
 const STATUS = 'tradle.Status'
-
-const getResourceType = resource => resource[TYPE]
 
 type SmeVerifierOpts = {
   bot: Bot
@@ -556,11 +551,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         await treeBuilderAPI.updateWithNotifications({ application, tree: application.tree })
       }
 
-      // if (payload[TYPE] === NEXT_FORM_REQUEST) {
-      //   if (payload.after === CP && application.notifications) {
-      //     await treeBuilderAPI.updateWithNotifications({ application, tree: application.tree })
-      //   }
-      // }
       if (!parentApp) {
         if (!application.tree) {
           application.tree = buildResourceStub({ resource: application, models })
