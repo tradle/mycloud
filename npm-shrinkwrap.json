@@ -21,6 +21,46 @@
         "tslib": "^1.8.1"
       }
     },
+    "@hapi/address": {
+      "version": "2.1.4",
+      "resolved": "https://registry.npmjs.org/@hapi/address/-/address-2.1.4.tgz",
+      "integrity": "sha512-QD1PhQk+s31P1ixsX0H0Suoupp3VMXzIVMSwobR3F3MSUO2YCV0B7xqLcUw/Bh8yuvd3LhpyqLQWTNcRmp6IdQ=="
+    },
+    "@hapi/formula": {
+      "version": "1.2.0",
+      "resolved": "https://registry.npmjs.org/@hapi/formula/-/formula-1.2.0.tgz",
+      "integrity": "sha512-UFbtbGPjstz0eWHb+ga/GM3Z9EzqKXFWIbSOFURU0A/Gku0Bky4bCk9/h//K2Xr3IrCfjFNhMm4jyZ5dbCewGA=="
+    },
+    "@hapi/hoek": {
+      "version": "8.5.1",
+      "resolved": "https://registry.npmjs.org/@hapi/hoek/-/hoek-8.5.1.tgz",
+      "integrity": "sha512-yN7kbciD87WzLGc5539Tn0sApjyiGHAJgKvG9W8C7O+6c7qmoQMfVs0W4bX17eqz6C78QJqqFrtgdK5EWf6Qow=="
+    },
+    "@hapi/joi": {
+      "version": "16.1.8",
+      "resolved": "https://registry.npmjs.org/@hapi/joi/-/joi-16.1.8.tgz",
+      "integrity": "sha512-wAsVvTPe+FwSrsAurNt5vkg3zo+TblvC5Bb1zMVK6SJzZqw9UrJnexxR+76cpePmtUZKHAPxcQ2Bf7oVHyahhg==",
+      "requires": {
+        "@hapi/address": "^2.1.2",
+        "@hapi/formula": "^1.2.0",
+        "@hapi/hoek": "^8.2.4",
+        "@hapi/pinpoint": "^1.0.2",
+        "@hapi/topo": "^3.1.3"
+      }
+    },
+    "@hapi/pinpoint": {
+      "version": "1.0.2",
+      "resolved": "https://registry.npmjs.org/@hapi/pinpoint/-/pinpoint-1.0.2.tgz",
+      "integrity": "sha512-dtXC/WkZBfC5vxscazuiJ6iq4j9oNx1SHknmIr8hofarpKUZKmlUVYVIhNVzIEgK5Wrc4GMHL5lZtt1uS2flmQ=="
+    },
+    "@hapi/topo": {
+      "version": "3.1.6",
+      "resolved": "https://registry.npmjs.org/@hapi/topo/-/topo-3.1.6.tgz",
+      "integrity": "sha512-tAag0jEcjwH+P2quUfipd7liWCNX2F8NvYjQp2wtInsZxnMlypdw0FtAOLxtvvkO+GSRRbmNi8m/5y42PQJYCQ==",
+      "requires": {
+        "@hapi/hoek": "^8.3.0"
+      }
+    },
     "@meltwater/fetch-favicon": {
       "version": "1.0.4",
       "resolved": "https://registry.npmjs.org/@meltwater/fetch-favicon/-/fetch-favicon-1.0.4.tgz",
@@ -371,7 +411,7 @@
       }
     },
     "@tradle/bot-products": {
-      "version": "github:tradle/bot-products#be124f7585ca3163290610cbd8eccd3be9ddbe16",
+      "version": "github:tradle/bot-products#6df95de77d9298f496346aae251afa5fab48894d",
       "from": "github:tradle/bot-products",
       "requires": {
         "@tradle/build-resource": "^4.0.1",
@@ -510,7 +550,7 @@
     "@tradle/centrix": {
       "version": "1.0.0",
       "resolved": "git://github.com/tradle/centrix.git#a6b234e114b8fd24d576913a4e8cacc10bf024b7",
-      "integrity": "sha1-QfZFU09EnuxnESYjZBOjugwfyfk=",
+      "integrity": "sha1-vpY8dztbsnRzde74x4QY8VchlvU=",
       "optional": true,
       "requires": {
         "co": "^4.6.0",
@@ -541,7 +581,7 @@
       "from": "tradle/countries"
     },
     "@tradle/custom-models": {
-      "version": "github:tradle/custom-models#c6e0fe8ef0bfe98658b5a1d3343c1d8d5c83ace3",
+      "version": "github:tradle/custom-models#c8ace8aaaa190a0b3fb03740acdfe825d6b0bd25",
       "from": "github:tradle/custom-models",
       "requires": {
         "@tradle/validate-model": "^7.1.18"
@@ -735,7 +775,7 @@
       }
     },
     "@tradle/models": {
-      "version": "github:tradle/models#9e08d00cc805a4b3f2e395cd29e3bb5eb37e3919",
+      "version": "github:tradle/models#c637aaec48cc38596744068c41b5129d3a4b9bad",
       "from": "github:tradle/models"
     },
     "@tradle/models-cloud": {
@@ -747,7 +787,7 @@
       "from": "tradle/models-cloud-services"
     },
     "@tradle/models-corporate-onboarding": {
-      "version": "github:tradle/models-corporate-onboarding#c00384686a508b82f062a3086c7878b1dcf36df7",
+      "version": "github:tradle/models-corporate-onboarding#d55d1283d1e50911189ebdd55986305b8bb6bf18",
       "from": "github:tradle/models-corporate-onboarding"
     },
     "@tradle/models-nz": {
@@ -1161,10 +1201,9 @@
       }
     },
     "JSONStream": {
-      "version": "1.3.3",
-      "resolved": "https://registry.npmjs.org/JSONStream/-/JSONStream-1.3.3.tgz",
-      "integrity": "sha1-J7S4+7/qtOcbz1Uefye+jZUiOb8=",
-      "dev": true,
+      "version": "1.3.5",
+      "resolved": "https://registry.npmjs.org/JSONStream/-/JSONStream-1.3.5.tgz",
+      "integrity": "sha512-E+iruNOY8VV9s4JEbe1aNEm6MiszPRr/UfcHMz0TQh1BXSxHK+ASV1R6W4HpjBhSeS+54PIsAMCBmwD06LLsqQ==",
       "requires": {
         "jsonparse": "^1.2.0",
         "through": ">=2.2.7 <3"
@@ -4677,6 +4716,19 @@
       "optional": true,
       "requires": {
         "cssom": "0.3.x"
+      }
+    },
+    "csv-parser": {
+      "version": "2.3.2",
+      "resolved": "https://registry.npmjs.org/csv-parser/-/csv-parser-2.3.2.tgz",
+      "integrity": "sha512-ggurTYuhhoUJyrPXTAkiO1x6QXkxAoimV+YSz2eSAXF+jQ/Xve/030T34tVStKFmX56pPtY5PiZl3bR4HkZK+Q==",
+      "requires": {
+        "@hapi/joi": "^16.1.4",
+        "buffer-alloc": "^1.1.0",
+        "buffer-from": "^1.0.0",
+        "generate-object-property": "^1.0.0",
+        "minimist": "^1.2.0",
+        "ndjson": "^1.4.0"
       }
     },
     "currently-unhandled": {
@@ -9283,8 +9335,7 @@
     "jsonparse": {
       "version": "1.3.1",
       "resolved": "https://registry.npmjs.org/jsonparse/-/jsonparse-1.3.1.tgz",
-      "integrity": "sha1-P02uSpH6wxX3EGL4UhzCOfE2YoA=",
-      "dev": true
+      "integrity": "sha1-P02uSpH6wxX3EGL4UhzCOfE2YoA="
     },
     "jsonpath-plus": {
       "version": "0.16.0",
@@ -11820,6 +11871,17 @@
       "resolved": "https://registry.npmjs.org/nco/-/nco-1.0.1.tgz",
       "integrity": "sha1-ho3kI7T0X4wFVV8cyyiqeIvgbFI=",
       "dev": true
+    },
+    "ndjson": {
+      "version": "1.5.0",
+      "resolved": "https://registry.npmjs.org/ndjson/-/ndjson-1.5.0.tgz",
+      "integrity": "sha1-rmA7NrE0vOw0e0UkIrC/mNWDLsg=",
+      "requires": {
+        "json-stringify-safe": "^5.0.1",
+        "minimist": "^1.2.0",
+        "split2": "^2.1.0",
+        "through2": "^2.0.3"
+      }
     },
     "needle": {
       "version": "2.2.4",
@@ -15422,7 +15484,6 @@
       "version": "2.2.0",
       "resolved": "https://registry.npmjs.org/split2/-/split2-2.2.0.tgz",
       "integrity": "sha1-GGsldbz4PoW30YRldWI47k7kJJM=",
-      "dev": true,
       "requires": {
         "through2": "^2.0.2"
       }
