@@ -32,13 +32,16 @@
  * finalScore = countriesScore + industryScore + sanctionsScore + peopleScore + legalStructureScore
  *
  ***/
-import { uniqBy, size, extend } from 'lodash'
+import { uniqBy, size, extend, groupBy } from 'lodash'
 import { TYPE } from '@tradle/constants'
 
 import { enumValue, buildResourceStub } from '@tradle/build-resource'
 
 import { CreatePlugin, Bot, Applications, Logger, IPBApp } from '../types'
 import { getEnumValueId, getFormStubs, getLatestChecks, isSubClassOf } from '../utils'
+import validateResource from '@tradle/validate-resource'
+// @ts-ignore
+const { parseStub, sanitize } = validateResource.utils
 
 // const riskFactors = require('../../../riskFactors.json')
 
@@ -59,6 +62,13 @@ const COUNTRY = 'tradle.Country'
 const STATUS = 'tradle.Status'
 const SCORE_TYPE = 'tradle.ScoreType'
 const BANK_ACCOUNT = 'tradle.BankAccount'
+const CONFIGURATION = 'tradle.RiskConfiguration'
+const BSA_CODES = 'tradle.AllBsaCodes'
+const DDR_CODES = 'tradle.DdrCodes'
+const COUNTRY_RISK_BY_CATEGORY = 'tradle.CountryRiskByCategory'
+const RISC_SCORE_CATEGORY = 'tradle.RiskScoreCategory'
+const COUNTRY_RISK = 'tradle.CountryRisk'
+
 const AUTOHIGH = '*AUTOHIGH*'
 const defaultMap = {
   countryOfResidence: 'countryOfResidence',
@@ -692,6 +702,140 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       } else if (!formType[ptype]) return
       let { defaultValue } = riskFactors
       await checkParent({ application, defaultValue, bot, applications })
+    },
+    async willRequestForm({ formRequest }) {
+      if (formRequest.form !== CONFIGURATION) return
+      let { riskFactors, bsaList, ddrList } = conf
+      let prefill: any = { [TYPE]: CONFIGURATION }
+      let mBsaCodes = bot.models[BSA_CODES]
+      if (bsaList) {
+        for (let p in bsaList) {
+          if (p === 'autohigh') {
+            prefill.bsaListAutohigh = bsaList.autohigh.map(code => {
+              let elm = mBsaCodes.enum.find(e => e.id.toLowerCase() === code.toLowerCase())
+              if (elm) {
+                return enumValue({ model: mBsaCodes, value: elm.id })
+              }
+            })
+          } else {
+            if (!prefill.otherBsaScores) prefill.otherBsaScores = []
+            prefill.otherBsaScores.push({
+              bsaCode: enumValue({ model: mBsaCodes, value: p }),
+              bsaScore: bsaList[p]
+            })
+          }
+        }
+      }
+      if (ddrList) {
+        let mDdrCodes = bot.models[DDR_CODES]
+        prefill.ddrCodes = ddrList.autohigh.map(code =>
+          enumValue({ model: mDdrCodes, value: code })
+        )
+      }
+      let {
+        defaultValue,
+        veryHigh,
+        veryLow,
+        low,
+        medium,
+        high,
+        autoHigh,
+        weights,
+        countriesRiskByCategory,
+        countries
+      } = riskFactors
+      extend(prefill, { defaultValue, veryHigh, low, veryLow, medium, high, autoHigh })
+      let {
+        accountTypeRisk,
+        bsaCodeRisk,
+        baseRisk,
+        beneficialOwnerRisk,
+        countryOfRegistration,
+        countriesOfOperation,
+        crossBorderRisk,
+        legalStructure,
+        historicalBehaviorRisk,
+        lengthOfRelationship,
+        transactionalRisk
+      } = weights
+      extend(prefill, {
+        accountTypeRisk,
+        bsaCodeRisk,
+        baseRisk,
+        beneficialOwnerRisk,
+        countryOfRegistration,
+        countriesOfOperation,
+        crossBorderRisk,
+        historicalBehaviorRisk,
+        legalStructure,
+        lengthOfRelationship,
+        transactionalRisk
+      })
+      let legalStructureCoef = riskFactors.legalStructure
+      let {
+        limited_company,
+        public_limited_company,
+        us_incorporation,
+        limited_partnership
+      } = legalStructureCoef
+      extend(prefill, {
+        limitedCompany: limited_company,
+        publicLimitedCompany: public_limited_company,
+        usIncorporation: us_incorporation,
+        limitedPartnership: limited_partnership
+      })
+
+      let historicalBehaviorRiskCoef = riskFactors.historicalBehaviorRisk
+      let { pep, sanctions, adverseMedia } = historicalBehaviorRiskCoef
+      extend(prefill, { pep, sanctions, adverseMedia })
+      prefill.baseRiskDefault = riskFactors.baseRisk.default
+      prefill.transactionalRiskDefault = riskFactors.transactionalRisk.default
+
+      let rcM = bot.models[RISC_SCORE_CATEGORY]
+      if (countriesRiskByCategory) {
+        prefill.countriesRiskByCategory = []
+        for (let p in countriesRiskByCategory) {
+          let elm = rcM.enum.find(cat => cat.id.toLowerCase() === p.toLowerCase())
+          let {
+            BeneficialOwner,
+            Operations,
+            Registration,
+            Citizenship,
+            Residence
+          } = countriesRiskByCategory[p]
+          prefill.countriesRiskByCategory.push({
+            [TYPE]: COUNTRY_RISK_BY_CATEGORY,
+            riskScoreCategory: enumValue({ model: rcM, value: elm.id }),
+            beneficialOwner: BeneficialOwner,
+            operations: Operations,
+            registration: Registration,
+            citizenship: Citizenship,
+            residence: Residence
+          })
+        }
+      }
+      if (countries) {
+        let countryM = bot.models[COUNTRY]
+        let groups: any = groupBy(countries, 'risk')
+        prefill.riskCountries = []
+        for (let risk in groups) {
+          let elm = rcM.enum.find(cat => cat.id.toLowerCase() === risk.toLowerCase())
+          let scoreCategory = enumValue({ model: rcM, value: elm.id })
+          let countries = groups[risk].map(r => {
+            let { Country, risk, code } = r
+            let country = countryM.enum.find(c => c.id === code)
+            if (country) return enumValue({ model: countryM, value: country.id })
+            else debugger
+          })
+          prefill.riskCountries.push({
+            [TYPE]: COUNTRY_RISK,
+            scoreCategory,
+            countries
+          })
+        }
+      }
+      prefill = sanitize(prefill).sanitized
+      formRequest.prefill = prefill
     }
   }
   return { plugin }

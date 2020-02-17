@@ -21,17 +21,12 @@ import { valueFromAST } from 'graphql'
 import { getEnumValueId } from '../../utils'
 
 const CP = 'tradle.legal.LegalEntityControllingPerson'
-// const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const APPLICATION = 'tradle.Application'
 const APPLICATION_SUBMITTED = 'tradle.ApplicationSubmitted'
 const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
 const NOTIFICATION = 'tradle.Notification'
-const NEXT_FORM_REQUEST = 'tradle.NextFormRequest'
-const SCORE_TYPE = 'tradle.ScoreType'
 const STATUS = 'tradle.Status'
-
-const getResourceType = resource => resource[TYPE]
 
 type SmeVerifierOpts = {
   bot: Bot
@@ -238,7 +233,7 @@ export class TreeBuilder {
     let { top, parent, associatedResource } = application
 
     let topApp = await this.bot.getLatestResource(top)
-    debugger
+    // debugger
     let node
     let nodes
     let associatedNode
@@ -251,6 +246,7 @@ export class TreeBuilder {
 
     if (topApp.tree.top && topApp.tree.top.nodes)
       node = this.findNode({ tree: topApp.tree.top.nodes, node: parent })
+
     if (!node) node = topApp.tree
     if (!node.top.nodes) node.top.nodes = {}
     nodes = node.top.nodes
@@ -396,7 +392,8 @@ export class TreeBuilder {
       numberOfChecksFailed: fail,
       numberOfCheckOverrides,
       parent: application._permalink,
-      ok
+      ok,
+      percentageOfOwnership: payload.percentageOfOwnership
     }
     return sanitize(node).sanitized
   }
@@ -407,7 +404,10 @@ export class TreeBuilder {
         if (n) return n
         continue
       }
-      if (tree[p]._permalink === node._permalink) {
+      if (
+        tree[p]._permalink === node._permalink ||
+        tree[p].associatedResource === node._permalink
+      ) {
         let foundNode = tree[p]
         if (doDelete) delete tree[p]
         return foundNode
@@ -546,6 +546,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       logger.debug('Child application was submitted')
       let { parentApp, associatedRes } = await getAssociateResources({ application, bot })
       const { models } = bot
+
+      if (application.notifications) {
+        await treeBuilderAPI.updateWithNotifications({ application, tree: application.tree })
+      }
+
       if (!parentApp) {
         if (!application.tree) {
           application.tree = buildResourceStub({ resource: application, models })
@@ -556,13 +561,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           if (!application.tree.top.nodes) application.tree.top.nodes = {}
           await treeBuilderAPI.updateCpNode(req)
         }
-
         return
-      }
-      if (payload[TYPE] === NEXT_FORM_REQUEST) {
-        if (payload.after === CP && application.notifications) {
-          await treeBuilderAPI.updateWithNotifications({ application, tree: application.tree })
-        }
       }
       // pairs = pairs.find(pair => pair.parent === parentApp.requestFor)
       // if (!pairs)
