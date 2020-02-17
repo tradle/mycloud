@@ -60,7 +60,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         items.map(item => applications.getApplicationByPayload({ resource: item, bot }))
       )
       apps = apps.filter((a: IPBApp) => {
-        if (!a.draft && a.status === 'approved') return true
+        if (a && !a.draft && a.status === 'approved') return true
         else return false
       })
       if (!apps.length) return
