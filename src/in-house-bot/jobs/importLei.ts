@@ -95,8 +95,14 @@ export class ImportLei {
     } catch (err) {
       this.logger.debug('importLeiData failed list', err)
     }
-    await this.moveFile('goldencopy-lei2-golden-copy.csv.zip', 'lei_node_origin', current, 'lei_node.txt.gz')
-    await this.moveFile('goldencopy-rr-golden-copy.json.zip', 'lei_relation_origin', current, 'lei_relation.txt.gz')
+    await this.moveFile('lei2-golden-copy.csv.zip', 'lei_node_origin', current, 'lei_node.txt.gz')
+    await this.moveFile('rr-golden-copy.json.zip', 'lei_relation_origin', current, 'lei_relation.txt.gz')
+    await this.createLeiNodeTable()
+    await this.createLeiRelationInputTable()
+    await this.deleteAllInNextRelation()
+    await this.dropAndCreateNextRelationTable()
+    await this.createLeiRelationTable()
+    await this.copyFromNext()
   }
 
   moveFile = async (fileName: string, table: string, current: Array<string>, outputFile: string) => {
