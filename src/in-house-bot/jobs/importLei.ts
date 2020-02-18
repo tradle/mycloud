@@ -87,7 +87,7 @@ export class ImportLei {
   }
 
   move = async () => {
-    this.logger.debug("importPitchbookData called")
+    this.logger.debug("importLei called")
     let current: Array<string> = []
     try {
       current = await this.list()
