@@ -116,7 +116,7 @@ export class ImportLei {
       this.logger.debug('importLeiData downloaded file for ' + fileName)
 
       let out = TEMP + 'lei/' + outputFile
-      if (fileName.includes('_rr_')) {
+      if (fileName.includes('rr_')) {
         await this.convertRelation(localfile, out)
       }
       else {
@@ -125,14 +125,14 @@ export class ImportLei {
       fs.unlinkSync(localfile)
 
       let md5: string = await this.checksumFile('MD5', out)
-      this.logger.debug('importLeiData calculated md5 for ' + out + ', md5=' + md5)
+      this.logger.debug('importLei calculated md5 for ' + out + ', md5=' + md5)
 
       if (current.includes(key)) {
         // check md5
         let hash = await this.currentMD5(key)
         if (md5 == hash) {
           fs.unlinkSync(out)
-          this.logger.debug(`importLeiData, do not import ${fileName} data, no change`)
+          this.logger.debug(`importLei, do not import ${fileName} data, no change`)
           return
         }
       }
@@ -145,99 +145,111 @@ export class ImportLei {
         Metadata: { md5 },
         Body: rstream
       }
-      this.logger.debug('importLeiData about to upload for ' + fileName)
+      this.logger.debug(`importLei about to upload for ${fileName}`)
       let res = await s3.upload(contentToPost).promise()
 
       //if (id) await this.createDataSourceRefresh(`pitchbook.${id}`)
 
-      this.logger.debug(`importLeiData imported ${fileName} data`)
+      this.logger.debug(`importLei imported ${fileName} data`)
       fs.unlinkSync(out)
     } catch (err) {
-      this.logger.error(`importLeiData failed for ${fileName}`, err)
+      this.logger.error(`importLei failed for ${fileName}`, err)
     }
   }
 
   convertRelation = async (inputFile: string, outputFile: string) => {
-    let inputStream = fs.createReadStream(inputFile)
-    let outputStream: fs.WriteStream = fs.createWriteStream(outputFile)
-    let writePromise = this.writeStreamToPromise(outputStream)
+    this.logger.debug(`importLei convertRelation start from ${inputFile} into ${outputFile}`)
+    try {
+      let inputStream = fs.createReadStream(inputFile)
+      let outputStream: fs.WriteStream = fs.createWriteStream(outputFile)
+      let writePromise = this.writeStreamToPromise(outputStream)
 
-    await new Promise((resolve, reject) => {
-      var compress = zlib.createGzip();
-      const unzipper = require('unzipper')
+      await new Promise((resolve, reject) => {
+        var compress = zlib.createGzip();
+        const unzipper = require('unzipper')
 
-      compress.pipe(outputStream)
-      inputStream.pipe(unzipper.ParseOne()).pipe(JSONStream.parse(['relations', true, 'RelationshipRecord']))
-        .on('data', function (data: any) {
-          let rec: any = {
-            startNode: data.Relationship.StartNode.NodeID.$,
-            endNode: data.Relationship.EndNode.NodeID.$,
-            relationshipType: data.Relationship.RelationshipType.$,
-            status: data.Relationship.RelationshipStatus.$
-          }
-          if (data.Relationship.RelationshipPeriods && data.Relationship.RelationshipPeriods.RelationshipPeriod &&
-            data.Relationship.RelationshipPeriods.RelationshipPeriod.length > 1 && data.Relationship.RelationshipPeriods.RelationshipPeriod[1].StartDate)
-            rec.relationStartDate = data.Relationship.RelationshipPeriods.RelationshipPeriod[1].StartDate.$
+        compress.pipe(outputStream)
+        inputStream.pipe(unzipper.ParseOne()).pipe(JSONStream.parse(['relations', true, 'RelationshipRecord']))
+          .on('data', function (data: any) {
+            let rec: any = {
+              startNode: data.Relationship.StartNode.NodeID.$,
+              endNode: data.Relationship.EndNode.NodeID.$,
+              relationshipType: data.Relationship.RelationshipType.$,
+              status: data.Relationship.RelationshipStatus.$
+            }
+            if (data.Relationship.RelationshipPeriods && data.Relationship.RelationshipPeriods.RelationshipPeriod &&
+              data.Relationship.RelationshipPeriods.RelationshipPeriod.length > 1 && data.Relationship.RelationshipPeriods.RelationshipPeriod[1].StartDate)
+              rec.relationStartDate = data.Relationship.RelationshipPeriods.RelationshipPeriod[1].StartDate.$
 
-          if (data.Relationship.RelationshipQuantifiers && data.Relationship.RelationshipQuantifiers.RelationshipQuantifier.QuantifierAmount.$)
-            rec.percent = data.Relationship.RelationshipQuantifiers.RelationshipQuantifier.QuantifierAmount.$
+            if (data.Relationship.RelationshipQuantifiers && data.Relationship.RelationshipQuantifiers.RelationshipQuantifier.QuantifierAmount.$)
+              rec.percent = data.Relationship.RelationshipQuantifiers.RelationshipQuantifier.QuantifierAmount.$
 
-          rec.initialRegistrationDate = data.Registration.InitialRegistrationDate.$
-          rec.lastUpdateDate = data.Registration.LastUpdateDate.$
-          rec.validationSources = data.Registration.ValidationSources.$
-          compress.write(JSON.stringify(rec) + '\n')
-        })
-        .on('end', function () {
-          compress.end()
-          resolve()
-        })
-        .on('error', function (err) {
-          reject(err)
-        })
-    })
-    await writePromise
+            rec.initialRegistrationDate = data.Registration.InitialRegistrationDate.$
+            rec.lastUpdateDate = data.Registration.LastUpdateDate.$
+            rec.validationSources = data.Registration.ValidationSources.$
+            compress.write(JSON.stringify(rec) + '\n')
+          })
+          .on('end', function () {
+            compress.end()
+            resolve()
+          })
+          .on('error', function (err) {
+            reject(err)
+          })
+      })
+      await writePromise
+      this.logger.debug(`importLei convertRelation ends`)
+    } catch (err) {
+      this.logger.error(`importLei convertRelation ends with error`, err)
+    }
   }
 
   convertNode = async (input: string, output: string) => {
-    let compress = zlib.createGzip()
-    let writeStream: fs.WriteStream = fs.createWriteStream(output)
-    let promise = this.writeStreamToPromise(writeStream)
-    await new Promise((resolve, reject) => {
-      compress.pipe(writeStream)
-      fs.createReadStream(input)
-        .pipe(unzipper.ParseOne())
-        .pipe(csv({ skipLines: 1, headers: false }))
-        .on('data', (data: any) => {
-          let extract: any = {}
+    this.logger.debug(`importLei converNode start from ${input} into ${output}`)
+    try {
+      let compress = zlib.createGzip()
+      let writeStream: fs.WriteStream = fs.createWriteStream(output)
+      let promise = this.writeStreamToPromise(writeStream)
+      await new Promise((resolve, reject) => {
+        compress.pipe(writeStream)
+        fs.createReadStream(input)
+          .pipe(unzipper.ParseOne())
+          .pipe(csv({ skipLines: 1, headers: false }))
+          .on('data', (data: any) => {
+            let extract: any = {}
 
-          for (let key of Object.keys(mapTop)) {
-            let part = data[key]
-            let name = mapTop[key]
-            extract[name] = part
-          }
-          extract.LegalAddress = {}
-          for (let key of Object.keys(mapLegalAddress)) {
-            let part = data[key]
-            let name = mapLegalAddress[key]
-            extract.LegalAddress[name] = part
-          }
-          extract.HeadquartersAddress = {}
-          for (let key of Object.keys(mapHeadquartersAddress)) {
-            let part = data[key]
-            let name = mapHeadquartersAddress[key]
-            extract.HeadquartersAddress[name] = part
-          }
-          compress.write(JSON.stringify(extract) + '\n')
-        })
-        .on('end', () => {
-          compress.end()
-          resolve()
-        })
-        .on('error', (err) => {
-          reject(err)
-        })
-    })
-    await promise
+            for (let key of Object.keys(mapTop)) {
+              let part = data[key]
+              let name = mapTop[key]
+              extract[name] = part
+            }
+            extract.LegalAddress = {}
+            for (let key of Object.keys(mapLegalAddress)) {
+              let part = data[key]
+              let name = mapLegalAddress[key]
+              extract.LegalAddress[name] = part
+            }
+            extract.HeadquartersAddress = {}
+            for (let key of Object.keys(mapHeadquartersAddress)) {
+              let part = data[key]
+              let name = mapHeadquartersAddress[key]
+              extract.HeadquartersAddress[name] = part
+            }
+            compress.write(JSON.stringify(extract) + '\n')
+          })
+          .on('end', () => {
+            compress.end()
+            resolve()
+          })
+          .on('error', (err) => {
+            reject(err)
+          })
+      })
+      await promise
+      this.logger.debug(`importLei converNode ends`)
+    } catch (err) {
+      this.logger.error(`importLei converNode ends with error`, err)
+    }
   }
 
   createLeiNodeTable = async () => {
