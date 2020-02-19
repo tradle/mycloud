@@ -40,6 +40,8 @@ import { enumValue, buildResourceStub } from '@tradle/build-resource'
 import { CreatePlugin, Bot, Applications, Logger, IPBApp } from '../types'
 import { getEnumValueId, getFormStubs, getLatestChecks, isSubClassOf } from '../utils'
 import validateResource from '@tradle/validate-resource'
+import Application from 'koa'
+import { createModelStore } from '@tradle/dynamodb'
 // @ts-ignore
 const { parseStub, sanitize } = validateResource.utils
 
@@ -558,9 +560,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const { application, payload } = req
       if (!application) return
 
-      let { riskFactors, products, propertyMap, bsaList, ddrList } = conf
-      if (!riskFactors || !products) return
-
       const { models } = bot
 
       let ptype = payload[TYPE]
@@ -576,10 +575,15 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       }
 
       let { requestFor } = application
+      let { products, propertyMap } = conf
+      if (!products) return
 
       let forms = products[requestFor]
       if (!forms || !forms.includes(ptype)) return
 
+      conf = await this.mapResourceToConf(conf, req)
+      let { riskFactors } = conf
+      if (!riskFactors) return
       let stubs = getFormStubs({ forms: application.forms }).reverse()
       stubs = uniqBy(stubs, '_permalink')
 
@@ -703,10 +707,178 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let { defaultValue } = riskFactors
       await checkParent({ application, defaultValue, bot, applications })
     },
+    async getRiskConf(req) {
+      let confApp = req && req.providerConfiguration
+      if (!confApp) {
+        try {
+          let { items } = await bot.db.find({
+            filter: {
+              EQ: {
+                [TYPE]: 'tradle.Application',
+                requestFor: 'tradle.ProviderConfiguration',
+                status: 'approved'
+              }
+            }
+          })
+          if (!items) return
+          items.sort((a, b) => b._time - a._time)
+          confApp = await bot.getResource(items[0], { backlinks: ['forms'] })
+          if (req) req.providerConfiguration = confApp
+        } catch (err) {}
+      }
+      let riskConf = confApp.forms.find(f => f.submission[TYPE] === CONFIGURATION)
+      if (riskConf) return await bot.getResource(riskConf.submission)
+    },
+    async mapResourceToConf(conf, req) {
+      let riskConf = await this.getRiskConf(req)
+
+      let {
+        defaultValue,
+        veryHigh,
+        veryLow,
+        low,
+        medium,
+        high,
+        autoHigh,
+        accountTypeRisk,
+        bsaCodeRisk,
+        baseRisk,
+        baseRiskDefault,
+        beneficialOwnerRisk,
+        countryOfRegistration,
+        countriesOfOperation,
+        crossBorderRisk,
+        legalStructure,
+        historicalBehaviorRisk,
+        lengthOfRelationship,
+        transactionalRisk,
+        transactionalRiskDefault,
+        countriesRiskByCategory,
+        riskCountries,
+        otherBsaScores,
+        bsaListAutohigh,
+        ddrCodes,
+        limitedCompany,
+        publicLimitedCompany,
+        usIncorporation,
+        limitedPartnership,
+        pep,
+        sanctions,
+        adverseMedia
+      } = riskConf
+
+      if (otherBsaScores && bsaListAutohigh) {
+        let bsaModel = bot.models[BSA_CODES]
+        let newBsaList: any = {
+          autohigh: bsaListAutohigh.map(r => getEnumValueId({ model: bsaModel, value: r }))
+        }
+        otherBsaScores.forEach(
+          r =>
+            (newBsaList[
+              getEnumValueId({ model: bot.models['tradle.AllBsaCodes'], value: r.bsaCode })
+            ] = r.bsaScore)
+        )
+        conf.bsaList = newBsaList
+      }
+      if (ddrCodes)
+        conf.ddrList = ddrCodes.map(r =>
+          getEnumValueId({ model: bot.models['tradle.DdrCodes'], value: r })
+        )
+
+      let newConf = {
+        defaultValue,
+        veryHigh,
+        veryLow,
+        low,
+        medium,
+        high,
+        autoHigh,
+        weights: {},
+        countriesRiskByCategory: {},
+        countries: [],
+        legalStructure: {},
+        baseRisk: {
+          default: baseRiskDefault
+        },
+        transactionalRisk: {
+          default: transactionalRiskDefault
+        },
+        historicalBehaviorRisk: {
+          pep,
+          sanctions,
+          adverseMedia
+        }
+      }
+      newConf.weights = {
+        accountTypeRisk,
+        bsaCodeRisk,
+        baseRisk,
+        beneficialOwnerRisk,
+        countryOfRegistration,
+        countriesOfOperation,
+        crossBorderRisk,
+        legalStructure,
+        historicalBehaviorRisk,
+        lengthOfRelationship,
+        transactionalRisk
+      }
+      newConf.legalStructure = {
+        limited_company: limitedCompany,
+        public_limited_company: publicLimitedCompany,
+        us_incorporation: usIncorporation,
+        limited_partnership: limitedPartnership
+      }
+      let rsModel = bot.models[RISC_SCORE_CATEGORY]
+      for (let i = 0; i < countriesRiskByCategory.length; i++) {
+        let {
+          riskScoreCategory,
+          beneficialOwner,
+          operations,
+          registration,
+          citizenship,
+          residence
+        } = riskConf.countriesRiskByCategory[i]
+        let id = getEnumValueId({ model: rsModel, value: riskScoreCategory })
+        newConf.countriesRiskByCategory[id] = {
+          BeneficialOwner: beneficialOwner,
+          Operations: operations,
+          Registration: registration,
+          Citizenship: citizenship,
+          Residence: residence
+        }
+      }
+      let cModel = bot.models[COUNTRY]
+      riskCountries.forEach(r => {
+        let { scoreCategory, countries } = r
+        let risk = getEnumValueId({ model: rsModel, value: scoreCategory })
+        countries.forEach(c =>
+          newConf.countries.push({
+            Country: c.title,
+            code: getEnumValueId({ model: cModel, value: c }),
+            risk
+          })
+        )
+      })
+      extend(conf.riskFactors, newConf)
+
+      return conf
+    },
     async willRequestForm({ formRequest }) {
       if (formRequest.form !== CONFIGURATION) return
-      let { riskFactors, bsaList, ddrList } = conf
+
+      let riskConf = await this.getRiskConf()
+
       let prefill: any = { [TYPE]: CONFIGURATION }
+      let cModel = bot.models[CONFIGURATION]
+      let props = cModel.properties
+      if (riskConf) {
+        for (let p in riskConf) {
+          if (p.charAt(0) !== '_' && props[p]) prefill[p] = riskConf[p]
+        }
+        formRequest.prefill = sanitize(prefill).sanitized
+        return
+      }
+      let { riskFactors, bsaList, ddrList } = conf
       let mBsaCodes = bot.models[BSA_CODES]
       if (bsaList) {
         for (let p in bsaList) {
@@ -728,9 +900,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       }
       if (ddrList) {
         let mDdrCodes = bot.models[DDR_CODES]
-        prefill.ddrCodes = ddrList.autohigh.map(code =>
-          enumValue({ model: mDdrCodes, value: code })
-        )
+        prefill.ddrCodes = ddrList.map(code => enumValue({ model: mDdrCodes, value: code }))
       }
       let {
         defaultValue,
@@ -834,8 +1004,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           })
         }
       }
-      prefill = sanitize(prefill).sanitized
-      formRequest.prefill = prefill
+      formRequest.prefill = sanitize(prefill).sanitized
     }
   }
   return { plugin }
