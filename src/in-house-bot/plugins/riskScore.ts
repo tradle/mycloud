@@ -720,17 +720,21 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
               }
             }
           })
-          if (!items) return
+          if (!items || !items.length) return
           items.sort((a, b) => b._time - a._time)
           confApp = await bot.getResource(items[0], { backlinks: ['forms'] })
           if (req) req.providerConfiguration = confApp
-        } catch (err) {}
+        } catch (err) {
+          debugger
+          return
+        }
       }
       let riskConf = confApp.forms.find(f => f.submission[TYPE] === CONFIGURATION)
       if (riskConf) return await bot.getResource(riskConf.submission)
     },
     async mapResourceToConf(conf, req) {
       let riskConf = await this.getRiskConf(req)
+      if (!riskConf) return conf
 
       let {
         defaultValue,
