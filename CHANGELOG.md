@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.71](https://github.com/tradle/mycloud/compare/v2.5.1-rc.70...v2.5.1-rc.71) (2020-02-20)
+## [2.5.1-rc.72](https://github.com/tradle/mycloud/compare/v2.5.1-rc.71...v2.5.1-rc.72) (2020-02-20)
 
 
 ### Bug Fixes
 
-* no conf is available if the only available is in the initial configuraiton ([20f6a08](https://github.com/tradle/mycloud/commit/20f6a08))
+* exception when no checks were yet created for application ([72941f1](https://github.com/tradle/mycloud/commit/72941f1))
 
 
 
