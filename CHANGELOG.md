@@ -2,18 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.69](https://github.com/tradle/mycloud/compare/v2.5.1-rc.68...v2.5.1-rc.69) (2020-02-17)
-
-
-### Bug Fixes
-
-* minor changes ([9146c22](https://github.com/tradle/mycloud/commit/9146c22))
+## [2.5.1-rc.70](https://github.com/tradle/mycloud/compare/v2.5.1-rc.69...v2.5.1-rc.70) (2020-02-20)
 
 
 ### Features
 
-* configuration project ([460fc44](https://github.com/tradle/mycloud/commit/460fc44))
-* configuration project ([0feb937](https://github.com/tradle/mycloud/commit/0feb937))
+* packages upgrade ([2dcd755](https://github.com/tradle/mycloud/commit/2dcd755))
+* packages upgrade ([2bd4d3e](https://github.com/tradle/mycloud/commit/2bd4d3e))
+* risk policy configuration ([1c7fa93](https://github.com/tradle/mycloud/commit/1c7fa93))
 
 
 
