@@ -93,7 +93,7 @@ export class ImportLei {
       current = await this.list()
       this.logger.debug(`importLeiData list returned ${current.length} elements`)
     } catch (err) {
-      this.logger.debug('importLeiData failed list', err)
+      this.logger.error('importLeiData failed list', err)
     }
     await this.moveFile('lei2-golden-copy.csv.zip', 'lei_node_origin', current, 'lei_node.txt.gz')
     await this.moveFile('rr-golden-copy.json.zip', 'lei_relation_origin', current, 'lei_relation.txt.gz')
@@ -106,21 +106,20 @@ export class ImportLei {
   }
 
   moveFile = async (fileName: string, table: string, current: Array<string>, outputFile: string) => {
-    this.logger.debug('importLeiData ' + fileName)
+    this.logger.debug('importLei ' + fileName)
     try {
       let localfile = TEMP + 'lei/' + fileName
       let key = `refdata/lei/${table}/${outputFile}`
       fs.ensureDirSync(TEMP + 'lei')
-      await this.s3downloadhttp('public/lei/' + fileName, localfile)
 
-      this.logger.debug('importLeiData downloaded file for ' + fileName)
+      let url = `http://referencedata.tradle.io.s3-website-us-east-1.amazonaws.com/public/lei/${fileName}`
 
       let out = TEMP + 'lei/' + outputFile
       if (fileName.includes('rr_')) {
-        await this.convertRelation(localfile, out)
+        await this.convertRelation(url, out)
       }
       else {
-        await this.convertNode(localfile, out)
+        await this.convertNode(url, out)
       }
       fs.unlinkSync(localfile)
 
@@ -157,19 +156,17 @@ export class ImportLei {
     }
   }
 
-  convertRelation = async (inputFile: string, outputFile: string) => {
-    this.logger.debug(`importLei convertRelation start from ${inputFile} into ${outputFile}`)
+  convertRelation = async (url: string, outputFile: string) => {
+    this.logger.debug(`importLei convertRelation start from ${url} into ${outputFile}`)
     try {
-      let inputStream = fs.createReadStream(inputFile)
       let outputStream: fs.WriteStream = fs.createWriteStream(outputFile)
       let writePromise = this.writeStreamToPromise(outputStream)
-
+      let get = await fetch(url)
       await new Promise((resolve, reject) => {
         var compress = zlib.createGzip();
         const unzipper = require('unzipper')
-
         compress.pipe(outputStream)
-        inputStream.pipe(unzipper.ParseOne()).pipe(JSONStream.parse(['relations', true, 'RelationshipRecord']))
+        get.body.pipe(unzipper.ParseOne()).pipe(JSONStream.parse(['relations', true, 'RelationshipRecord']))
           .on('data', function (data: any) {
             let rec: any = {
               startNode: data.Relationship.StartNode.NodeID.$,
@@ -204,16 +201,16 @@ export class ImportLei {
     }
   }
 
-  convertNode = async (input: string, output: string) => {
-    this.logger.debug(`importLei converNode start from ${input} into ${output}`)
+  convertNode = async (url: string, output: string) => {
+    this.logger.debug(`importLei converNode start from ${url} into ${output}`)
     try {
+      let get = await fetch(url)
       let compress = zlib.createGzip()
       let writeStream: fs.WriteStream = fs.createWriteStream(output)
       let promise = this.writeStreamToPromise(writeStream)
       await new Promise((resolve, reject) => {
         compress.pipe(writeStream)
-        fs.createReadStream(input)
-          .pipe(unzipper.ParseOne())
+        get.body.pipe(unzipper.ParseOne())
           .pipe(csv({ skipLines: 1, headers: false }))
           .on('data', (data: any) => {
             let extract: any = {}
