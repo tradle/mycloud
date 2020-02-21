@@ -119,7 +119,7 @@ export class ImportLei {
     if (!changeNode && !changeRelations)
       return
 
-    await this.createDataSourceRefresh()
+    // await this.createDataSourceRefresh()
 
     if (changeNode) {
       await this.createLeiNodeInputTable()
