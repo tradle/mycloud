@@ -25,10 +25,12 @@ const { sanitize } = validateResource.utils
 const TEMP = '/tmp/' // use lambda temp dir
 
 const ATHENA_OUTPUT = 'temp/athena'
+
 const LEI_NODE_PREFIX = 'refdata/lei/lei_node/'
-const LEI_RELATION_PREFIX = 'refdata/lei/lei_relation/'
 const ORIGIN_RELATION_PREFIX = 'temp/refdata/lei/lei_relation_origin/'
+
 const LEI_NEXT_RELATION_PREFIX = 'temp/refdata/lei/lei_next_relation/'
+const LEI_RELATION_PREFIX = 'refdata/lei/lei_relation/'
 
 const athena = new AWS.Athena() //{ region, accessKeyId, secretAccessKey })
 const s3 = new AWS.S3();
@@ -95,27 +97,27 @@ export class ImportLei {
     } catch (err) {
       this.logger.error('importLeiData failed list', err)
     }
-    await this.moveFile('lei2-golden-copy.csv.zip', 'lei_node_origin', current, 'lei_node.txt.gz')
-    await this.moveFile('rr-golden-copy.json.zip', 'lei_relation_origin', current, 'lei_relation.txt.gz')
+    await this.moveFile(LEI_NODE_PREFIX, current, 'lei_node.txt.gz')
+    await this.moveFile(ORIGIN_RELATION_PREFIX, current, 'lei_relation.txt.gz')
+
     await this.createLeiNodeTable()
     await this.createLeiRelationInputTable()
+
     await this.deleteAllInNextRelation()
     await this.dropAndCreateNextRelationTable()
     await this.createLeiRelationTable()
     await this.copyFromNext()
   }
 
-  moveFile = async (fileName: string, table: string, current: Array<string>, outputFile: string) => {
-    this.logger.debug('importLei ' + fileName)
+  moveFile = async (s3location: string, current: Array<string>, outputFile: string) => {
+    this.logger.debug('importLei ' + outputFile)
     try {
-      let key = `refdata/lei/${table}/${outputFile}`
+      let key = `${s3location}${outputFile}`
       fs.ensureDirSync(TEMP + 'lei')
-
-      let url = `http://referencedata.tradle.io.s3-website-us-east-1.amazonaws.com/public/lei/${fileName}`
 
       let out = TEMP + 'lei/' + outputFile
 
-      await this.s3downloadhttp('public/lei/' + fileName, out)
+      await this.s3downloadhttp('public/lei/' + outputFile, out)
 
       /*
       if (fileName.includes('rr_')) {
@@ -133,7 +135,7 @@ export class ImportLei {
         let hash = await this.currentMD5(key)
         if (md5 == hash) {
           fs.unlinkSync(out)
-          this.logger.debug(`importLei, do not import ${fileName} data, no change`)
+          this.logger.debug(`importLei, do not import ${outputFile} data, no change`)
           return
         }
       }
@@ -146,15 +148,15 @@ export class ImportLei {
         Metadata: { md5 },
         Body: rstream
       }
-      this.logger.debug(`importLei about to upload for ${fileName}`)
+      this.logger.debug(`importLei about to upload for ${outputFile}`)
       let res = await s3.upload(contentToPost).promise()
 
       //if (id) await this.createDataSourceRefresh(`pitchbook.${id}`)
 
-      this.logger.debug(`importLei imported ${fileName} data`)
+      this.logger.debug(`importLei imported ${outputFile} data`)
       fs.unlinkSync(out)
     } catch (err) {
-      this.logger.error(`importLei failed for ${fileName}`, err)
+      this.logger.error(`importLei failed for ${outputFile}`, err)
     }
   }
 
