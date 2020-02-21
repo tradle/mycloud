@@ -37,71 +37,71 @@ const COMMON_JOBS: Job[] = [
       ].map(shortName => bot.env.getStackResourceName(shortName))
     }
   },
-  {
-    name: 'sealpending',
-    function: SEALPENDING_FUNCTION,
-    period: 7 * MINUTE,
-  },
-  {
-    name: 'pollchain',
-    function: POLLCHAIN_FUNCTION,
-    period: 11 * MINUTE,
-  },
+  //{
+  //  name: 'sealpending',
+  //  function: SEALPENDING_FUNCTION,
+  //  period: 7 * MINUTE,
+  //},
+  //{
+  //  name: 'pollchain',
+  //  function: POLLCHAIN_FUNCTION,
+  //  period: 11 * MINUTE,
+  //},
   {
     name: 'retryDelivery',
     function: DEFAULT_JOB_RUNNER_FUNCTION,
     period: MINUTE,
   },
-  {
-    name: 'checkFailedSeals',
-    function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: 17 * MINUTE,
-  },
-  {
-    name: 'exportObjectsToAthena',
-    function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: 30 * MINUTE,
-  },
-  {
-    name: 'importPsc',
-    function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: 60 * MINUTE,
-  },
+  //{
+  //  name: 'checkFailedSeals',
+  //  function: DEFAULT_JOB_RUNNER_FUNCTION,
+  //  period: 17 * MINUTE,
+  //},
+  //{
+  //  name: 'exportObjectsToAthena',
+  //  function: DEFAULT_JOB_RUNNER_FUNCTION,
+  //  period: 30 * MINUTE,
+  //},
+  //{
+  //  name: 'importPsc',
+  //  function: DEFAULT_JOB_RUNNER_FUNCTION,
+  //  period: 60 * MINUTE,
+  //},
   {
     name: 'importLei',
     function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: 30 * MINUTE,
+    period: 13 * MINUTE,
   },
-  {
-    name: 'roarFeedback',
-    function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: 1 * MINUTE
-  },
-  {
-    name: 'importBasicCompanyData',
-    function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: 90 * MINUTE
-  },
-  {
-    name: 'importRefdata',
-    function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: 60 * MINUTE,
-  },
-  {
-    name: 'importPitchbookData',
-    function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: 30 * MINUTE,
-  },
-  {
-    name: 'importMaxmindDb',
-    function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: 1 * 60 * MINUTE,
-  },
-  {
-    name: 'chaser',
-    function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: 30 * MINUTE,
-  },
+  //{
+  //  name: 'roarFeedback',
+  //  function: DEFAULT_JOB_RUNNER_FUNCTION,
+  //  period: 1 * MINUTE
+  //},
+  //{
+  //  name: 'importBasicCompanyData',
+  //  function: DEFAULT_JOB_RUNNER_FUNCTION,
+  //  period: 90 * MINUTE
+  //},
+  //{
+  //  name: 'importRefdata',
+  //  function: DEFAULT_JOB_RUNNER_FUNCTION,
+  //  period: 60 * MINUTE,
+  //},
+  //{
+  //  name: 'importPitchbookData',
+  //  function: DEFAULT_JOB_RUNNER_FUNCTION,
+  //  period: 30 * MINUTE,
+  //},
+  //{
+  //  name: 'importMaxmindDb',
+  //  function: DEFAULT_JOB_RUNNER_FUNCTION,
+  //  period: 1 * 60 * MINUTE,
+  //},
+  //{
+  //  name: 'chaser',
+  //  function: DEFAULT_JOB_RUNNER_FUNCTION,
+  //  period: 30 * MINUTE,
+  //},
 
   // {
   //   name: 'documentChecker',

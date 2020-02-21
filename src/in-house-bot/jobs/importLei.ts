@@ -209,12 +209,13 @@ export class ImportLei {
       let writeStream: fs.WriteStream = fs.createWriteStream(output)
       let promise = this.writeStreamToPromise(writeStream)
       await new Promise((resolve, reject) => {
+        let cnt = 0
         compress.pipe(writeStream)
         get.body.pipe(unzipper.ParseOne())
           .pipe(csv({ skipLines: 1, headers: false }))
           .on('data', (data: any) => {
             let extract: any = {}
-
+            cnt++
             for (let key of Object.keys(mapTop)) {
               let part = data[key]
               let name = mapTop[key]
@@ -233,6 +234,8 @@ export class ImportLei {
               extract.HeadquartersAddress[name] = part
             }
             compress.write(JSON.stringify(extract) + '\n')
+            if (cnt % 1000 == 0)
+              this.logger.debug(`importLei converNode wrote ${cnt} records`)
           })
           .on('end', () => {
             compress.end()
