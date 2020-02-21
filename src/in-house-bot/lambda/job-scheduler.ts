@@ -70,7 +70,7 @@ const COMMON_JOBS: Job[] = [
   {
     name: 'importLei',
     function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: 13 * MINUTE,
+    period: 30 * MINUTE,
   },
   //{
   //  name: 'roarFeedback',
