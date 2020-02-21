@@ -108,21 +108,23 @@ export class ImportLei {
   moveFile = async (fileName: string, table: string, current: Array<string>, outputFile: string) => {
     this.logger.debug('importLei ' + fileName)
     try {
-      let localfile = TEMP + 'lei/' + fileName
       let key = `refdata/lei/${table}/${outputFile}`
       fs.ensureDirSync(TEMP + 'lei')
 
       let url = `http://referencedata.tradle.io.s3-website-us-east-1.amazonaws.com/public/lei/${fileName}`
 
       let out = TEMP + 'lei/' + outputFile
+
+      await this.s3downloadhttp('public/lei/' + fileName, out)
+
+      /*
       if (fileName.includes('rr_')) {
         await this.convertRelation(url, out)
       }
       else {
         await this.convertNode(url, out)
       }
-      fs.unlinkSync(localfile)
-
+      */
       let md5: string = await this.checksumFile('MD5', out)
       this.logger.debug('importLei calculated md5 for ' + out + ', md5=' + md5)
 
@@ -547,6 +549,7 @@ export class ImportLei {
     let promise = this.writeStreamToPromise(fout)
     get.body.pipe(fout)
     await promise
+    this.logger.debug(`importLei s3downloadhttp finished with ${key}`)
   }
 
   checksumFile = (algorithm: string, path: string): Promise<string> => {
