@@ -17,6 +17,8 @@ import {
   IOrganization
 } from '../types'
 
+import { TYPE } from '@tradle/constants'
+
 import { enumValue, buildResourceStub } from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
@@ -26,9 +28,11 @@ const TEMP = '/tmp/' // use lambda temp dir
 
 const ATHENA_OUTPUT = 'temp/athena'
 
+const LEI_ORIGIN_NODE_PREFIX = 'temp/refdata/lei/lei_node_origin/'
+const LEI_NEXT_NODE_PREFIX = 'temp/refdata/lei/lei_next_node/'
 const LEI_NODE_PREFIX = 'refdata/lei/lei_node/'
-const ORIGIN_RELATION_PREFIX = 'temp/refdata/lei/lei_relation_origin/'
 
+const LEI_ORIGIN_RELATION_PREFIX = 'temp/refdata/lei/lei_relation_origin/'
 const LEI_NEXT_RELATION_PREFIX = 'temp/refdata/lei/lei_next_relation/'
 const LEI_RELATION_PREFIX = 'refdata/lei/lei_relation/'
 
@@ -88,6 +92,19 @@ export class ImportLei {
     this.database = this.bot.env.getStackResourceName('sec').replace(/\-/g, '_') //ATHENA_DB // 
   }
 
+  createDataSourceRefresh = async () => {
+    let provider = enumValue({
+      model: this.bot.models[REFERENCE_DATA_SOURCES],
+      value: 'lei'
+    })
+    let resource = {
+      [TYPE]: DATA_SOURCE_REFRESH,
+      name: provider,
+      timestamp: Date.now()
+    }
+    await this.bot.signAndSave(resource)
+  }
+
   move = async () => {
     this.logger.debug("importLei called")
     let current: Array<string> = []
@@ -97,19 +114,31 @@ export class ImportLei {
     } catch (err) {
       this.logger.error('importLeiData failed list', err)
     }
-    await this.moveFile(LEI_NODE_PREFIX, current, 'lei_node.txt.gz')
-    await this.moveFile(ORIGIN_RELATION_PREFIX, current, 'lei_relation.txt.gz')
+    let changeNode = await this.moveFile(LEI_ORIGIN_NODE_PREFIX, current, 'lei_node.txt.gz')
+    let changeRelations = await this.moveFile(LEI_ORIGIN_RELATION_PREFIX, current, 'lei_relation.txt.gz')
+    if (!changeNode && !changeRelations)
+      return
 
-    await this.createLeiNodeTable()
-    await this.createLeiRelationInputTable()
+    await this.createDataSourceRefresh()
 
-    await this.deleteAllInNextRelation()
-    await this.dropAndCreateNextRelationTable()
-    await this.createLeiRelationTable()
-    await this.copyFromNext()
+    if (changeNode) {
+      await this.createLeiNodeInputTable()
+      await this.deleteAllInNextNode()
+      await this.dropAndCreateNextNodeTable()
+      await this.createLeiNodeTable()
+      await this.copyFromNextNode()
+    }
+    if (changeRelations) {
+      await this.createLeiRelationInputTable()
+      await this.deleteAllInNextRelation()
+      await this.dropAndCreateNextRelationTable()
+      await this.createLeiRelationTable()
+    }
+
+    await this.copyFromNextRelation()
   }
 
-  moveFile = async (s3location: string, current: Array<string>, outputFile: string) => {
+  moveFile = async (s3location: string, current: Array<string>, outputFile: string): Promise<boolean> => {
     this.logger.debug('importLei ' + outputFile)
     try {
       let key = `${s3location}${outputFile}`
@@ -136,7 +165,7 @@ export class ImportLei {
         if (md5 == hash) {
           fs.unlinkSync(out)
           this.logger.debug(`importLei, do not import ${outputFile} data, no change`)
-          return
+          return false
         }
       }
 
@@ -151,12 +180,12 @@ export class ImportLei {
       this.logger.debug(`importLei about to upload for ${outputFile}`)
       let res = await s3.upload(contentToPost).promise()
 
-      //if (id) await this.createDataSourceRefresh(`pitchbook.${id}`)
-
       this.logger.debug(`importLei imported ${outputFile} data`)
       fs.unlinkSync(out)
+      return true
     } catch (err) {
       this.logger.error(`importLei failed for ${outputFile}`, err)
+      return false
     }
   }
 
@@ -256,8 +285,8 @@ export class ImportLei {
     }
   }
 
-  createLeiNodeTable = async () => {
-    const create = `CREATE EXTERNAL TABLE IF NOT EXISTS lei_node(
+  createLeiNodeInputTable = async () => {
+    const create = `CREATE EXTERNAL TABLE IF NOT EXISTS lei_node_origin(
           lei string, 
           legalname string, 
           otherentityname string, 
@@ -278,7 +307,7 @@ export class ImportLei {
           OUTPUTFORMAT 
             'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
           LOCATION
-            's3://${this.outputLocation}/${LEI_NODE_PREFIX}'
+            's3://${this.outputLocation}/${LEI_ORIGIN_NODE_PREFIX}'
           TBLPROPERTIES (
             'classification'='json', 
             'compressionType'='gzip', 
@@ -286,6 +315,35 @@ export class ImportLei {
 
     let res = await this.executeDDL(create, 2000)
     this.logger.debug('importLei createLeiNodeTable: ' + JSON.stringify(res, null, 2))
+  }
+
+  createLeiNodeTable = async () => {
+    const create = `CREATE EXTERNAL TABLE IF NOT EXISTS lei_node(
+          lei string, 
+          legalname string, 
+          otherentityname string, 
+          legaljurisdiction string, 
+          status string, 
+          initialregistrationdate string, 
+          lastupdatedate string, 
+          legaladdress struct<firstaddressline:string,additionaladdressline:string,city:string,region:string,country:string,postalcode:string>, 
+          headquartersaddress struct<firstaddressline:string,additionaladdressline:string,city:string,region:string,country:string,postalcode:string>
+          )
+    CLUSTERED BY ( 
+        lei) 
+    INTO 1 BUCKETS  
+    ROW FORMAT SERDE 
+      'org.apache.hadoop.hive.ql.io.orc.OrcSerde' 
+    STORED AS INPUTFORMAT 
+      'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat' 
+    OUTPUTFORMAT 
+      'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'
+    LOCATION
+      's3://${this.outputLocation}/${LEI_RELATION_PREFIX}'
+    TBLPROPERTIES (
+      'has_encrypted_data'='false')`
+    let res = await this.executeDDL(create, 2000)
+    this.logger.debug('importLei createLeiRelationTable: ' + JSON.stringify(res, null, 2))
   }
 
   createLeiRelationInputTable = async () => {
@@ -310,7 +368,7 @@ export class ImportLei {
           OUTPUTFORMAT 
             'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
           LOCATION
-            's3://${this.outputLocation}/${ORIGIN_RELATION_PREFIX}'
+            's3://${this.outputLocation}/${LEI_ORIGIN_RELATION_PREFIX}'
           TBLPROPERTIES (
             'classification'='json', 
             'compressionType'='gzip', 
@@ -318,6 +376,26 @@ export class ImportLei {
 
     let res = await this.executeDDL(create, 2000)
     this.logger.debug('importLei createLeiRelationInputTable: ' + JSON.stringify(res, null, 2))
+  }
+
+  dropAndCreateNextNodeTable = async () => {
+    let data: any = await this.executeDDL('DROP TABLE lei_next_node', 3000)
+
+    if (!data || (data.ResultSet.ResultSetMetadata.ColumnInfo.length == 0)) {
+      // no table
+    }
+    else
+      this.logger.debug(JSON.stringify(data, null, 2))
+    const create = `CREATE TABLE lei_next_node 
+                    WITH (
+                    format = \'ORC\', 
+                    external_location = \'s3://${this.outputLocation}/${LEI_NEXT_NODE_PREFIX}\', 
+                    bucketed_by = ARRAY[\'lei\'], 
+                    bucket_count = 1
+                   )
+          AS SELECT * FROM lei_node_origin`
+    let res = await this.executeDDL(create, 10000, 120000)
+    this.logger.debug('importLei dropAndCreateNextNodeTable: ' + JSON.stringify(res, null, 2))
   }
 
   dropAndCreateNextRelationTable = async () => {
@@ -411,7 +489,39 @@ export class ImportLei {
 
   }
 
-  copyFromNext = async () => {
+  deleteAllInNextNode = async () => {
+    var param1 = {
+      Bucket: this.outputLocation,
+      Prefix: LEI_NEXT_NODE_PREFIX
+    };
+
+    let data = await s3.listObjectsV2(param1).promise()
+    let toDelete = []
+    for (let content of data.Contents) {
+      let key = content.Key
+      toDelete.push({ Key: key })
+    }
+
+    this.logger.debug(JSON.stringify(toDelete))
+
+    let param2 = {
+      Bucket: this.outputLocation,
+      Delete: {
+        Objects: toDelete
+      }
+    }
+
+    try {
+      let res = await s3.deleteObjects(param2).promise();
+      this.logger.debug('importLei deleteAllInNextNode', res)
+    } catch (err) {
+      this.logger.error('importLei deleteAllInNextNode', err);
+    }
+
+  }
+
+
+  copyFromNextRelation = async () => {
     var param = {
       Bucket: this.outputLocation,
       Prefix: LEI_NEXT_RELATION_PREFIX
@@ -423,11 +533,40 @@ export class ImportLei {
       let key = content.Key
       toCopy.push(key)
     }
-    this.logger.debug('importLei copyFromNext' + JSON.stringify(toCopy))
+    this.logger.debug('importLei copyFromNextRelation' + JSON.stringify(toCopy))
 
     let promises = []
     for (let key of toCopy) {
       let destKey = LEI_RELATION_PREFIX + key.substring(key.indexOf('bucket-'))
+      let params = {
+        Bucket: this.outputLocation,
+        CopySource: `${this.outputLocation}/${key}`,
+        Key: destKey
+      }
+      promises.push(s3.copyObject(params).promise())
+    }
+
+    for (let promise of promises)
+      await promise
+  }
+
+  copyFromNextNode = async () => {
+    var param = {
+      Bucket: this.outputLocation,
+      Prefix: LEI_NEXT_NODE_PREFIX
+    }
+
+    let data = await s3.listObjectsV2(param).promise()
+    let toCopy = []
+    for (let content of data.Contents) {
+      let key = content.Key
+      toCopy.push(key)
+    }
+    this.logger.debug('importLei copyFromNextNode' + JSON.stringify(toCopy))
+
+    let promises = []
+    for (let key of toCopy) {
+      let destKey = LEI_NODE_PREFIX + key.substring(key.indexOf('bucket-'))
       let params = {
         Bucket: this.outputLocation,
         CopySource: `${this.outputLocation}/${key}`,
