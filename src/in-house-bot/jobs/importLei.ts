@@ -117,8 +117,8 @@ export class ImportLei {
     }
     let changeNode = await this.moveFile(LEI_ORIGIN_NODE_PREFIX, current, 'lei_node.txt.gz')
     let changeRelations = await this.moveFile(LEI_ORIGIN_RELATION_PREFIX, current, 'lei_relation.txt.gz')
-    if (!changeNode && !changeRelations)
-      return
+    // if (!changeNode && !changeRelations)
+    //   return
 
     // await this.createDataSourceRefresh()
 
