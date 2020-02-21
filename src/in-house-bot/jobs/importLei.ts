@@ -107,6 +107,7 @@ export class ImportLei {
 
   move = async () => {
     this.logger.debug("importLei called")
+    let begin = Date.now()
     let current: Array<string> = []
     try {
       current = await this.list()
@@ -121,21 +122,23 @@ export class ImportLei {
 
     // await this.createDataSourceRefresh()
 
-    // if (changeNode) {
+    //if (changeNode) {
     await this.createLeiNodeInputTable()
     await this.deleteAllInNextNode()
     await this.dropAndCreateNextNodeTable()
     await this.createLeiNodeTable()
     await this.copyFromNextNode()
-    // }
-    // if (changeRelations) {
+    //}
+    //if (changeRelations) {
     await this.createLeiRelationInputTable()
     await this.deleteAllInNextRelation()
     await this.dropAndCreateNextRelationTable()
     await this.createLeiRelationTable()
-    // }
+    //}
 
     await this.copyFromNextRelation()
+    let end = Date.now()
+    this.logger.debug(`importLei finished in ${(end - begin) / 1000} sec`)
   }
 
   moveFile = async (s3location: string, current: Array<string>, outputFile: string): Promise<boolean> => {
@@ -429,7 +432,7 @@ export class ImportLei {
       startnodejurisdiction string, 
       startnodelegalname string, 
       startnodeothername string, 
-      endnodelei string, 
+      lei string, 
       legalname string, 
       otherentityname string, 
       legaljurisdiction string, 
@@ -463,7 +466,7 @@ export class ImportLei {
     var param1 = {
       Bucket: this.outputLocation,
       Prefix: LEI_NEXT_RELATION_PREFIX
-    };
+    }
 
     let data = await s3.listObjectsV2(param1).promise()
     let toDelete = []
@@ -471,8 +474,8 @@ export class ImportLei {
       let key = content.Key
       toDelete.push({ Key: key })
     }
-
-    this.logger.debug(JSON.stringify(toDelete))
+    if (toDelete.length == 0)
+      return
 
     let param2 = {
       Bucket: this.outputLocation,
@@ -494,7 +497,7 @@ export class ImportLei {
     var param1 = {
       Bucket: this.outputLocation,
       Prefix: LEI_NEXT_NODE_PREFIX
-    };
+    }
 
     let data = await s3.listObjectsV2(param1).promise()
     let toDelete = []
@@ -502,8 +505,8 @@ export class ImportLei {
       let key = content.Key
       toDelete.push({ Key: key })
     }
-
-    this.logger.debug(JSON.stringify(toDelete))
+    if (toDelete.length == 0)
+      return
 
     let param2 = {
       Bucket: this.outputLocation,
@@ -673,7 +676,7 @@ export class ImportLei {
   list = async (): Promise<Array<string>> => {
     let params = {
       Bucket: this.outputLocation,
-      Prefix: 'refdata/lei/'
+      Prefix: 'temp/refdata/lei/'
     }
     let keys = []
     let data = await s3.listObjectsV2(params).promise()
