@@ -121,19 +121,19 @@ export class ImportLei {
 
     // await this.createDataSourceRefresh()
 
-    if (changeNode) {
-      await this.createLeiNodeInputTable()
-      await this.deleteAllInNextNode()
-      await this.dropAndCreateNextNodeTable()
-      await this.createLeiNodeTable()
-      await this.copyFromNextNode()
-    }
-    if (changeRelations) {
-      await this.createLeiRelationInputTable()
-      await this.deleteAllInNextRelation()
-      await this.dropAndCreateNextRelationTable()
-      await this.createLeiRelationTable()
-    }
+    // if (changeNode) {
+    await this.createLeiNodeInputTable()
+    await this.deleteAllInNextNode()
+    await this.dropAndCreateNextNodeTable()
+    await this.createLeiNodeTable()
+    await this.copyFromNextNode()
+    // }
+    // if (changeRelations) {
+    await this.createLeiRelationInputTable()
+    await this.deleteAllInNextRelation()
+    await this.dropAndCreateNextRelationTable()
+    await this.createLeiRelationTable()
+    // }
 
     await this.copyFromNextRelation()
   }
@@ -162,6 +162,7 @@ export class ImportLei {
       if (current.includes(key)) {
         // check md5
         let hash = await this.currentMD5(key)
+        this.logger.debug(`importLei, current md5 for ${key} = ${hash}`)
         if (md5 == hash) {
           fs.unlinkSync(out)
           this.logger.debug(`importLei, do not import ${outputFile} data, no change`)
@@ -410,25 +411,25 @@ export class ImportLei {
                     WITH (
                     format = \'ORC\', 
                     external_location = \'s3://${this.outputLocation}/${LEI_NEXT_RELATION_PREFIX}\', 
-                    bucketed_by = ARRAY[\'endnode\'], 
+                    bucketed_by = ARRAY[\'startnodelei\'], 
                     bucket_count = 1
                    )
-          AS SELECT n.lei as endnode, n.legaljurisdiction as endnodejurisdiction, n.legalname as endnodelegalname,
-                n.otherentityname as endnodeothername, u.*, r.relationstartdate, r.validationsources, 
+          AS SELECT s.lei as startnodelei, s.legaljurisdiction as startnodejurisdiction, s.legalname as startnodelegalname,
+                s.otherentityname as startnodeothername, e.*, r.relationstartdate, r.validationsources, 
                 r.relationshiptype, r.percent
-          FROM lei_node n, lei_relation_origin r, lei_node u
-          WHERE u.lei = r.startNode and r.endNode = n.lei`
+          FROM lei_node s, lei_relation_origin r, lei_node e
+          WHERE s.lei = r.startnode and r.endnode = e.lei`
     let res = await this.executeDDL(create, 10000, 120000)
     this.logger.debug('importLei dropAndCreateNextRelationTable: ' + JSON.stringify(res, null, 2))
   }
 
   createLeiRelationTable = async () => {
     const create = `CREATE EXTERNAL TABLE IF NOT EXISTS lei_relation(
-      endnode string, 
-      endnodejurisdiction string, 
-      endnodelegalname string, 
-      endnodeothername string, 
-      lei string, 
+      startnodelei string, 
+      startnodejurisdiction string, 
+      startnodelegalname string, 
+      startnodeothername string, 
+      endnodelei string, 
       legalname string, 
       otherentityname string, 
       legaljurisdiction string, 
@@ -442,7 +443,7 @@ export class ImportLei {
       relationshiptype string, 
       percent string)
     CLUSTERED BY ( 
-        endnode) 
+        startnodelei) 
     INTO 1 BUCKETS  
     ROW FORMAT SERDE 
       'org.apache.hadoop.hive.ql.io.orc.OrcSerde' 
