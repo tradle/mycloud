@@ -158,7 +158,7 @@ export class LeiCheckAPI {
       result.lei = { status: false, error: err, data: null }
     }
 
-    if (!idBO && !idLEI)
+    if (result.lei && result.bo)
       return result
 
     await this.sleep(2000)
@@ -184,6 +184,7 @@ export class LeiCheckAPI {
       }
 
       if (resultBO == 'SUCCEEDED' && resultLEI == 'SUCCEEDED') break
+      if (result.lei && result.bo) break
 
       if (timePassed > 10000) {
         this.logger.error('leiCheck athena error', 'result timeout')
@@ -406,6 +407,7 @@ export class LeiCheckAPI {
       if (lei.status && lei.data.length > 0) {
         this.logger.debug(`leiCheck check() found ${lei.data.length} records in lei nodes`)
         let dataSourceLink = await this.getLinkToDataSource('lei')
+        rawData = this.mapLeiRelations(lei.data)
         status = { status: 'pass', dataSource: dataSourceLink }
       }
       else if (!find.status) {
