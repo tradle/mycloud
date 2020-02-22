@@ -129,7 +129,6 @@ export class ImportLei {
 
     let changeRelations = await this.moveFile(LEI_ORIGIN_RELATION_PREFIX, current, 'lei_relation.txt.gz')
 
-    // await this.createDataSourceRefresh()
 
     if (changeRelations) {
       await this.createLeiRelationInputTable()
@@ -137,6 +136,8 @@ export class ImportLei {
       await this.dropAndCreateNextRelationTable()
       await this.createLeiRelationTable()
       await this.copyFromNextRelation()
+
+      await this.createDataSourceRefresh()
     }
 
     let end = Date.now()
