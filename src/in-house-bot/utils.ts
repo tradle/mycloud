@@ -478,8 +478,9 @@ export const getLatestCheck = async ({
     let check = req.latestChecks.find(check => check[TYPE] === type)
     return check
   }
-  let corpChecks = application.checks.filter(checkStub => checkStub[TYPE] === type)
-
+  let corpChecks =
+    application.checks && application.checks.filter(checkStub => checkStub[TYPE] === type)
+  if (!corpChecks) return
   let checks: any = await Promise.all(corpChecks.map(checkStub => bot.getResource(checkStub)))
   const timeDesc = checks.slice().sort((a, b) => b._time - a._time)
   return _.uniqBy(timeDesc, TYPE)[0]

@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.5.1-rc.68](https://github.com/tradle/mycloud/compare/v2.5.1-rc.67...v2.5.1-rc.68) (2020-02-15)
+## [2.5.1-rc.72](https://github.com/tradle/mycloud/compare/v2.5.1-rc.71...v2.5.1-rc.72) (2020-02-20)
 
 
 ### Bug Fixes
 
-* check and update notifications in application tree on each request ([83b83a6](https://github.com/tradle/mycloud/commit/83b83a6))
+* exception when no checks were yet created for application ([72941f1](https://github.com/tradle/mycloud/commit/72941f1))
 
 
 
