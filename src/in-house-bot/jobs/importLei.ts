@@ -116,27 +116,29 @@ export class ImportLei {
       this.logger.error('importLeiData failed list', err)
     }
     let changeNode = await this.moveFile(LEI_ORIGIN_NODE_PREFIX, current, 'lei_node.txt.gz')
+    if (changeNode) {
+      await this.createLeiNodeInputTable()
+      await this.deleteAllInNextNode()
+      await this.dropAndCreateNextNodeTable()
+      await this.createLeiNodeTable()
+      await this.copyFromNextNode()
+      let end = Date.now()
+      this.logger.debug(`importLei finished moving node only in ${(end - begin) / 1000} sec`)
+      return
+    }
+
     let changeRelations = await this.moveFile(LEI_ORIGIN_RELATION_PREFIX, current, 'lei_relation.txt.gz')
-    // if (!changeNode && !changeRelations)
-    //   return
 
     // await this.createDataSourceRefresh()
 
-    //if (changeNode) {
-    await this.createLeiNodeInputTable()
-    await this.deleteAllInNextNode()
-    await this.dropAndCreateNextNodeTable()
-    await this.createLeiNodeTable()
-    await this.copyFromNextNode()
-    //}
-    //if (changeRelations) {
-    await this.createLeiRelationInputTable()
-    await this.deleteAllInNextRelation()
-    await this.dropAndCreateNextRelationTable()
-    await this.createLeiRelationTable()
-    //}
+    if (changeRelations) {
+      await this.createLeiRelationInputTable()
+      await this.deleteAllInNextRelation()
+      await this.dropAndCreateNextRelationTable()
+      await this.createLeiRelationTable()
+      await this.copyFromNextRelation()
+    }
 
-    await this.copyFromNextRelation()
     let end = Date.now()
     this.logger.debug(`importLei finished in ${(end - begin) / 1000} sec`)
   }
@@ -636,9 +638,9 @@ export class ImportLei {
     let id: string
     try {
       id = await this.getExecutionId(sql)
-      this.logger.debug(`importPsc executeDDL execution id ${id}`)
+      this.logger.debug(`importLei executeDDL execution id ${id}`)
     } catch (err) {
-      this.logger.error('importPsc executeDDL error', err)
+      this.logger.error('importLei executeDDL error', err)
       return undefined
     }
 
@@ -664,10 +666,10 @@ export class ImportLei {
     }
     try {
       let data = await this.getResults(id)
-      this.logger.debug(`importLei executeDDL time passed: ${timePassed}, ${data}`)
+      this.logger.debug(`importLei executeDDL for id=${id} time passed: ${timePassed}, ${data}`)
       return data
     } catch (err) {
-      this.logger.error('importLei executeDDL err', err)
+      this.logger.error('importLei executeDDL err for id=${id}', err)
       return undefined
     }
   }
