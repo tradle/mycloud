@@ -169,7 +169,7 @@ export class ImportLei {
         let hash = await this.currentMD5(key)
         this.logger.debug(`importLei, current md5 for ${key} = ${hash}`)
         if (md5 == hash) {
-          fs.unlinkSync(out)
+          fs.removeSync(out)
           this.logger.debug(`importLei, do not import ${outputFile} data, no change`)
           return false
         }
@@ -187,7 +187,7 @@ export class ImportLei {
       let res = await s3.upload(contentToPost).promise()
 
       this.logger.debug(`importLei imported ${outputFile} data`)
-      fs.unlinkSync(out)
+      fs.removeSync(out)
       return true
     } catch (err) {
       this.logger.error(`importLei failed for ${outputFile}`, err)
@@ -320,7 +320,7 @@ export class ImportLei {
             'typeOfData'='file')`
 
     let res = await this.executeDDL(create, 2000)
-    this.logger.debug('importLei createLeiNodeTable: ' + JSON.stringify(res, null, 2))
+    this.logger.debug('importLei createLeiNodeInputTable: ' + JSON.stringify(res, null, 2))
   }
 
   createLeiNodeTable = async () => {
@@ -345,11 +345,11 @@ export class ImportLei {
     OUTPUTFORMAT 
       'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'
     LOCATION
-      's3://${this.outputLocation}/${LEI_RELATION_PREFIX}'
+      's3://${this.outputLocation}/${LEI_NODE_PREFIX}'
     TBLPROPERTIES (
       'has_encrypted_data'='false')`
     let res = await this.executeDDL(create, 2000)
-    this.logger.debug('importLei createLeiRelationTable: ' + JSON.stringify(res, null, 2))
+    this.logger.debug('importLei createLeiNodeTable: ' + JSON.stringify(res, null, 2))
   }
 
   createLeiRelationInputTable = async () => {
