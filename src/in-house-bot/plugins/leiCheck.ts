@@ -268,9 +268,9 @@ export class LeiCheckAPI {
       aspects: BO_ASPECTS,
       form
     }
-    this.logger.debug('leiCheck DataSourceLink stub for: ' + JSON.stringify(status.dataSource, null, 2))
-    if (status.dataSource) resource.dataSource = buildResourceStub({ resource: status.dataSource, models: this.bot.models })
-    this.logger.debug('leiCheck DataSourceLink: ' + JSON.stringify(resource.dataSource, null, 2))
+
+    if (status.dataSource) resource.dataSource = status.dataSource
+
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
     if (rawData) {
@@ -295,9 +295,8 @@ export class LeiCheckAPI {
       aspects: LEI_ASPECTS,
       form
     }
-    this.logger.debug('leiCheck DataSourceLink stub for: ' + JSON.stringify(status.dataSource, null, 2))
-    if (status.dataSource) resource.dataSource = buildResourceStub({ resource: status.dataSource, models: this.bot.models })
-    this.logger.debug('leiCheck DataSourceLink: ' + JSON.stringify(resource.dataSource, null, 2))
+    if (status.dataSource) resource.dataSource = status.dataSource
+
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
     if (rawData) {
@@ -305,7 +304,6 @@ export class LeiCheckAPI {
       this.logger.debug(`leiCheck createLEICheck rawData:\n ${JSON.stringify(resource.rawData, null, 2)}`)
     }
 
-    this.logger.debug(`${PROVIDER} Creating leiCheck createLEICheck`)
     await this.applications.createCheck(resource, req)
     this.logger.debug(`${PROVIDER} Created leiCheck createLEICheck`)
   }
@@ -375,12 +373,17 @@ export class LeiCheckAPI {
 
     let find = await this.queryAthena(sqlBO, sqlLEI)
 
+    let dataSourceLink = await this.getLinkToDataSource('lei')
+    let dataSource = dataSourceLink ? buildResourceStub({ resource: dataSourceLink, models: this.bot.models }) : undefined
+    this.logger.debug('leiCheck DataSourceStub: ' + JSON.stringify(dataSource, null, 2))
+
     {
+      // relations
       let bo = find.bo
       let rawData: Array<any>
       let status: any
       if (bo.status && bo.data.length > 0) {
-        this.logger.debug(`leiCheck check() found ${bo.data.length} records in lei relations`)
+        this.logger.debug(`leiCheck lookup() found ${bo.data.length} records in lei relations`)
         bo.data.forEach(rdata => {
           if (rdata.legaladdress && typeof rdata.legaladdress === 'string')
             rdata.legaladdress = makeJson(rdata.legaladdress)
@@ -388,8 +391,7 @@ export class LeiCheckAPI {
             rdata.headquartersaddress = makeJson(rdata.headquartersaddress)
         })
         rawData = this.mapLeiRelations(bo.data)
-        let dataSourceLink = await this.getLinkToDataSource('lei')
-        status = { status: 'pass', dataSource: dataSourceLink }
+        status = { status: 'pass', dataSource }
       }
       else if (!find.status) {
         status = {
@@ -407,20 +409,20 @@ export class LeiCheckAPI {
     }
 
     {
+      // node
       let lei = find.lei
       let rawData: Array<any>
       let status: any
       if (lei.status && lei.data.length > 0) {
-        this.logger.debug(`leiCheck check() found ${lei.data.length} records in lei nodes`)
+        this.logger.debug(`leiCheck lookup() found ${lei.data.length} records in lei nodes`)
         lei.data.forEach(rdata => {
           if (rdata.legaladdress && typeof rdata.legaladdress === 'string')
             rdata.legaladdress = makeJson(rdata.legaladdress)
           if (rdata.headquartersaddress && typeof rdata.headquartersaddress === 'string')
             rdata.headquartersaddress = makeJson(rdata.headquartersaddress)
         })
-        let dataSourceLink = await this.getLinkToDataSource('lei')
         rawData = lei.data
-        status = { status: 'pass', dataSource: dataSourceLink }
+        status = { status: 'pass', dataSource }
       }
       else if (!find.status) {
         status = {
