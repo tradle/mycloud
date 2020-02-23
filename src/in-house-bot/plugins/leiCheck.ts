@@ -315,12 +315,12 @@ export class LeiCheckAPI {
       let pscLike = {
         data: {
           address: {
-            address_line_1: row["legaladdress.firstaddressline"],
-            address_line_2: row["legaladdress.additionaladdressline"],
-            postal_code: row["legaladdress.postalcode"],
-            country: row["legaladdress.country"],
-            locality: row["legaladdress.city"],
-            region: row["legaladdress.region"]
+            address_line_1: row.legaladdress.firstaddressline,
+            address_line_2: row.legaladdress.additionaladdressline,
+            postal_code: row.legaladdress.postalcode,
+            country: row.legaladdress.country,
+            locality: row.legaladdress.city,
+            region: row.legaladdress.region
           },
           identification: {
             country_registered: row.legaljurisdiction
