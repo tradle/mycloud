@@ -211,8 +211,7 @@ export class TreeBuilder {
     let top
     if (tree) top = application
     else {
-      let { _permalink, _t } = application.top
-      top = await this.bot.getResource({ _permalink, _t })
+      top = await this.bot.getLatestResource(application.top)
       tree = top.tree
     }
     notifications.forEach((n: any) => {
@@ -506,28 +505,31 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     async onResourceCreated(value) {
       // useRealSES(bot)
       if (value[TYPE] !== NOTIFICATION) return
-      let application = await bot.getResource(value.application)
+      let application = await bot.getResource(value.application, { backlinks: ['notifications'] })
       let topApp
-      if (application.top) topApp = await bot.getResource(application.top)
+      let { top } = application
+      if (top) topApp = await bot.getLatestResource(top)
       else topApp = application
-      await this.updateWithNotifications({ application, tree: topApp.tree })
-      await this.applications.updateApplication(topApp)
+      await treeBuilderAPI.updateWithNotifications({ application, tree: topApp.tree })
+      await applications.updateApplication(topApp)
     },
 
     async onResourceChanged({ old, value }) {
       // useRealSES(bot)
       if (value[TYPE] !== NOTIFICATION) return
       if (
-        old.status.id !== value.status.id ||
-        value.status.id === `${NOTIFICATION_STATUS}_completed`
+        old.notified === value.notified ||
+        getEnumValueId({ model: bot.models[NOTIFICATION_STATUS], value: value.status }) ===
+          'completed'
       )
         return
-      let application = await bot.getResource(value.application)
+      let application = await bot.getResource(value.application, { backlinks: ['notifications'] })
       let topApp
-      if (application.top) topApp = await bot.getResource(application.top)
+      let { top } = application
+      if (top) topApp = await bot.getLatestResource(top)
       else topApp = application
-      await this.updateWithNotifications({ application, tree: topApp.tree })
-      await this.applications.updateApplication(topApp)
+      await treeBuilderAPI.updateWithNotifications({ application, tree: topApp.tree })
+      await applications.updateApplication(topApp)
     },
     async onmessage(req: IPBReq) {
       // debugger
