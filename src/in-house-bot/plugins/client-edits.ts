@@ -1,4 +1,3 @@
-import _ from 'lodash'
 import levenshtein from 'fast-levenshtein'
 
 import constants from '@tradle/constants'
@@ -10,6 +9,10 @@ const { sanitize } = validateResource.utils
 import { Bot, Logger, IPBReq, CreatePlugin, Applications } from '../types'
 
 import { doesCheckNeedToBeCreated, isSubClassOf } from '../utils'
+import cloneDeep from 'lodash/cloneDeep'
+import extend from 'lodash/extend'
+import size from 'lodash/size'
+import isEqual from 'lodash/isEqual'
 
 const { TYPE } = constants
 const { FORM } = constants.TYPES
@@ -44,7 +47,7 @@ class ClientEditsAPI {
     let formRequest = await this.bot.getResource(sourceOfData)
 
     let prefill = formRequest.prefill
-    if (!prefill || !_.size(prefill)) return
+    if (!prefill || !size(prefill)) return
     let createCheck = await doesCheckNeedToBeCreated({
       bot: this.bot,
       type: CLIENT_EDITS_CHECK,
@@ -66,7 +69,7 @@ class ClientEditsAPI {
     let rawData: any = {}
 
     if (prefill) this.checkTheDifferencesWithPrefill(payload, rawData, prefill)
-    if (!_.size(rawData)) return
+    if (!size(rawData)) return
     let status
     let diff = rawData[DIFFERENCE_WITH_PREFILL]
     for (let p in diff) {
@@ -170,12 +173,20 @@ class ClientEditsAPI {
         prevResource._sourceOfData._permalink !== payload._sourceOfData._permalink
       ) {
         ;({ prefill } = await this.createDataLineageModification({ req }))
-        if (prefill)
-        isInitialSubmission = true
+        if (prefill) {
+          isInitialSubmission = !prevResource // true
+          if (!isInitialSubmission) {
+            prevResource = cloneDeep(prevResource)
+            extend(prevResource, prefill)
+          }
+        }
       }
     } else if (payload[TYPE] === PHOTO_ID && payload.scanJson)
       ({ prefill } = await this.createDataLineageModification({ req }))
-
+    else {
+      isInitialSubmission = true
+      prefill = {}
+    }
     if (isInitialSubmission) prevResource = prefill
     let props = this.bot.models[payload[TYPE]].properties
     let modifications: any = {}
@@ -184,13 +195,13 @@ class ClientEditsAPI {
       let changed: any = {}
       let removed: any = {}
       for (let p in props) {
-        if (props[p].displayAs) continue
+        if (props[p].displayAs || p.charAt(0) === '_') continue
         if (payload[p]) {
           if (!prevResource[p]) {
-            _.extend(added, { [p]: payload[p] })
+            extend(added, { [p]: payload[p] })
             continue
-          } else if (!_.isEqual(payload[p], prevResource[p])) {
-            _.extend(changed, {
+          } else if (!isEqual(payload[p], prevResource[p])) {
+            extend(changed, {
               [p]: {
                 new: payload[p],
                 old: prevResource[p]
@@ -198,17 +209,17 @@ class ClientEditsAPI {
             })
           }
         } else if (prevResource[p]) {
-          _.extend(removed, { [p]: p })
+          extend(removed, { [p]: p })
         }
       }
-      if (_.size(added)) _.extend(modifications, { added })
-      if (_.size(changed)) _.extend(modifications, { changed })
-      if (_.size(removed)) _.extend(modifications, { removed })
+      if (size(added)) extend(modifications, { added })
+      if (size(changed)) extend(modifications, { changed })
+      if (size(removed)) extend(modifications, { removed })
     }
-    if (!_.size(modifications) && !check && !checks) return
+    if (!size(modifications) && !check && !checks) return
 
     if (check) {
-      _.extend(modifications, {
+      extend(modifications, {
         checks: [
           {
             hash: check._permalink,
