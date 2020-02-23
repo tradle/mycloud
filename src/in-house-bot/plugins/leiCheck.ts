@@ -278,7 +278,6 @@ export class LeiCheckAPI {
       this.logger.debug(`leiCheck createBOCheck rawData:\n ${JSON.stringify(resource.rawData, null, 2)}`)
     }
 
-    this.logger.debug(`${PROVIDER} Creating leiCheck createBOCheck`)
     await this.applications.createCheck(resource, req)
     this.logger.debug(`${PROVIDER} Created leiCheck createBOCheck`)
   }
@@ -311,7 +310,7 @@ export class LeiCheckAPI {
   mapLeiRelations = (find: Array<any>): Array<any> => {
     let list = []
     for (let row of find) {
-      if (row.relationshiptype = 'IS_ULTIMATELY_CONSOLIDATED_BY')
+      if (row.relationshiptype == 'IS_ULTIMATELY_CONSOLIDATED_BY')
         continue
       let pscLike = {
         data: {
