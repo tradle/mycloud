@@ -273,9 +273,9 @@ export class LeiCheckAPI {
     this.logger.debug('leiCheck DataSourceLink: ' + JSON.stringify(resource.dataSource, null, 2))
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
-    if (rawData && Array.isArray(rawData)) {
+    if (rawData) {
       resource.rawData = sanitize(rawData).sanitized
-      this.logger.debug('leiCheck createBOCheck rawData:\n' + JSON.stringify(resource.rawData, null, 2))
+      this.logger.debug(`leiCheck createBOCheck rawData:\n ${JSON.stringify(resource.rawData, null, 2)}`)
     }
 
     this.logger.debug(`${PROVIDER} Creating leiCheck createBOCheck`)
@@ -300,9 +300,9 @@ export class LeiCheckAPI {
     this.logger.debug('leiCheck DataSourceLink: ' + JSON.stringify(resource.dataSource, null, 2))
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
-    if (rawData && Array.isArray(rawData)) {
+    if (rawData) {
       resource.rawData = sanitize(rawData).sanitized
-      this.logger.debug('leiCheck createLEICheck rawData:\n' + JSON.stringify(resource.rawData, null, 2))
+      this.logger.debug(`leiCheck createLEICheck rawData:\n ${JSON.stringify(resource.rawData, null, 2)}`)
     }
 
     this.logger.debug(`${PROVIDER} Creating leiCheck createLEICheck`)
@@ -381,8 +381,14 @@ export class LeiCheckAPI {
       let status: any
       if (bo.status && bo.data.length > 0) {
         this.logger.debug(`leiCheck check() found ${bo.data.length} records in lei relations`)
-        let dataSourceLink = await this.getLinkToDataSource('lei')
+        bo.data.forEach(rdata => {
+          if (rdata.legaladdress && typeof rdata.legaladdress === 'string')
+            rdata.legaladdress = makeJson(rdata.legaladdress)
+          if (rdata.headquartersaddress && typeof rdata.headquartersaddress === 'string')
+            rdata.headquartersaddress = makeJson(rdata.headquartersaddress)
+        })
         rawData = this.mapLeiRelations(bo.data)
+        let dataSourceLink = await this.getLinkToDataSource('lei')
         status = { status: 'pass', dataSource: dataSourceLink }
       }
       else if (!find.status) {
@@ -406,8 +412,14 @@ export class LeiCheckAPI {
       let status: any
       if (lei.status && lei.data.length > 0) {
         this.logger.debug(`leiCheck check() found ${lei.data.length} records in lei nodes`)
+        lei.data.forEach(rdata => {
+          if (rdata.legaladdress && typeof rdata.legaladdress === 'string')
+            rdata.legaladdress = makeJson(rdata.legaladdress)
+          if (rdata.headquartersaddress && typeof rdata.headquartersaddress === 'string')
+            rdata.headquartersaddress = makeJson(rdata.headquartersaddress)
+        })
         let dataSourceLink = await this.getLinkToDataSource('lei')
-        rawData = this.mapLeiRelations(lei.data)
+        rawData = lei.data
         status = { status: 'pass', dataSource: dataSourceLink }
       }
       else if (!find.status) {
@@ -458,4 +470,72 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     }
   }
   return { plugin }
+}
+
+function makeJson(str: string) {
+  let arr = Array.from(str)
+  let idx = 1
+  let obj: any = build(arr, idx)
+  return obj.v
+}
+
+function build(arr: Array<string>, idx: number): any {
+  let name = ''
+  let obj = {}
+  for (; idx < arr.length; idx++) {
+    if (arr[idx] == '=') {
+      if (arr[idx + 1] == '{') {
+        let ret = build(arr, idx + 2)
+        obj[name] = ret.v
+        idx = ret.i
+      } else if (arr[idx + 1] == '[') {
+        let ret = buildStringArray(arr, idx + 2)
+        obj[name] = ret.v
+        name = ''
+        idx = ret.i
+      } else {
+        let ret = buildString(arr, idx + 1)
+        obj[name] = ret.v
+        name = ''
+        idx = ret.i
+      }
+    } else if (arr[idx] == '}') {
+      return { v: obj, i: idx }
+    } else if (arr[idx] == ',') {
+      name = ''
+      idx++
+    } else {
+      name += arr[idx]
+    }
+  }
+  return obj
+}
+
+function buildStringArray(arr: Array<string>, idx: number) {
+  let strArr = []
+  let val = ''
+  while (true) {
+    if (arr[idx] == ',') {
+      strArr.push(val)
+      val = ''
+      idx++ // skip space
+    } else if (arr[idx] == ']') {
+      return { v: strArr, i: idx }
+    }
+    val += arr[idx++]
+  }
+}
+
+function buildString(arr: Array<string>, idx: number) {
+  let val = ''
+  while (true) {
+    if (arr[idx] == ',') {
+      if (val == 'null') val = ''
+      return { v: val, i: idx + 1 } // skip space
+    } else if (arr[idx] == '}') {
+      if (val == 'null') val = ''
+      return { v: val, i: idx - 1 }
+    }
+    val += arr[idx++]
+  }
 }
