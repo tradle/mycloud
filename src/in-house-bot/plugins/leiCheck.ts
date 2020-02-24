@@ -34,8 +34,8 @@ const FORM_TYPE_LE = 'tradle.legal.LegalEntity'
 const LEI_CHECK = 'tradle.LEICheck'
 const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const PROVIDER = 'GLEIF – Global Legal Entity Identifier Foundation'
-const BO_ASPECTS = 'Beneficial owner'
-const LEI_ASPECTS = 'company existence'
+const BO_ASPECTS = 'Beneficial ownership'
+const LEI_ASPECTS = 'Company existence'
 const GOVERNMENTAL = 'governmental'
 
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
@@ -332,16 +332,17 @@ export class LeiCheckAPI {
       }
 
       let natures_of_control: string
-      if (row.relationshiptype = 'IS_INTERNATIONAL_BRANCH_OF')
-        natures_of_control = 'ownership-of-shares-75-to-100-percent'
-      else if (row.percent && row.percent.length > 0) {
+      if (row.percent && row.percent.length > 0) {
         let value = Number(row.percent)
-        if (value < 50)
+        if (value < 25)
+          natures_of_control = 'ownership-of-shares-0-to-25-percent'
+        if (value >= 25 && value < 50)
           natures_of_control = 'ownership-of-shares-25-to-50-percent'
         else if (value >= 50 && value < 75)
           natures_of_control = 'ownership-of-shares-50-to-75-percent'
-        else
+        else if (value >= 75)
           natures_of_control = 'ownership-of-shares-75-to-100-percent'
+        pscLike["percentageOfOwnership"] = row.percent
       }
       pscLike.data.natures_of_control.push(natures_of_control)
 

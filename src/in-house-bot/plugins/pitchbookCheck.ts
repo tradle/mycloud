@@ -37,7 +37,7 @@ const FORM_TYPE_LE = 'tradle.legal.LegalEntity'
 
 const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const PROVIDER = 'PitchBook Data, Inc.'
-const ASPECTS = 'Beneficial owner'
+const ASPECTS = 'Beneficial ownership'
 const COMMERCIAL = 'commercial'
 
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
@@ -249,7 +249,7 @@ export class PitchbookCheckAPI {
     let cnt = 0;
     // first check funds in company
     let sql = `select cf.percent, f.* from pitchbook_company c, pitchbook_fund f, pitchbook_company_fund_relation cf
-               where c."company id" = cf."company id" and cf."fund id" = f."fund id" and cf.percent >= '25'`
+               where c."company id" = cf."company id" and cf."fund id" = f."fund id"`
     for (let check of Object.keys(companyChecks)) {
       if (form[check])
         sql += ` and lower(c."${companyChecks[check]}") = \'${form[check].toLowerCase()}\'`
@@ -272,8 +272,7 @@ export class PitchbookCheckAPI {
       // lets try fund lp
       let sql = `select flp.percent, lp.* from pitchbook_fund f, pitchbook_limited_partner lp,
                  pitchbook_fund_lp_relation flp
-                 where f."fund id" = flp."fund id" and flp."limited partner id" = lp."limited partner id" 
-                 and flp.percent >= '25'`
+                 where f."fund id" = flp."fund id" and flp."limited partner id" = lp."limited partner id"`
       for (let check of Object.keys(fundChecks)) {
         if (form[check])
           sql += ` and lower(f."${fundChecks[check]}") = \'${form[check].toLowerCase()}\'`
@@ -329,15 +328,15 @@ export class PitchbookCheckAPI {
         }
       }
       let natures_of_control: string
-      if (row.percent < '50')
+      if (row.percent < '25')
+        natures_of_control = 'ownership-of-shares-0-to-25-percent'
+      else if (row.percent >= '25' && row.percent < '50')
         natures_of_control = 'ownership-of-shares-25-to-50-percent'
       else if (row.percent >= '50' && row.percent < '75')
         natures_of_control = 'ownership-of-shares-50-to-75-percent'
       else
         natures_of_control = 'ownership-of-shares-75-to-100-percent'
       pscLike.data.natures_of_control.push(natures_of_control)
-
-
 
       list.push(pscLike)
     }
@@ -365,7 +364,9 @@ export class PitchbookCheckAPI {
       }
 
       let natures_of_control: string
-      if (row.percent < '50')
+      if (row.percent < '25')
+        natures_of_control = 'ownership-of-shares-0-to-25-percent'
+      else if (row.percent >= '25' && row.percent < '50')
         natures_of_control = 'ownership-of-shares-25-to-50-percent'
       else if (row.percent >= '50' && row.percent < '75')
         natures_of_control = 'ownership-of-shares-50-to-75-percent'
