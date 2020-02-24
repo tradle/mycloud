@@ -348,13 +348,13 @@ export class LeiCheckAPI {
 
       pscLike["lei"] = row.lei
       pscLike["status"] = row.status
-      pscLike["relationstartdate"] = row.relationstartdate
-      pscLike["initialregistrationdate"] = row.initialregistrationdate
-      pscLike["lastupdatedate"] = row.lastupdatedate
-      pscLike["validationsources"] = row.validationsources
+      pscLike["relation Start Date"] = row.relationstartdate
+      pscLike["initial Registration Date"] = row.initialregistrationdate
+      pscLike["last Update Date"] = row.lastupdatedate
+      pscLike["validation Sources"] = row.validationsources
 
-      pscLike["relationshiptype"] = row.relationshiptype
-      pscLike["headquartersaddress"] = row.headquartersaddress
+      pscLike["relationship Type"] = row.relationshiptype
+      pscLike["headquarters Address"] = row.headquartersaddress
 
       list.push(pscLike)
     }
