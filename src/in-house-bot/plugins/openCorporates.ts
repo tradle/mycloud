@@ -312,8 +312,8 @@ class OpenCorporatesAPI {
           let idx = r.company.registry_url.indexOf('/company/')
           if (idx !== -1) r.company.registry_url = `${CH_URL}${r.company.registry_url.slice(idx)}`
         })
-        checkR.rawData = hits
       }
+      checkR.rawData = hits
     } else if (rawData) checkR.rawData = rawData
 
     let check = await this.applications.createCheck(checkR, req)
