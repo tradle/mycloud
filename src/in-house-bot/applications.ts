@@ -8,7 +8,7 @@ import flatMap from 'lodash/flatMap'
 import flatten from 'lodash/flatten'
 import isEmpty from 'lodash/isEmpty'
 import { buildResourceStub } from '@tradle/build-resource'
-import { parseStub } from '../utils'
+import { parseStub, getEnumValueId } from '../utils'
 import { isPassedCheck, removeRoleFromUser, getLatestChecks } from './utils'
 import Errors from '../errors'
 import { mixin as modelsMixin } from '../models-mixin'
@@ -64,6 +64,7 @@ const PRUNABLE_FORMS = [ASSIGN_RELATIONSHIP_MANAGER, PRODUCT_REQUEST]
 const SANCTIONS_CHECK = 'tradle.SanctionsCheck'
 const CORPORATION_EXISTS_CHECK = 'tradle.CorporationExistsCheck'
 const DOCUMENT_VALIDITY_CHECK = 'tradle.DocumentValidityCheck'
+const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
 
 type AppInfo = {
   application: IPBApp
@@ -100,6 +101,57 @@ export class Applications implements IHasModels {
     this.employeeManager = employeeManager
     this.logger = bot.logger.sub('applications')
   }
+  async updateWithNotifications({
+    application,
+    notifications
+  }: {
+    application: IPBApp
+    notifications?: any
+  }) {
+    if (!notifications)
+      notifications = await Promise.all(application.notifications.map(n => this.bot.getResource(n)))
+    let { tree } = application
+    let top
+    if (tree) top = application
+    else {
+      top = await this.bot.getLatestResource(application.top)
+      tree = top.tree
+    }
+    notifications.forEach((n: any) => {
+      let form = n.form
+      let node = this.findNode({ tree: tree.top.nodes, node: form })
+      node.notifiedStatus = getEnumValueId({
+        model: this.bot.models[NOTIFICATION_STATUS],
+        value: n.status
+      })
+      node.lastNotified = n.dateLastNotified
+      node.timesNotified = n.timesNotified
+    })
+    top.tree = { ...top.tree }
+    await this.updateApplication(top)
+    return top
+  }
+  public findNode = ({ tree, node, doDelete }: { tree: any; node: any; doDelete?: boolean }) => {
+    for (let p in tree) {
+      if (p === 'nodes') {
+        let n = this.findNode({ tree: tree[p], node, doDelete })
+        if (n) return n
+        continue
+      }
+      if (
+        tree[p]._permalink === node._permalink ||
+        tree[p].associatedResource === node._permalink
+      ) {
+        let foundNode = tree[p]
+        if (doDelete) delete tree[p]
+        return foundNode
+      }
+      if (typeof tree[p] === 'object') {
+        let n = this.findNode({ tree: tree[p], node, doDelete })
+        if (n) return n
+      }
+    }
+  }
 
   public createCheck = async (props, req) => {
     const { bot, productsAPI } = this
@@ -116,7 +168,11 @@ export class Applications implements IHasModels {
       else if (checkModel.properties.top) props.top = application
 
     let oldCheck
-    if (checkModel.properties.previousCheck && props.form._permalink !== props.form._link) {
+    if (
+      checks &&
+      checkModel.properties.previousCheck &&
+      props.form._permalink !== props.form._link
+    ) {
       oldCheck = checks.find(
         check =>
           check.provider === props.provider &&

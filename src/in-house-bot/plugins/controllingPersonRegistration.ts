@@ -358,7 +358,13 @@ class ControllingPersonRegistrationAPI {
         notifications.find((r: any) => r.form._permalink !== resource._permalink)
       )
     }
-    await this.doNotify({ notifyArr, rules, application, result })
+    let notifications = await this.doNotify({ notifyArr, rules, application, result })
+    if (notifications.length) {
+      this.applications.updateWithNotifications({
+        application,
+        notifications: notifications.map((n: any) => n.toJSON({ virtual: true }))
+      })
+    }
   }
   async filterOutAlreadyOnboarded(cpEntities, application) {
     let reuseChecks = application.checks.filter(check => check[TYPE] === REUSE_CHECK)
@@ -412,7 +418,7 @@ class ControllingPersonRegistrationAPI {
       )
     )
 
-    await Promise.all(
+    return await Promise.all(
       notifyArr.map(resource =>
         this.createNewNotification({ application, resource, messages, interval })
       )
@@ -482,7 +488,7 @@ class ControllingPersonRegistrationAPI {
     let { emailAddress, phone } = resource
     if (emailAddress) notification.emailAddress = emailAddress
     if (phone) notification.mobile = phone
-    await this.bot
+    return await this.bot
       .draft({ type: NOTIFICATION })
       .set(notification)
       .signAndSave()
@@ -691,6 +697,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       // useRealSES(bot)
       let { old, value } = changes
       if (value[TYPE] !== NOTIFICATION) return
+      if (old.timesNotified !== value.timesNotified) debugger
       if (
         old.status.id !== value.status.id ||
         value.status.id === `${NOTIFICATION_STATUS}_completed`

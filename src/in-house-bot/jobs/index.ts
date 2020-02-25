@@ -15,6 +15,7 @@ import { sendConfirmedSeals } from '../utils'
 import { DEFAULT_WARMUP_EVENT, TYPES } from '../../constants'
 import { AthenaFeed } from './athenafeed'
 import { ImportPsc } from './importPsc'
+import { ImportLei } from './importLei'
 import { ImportRefdata } from './importRefdata'
 import { ImportPitchbookData } from './importPitchbook'
 import { ImportMaxmindDb } from './importMaxmindDb'
@@ -55,6 +56,17 @@ export const importPsc: Executor = async ({ job, components }) => {
     importer.movePSC() // notifyAdmin() //  movePSC()
   } catch (err) {
     components.bot.logger.error('job importPsc failed', err)
+  }
+}
+
+export const importLei: Executor = async ({ job, components }) => {
+  const orgConf = components.conf
+  const { org } = orgConf
+  let importer = new ImportLei(components.bot, components.applications, org)
+  try {
+    importer.move() // notifyAdmin() //  movePSC()
+  } catch (err) {
+    components.bot.logger.error('job importLei failed', err)
   }
 }
 

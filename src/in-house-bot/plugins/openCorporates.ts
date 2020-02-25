@@ -39,6 +39,7 @@ const COUNTRY = 'tradle.Country'
 const STATUS = 'tradle.Status'
 const API = 'tradle.API'
 const API_BASED_VERIFIED_METHOD = 'tradle.APIBasedVerificationMethod'
+const CH_URL = 'https://beta.companieshouse.gov.uk'
 
 interface IOpenCorporatesConf {
   products: any
@@ -99,6 +100,7 @@ class OpenCorporatesAPI {
     let url: string
     let hasAllInfo = registrationNumber && country
 
+    if (registrationNumber) registrationNumber = registrationNumber.toUpperCase()
     let companies: Array<any>, rawData
 
     // debugger
@@ -291,7 +293,7 @@ class OpenCorporatesAPI {
       application,
       dateChecked: Date.now(),
       shareUrl: url,
-      aspects: 'company existence',
+      aspects: 'Company existence',
       form
     }
     checkR = sanitize(checkR).sanitized
@@ -304,8 +306,16 @@ class OpenCorporatesAPI {
     if (ds) checkR.dataSource = buildResourceStub({ resource: ds, models: this.bot.models })
 
     if (message) checkR.resultDetails = message
-    if (hits.length) checkR.rawData = hits
-    else if (rawData) checkR.rawData = rawData
+    if (hits.length) {
+      if (provider === COMPANIES_HOUSE) {
+        hits.forEach(r => {
+          if (!r.company || !r.company.registry_url) return
+          let idx = r.company.registry_url.indexOf('/company/')
+          if (idx !== -1) r.company.registry_url = `${CH_URL}${r.company.registry_url.slice(idx)}`
+        })
+      }
+      checkR.rawData = hits
+    } else if (rawData) checkR.rawData = rawData
 
     let check = await this.applications.createCheck(checkR, req)
 
@@ -633,7 +643,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         if (!company) return
         let {
           registered_address,
-          company_type,
+          // company_type,
           incorporation_date,
           current_status,
           company_number,
@@ -654,7 +664,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         }
 
         if (incorporation_date) prefill.registrationDate = new Date(incorporation_date).getTime()
-        if (company_type) prefill.companyType = company_type.trim()
+        // if (company_type) prefill.companyType = company_type.trim()
 
         if (registered_address) {
           let { street_address, locality, postal_code } = registered_address
