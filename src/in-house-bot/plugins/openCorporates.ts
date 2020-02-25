@@ -100,6 +100,7 @@ class OpenCorporatesAPI {
     let url: string
     let hasAllInfo = registrationNumber && country
 
+    if (registrationNumber) registrationNumber = registrationNumber.toUpperCase()
     let companies: Array<any>, rawData
 
     // debugger
