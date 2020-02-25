@@ -2,22 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.0](https://github.com/tradle/mycloud/compare/v3.0.0...v3.0.1-rc.0) (2020-02-25)
+## [3.0.1-rc.1](https://github.com/tradle/mycloud/compare/v3.0.1-rc.0...v3.0.1-rc.1) (2020-02-25)
 
 
 ### Bug Fixes
 
-* initial submission ([77b92ce](https://github.com/tradle/mycloud/commit/77b92ce))
-* lower case reg numbers do not work with OC ([d8aaaf7](https://github.com/tradle/mycloud/commit/d8aaaf7))
-* notifications in the tree ([48cd713](https://github.com/tradle/mycloud/commit/48cd713))
-* registry url fix; remove companyType setting ([b7f11b9](https://github.com/tradle/mycloud/commit/b7f11b9))
-* typo: raw data got lost ([499b8a3](https://github.com/tradle/mycloud/commit/499b8a3))
-* update application tree with notifications ([505caa7](https://github.com/tradle/mycloud/commit/505caa7))
-
-
-### Features
-
-* models ([bcfac76](https://github.com/tradle/mycloud/commit/bcfac76))
+* ddrList handling ([f0ae287](https://github.com/tradle/mycloud/commit/f0ae287))
 
 
 
