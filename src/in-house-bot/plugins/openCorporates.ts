@@ -293,7 +293,7 @@ class OpenCorporatesAPI {
       application,
       dateChecked: Date.now(),
       shareUrl: url,
-      aspects: 'company existence',
+      aspects: 'Company existence',
       form
     }
     checkR = sanitize(checkR).sanitized

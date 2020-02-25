@@ -44,7 +44,7 @@ const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 const STATUS = 'tradle.Status'
 
 const PROVIDER = 'http://download.companieshouse.gov.uk/en_pscdata.html'
-const ASPECTS = 'Beneficial owner'
+const ASPECTS = 'Beneficial ownership'
 const GOVERNMENTAL = 'governmental'
 
 const QUERY = "select company_number, data from psc where company_number = '%s'"
