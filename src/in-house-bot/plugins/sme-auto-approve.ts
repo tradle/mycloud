@@ -187,7 +187,7 @@ export class TreeBuilder {
     let node
     let { application, payload } = req
     let { tree } = application
-    if (tree.top.nodes) node = this.findNode({ tree: tree.top.nodes, node: payload })
+    if (tree.top.nodes) node = this.applications.findNode({ tree: tree.top.nodes, node: payload })
     else tree.top.nodes = {}
 
     if (!node) {
@@ -204,29 +204,6 @@ export class TreeBuilder {
 
     application.tree = { ...application.tree }
   }
-  async updateWithNotifications({ application, tree }) {
-    let notifications = await Promise.all(
-      application.notifications.map(n => this.bot.getResource(n))
-    )
-    let top
-    if (tree) top = application
-    else {
-      top = await this.bot.getLatestResource(application.top)
-      tree = top.tree
-    }
-    notifications.forEach((n: any) => {
-      let form = n.form
-      let node = this.findNode({ tree: tree.top.nodes, node: form })
-      node.lastNotified = n.dateLastNotified
-      node.timesNotified = n.timesNotified
-      node.notifiedStatus = getEnumValueId({
-        model: this.bot.models[NOTIFICATION_STATUS],
-        value: n.status
-      })
-    })
-    top.tree = { ...top.tree }
-    await this.applications.updateApplication(top)
-  }
   public async findAndInsertTreeNode({ req, isInit }) {
     let { application, payload } = req
     let { top, parent, associatedResource } = application
@@ -237,14 +214,14 @@ export class TreeBuilder {
     let nodes
     let associatedNode
     if (isInit)
-      associatedNode = this.findNode({
+      associatedNode = this.applications.findNode({
         tree: topApp.tree.top.nodes,
         node: associatedResource,
         doDelete: isInit
       })
 
     if (topApp.tree.top && topApp.tree.top.nodes)
-      node = this.findNode({ tree: topApp.tree.top.nodes, node: parent })
+      node = this.applications.findNode({ tree: topApp.tree.top.nodes, node: parent })
 
     if (!node) node = topApp.tree
     if (!node.top.nodes) node.top.nodes = {}
@@ -396,27 +373,6 @@ export class TreeBuilder {
     }
     return sanitize(node).sanitized
   }
-  findNode({ tree, node, doDelete }: { tree: any; node: any; doDelete?: boolean }) {
-    for (let p in tree) {
-      if (p === 'nodes') {
-        let n = this.findNode({ tree: tree[p], node, doDelete })
-        if (n) return n
-        continue
-      }
-      if (
-        tree[p]._permalink === node._permalink ||
-        tree[p].associatedResource === node._permalink
-      ) {
-        let foundNode = tree[p]
-        if (doDelete) delete tree[p]
-        return foundNode
-      }
-      if (typeof tree[p] === 'object') {
-        let n = this.findNode({ tree: tree[p], node, doDelete })
-        if (n) return n
-      }
-    }
-  }
 }
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
   const smeVerifierAPI = new SmeVerifier({ bot, conf, applications, logger })
@@ -502,35 +458,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           status: enumValue({ model: bot.models[NOTIFICATION_STATUS], value: 'completed' })
         })
     },
-    async onResourceCreated(value) {
-      // useRealSES(bot)
-      if (value[TYPE] !== NOTIFICATION) return
-      let application = await bot.getResource(value.application, { backlinks: ['notifications'] })
-      let topApp
-      let { top } = application
-      if (top) topApp = await bot.getLatestResource(top)
-      else topApp = application
-      await treeBuilderAPI.updateWithNotifications({ application, tree: topApp.tree })
-      await applications.updateApplication(topApp)
-    },
-
-    async onResourceChanged({ old, value }) {
-      // useRealSES(bot)
-      if (value[TYPE] !== NOTIFICATION) return
-      if (
-        old.notified === value.notified ||
-        getEnumValueId({ model: bot.models[NOTIFICATION_STATUS], value: value.status }) ===
-          'completed'
-      )
-        return
-      let application = await bot.getResource(value.application, { backlinks: ['notifications'] })
-      let topApp
-      let { top } = application
-      if (top) topApp = await bot.getLatestResource(top)
-      else topApp = application
-      await treeBuilderAPI.updateWithNotifications({ application, tree: topApp.tree })
-      await applications.updateApplication(topApp)
-    },
     async onmessage(req: IPBReq) {
       // debugger
       const { application, payload } = req
@@ -549,9 +476,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let { parentApp, associatedRes } = await getAssociateResources({ application, bot })
       const { models } = bot
 
-      if (application.notifications) {
-        await treeBuilderAPI.updateWithNotifications({ application, tree: application.tree })
-      }
+      // if (application.notifications) {
+      //   await treeBuilderAPI.updateWithNotifications({ application })
+      // }
 
       if (!parentApp) {
         if (!application.tree) {
@@ -616,3 +543,68 @@ function makeMyProductModelID(modelId) {
   parts[parts.length - 1] = 'My' + parts[parts.length - 1]
   return parts.join('.')
 }
+// findNode({ tree, node, doDelete }: { tree: any; node: any; doDelete?: boolean }) {
+//   for (let p in tree) {
+//     if (p === 'nodes') {
+//       let n = this.findNode({ tree: tree[p], node, doDelete })
+//       if (n) return n
+//       continue
+//     }
+//     if (
+//       tree[p]._permalink === node._permalink ||
+//       tree[p].associatedResource === node._permalink
+//     ) {
+//       let foundNode = tree[p]
+//       if (doDelete) delete tree[p]
+//       return foundNode
+//     }
+//     if (typeof tree[p] === 'object') {
+//       let n = this.findNode({ tree: tree[p], node, doDelete })
+//       if (n) return n
+//     }
+//   }
+// }
+// async onResourceCreated(value) {
+//   // useRealSES(bot)
+//   if (value[TYPE] !== NOTIFICATION) return
+//   let application = await bot.getResource(value.application, { backlinks: ['notifications'] })
+//   await treeBuilderAPI.updateWithNotifications({ application })
+// },
+
+// async onResourceChanged({ old, value }) {
+//   // useRealSES(bot)
+//   if (value[TYPE] !== NOTIFICATION) return
+//   if (
+//     old.notified === value.notified ||
+//     getEnumValueId({ model: bot.models[NOTIFICATION_STATUS], value: value.status }) ===
+//       'completed'
+//   )
+//     return
+//   let application = await bot.getResource(value.application, { backlinks: ['notifications'] })
+//   await treeBuilderAPI.updateWithNotifications({ application })
+// },
+// async updateWithNotifications({ application }) {
+//   let notifications = await Promise.all(
+//     application.notifications.map(n => this.bot.getResource(n))
+//   )
+//   let { tree } = application
+//   let top
+//   if (tree) top = application
+//   else {
+//     top = await this.bot.getLatestResource(application.top)
+//     tree = top.tree
+//   }
+//   notifications.forEach((n: any) => {
+//     let form = n.form
+//     let node = this.findNode({ tree: tree.top.nodes, node: form })
+//     node.lastNotified = n.dateLastNotified
+//     node.timesNotified = n.timesNotified
+//     node.notifiedStatus = getEnumValueId({
+//       model: this.bot.models[NOTIFICATION_STATUS],
+//       value: n.status
+//     })
+//   })
+//   top.tree = { ...top.tree }
+//   await this.applications.updateApplication(top)
+//   return top
+// }
