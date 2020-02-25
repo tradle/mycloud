@@ -902,9 +902,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           }
         }
       }
-      if (ddrList) {
+      if (ddrList && ddrList.autohigh) {
         let mDdrCodes = bot.models[DDR_CODES]
-        prefill.ddrCodes = ddrList.map(code => enumValue({ model: mDdrCodes, value: code }))
+        prefill.ddrCodes = ddrList.autohigh.map(code =>
+          enumValue({ model: mDdrCodes, value: code })
+        )
       }
       let {
         defaultValue,
