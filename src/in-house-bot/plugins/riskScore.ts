@@ -996,6 +996,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         prefill.riskCountries = []
         for (let risk in groups) {
           let elm = rcM.enum.find(cat => cat.id.toLowerCase() === risk.toLowerCase())
+          if (!elm) {
+            logger.debug(`WARNING: unknown risk group ${risk}`)
+            continue
+          }
           let scoreCategory = enumValue({ model: rcM, value: elm.id })
           let countries = groups[risk].map(r => {
             let { Country, risk, code } = r
