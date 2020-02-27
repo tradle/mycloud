@@ -386,24 +386,33 @@ class OpenCorporatesAPI {
     let offArr = []
     if (offic.items) {
       for (let item of offic.items) {
+        let {
+          name,
+          officer_role,
+          appointed_on,
+          occupation,
+          date_of_birth,
+          resigned_on,
+          inactive,
+          country_of_residence,
+          nationality
+        } = item
+
+        let isInactive = inactive || resigned_on != null
         let obj = {
           officer: {
-            name: item.name,
-            position: item.officer_role,
-            start_date: item.appointed_on,
-            occupation: item.occupation,
-            inactive: false,
-            end_date: undefined,
-            country_of_residence: undefined,
-            nationality: undefined
+            name,
+            occupation,
+            date_of_birth,
+            inactive: isInactive,
+            nationality,
+            country_of_residence,
+            position: officer_role,
+            start_date: appointed_on,
+            end_date: resigned_on
           }
         }
-        if (item.resigned_on) {
-          obj.officer.end_date = item.resigned_on
-          obj.officer.inactive = true
-        }
-        if (item.country_of_residence) obj.officer.country_of_residence = item.country_of_residence
-        if (item.nationality) obj.officer.nationality = item.nationality
+        obj = sanitize(obj).sanitized
         offArr.push(obj)
       }
     }
@@ -678,7 +687,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         if (wrongName) prefill.companyName = name
         let wrongNumber = company_number.toLowerCase() !== payload.registrationNumber.toLowerCase()
         if (wrongNumber) prefill.registrationNumber = company_number
-        prefill.registryUrl = registry_url
+        if (registry_url) prefill.registryUrl = registry_url
         if (number_of_employees) prefill.numberOfEmployees = number_of_employees
         prefill = sanitize(prefill).sanitized
         if (!_.size(prefill)) return
