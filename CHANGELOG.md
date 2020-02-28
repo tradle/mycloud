@@ -2,12 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.1](https://github.com/tradle/mycloud/compare/v3.0.1-rc.0...v3.0.1-rc.1) (2020-02-25)
+## [3.0.1-rc.2](https://github.com/tradle/mycloud/compare/v3.0.1-rc.1...v3.0.1-rc.2) (2020-02-28)
 
 
 ### Bug Fixes
 
-* ddrList handling ([f0ae287](https://github.com/tradle/mycloud/commit/f0ae287))
+* date of birth was not accounted for ([5caa08f](https://github.com/tradle/mycloud/commit/5caa08f))
+* do not crash if policy in conf is not correct ([d371e44](https://github.com/tradle/mycloud/commit/d371e44))
 
 
 
