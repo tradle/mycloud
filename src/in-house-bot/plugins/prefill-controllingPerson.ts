@@ -178,6 +178,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         name,
         inactive,
         start_date,
+        identification,
         end_date,
         occupation,
         position,
@@ -193,6 +194,22 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         occupation,
         position,
         endDate: end_date && new Date(end_date).getTime()
+      }
+      if (identification && identification.registration_number) {
+        this.prefillCompany(prefill, { data: officer })
+        prefill.doNotReachOut = true
+        prefill = sanitize(prefill).sanitized
+        if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
+        formRequest.prefill = {
+          ...formRequest.prefill,
+          ...prefill,
+          typeOfControllingEntity: {
+            id: 'tradle.legal.TypeOfControllingEntity_legalEntity'
+          }
+        }
+        logger.debug('prefill = ' + formRequest.prefill)
+        formRequest.message = `Please review and correct the data below **for ${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+        return
       }
       if (country_of_residence) {
         let country = getCountryByTitle(country_of_residence, bot.models)
@@ -496,6 +513,10 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           controllingEntityCompanyNumber: registration_number
           // companyType: legal_form
         })
+        if (place_registered && !prefill.controllingEntityCountry) {
+          let country = getCountryByTitle(place_registered, bot.models)
+          if (country) prefill.controllingEntityCountry = country
+        }
       }
       this.addNatureOfControl(prefill, natures_of_control)
     },
@@ -597,11 +618,12 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 function getCountryByTitle(country, models) {
   let mapCountry = countryMap[country]
   if (mapCountry) country = mapCountry
-  let countryR = models[COUNTRY].enum.find(val => val.title === country)
+  let c = country.toUpperCase()
+  let countryR = models[COUNTRY].enum.find(val => val.title.toUpperCase() === c)
   return (
     countryR && {
       id: `${COUNTRY}_${countryR.id}`,
-      title: country
+      title: countryR.title
     }
   )
 }
