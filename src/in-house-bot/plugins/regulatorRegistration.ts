@@ -382,7 +382,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       logger.debug('regulatorRegistration called on willRequestForm')
       if (!application) return
       let { form } = formRequest // form type
-      if (req.skipChecks) return
+
       if (!application) return
       let subject = regulatorRegistrationAPI.mapToSubject(form)
       if (!subject) return
