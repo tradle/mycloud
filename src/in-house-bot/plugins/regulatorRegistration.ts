@@ -175,7 +175,7 @@ export class RegulatorRegistrationAPI {
       id = await this.getExecutionId(sql)
       this.logger.debug('athena execution id', id)
     } catch (err) {
-      this.logger.debug('athena error', err)
+      this.logger.error('athena error', err)
       return { status: false, error: err, data: null }
     }
 
@@ -186,13 +186,13 @@ export class RegulatorRegistrationAPI {
       try {
         result = await this.checkStatus(id)
       } catch (err) {
-        this.logger.debug('athena error', err)
+        this.logger.error('regulatorRegistration athena error', err)
         return { status: false, error: err, data: null }
       }
       if (result == 'SUCCEEDED') break
 
       if (timePassed > 10000) {
-        this.logger.debug('athena error', 'result timeout')
+        this.logger.error('regulatorRegistration athena error', 'result timeout')
         return { status: false, error: 'result timeout', data: null }
       }
       await this.sleep(POLL_INTERVAL)
@@ -200,6 +200,7 @@ export class RegulatorRegistrationAPI {
     }
     try {
       let data: any = await this.getResults(id)
+      this.logger.debug(`regulatorRegistration athena result: ${JSON.stringify(data, null, 2)}`)
       let list = []
       let header = this.buildHeader(data.ResultSet.ResultSetMetadata.ColumnInfo)
       let top_row = _.map((_.head(data.ResultSet.Rows) as any).Data, (n: any) => {
@@ -220,7 +221,7 @@ export class RegulatorRegistrationAPI {
       this.logger.debug(`regulatorRegistration query result ${JSON.stringify(list, null, 2)}`)
       return { status: true, error: null, data: list }
     } catch (err) {
-      this.logger.debug('athena error', err)
+      this.logger.error('regulatorRegistration athena error', err)
       return { status: false, error: err, data: null }
     }
   }
