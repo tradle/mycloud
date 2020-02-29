@@ -902,9 +902,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           }
         }
       }
-      if (ddrList) {
+      if (ddrList && ddrList.autohigh) {
         let mDdrCodes = bot.models[DDR_CODES]
-        prefill.ddrCodes = ddrList.map(code => enumValue({ model: mDdrCodes, value: code }))
+        prefill.ddrCodes = ddrList.autohigh.map(code =>
+          enumValue({ model: mDdrCodes, value: code })
+        )
       }
       let {
         defaultValue,
@@ -994,6 +996,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         prefill.riskCountries = []
         for (let risk in groups) {
           let elm = rcM.enum.find(cat => cat.id.toLowerCase() === risk.toLowerCase())
+          if (!elm) {
+            logger.debug(`WARNING: unknown risk group ${risk}`)
+            continue
+          }
           let scoreCategory = enumValue({ model: rcM, value: elm.id })
           let countries = groups[risk].map(r => {
             let { Country, risk, code } = r

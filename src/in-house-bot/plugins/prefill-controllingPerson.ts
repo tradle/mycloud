@@ -54,7 +54,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (!stubs.length) return
       logger.debug('found ' + stubs.length + ' checks')
       let result = await Promise.all(stubs.map(check => bot.getResource(check)))
-
+      result = result.filter(check => !check.isInactive)
       result.sort((a, b) => b._time - a._time)
 
       // result = uniqBy(result, r => r[TYPE] && r.provider && r.form._permalink)
@@ -182,7 +182,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         occupation,
         position,
         nationality,
-        country_of_residence
+        country_of_residence,
+        date_of_birth
       } = officer
       let prefill: any = {
         name,
@@ -202,6 +203,9 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         if (!nationality && country_of_residence)
           nationality = prefill.controllingEntityCountryOfResidence
       }
+      if (date_of_birth)
+        prefill.controllingEntityDateOfBirth =
+          date_of_birth && new Date(date_of_birth.year, date_of_birth.month - 1).getTime()
 
       if (check.provider === COMPANIES_HOUSE) {
         let [lastName, otherNames] = name.split(', ')

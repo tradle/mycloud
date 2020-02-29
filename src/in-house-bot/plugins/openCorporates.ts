@@ -39,6 +39,7 @@ const COUNTRY = 'tradle.Country'
 const STATUS = 'tradle.Status'
 const API = 'tradle.API'
 const API_BASED_VERIFIED_METHOD = 'tradle.APIBasedVerificationMethod'
+const CH_URL = 'https://beta.companieshouse.gov.uk'
 
 interface IOpenCorporatesConf {
   products: any
@@ -99,6 +100,7 @@ class OpenCorporatesAPI {
     let url: string
     let hasAllInfo = registrationNumber && country
 
+    if (registrationNumber) registrationNumber = registrationNumber.toUpperCase()
     let companies: Array<any>, rawData
 
     // debugger
@@ -304,8 +306,16 @@ class OpenCorporatesAPI {
     if (ds) checkR.dataSource = buildResourceStub({ resource: ds, models: this.bot.models })
 
     if (message) checkR.resultDetails = message
-    if (hits.length) checkR.rawData = hits
-    else if (rawData) checkR.rawData = rawData
+    if (hits.length) {
+      if (provider === COMPANIES_HOUSE) {
+        hits.forEach(r => {
+          if (!r.company || !r.company.registry_url) return
+          let idx = r.company.registry_url.indexOf('/company/')
+          if (idx !== -1) r.company.registry_url = `${CH_URL}${r.company.registry_url.slice(idx)}`
+        })
+      }
+      checkR.rawData = hits
+    } else if (rawData) checkR.rawData = rawData
 
     let check = await this.applications.createCheck(checkR, req)
 
@@ -376,24 +386,33 @@ class OpenCorporatesAPI {
     let offArr = []
     if (offic.items) {
       for (let item of offic.items) {
+        let {
+          name,
+          officer_role,
+          appointed_on,
+          occupation,
+          date_of_birth,
+          resigned_on,
+          inactive,
+          country_of_residence,
+          nationality
+        } = item
+
+        let isInactive = inactive || resigned_on != null
         let obj = {
           officer: {
-            name: item.name,
-            position: item.officer_role,
-            start_date: item.appointed_on,
-            occupation: item.occupation,
-            inactive: false,
-            end_date: undefined,
-            country_of_residence: undefined,
-            nationality: undefined
+            name,
+            occupation,
+            date_of_birth,
+            inactive: isInactive,
+            nationality,
+            country_of_residence,
+            position: officer_role,
+            start_date: appointed_on,
+            end_date: resigned_on
           }
         }
-        if (item.resigned_on) {
-          obj.officer.end_date = item.resigned_on
-          obj.officer.inactive = true
-        }
-        if (item.country_of_residence) obj.officer.country_of_residence = item.country_of_residence
-        if (item.nationality) obj.officer.nationality = item.nationality
+        obj = sanitize(obj).sanitized
         offArr.push(obj)
       }
     }
@@ -633,7 +652,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         if (!company) return
         let {
           registered_address,
-          company_type,
+          // company_type,
           incorporation_date,
           current_status,
           company_number,
@@ -654,7 +673,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         }
 
         if (incorporation_date) prefill.registrationDate = new Date(incorporation_date).getTime()
-        if (company_type) prefill.companyType = company_type.trim()
+        // if (company_type) prefill.companyType = company_type.trim()
 
         if (registered_address) {
           let { street_address, locality, postal_code } = registered_address
@@ -668,7 +687,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         if (wrongName) prefill.companyName = name
         let wrongNumber = company_number.toLowerCase() !== payload.registrationNumber.toLowerCase()
         if (wrongNumber) prefill.registrationNumber = company_number
-        prefill.registryUrl = registry_url
+        if (registry_url) prefill.registryUrl = registry_url
         if (number_of_employees) prefill.numberOfEmployees = number_of_employees
         prefill = sanitize(prefill).sanitized
         if (!_.size(prefill)) return
