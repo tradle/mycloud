@@ -240,8 +240,13 @@ export class TreeBuilder {
     let prefill = await this.fillNode({ req })
     _.extend(appStub, prefill)
     if (associatedNode) {
-      let { timesNotified, notifiedStatus, dateLastNotified } = associatedNode
-      _.extend(appStub, { timesNotified, notifiedStatus, dateLastNotified })
+      let {
+        timesNotified,
+        notifiedStatus,
+        dateLastNotified,
+        percentageOfOwnership
+      } = associatedNode
+      _.extend(appStub, { timesNotified, notifiedStatus, dateLastNotified, percentageOfOwnership })
       appStub = sanitize(appStub).sanitized
     } else if (payload && payload[TYPE] === CP) {
       if (!appStub.top.nodes) appStub.top.nodes = {}
