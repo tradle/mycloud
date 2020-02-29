@@ -217,7 +217,7 @@ export class RegulatorRegistrationAPI {
           )
         )
       })
-      this.logger.debug('athena query result', list)
+      this.logger.debug(`regulatorRegistration query result ${JSON.stringify(list, null, 2)}`)
       return { status: true, error: null, data: list }
     } catch (err) {
       this.logger.debug('athena error', err)
@@ -397,11 +397,12 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!lookupPropertyValue) return
 
       let prefill = regulatorRegistrationAPI.prefill({ subject, lookupPropertyValue })
-      formRequest.prefill = {
-        [TYPE]: subject.type
+      if (prefill) {
+        formRequest.prefill = {
+          [TYPE]: subject.type
+        }
+        _.extend(formRequest.prefill, prefill)
       }
-      _.extend(formRequest.prefill, prefill)
-
 
       /*
 
