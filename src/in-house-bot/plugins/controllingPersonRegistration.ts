@@ -339,10 +339,11 @@ class ControllingPersonRegistrationAPI {
       }
       if (addCps.length) notifyArr = notifyArr.concat(addCps)
     }
-
+    // doNotReachOut for CE is set when the officer happens to be CE e.x. some secretarial service
     // if (!noAutoNotification) {
     let cpEntities = result.filter(
-      (r: any) => r.typeOfControllingEntity.id !== CP_PERSON && !r.doNotReachOutToMembers
+      (r: any) =>
+        r.typeOfControllingEntity.id !== CP_PERSON && !r.doNotReachOutToMembers && !r.doNotReachOut
     )
     cpEntities = await this.filterOutAlreadyOnboarded(cpEntities, application)
     notifyArr = notifyArr.concat(cpEntities)
