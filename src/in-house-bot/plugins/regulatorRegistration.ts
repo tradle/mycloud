@@ -59,6 +59,8 @@ const DEFAULT_REGULATOR = 'FINRA'
 
 interface IRegulatorRegistrationAthenaConf {
   type: string
+  lookupPropertyForm: string
+  lookupProperty: string
   map: Object
   check: string
   query: string
@@ -229,6 +231,25 @@ export class RegulatorRegistrationAPI {
     }
     return null
   }
+
+  public async prefill({ subject, lookupPropertyValue }) {
+    this.logger.debug(`regulatorRegistration prefill() called with number ${lookupPropertyValue}`)
+    let sql = util.format(subject.query, lookupPropertyValue)
+    let find = subject.test ? subject.test : await this.queryAthena(sql)
+    if (find.status && find.data.length > 0) {
+      let prefill = remapKeys(find.data[0], subject.map)
+      // date convert from string
+      for (let propertyName in prefill) {
+        if (propertyName.endsWith('Date')) {
+          let val = prefill[propertyName]
+          prefill[propertyName] = new Date(val).getTime()
+        }
+      }
+      this.logger.debug(`regulatorRegistration prefill() found ${prefill}`)
+      return prefill
+    }
+  }
+
   public async check({ subject, form, application, req, user }) {
     let status
     let formRegistrationNumber = form[subject.check] //.replace(/-/g, '').replace(/^0+/, '') // '133693';
@@ -357,26 +378,35 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   const regulatorRegistrationAPI = new RegulatorRegistrationAPI({ bot, conf, applications, logger })
   // debugger
   const plugin: IPluginLifecycleMethods = {
-    async validateForm({ req }) {
-      logger.debug('regulatorRegistration called on validateForm')
-      if (req.skipChecks) return
-      const { user, application, payload } = req
+    willRequestForm: async ({ req, application, formRequest }) => {
+      logger.debug('regulatorRegistration called on willRequestForm')
       if (!application) return
-      let payloadType = payload[TYPE]
-      let subject = regulatorRegistrationAPI.mapToSubject(payload[TYPE])
+      let { form } = formRequest // form type
+      if (req.skipChecks) return
+      if (!application) return
+      let subject = regulatorRegistrationAPI.mapToSubject(form)
       if (!subject) return
       logger.debug(
-        `regulatorRegistration called for type ${payload[TYPE]} to check ${subject.check}`
+        `regulatorRegistration called for type ${form} to check ${subject.check}`
       )
 
-      if (!payload[subject.check]) return
+      let stub = application.submissions.find(form => form.submission[TYPE] === subject.lookupPropertyForm)
+      if (!stub) return
+      let lookupForm = await bot.getResource(stub.submission)
+      let lookupPropertyValue = lookupForm[subject.lookupProperty]
+      if (!lookupPropertyValue) return
+
+      let prefill = regulatorRegistrationAPI.prefill({ subject, lookupPropertyValue })
+      formRequest.prefill = {
+        [TYPE]: subject.type
+      }
+      _.extend(formRequest.prefill, prefill)
+
+
+      /*
+
       let corpCheck: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, application, bot })
       if (!corpCheck || isPassedCheck(corpCheck.status)) return
-
-      if (payload._prevlink) {
-        let dbRes = await bot.objects.get(payload._prevlink)
-        if (dbRes[subject.check] == payload[subject.check]) return
-      }
 
       logger.debug('regulatorRegistration before doesCheckNeedToBeCreated')
       let createCheck = await doesCheckNeedToBeCreated({
@@ -401,6 +431,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         req,
         user
       })
+      */
     }
   }
   return { plugin }
@@ -422,6 +453,12 @@ export const validateConf: ValidatePluginConf = async ({
     if (!model) {
       throw new Errors.InvalidInput(`model not found for: ${subject.type}`)
     }
+    const modelOfLookupPropertyForm = models[subject.lookupPropertyForm]
+    if (!modelOfLookupPropertyForm) {
+      throw new Errors.InvalidInput(`model not found for: ${subject.lookupPropertyForm}`)
+    }
+    if (!subject.lookupProperty)
+      throw new Errors.InvalidInput(`property lookupProperty is not found in ${subject.type}`)
     let mapValues = Object.values(subject.map)
     for (let prop of mapValues) {
       if (!model.properties[prop]) {
