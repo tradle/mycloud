@@ -184,7 +184,9 @@ export class RegulatorRegistrationAPI {
     while (true) {
       let result = 'INPROCESS'
       try {
+        this.logger.debug(`regulatorRegistration athena call checkStatus for id=${id}`)
         result = await this.checkStatus(id)
+        this.logger.debug(`regulatorRegistration athena checkStatus for id=${id} return ${result}`)
       } catch (err) {
         this.logger.error('regulatorRegistration athena error', err)
         return { status: false, error: err, data: null }
@@ -199,6 +201,7 @@ export class RegulatorRegistrationAPI {
       timePassed += POLL_INTERVAL
     }
     try {
+      this.logger.debug(`regulatorRegistration athena call getResult for id=${id}`)
       let data: any = await this.getResults(id)
       this.logger.debug(`regulatorRegistration athena result: ${JSON.stringify(data, null, 2)}`)
       let list = []
