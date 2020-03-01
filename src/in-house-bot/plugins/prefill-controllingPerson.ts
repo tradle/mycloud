@@ -26,6 +26,10 @@ const COUNTRY = 'tradle.Country'
 const COMPANIES_HOUSE = 'Companies House'
 const OPEN_CORPORATES = 'Open Corporates'
 
+const companyKeywords = {
+  DE: ['GmbH', 'HRB']
+}
+
 const countryMap = {
   England: 'United Kingdom',
   'England And Wales': 'United Kingdom'
@@ -195,7 +199,19 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         position,
         endDate: end_date && new Date(end_date).getTime()
       }
-      if (identification && identification.registration_number) {
+      let isCompany =
+        !date_of_birth &&
+        !country_of_residence &&
+        identification &&
+        identification.registration_number
+      if (!isCompany) {
+        let le = await bot.getResource(legalEntity.submission)
+        isCompany = this.isCompany({
+          name,
+          country: le.country
+        })
+      }
+      if (isCompany || (identification && identification.registration_number)) {
         this.prefillCompany(prefill, { data: officer })
         prefill.doNotReachOut = true
         prefill = sanitize(prefill).sanitized
@@ -321,6 +337,12 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         }
       }
       formRequest.message = `Please review and correct the data below **for ${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+    },
+    isCompany({ name, country }) {
+      let id = getEnumValueId({ model: bot.models[COUNTRY], value: country })
+      let keys = companyKeywords[id]
+      let tokens = name.replace(/[^\w\s]/gi, '').split(' ')
+      return keys.filter(key => tokens.includes(key) || !isNaN(key)).length
     },
     async doSkipBO(application) {
       let pconf = conf[application.requestFor]
