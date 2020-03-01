@@ -153,6 +153,18 @@ export class RegulatorRegistrationAPI {
       })
     })
   }
+
+  public async isExecutionDone(queryExecutionId: AWS.Athena.GetQueryExecutionInput) {
+    const result = await this.athena.getQueryExecution(queryExecutionId).promise();
+    if (result.QueryExecution.Status.State === 'SUCCEEDED')
+      return Promise.resolve(true);
+    if (['FAILED', 'CANCELLED'].includes(result.QueryExecution.Status.State))
+      return Promise.reject(
+        new Error(`Query status: ${JSON.stringify(result.QueryExecution.Status, null, 2)}`)
+      )
+    return Promise.resolve(false);
+  }
+
   public getResults = async id => {
     return new Promise((resolve, reject) => {
       this.athena.getQueryResults({ QueryExecutionId: id }, (err, data) => {
@@ -183,16 +195,16 @@ export class RegulatorRegistrationAPI {
     this.logger.debug('regulatorRegistration after sleep 1000 ms')
     let timePassed = 1000
     while (true) {
-      let result = 'INPROCESS'
+      let result = false
       try {
-        this.logger.debug(`regulatorRegistration athena call checkStatus for id=${id}`)
-        result = await this.checkStatus(id)
-        this.logger.debug(`regulatorRegistration athena checkStatus for id=${id} return ${result}`)
+        this.logger.debug(`regulatorRegistration athena call isExecutionDone for id=${id}`)
+        result = await this.isExecutionDone(id)
+        this.logger.debug(`regulatorRegistration athena isExecutionDone for id=${id} return ${result}`)
       } catch (err) {
         this.logger.error('regulatorRegistration athena error', err)
         return { status: false, error: err, data: null }
       }
-      if (result == 'SUCCEEDED') break
+      if (result) break
 
       if (timePassed > 10000) {
         this.logger.error('regulatorRegistration athena error', 'result timeout')
