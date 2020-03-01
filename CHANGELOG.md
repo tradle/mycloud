@@ -2,20 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.3](https://github.com/tradle/mycloud/compare/v3.0.1-rc.2...v3.0.1-rc.3) (2020-03-01)
-
-
-### Bug Fixes
-
-* registrationDate is prefilled ([1fa20ef](https://github.com/tradle/mycloud/commit/1fa20ef))
-* retain percentageOfOwnership from CP resource when CP onboarding started ([ac271a9](https://github.com/tradle/mycloud/commit/ac271a9))
+## [3.0.1-rc.4](https://github.com/tradle/mycloud/compare/v3.0.1-rc.3...v3.0.1-rc.4) (2020-03-01)
 
 
 ### Features
 
-* dateOfBirth is prefilled; better message for review for corrections request ([6e5d969](https://github.com/tradle/mycloud/commit/6e5d969))
-* do not reach out to company that is listed among officers ([c180a53](https://github.com/tradle/mycloud/commit/c180a53))
-* reg number and reg country are prefilled ([7ca3bce](https://github.com/tradle/mycloud/commit/7ca3bce))
+* better check company or person ([0e03350](https://github.com/tradle/mycloud/commit/0e03350))
 
 
 
