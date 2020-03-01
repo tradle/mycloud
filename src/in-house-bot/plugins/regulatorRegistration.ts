@@ -173,13 +173,14 @@ export class RegulatorRegistrationAPI {
 
     try {
       id = await this.getExecutionId(sql)
-      this.logger.debug('athena execution id', id)
+      this.logger.debug('regulatorRegistration athena execution id', id)
     } catch (err) {
-      this.logger.error('athena error', err)
+      this.logger.error('regulatorRegistration athena error', err)
       return { status: false, error: err, data: null }
     }
-
+    this.logger.debug('regulatorRegistration before sleep for 1000 ms')
     await this.sleep(1000)
+    this.logger.debug('regulatorRegistration after sleep 1000 ms')
     let timePassed = 1000
     while (true) {
       let result = 'INPROCESS'
