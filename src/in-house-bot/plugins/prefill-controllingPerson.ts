@@ -341,6 +341,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
     isCompany({ name, country }) {
       let id = getEnumValueId({ model: bot.models[COUNTRY], value: country })
       let keys = companyKeywords[id]
+      if (!keys) return false
       let tokens = name.replace(/[^\w\s]/gi, '').split(' ')
       return keys.filter(key => tokens.includes(key) || !isNaN(key)).length
     },
