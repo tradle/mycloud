@@ -154,8 +154,8 @@ export class RegulatorRegistrationAPI {
     })
   }
 
-  public async isExecutionDone(queryExecutionId: AWS.Athena.GetQueryExecutionInput) {
-    const result = await this.athena.getQueryExecution(queryExecutionId).promise();
+  public async isExecutionDone(id: string) {
+    const result = await this.athena.getQueryExecution({ QueryExecutionId: id }).promise();
     if (result.QueryExecution.Status.State === 'SUCCEEDED')
       return Promise.resolve(true);
     if (['FAILED', 'CANCELLED'].includes(result.QueryExecution.Status.State))
