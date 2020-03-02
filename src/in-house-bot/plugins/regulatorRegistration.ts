@@ -190,16 +190,12 @@ export class RegulatorRegistrationAPI {
       this.logger.error('regulatorRegistration athena error', err)
       return { status: false, error: err, data: null }
     }
-    this.logger.debug('regulatorRegistration before sleep for 1000 ms')
     await this.sleep(1000)
-    this.logger.debug('regulatorRegistration after sleep 1000 ms')
     let timePassed = 1000
     while (true) {
       let result = false
       try {
-        this.logger.debug(`regulatorRegistration athena call isExecutionDone for id=${id}`)
         result = await this.isExecutionDone(id)
-        this.logger.debug(`regulatorRegistration athena isExecutionDone for id=${id} return ${result}`)
       } catch (err) {
         this.logger.error('regulatorRegistration athena error', err)
         return { status: false, error: err, data: null }
@@ -214,7 +210,6 @@ export class RegulatorRegistrationAPI {
       timePassed += POLL_INTERVAL
     }
     try {
-      this.logger.debug(`regulatorRegistration athena call getResult for id=${id}`)
       let data: any = await this.getResults(id)
       this.logger.debug(`regulatorRegistration athena result: ${JSON.stringify(data, null, 2)}`)
       let list = []
@@ -395,7 +390,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   const regulatorRegistrationAPI = new RegulatorRegistrationAPI({ bot, conf, applications, logger })
   // debugger
   const plugin: IPluginLifecycleMethods = {
-    willRequestForm: async ({ req, application, formRequest }) => {
+    willRequestForm: async ({ application, formRequest }) => {
       logger.debug('regulatorRegistration called on willRequestForm')
       if (!application) return
       let { form } = formRequest // form type
@@ -413,7 +408,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let lookupPropertyValue = lookupForm[subject.lookupProperty]
       if (!lookupPropertyValue) return
 
-      let prefill = regulatorRegistrationAPI.prefill({ subject, lookupPropertyValue })
+      let prefill = await regulatorRegistrationAPI.prefill({ subject, lookupPropertyValue })
       if (prefill) {
         formRequest.prefill = {
           [TYPE]: subject.type
