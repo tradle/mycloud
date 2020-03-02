@@ -211,7 +211,6 @@ export class RegulatorRegistrationAPI {
     }
     try {
       let data: any = await this.getResults(id)
-      this.logger.debug(`regulatorRegistration athena result: ${JSON.stringify(data, null, 2)}`)
       let list = []
       let header = this.buildHeader(data.ResultSet.ResultSetMetadata.ColumnInfo)
       let top_row = _.map((_.head(data.ResultSet.Rows) as any).Data, (n: any) => {
@@ -257,7 +256,6 @@ export class RegulatorRegistrationAPI {
           prefill[propertyName] = new Date(val).getTime()
         }
       }
-      this.logger.debug(`regulatorRegistration prefill() found ${prefill}`)
       return prefill
     }
   }
@@ -409,9 +407,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!lookupPropertyValue) return
 
       let prefill = await regulatorRegistrationAPI.prefill({ subject, lookupPropertyValue })
+      prefill = sanitize(prefill).sanitized
       if (prefill) {
         formRequest.prefill = {
-          [TYPE]: subject.type
+          [TYPE]: form
         }
         _.extend(formRequest.prefill, prefill)
       }
