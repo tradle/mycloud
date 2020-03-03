@@ -359,8 +359,12 @@ class ControllingPersonRegistrationAPI {
         notifications.find((r: any) => r.form._permalink !== resource._permalink)
       )
     }
+    if (!notifyArr.length) {
+      debugger
+      return
+    }
     let notifications = await this.doNotify({ notifyArr, rules, application, result })
-    if (notifications.length) {
+    if (notifications && notifications.length) {
       this.applications.updateWithNotifications({
         application,
         notifications: notifications.map((n: any) => n.toJSON({ virtual: true }))
