@@ -78,7 +78,10 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           c.provider === 'http://download.companieshouse.gov.uk/en_pscdata.html'
       )
       let pitchbookCheck = result.find(
-        c => c[TYPE] === BENEFICIAL_OWNER_CHECK && c.provider === 'PitchBook Data, Inc.'
+        c =>
+          c[TYPE] === BENEFICIAL_OWNER_CHECK &&
+          c.provider === 'PitchBook Data, Inc.' &&
+          c.form._permalink === legalEntityPermalink
       )
       let carCheck = result.find(c => c[TYPE] === CLIENT_ACTION_REQUIRED_CHECK)
       const statusM = bot.models[CHECK_STATUS]
