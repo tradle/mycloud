@@ -353,14 +353,17 @@ export class TreeBuilder {
       let checksOverride = application.checksOverride
       if (!checksOverride)
         checksOverride = await this.bot.getResource(application, { backlinks: ['checksOverride'] })
-      checksOverride = Promise.all(
-        application.checkOverrides.map(co => this.bot.objects.get(co._link))
-      )
+      checksOverride = await Promise.all(checksOverride.map(co => this.bot.objects.get(co._link)))
 
       let failed = 0
       let pass = 0
+      let { checks } = req
       checksOverride.forEach(co => {
-        if (!co.form._permalink === payload._permalink) return
+        let check = checks.find(
+          c => co.check._permalink === c._permalink && c.form._permalink === payload._permalink
+        )
+        if (!check) return
+        // if (!co.form._permalink === payload._permalink) return
         let status = getEnumValueId({ model: this.bot.models[co[TYPE]], value: co.status })
         if (status === 'pass') pass++
         else failed++
