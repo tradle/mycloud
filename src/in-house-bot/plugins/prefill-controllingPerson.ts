@@ -27,7 +27,8 @@ const COMPANIES_HOUSE = 'Companies House'
 const OPEN_CORPORATES = 'Open Corporates'
 
 const companyKeywords = {
-  DE: ['GmbH', 'HRB']
+  DE: ['GmbH', 'HRB'],
+  US: ['INCORP', 'SERVICES']
 }
 
 const countryMap = {
