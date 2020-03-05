@@ -3,7 +3,9 @@ import { TYPE } from '@tradle/constants'
 // @ts-ignore
 import {
   getStatusMessageForCheck,
-  doesCheckNeedToBeCreated
+  getLatestChecks,
+  getLatestCheck,
+  isPassedCheck
 } from '../utils'
 
 import {
@@ -22,6 +24,7 @@ import Errors from '../../errors'
 
 import AWS from 'aws-sdk'
 import _ from 'lodash'
+import cleanco from 'cleanco'
 
 import { buildResourceStub } from '@tradle/build-resource'
 
@@ -31,6 +34,8 @@ const { sanitize } = validateResource.utils
 
 const POLL_INTERVAL = 250
 const ATHENA_OUTPUT = 'temp/athena'
+
+const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 
 const FORM_TYPE_CP = 'tradle.legal.LegalEntityControllingPerson'
 const FORM_TYPE_LE = 'tradle.legal.LegalEntity'
@@ -339,6 +344,18 @@ export class PitchbookCheckAPI {
       pscLike.data.natures_of_control.push(natures_of_control)
 
       list.push(pscLike)
+
+      pscLike["hq phone"] = row["hq phone"]
+      pscLike["hq email"] = row["hq email"]
+      pscLike["primary contact phone"] = row["primary contact phone"]
+      pscLike["limited partner type"] = row["limited partner type"]
+      pscLike["aum"] = row["aum"]
+      pscLike["year founded"] = row["year founded"]
+      pscLike["primary contact"] = row["primary contact"]
+      pscLike["primary contact title"] = row["primary contact title"]
+      pscLike["primary contact email"] = row["primary contact email"]
+      pscLike["website"] = row["website"]
+
     }
     return list
   }
@@ -465,6 +482,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           return
       }
 
+      let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, application, bot })
+      if (!check || !isPassedCheck(check.status)) return
+
       logger.debug('pitchbookCheck before doesCheckNeedToBeCreated')
       let createCheck = await doesCheckNeedToBeCreated({
         bot,
@@ -515,3 +535,92 @@ export const validateConf: ValidatePluginConf = async ({
 
 }
 */
+
+const doesCheckNeedToBeCreated = async ({
+  bot,
+  type,
+  application,
+  provider,
+  form,
+  propertiesToCheck,
+  prop,
+  req
+}: {
+  bot: Bot
+  type: string
+  application: IPBApp
+  provider: string
+  form: ITradleObject
+  propertiesToCheck: string[]
+  prop: string
+  req: IPBReq
+}) => {
+  // debugger
+  if (!application.checks || !application.checks.length) return true
+  if (!req.checks) {
+    let startTime = Date.now()
+    let { checks = [], latestChecks = [] } = await getLatestChecks({ application, bot })
+    _.extend(req, { checks, latestChecks })
+    bot.logger.debug(`getChecks took: ${Date.now() - startTime}`)
+  }
+  let items = req.checks.filter(check => check.provider === provider)
+  // let items = await getChecks({ bot, type, application, provider })
+  if (!items.length) return true
+
+  let checks = items.filter(r => r[prop]._link === form._link)
+  if (checks.length) return false
+  let hasChanged = await hasPropertiesChanged({ resource: form, bot, propertiesToCheck, req })
+  if (hasChanged) return true
+  let checkForThisForm = items.filter(r => r[prop]._permalink === form._permalink)
+  if (!checkForThisForm.length) return true
+  checkForThisForm.sort((a, b) => b._time - a._time)
+  if (checkForThisForm[0].status.id.endsWith('_error')) return true
+  return hasChanged
+}
+
+const hasPropertiesChanged = async ({
+  resource,
+  bot,
+  propertiesToCheck,
+  req
+}: {
+  resource: ITradleObject
+  bot: Bot
+  propertiesToCheck: string[]
+  req: IPBReq
+}) => {
+  // debugger
+  if (!resource._prevlink) return true
+  let dbRes = req.previousPayloadVersion
+  if (!dbRes) {
+    try {
+      dbRes = await bot.objects.get(resource._prevlink)
+    } catch (err) {
+      bot.logger.debug(
+        `not found previous version for the resource - check if this was refresh: ${JSON.stringify(
+          resource,
+          null,
+          2
+        )}`
+      )
+      debugger
+      return true
+    }
+    req.previousPayloadVersion = dbRes
+  }
+  if (!dbRes) return true
+  let r: any = {}
+  // Use defaultPropMap for creating mapped resource if the map was not supplied or
+  // if not all properties listed in map - that is allowed if the prop names are the same as default
+  let check = propertiesToCheck.filter(p => {
+    let rValue = resource[p]
+    let dbValue = dbRes[p]
+    if (!rValue && !dbValue) return false
+    if (cleanco.clean(rValue) === cleanco.clean(dbValue)) return false
+    if (_.isEqual(dbValue, rValue)) return false
+    return true
+  })
+
+  if (check.length) return true
+  else return false
+}

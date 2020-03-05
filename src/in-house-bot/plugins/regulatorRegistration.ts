@@ -59,8 +59,6 @@ const DEFAULT_REGULATOR = 'FINRA'
 
 interface IRegulatorRegistrationAthenaConf {
   type: string
-  lookupPropertyForm: string
-  lookupProperty: string
   map: Object
   check: string
   query: string
@@ -153,18 +151,6 @@ export class RegulatorRegistrationAPI {
       })
     })
   }
-
-  public async isExecutionDone(id: string) {
-    const result = await this.athena.getQueryExecution({ QueryExecutionId: id }).promise();
-    if (result.QueryExecution.Status.State === 'SUCCEEDED')
-      return Promise.resolve(true);
-    if (['FAILED', 'CANCELLED'].includes(result.QueryExecution.Status.State))
-      return Promise.reject(
-        new Error(`Query status: ${JSON.stringify(result.QueryExecution.Status, null, 2)}`)
-      )
-    return Promise.resolve(false);
-  }
-
   public getResults = async id => {
     return new Promise((resolve, reject) => {
       this.athena.getQueryResults({ QueryExecutionId: id }, (err, data) => {
@@ -185,25 +171,26 @@ export class RegulatorRegistrationAPI {
 
     try {
       id = await this.getExecutionId(sql)
-      this.logger.debug('regulatorRegistration athena execution id', id)
+      this.logger.debug('athena execution id', id)
     } catch (err) {
-      this.logger.error('regulatorRegistration athena error', err)
+      this.logger.debug('athena error', err)
       return { status: false, error: err, data: null }
     }
+
     await this.sleep(1000)
     let timePassed = 1000
     while (true) {
-      let result = false
+      let result = 'INPROCESS'
       try {
-        result = await this.isExecutionDone(id)
+        result = await this.checkStatus(id)
       } catch (err) {
-        this.logger.error('regulatorRegistration athena error', err)
+        this.logger.debug('athena error', err)
         return { status: false, error: err, data: null }
       }
-      if (result) break
+      if (result == 'SUCCEEDED') break
 
       if (timePassed > 10000) {
-        this.logger.error('regulatorRegistration athena error', 'result timeout')
+        this.logger.debug('athena error', 'result timeout')
         return { status: false, error: 'result timeout', data: null }
       }
       await this.sleep(POLL_INTERVAL)
@@ -228,10 +215,10 @@ export class RegulatorRegistrationAPI {
           )
         )
       })
-      this.logger.debug(`regulatorRegistration query result ${JSON.stringify(list, null, 2)}`)
+      this.logger.debug('athena query result', list)
       return { status: true, error: null, data: list }
     } catch (err) {
-      this.logger.error('regulatorRegistration athena error', err)
+      this.logger.debug('athena error', err)
       return { status: false, error: err, data: null }
     }
   }
@@ -242,24 +229,6 @@ export class RegulatorRegistrationAPI {
     }
     return null
   }
-
-  public async prefill({ subject, lookupPropertyValue }) {
-    this.logger.debug(`regulatorRegistration prefill() called with number ${lookupPropertyValue}`)
-    let sql = util.format(subject.query, lookupPropertyValue)
-    let find = subject.test ? subject.test : await this.queryAthena(sql)
-    if (find.status && find.data.length > 0) {
-      let prefill = remapKeys(find.data[0], subject.map)
-      // date convert from string
-      for (let propertyName in prefill) {
-        if (propertyName.endsWith('Date')) {
-          let val = prefill[propertyName]
-          prefill[propertyName] = new Date(val).getTime()
-        }
-      }
-      return prefill
-    }
-  }
-
   public async check({ subject, form, application, req, user }) {
     let status
     let formRegistrationNumber = form[subject.check] //.replace(/-/g, '').replace(/^0+/, '') // '133693';
@@ -388,37 +357,26 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   const regulatorRegistrationAPI = new RegulatorRegistrationAPI({ bot, conf, applications, logger })
   // debugger
   const plugin: IPluginLifecycleMethods = {
-    willRequestForm: async ({ application, formRequest }) => {
-      logger.debug('regulatorRegistration called on willRequestForm')
+    async validateForm({ req }) {
+      logger.debug('regulatorRegistration called on validateForm')
+      if (req.skipChecks) return
+      const { user, application, payload } = req
       if (!application) return
-      let { form } = formRequest // form type
-
-      if (!application) return
-      let subject = regulatorRegistrationAPI.mapToSubject(form)
+      let payloadType = payload[TYPE]
+      let subject = regulatorRegistrationAPI.mapToSubject(payload[TYPE])
       if (!subject) return
       logger.debug(
-        `regulatorRegistration called for type ${form} to check ${subject.check}`
+        `regulatorRegistration called for type ${payload[TYPE]} to check ${subject.check}`
       )
 
-      let stub = application.submissions.find(form => form.submission[TYPE] === subject.lookupPropertyForm)
-      if (!stub) return
-      let lookupForm = await bot.getResource(stub.submission)
-      let lookupPropertyValue = lookupForm[subject.lookupProperty]
-      if (!lookupPropertyValue) return
-
-      let prefill = await regulatorRegistrationAPI.prefill({ subject, lookupPropertyValue })
-      prefill = sanitize(prefill).sanitized
-      if (prefill) {
-        formRequest.prefill = {
-          [TYPE]: form
-        }
-        _.extend(formRequest.prefill, prefill)
-      }
-
-      /*
-
+      if (!payload[subject.check]) return
       let corpCheck: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, application, bot })
       if (!corpCheck || isPassedCheck(corpCheck.status)) return
+
+      if (payload._prevlink) {
+        let dbRes = await bot.objects.get(payload._prevlink)
+        if (dbRes[subject.check] == payload[subject.check]) return
+      }
 
       logger.debug('regulatorRegistration before doesCheckNeedToBeCreated')
       let createCheck = await doesCheckNeedToBeCreated({
@@ -443,7 +401,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         req,
         user
       })
-      */
     }
   }
   return { plugin }
@@ -465,12 +422,6 @@ export const validateConf: ValidatePluginConf = async ({
     if (!model) {
       throw new Errors.InvalidInput(`model not found for: ${subject.type}`)
     }
-    const modelOfLookupPropertyForm = models[subject.lookupPropertyForm]
-    if (!modelOfLookupPropertyForm) {
-      throw new Errors.InvalidInput(`model not found for: ${subject.lookupPropertyForm}`)
-    }
-    if (!subject.lookupProperty)
-      throw new Errors.InvalidInput(`property lookupProperty is not found in ${subject.type}`)
     let mapValues = Object.values(subject.map)
     for (let prop of mapValues) {
       if (!model.properties[prop]) {
