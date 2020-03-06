@@ -485,9 +485,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       }
 
       let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, application, bot })
-      if (!check || !isPassedCheck(check.status)) {
-        logger.debug(`pitchbookCheck corporation does not exist says isPassedCheck`)
-      }
       if (!check || !check.status || check.status.id.split('_')[1] != 'pass') {
         logger.debug(`pitchbookCheck corporation does not exist`)
         return
