@@ -486,9 +486,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       logger.debug(`pitchbookCheck before check if corporation exists`)
 
       let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, application, bot })
-      logger.debug(`pitchbookCheck after check if corporation exists ${check}`)
-      if (!check || !isPassedCheck(check.status)) return
-
+      logger.debug(`pitchbookCheck after check if corporation exists ${JSON.stringify(check, null, 2)}`)
+      if (!isPassedCheck(check.status)) {
+        logger.debug(`pitchbookCheck corporation does not exist`)
+        return
+      }
       logger.debug('pitchbookCheck before doesCheckNeedToBeCreated')
       let createCheck = await doesCheckNeedToBeCreated({
         bot,
