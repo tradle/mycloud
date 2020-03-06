@@ -184,7 +184,7 @@ export const getNameFromForm = (form: any): Name | void => {
   let firstName, lastName
   const type = form[TYPE]
   if (type === BASIC_CONTACT_INFO || type === PERSONAL_INFO) {
-    ;({ firstName, lastName } = form)
+    ; ({ firstName, lastName } = form)
   } else if (type === NAME || type === ONFIDO_APPLICANT) {
     firstName = form.givenName
     lastName = form.surname
@@ -197,10 +197,10 @@ export const getNameFromForm = (form: any): Name | void => {
 
       const { personal = {} } = scanJson
       if (personal) {
-        ;({ firstName, lastName } = personal)
+        ; ({ firstName, lastName } = personal)
       }
     } else if (uploaded) {
-      ;({ firstName, lastName } = form)
+      ; ({ firstName, lastName } = form)
     }
   } else {
     return
@@ -403,7 +403,7 @@ export const isPassedCheck = ({ status }) => {
     value: status
   })
 
-  return id === 'pass'
+  return id == 'pass'
 }
 
 export const getPropertyTitle = validateResource.utils.getPropertyTitle
