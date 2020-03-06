@@ -462,8 +462,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
             inpayload = true
           }
         }
-        if (!inpayload)
+        if (!inpayload) {
+          logger.debug(`pitchbookCheck called for type ${payload[TYPE]} but not set any of ${Object.keys(companyChecksLE)}`)
           return
+        }
         isLE = true
       }
       else if (FORM_TYPE_CP == payload[TYPE]) {
@@ -481,8 +483,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         if (!inpayload)
           return
       }
+      logger.debug(`pitchbookCheck before check if corporation exists`)
 
       let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, application, bot })
+      logger.debug(`pitchbookCheck after check if corporation exists ${check}`)
       if (!check || !isPassedCheck(check.status)) return
 
       logger.debug('pitchbookCheck before doesCheckNeedToBeCreated')
