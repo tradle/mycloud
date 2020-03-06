@@ -474,8 +474,14 @@ export const getLatestCheck = async ({
   application: IPBApp
   bot: Bot
 }) => {
-  if (req && req.latestChecks) {
-    let check = req.latestChecks.find(check => check[TYPE] === type)
+  let latestChecks, payload
+  if (req) {
+    ;({ payload, latestChecks } = req)
+    if (!latestChecks) latestChecks = getLatestChecks({ application, bot })
+    latestChecks = latestChecks.sort((a, b) => b._time - a._time)
+    let check = latestChecks.find(
+      check => check[TYPE] === type && (!payload || payload._permalink === check.form._permalink)
+    )
     return check
   }
   let corpChecks =
@@ -534,23 +540,23 @@ export const getLatestChecks = async ({ application, bot }) => {
       .map(stub => bot.getResource(stub))
   )
 
-  const timeDesc = checks.slice().sort((a, b) => b._time - a._time)
+  const checksSorted = checks.slice().sort((a, b) => b._time - a._time)
 
-  let latestChecks = _.uniqBy(timeDesc, (check: any) =>
+  let latestChecks = _.uniqBy(checksSorted, (check: any) =>
     [check.form._permalink, check.propertyName, check[TYPE], check.provider].join(',')
   )
-  let sanctionsChecks = _.uniqBy(
-    timeDesc.filter(check => check[TYPE] === SANCTIONS_CHECK),
-    (check: any) =>
-      [check.form._permalink, check.propertyName, check[TYPE], check.provider].join(',')
-  )
+  // let sanctionsChecks = _.uniqBy(
+  //   checksSorted.filter(check => check[TYPE] === SANCTIONS_CHECK),
+  //   (check: any) =>
+  //     [check.form._permalink, check.propertyName, check[TYPE], check.provider].join(',')
+  // )
 
   // debugger
   // let latestChecks1 = _.uniqBy(timeDesc, TYPE)
   // let sanctionsChecks = timeDesc.filter(check => check[TYPE] === SANCTIONS_CHECK)
   // sanctionsChecks = _.uniqBy(sanctionsChecks, 'propertyName')
 
-  latestChecks = _.uniqBy(latestChecks.concat(sanctionsChecks), '_permalink')
+  // latestChecks = _.uniqBy(latestChecks.concat(sanctionsChecks), '_permalink')
   return { latestChecks, checks }
 }
 
