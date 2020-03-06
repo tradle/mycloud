@@ -184,7 +184,7 @@ export const getNameFromForm = (form: any): Name | void => {
   let firstName, lastName
   const type = form[TYPE]
   if (type === BASIC_CONTACT_INFO || type === PERSONAL_INFO) {
-    ; ({ firstName, lastName } = form)
+    ;({ firstName, lastName } = form)
   } else if (type === NAME || type === ONFIDO_APPLICANT) {
     firstName = form.givenName
     lastName = form.surname
@@ -197,10 +197,10 @@ export const getNameFromForm = (form: any): Name | void => {
 
       const { personal = {} } = scanJson
       if (personal) {
-        ; ({ firstName, lastName } = personal)
+        ;({ firstName, lastName } = personal)
       }
     } else if (uploaded) {
-      ; ({ firstName, lastName } = form)
+      ;({ firstName, lastName } = form)
     }
   } else {
     return
@@ -477,7 +477,7 @@ export const getLatestCheck = async ({
   let latestChecks, payload
   if (req) {
     ;({ payload, latestChecks } = req)
-    if (!latestChecks) latestChecks = getLatestChecks({ application, bot })
+    if (!latestChecks) latestChecks = await getLatestChecks({ application, bot })
     latestChecks = latestChecks.sort((a, b) => b._time - a._time)
     let check = latestChecks.find(
       check => check[TYPE] === type && (!payload || payload._permalink === check.form._permalink)
