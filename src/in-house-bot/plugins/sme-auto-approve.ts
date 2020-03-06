@@ -240,8 +240,13 @@ export class TreeBuilder {
     let prefill = await this.fillNode({ req })
     _.extend(appStub, prefill)
     if (associatedNode) {
-      let { timesNotified, notifiedStatus, dateLastNotified } = associatedNode
-      _.extend(appStub, { timesNotified, notifiedStatus, dateLastNotified })
+      let {
+        timesNotified,
+        notifiedStatus,
+        dateLastNotified,
+        percentageOfOwnership
+      } = associatedNode
+      _.extend(appStub, { timesNotified, notifiedStatus, dateLastNotified, percentageOfOwnership })
       appStub = sanitize(appStub).sanitized
     } else if (payload && payload[TYPE] === CP) {
       if (!appStub.top.nodes) appStub.top.nodes = {}
@@ -316,9 +321,6 @@ export class TreeBuilder {
       lastMsgToClientTime,
       dateStarted,
       dateCompleted,
-      // stalled: lastMsgToClientTime && Math.round((Date.now() - lastMsgToClientTime) / hours),
-      // waiting: (status === 'completed' && Math.round((Date.now() - dateCompleted) / hours)) || 0,
-      // delayed: dateCompleted && Math.round((dateCompleted - dateStarted) / hours),
       formsCount,
       status,
       assignedToTeam,
@@ -348,14 +350,17 @@ export class TreeBuilder {
       let checksOverride = application.checksOverride
       if (!checksOverride)
         checksOverride = await this.bot.getResource(application, { backlinks: ['checksOverride'] })
-      checksOverride = Promise.all(
-        application.checkOverrides.map(co => this.bot.objects.get(co._link))
-      )
+      checksOverride = await Promise.all(checksOverride.map(co => this.bot.objects.get(co._link)))
 
       let failed = 0
       let pass = 0
+      let { checks } = req
       checksOverride.forEach(co => {
-        if (!co.form._permalink === payload._permalink) return
+        let check = checks.find(
+          c => co.check._permalink === c._permalink && c.form._permalink === payload._permalink
+        )
+        if (!check) return
+        // if (!co.form._permalink === payload._permalink) return
         let status = getEnumValueId({ model: this.bot.models[co[TYPE]], value: co.status })
         if (status === 'pass') pass++
         else failed++

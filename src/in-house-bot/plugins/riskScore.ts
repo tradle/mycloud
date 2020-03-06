@@ -284,11 +284,12 @@ class RiskScoreAPI {
     let { regulated, country, typeOfOwnership, tradedOnExchange } = payload
     let { models } = this.bot
 
+    let addToDetails
     if (regulated) {
       let id = getEnumValueId({ model: models[COUNTRY], value: country })
       if (id === 'DE' || id === 'GB') {
         summary.legalStructureRisk = 0
-        return
+        addToDetails = true
       }
     } else if (typeOfOwnership && tradedOnExchange) {
       if (
@@ -296,8 +297,20 @@ class RiskScoreAPI {
         'publiclyTraded'
       ) {
         let exchange = getEnumValueId({ model: models[STOCK_EXCHANGE], value: tradedOnExchange })
-        if (exchange === 'NYSE' || exchange === 'NASDAQ') summary.legalStructureRisk = 0
+        if (exchange === 'NYSE' || exchange === 'NASDAQ') {
+          summary.legalStructureRisk = 0
+          addToDetails = true
+        }
       }
+    }
+    if (addToDetails) {
+      let obj = details.find(rr => rr.form._permalink === payload._permalink)
+      if (obj) obj.legalStructureRisk = 0
+      else
+        details.push({
+          form: buildResourceStub({ resource: payload, models: this.bot.models }),
+          legalStructureRisk: 0
+        })
     }
   }
   calcOneCategoryScore({ name, details }) {
@@ -359,7 +372,7 @@ class RiskScoreAPI {
       [cid]: detail,
       score: detail.score
     }
-    if (risk === 'autohigh') extend(scoreDetail, { risk: AUTOHIGH })
+    if (risk === 'autohigh') extend(scoreDetail[cid], { risk: AUTOHIGH })
     return scoreDetail
     // scoreDetails.countryOfRegistration = {
     //   [cid]: this.addDetailScore({ value: (defaultC * weight) / 100, coef })
@@ -375,34 +388,39 @@ class RiskScoreAPI {
     let { bsaList, ddrList } = this.conf
 
     let { bsaCode, ddr } = payload
-    if (!bsaCode) return
-
-    let coef = bsaList[bsaCode] || (bsaList.autohigh.find(c => c === bsaCode) && 100)
-
+    if (!bsaCode && !ddr) return
     let { weights } = this.riskFactors
 
     let bsaDetail = details.find(d => d.bsaCodeRisk)
-    if (coef) {
-      // let coef = (code === 'fe102' && 21) || 100
-      summary.bsaCodeRisk = this.roundScore((weights.bsaCodeRisk * coef) / 100)
-      debugger
+    if (bsaCode) {
+      let coef = bsaList[bsaCode] || (bsaList.autohigh.find(c => c === bsaCode) && 100)
 
-      // bsaDetail.previousBsaScore = bsaDetail.bsaCodeRisk[code]
+      if (coef) {
+        // let coef = (code === 'fe102' && 21) || 100
+        summary.bsaCodeRisk = this.roundScore((weights.bsaCodeRisk * coef) / 100)
+        debugger
 
-      if (coef === 100) bsaDetail.risk = AUTOHIGH
-      bsaDetail.bsaCodeRisk[bsaCode] = summary.bsaCodeRisk
-    } else {
-      summary.bsaCodeRisk = 0
-      bsaDetail.bsaCodeRisk[bsaCode] = summary.bsaCodeRisk
+        // bsaDetail.previousBsaScore = bsaDetail.bsaCodeRisk[code]
+
+        bsaDetail.bsaCodeRisk[bsaCode] = { score: summary.bsaCodeRisk }
+        if (coef === 100) bsaDetail.bsaCodeRisk[bsaCode].risk = AUTOHIGH
+      } else {
+        summary.bsaCodeRisk = 0
+        bsaDetail.bsaCodeRisk[bsaCode] = { score: summary.bsaCodeRisk }
+      }
     }
     if (ddr) {
-      let coef = ddrList[ddr] || ddrList.find(d => d === ddr)
-      if (coef) {
+      if (ddrList.autohigh.includes(ddr.toUpperCase())) {
         summary.historicalBehaviorRisk = weights.historicalBehaviorRisk
-        bsaDetail.historicalBehaviorRisk = { [ddr]: summary.historicalBehaviorRisk }
+        bsaDetail.historicalBehaviorRisk = {
+          [ddr]: {
+            score: summary.historicalBehaviorRisk,
+            risk: AUTOHIGH
+          }
+        }
       } else {
         summary.historicalBehaviorRisk = 0
-        bsaDetail.historicalBehaviorRisk = { [ddr]: 0 }
+        bsaDetail.historicalBehaviorRisk = { [ddr]: { score: 0 } }
       }
     }
 
@@ -443,10 +461,12 @@ class RiskScoreAPI {
     let detail: any = {
       form: buildResourceStub({ resource: form, models: this.bot.models }),
       bsaCodeRisk: {
-        [code]: summary.bsaCodeRisk
+        [code]: {
+          score: summary.bsaCodeRisk
+        }
       }
     }
-    if (coef === 100) detail.risk = AUTOHIGH
+    if (coef === 100) detail.bsaCodeRisk[code].risk = AUTOHIGH
     let idx = details.findIndex(d => d.bsaCodeRisk)
     if (idx !== -1) details.splice(idx, 1, detail)
     else details.push(detail)

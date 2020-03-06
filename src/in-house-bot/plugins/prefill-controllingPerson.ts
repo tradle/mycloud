@@ -26,6 +26,11 @@ const COUNTRY = 'tradle.Country'
 const COMPANIES_HOUSE = 'Companies House'
 const OPEN_CORPORATES = 'Open Corporates'
 
+const companyKeywords = {
+  DE: ['GmbH', 'HRB'],
+  US: ['INCORP', 'SERVICES']
+}
+
 const countryMap = {
   England: 'United Kingdom',
   'England And Wales': 'United Kingdom'
@@ -73,7 +78,10 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           c.provider === 'http://download.companieshouse.gov.uk/en_pscdata.html'
       )
       let pitchbookCheck = result.find(
-        c => c[TYPE] === BENEFICIAL_OWNER_CHECK && c.provider === 'PitchBook Data, Inc.'
+        c =>
+          c[TYPE] === BENEFICIAL_OWNER_CHECK &&
+          c.provider === 'PitchBook Data, Inc.' &&
+          c.form._permalink === legalEntityPermalink
       )
       let carCheck = result.find(c => c[TYPE] === CLIENT_ACTION_REQUIRED_CHECK)
       const statusM = bot.models[CHECK_STATUS]
@@ -178,6 +186,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         name,
         inactive,
         start_date,
+        identification,
         end_date,
         occupation,
         position,
@@ -193,6 +202,34 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         occupation,
         position,
         endDate: end_date && new Date(end_date).getTime()
+      }
+      let isCompany =
+        !date_of_birth &&
+        !country_of_residence &&
+        identification &&
+        identification.registration_number
+      if (!isCompany) {
+        let le = await bot.getResource(legalEntity.submission)
+        isCompany = this.isCompany({
+          name,
+          country: le.country
+        })
+      }
+      if (isCompany || (identification && identification.registration_number)) {
+        this.prefillCompany(prefill, { data: officer })
+        prefill.doNotReachOut = true
+        prefill = sanitize(prefill).sanitized
+        if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
+        formRequest.prefill = {
+          ...formRequest.prefill,
+          ...prefill,
+          typeOfControllingEntity: {
+            id: 'tradle.legal.TypeOfControllingEntity_legalEntity'
+          }
+        }
+        logger.debug('prefill = ' + formRequest.prefill)
+        formRequest.message = `Please review and correct the data below **for ${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+        return
       }
       if (country_of_residence) {
         let country = getCountryByTitle(country_of_residence, bot.models)
@@ -304,6 +341,13 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         }
       }
       formRequest.message = `Please review and correct the data below **for ${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+    },
+    isCompany({ name, country }) {
+      let id = getEnumValueId({ model: bot.models[COUNTRY], value: country })
+      let keys = companyKeywords[id]
+      if (!keys) return false
+      let tokens = name.replace(/[^\w\s]/gi, '').split(' ')
+      return keys.filter(key => tokens.includes(key) || !isNaN(key)).length
     },
     async doSkipBO(application) {
       let pconf = conf[application.requestFor]
@@ -496,6 +540,10 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           controllingEntityCompanyNumber: registration_number
           // companyType: legal_form
         })
+        if (place_registered && !prefill.controllingEntityCountry) {
+          let country = getCountryByTitle(place_registered, bot.models)
+          if (country) prefill.controllingEntityCountry = country
+        }
       }
       this.addNatureOfControl(prefill, natures_of_control)
     },
@@ -597,11 +645,12 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 function getCountryByTitle(country, models) {
   let mapCountry = countryMap[country]
   if (mapCountry) country = mapCountry
-  let countryR = models[COUNTRY].enum.find(val => val.title === country)
+  let c = country.toUpperCase()
+  let countryR = models[COUNTRY].enum.find(val => val.title.toUpperCase() === c)
   return (
     countryR && {
       id: `${COUNTRY}_${countryR.id}`,
-      title: country
+      title: countryR.title
     }
   )
 }

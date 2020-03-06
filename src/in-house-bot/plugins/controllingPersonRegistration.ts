@@ -339,10 +339,11 @@ class ControllingPersonRegistrationAPI {
       }
       if (addCps.length) notifyArr = notifyArr.concat(addCps)
     }
-
+    // doNotReachOut for CE is set when the officer happens to be CE e.x. some secretarial service
     // if (!noAutoNotification) {
     let cpEntities = result.filter(
-      (r: any) => r.typeOfControllingEntity.id !== CP_PERSON && !r.doNotReachOutToMembers
+      (r: any) =>
+        r.typeOfControllingEntity.id !== CP_PERSON && !r.doNotReachOutToMembers && !r.doNotReachOut
     )
     cpEntities = await this.filterOutAlreadyOnboarded(cpEntities, application)
     notifyArr = notifyArr.concat(cpEntities)
@@ -358,8 +359,12 @@ class ControllingPersonRegistrationAPI {
         notifications.find((r: any) => r.form._permalink !== resource._permalink)
       )
     }
+    if (!notifyArr.length) {
+      debugger
+      return
+    }
     let notifications = await this.doNotify({ notifyArr, rules, application, result })
-    if (notifications.length) {
+    if (notifications && notifications.length) {
       this.applications.updateWithNotifications({
         application,
         notifications: notifications.map((n: any) => n.toJSON({ virtual: true }))

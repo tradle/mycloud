@@ -394,6 +394,7 @@ class OpenCorporatesAPI {
           date_of_birth,
           resigned_on,
           inactive,
+          identification,
           country_of_residence,
           nationality
         } = item
@@ -404,6 +405,7 @@ class OpenCorporatesAPI {
             name,
             occupation,
             date_of_birth,
+            identification,
             inactive: isInactive,
             nationality,
             country_of_residence,
@@ -718,7 +720,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
           if (!errors) errors = []
           errors.push({ name: 'registrationNumber', error: 'Is it your company?' })
         }
-        message = `${error} Please review and correct the data below.`
+        message = `${error} Please review and correct the data below for **${name}**`
       }
       let country =
         companiesHouseApiKey &&
