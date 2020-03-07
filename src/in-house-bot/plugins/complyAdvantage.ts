@@ -531,12 +531,12 @@ export const createPlugin: CreatePlugin<void> = (
         criteria = pConf.filter
         propertyMap = pConf.propertyMap && pConf.propertyMap[ptype]
       }
-
+      if (!propertyMap) return
       let check: any = await getLatestCheck({
         type: CORPORATION_EXISTS,
         req,
         application,
-        bot: this.bot
+        bot
       })
 
       if (!check || !isPassedCheck(check)) return
