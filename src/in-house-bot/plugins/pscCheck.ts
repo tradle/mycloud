@@ -298,11 +298,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!payload[subject.check]) return
       // serving only GB
       let country = payload[subject.countryProperty]
-      if (!country || country.id.split('_')[1] !== 'GB')
-        return
+      if (!country || country.id.split('_')[1] !== 'GB') return
 
       let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, application, bot })
-      if (!check || !isPassedCheck(check.status)) return
+      if (!check || !isPassedCheck(check)) return
 
       logger.debug('pscCheck before doesCheckNeedToBeCreated')
       let createCheck = await doesCheckNeedToBeCreated({
@@ -418,7 +417,9 @@ export const validateConf: ValidatePluginConf = async ({
       throw new Errors.InvalidInput(`property ${subject.check} was not found in ${subject.type}`)
     }
     if (!model.properties[subject.countryProperty]) {
-      throw new Errors.InvalidInput(`property ${subject.countryProperty} was not found in ${subject.type}`)
+      throw new Errors.InvalidInput(
+        `property ${subject.countryProperty} was not found in ${subject.type}`
+      )
     }
   })
 }

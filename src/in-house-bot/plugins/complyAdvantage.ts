@@ -13,7 +13,8 @@ import {
   getLatestCheck,
   parseScannedDate,
   getEnumValueId,
-  isSubClassOf
+  isSubClassOf,
+  isPassedCheck
 } from '../utils'
 import { debug } from 'util'
 // import { printCommand } from '../commands/help'
@@ -530,29 +531,15 @@ export const createPlugin: CreatePlugin<void> = (
         criteria = pConf.filter
         propertyMap = pConf.propertyMap && pConf.propertyMap[ptype]
       }
-      let checks = req.checks
-      if (checks) checks = checks.filter(check => check[TYPE] === CORPORATION_EXISTS)
-      else {
-        try {
-          checks = await bot.getResource(payload, { backlinks: ['checks'] })
-        } catch (err) {
-          debugger
-        }
-        if (!checks || !checks.length) return
-        checks = checks.filter(check => check[TYPE] === CORPORATION_EXISTS)
-        if (!checks || !checks.length) return
-        checks = await Promise.all(checks.map(c => bot.getResource(c)))
-      }
-      checks.sort((a, b) => b._time - a._time)
+      if (!propertyMap) return
+      let check: any = await getLatestCheck({
+        type: CORPORATION_EXISTS,
+        req,
+        application,
+        bot
+      })
 
-      let check = checks[0]
-      if (!check || getEnumValueId({ model: bot.models[STATUS], value: check.status }) !== 'pass')
-        return
-      // let items = await getChecks({ bot, type: CORPORATION_EXISTS, application })
-      // if (!items || !items.length) return
-
-      // let check = items.find(item => item.form._permalink === payload._permalink)
-      // if (!check || isPassedCheck(check.status)) return
+      if (!check || !isPassedCheck(check)) return
       if (propertyMap && !_.size(propertyMap)) propertyMap = null
 
       let dateProp

@@ -184,7 +184,7 @@ export const getNameFromForm = (form: any): Name | void => {
   let firstName, lastName
   const type = form[TYPE]
   if (type === BASIC_CONTACT_INFO || type === PERSONAL_INFO) {
-    ; ({ firstName, lastName } = form)
+    ;({ firstName, lastName } = form)
   } else if (type === NAME || type === ONFIDO_APPLICANT) {
     firstName = form.givenName
     lastName = form.surname
@@ -197,10 +197,10 @@ export const getNameFromForm = (form: any): Name | void => {
 
       const { personal = {} } = scanJson
       if (personal) {
-        ; ({ firstName, lastName } = personal)
+        ;({ firstName, lastName } = personal)
       }
     } else if (uploaded) {
-      ; ({ firstName, lastName } = form)
+      ;({ firstName, lastName } = form)
     }
   } else {
     return
@@ -474,16 +474,27 @@ export const getLatestCheck = async ({
   application: IPBApp
   bot: Bot
 }) => {
-  if (req && req.latestChecks) {
-    let check = req.latestChecks.find(check => check[TYPE] === type)
-    return check
+  // if (req && req.latestChecks) return req.latestChecks.find(check => check[TYPE] === type)
+
+  let latestChecks, payload
+  if (req) {
+    ;({ payload, latestChecks } = req)
+    // if (!latestChecks) ({ latestChecks } = await getLatestChecks({ application, bot }))
+    if (latestChecks) {
+      latestChecks = latestChecks.sort((a, b) => b._time - a._time)
+      return latestChecks.find(
+        check => check[TYPE] === type && (!payload || payload._permalink === check.form._permalink)
+      )
+    }
   }
-  let corpChecks =
+  let checkStubs =
     application.checks && application.checks.filter(checkStub => checkStub[TYPE] === type)
-  if (!corpChecks) return
-  let checks: any = await Promise.all(corpChecks.map(checkStub => bot.getResource(checkStub)))
-  const timeDesc = checks.slice().sort((a, b) => b._time - a._time)
-  return _.uniqBy(timeDesc, TYPE)[0]
+  if (!checkStubs) return
+  let checks: any = await Promise.all(checkStubs.map(checkStub => bot.getResource(checkStub)))
+  latestChecks = checks.slice().sort((a, b) => b._time - a._time)
+  return latestChecks.find(
+    check => check[TYPE] === type && (!payload || payload._permalink === check.form._permalink)
+  )
 }
 export const doesCheckNeedToBeCreated = async ({
   bot,
@@ -534,23 +545,23 @@ export const getLatestChecks = async ({ application, bot }) => {
       .map(stub => bot.getResource(stub))
   )
 
-  const timeDesc = checks.slice().sort((a, b) => b._time - a._time)
+  const checksSorted = checks.slice().sort((a, b) => b._time - a._time)
 
-  let latestChecks = _.uniqBy(timeDesc, (check: any) =>
+  let latestChecks = _.uniqBy(checksSorted, (check: any) =>
     [check.form._permalink, check.propertyName, check[TYPE], check.provider].join(',')
   )
-  let sanctionsChecks = _.uniqBy(
-    timeDesc.filter(check => check[TYPE] === SANCTIONS_CHECK),
-    (check: any) =>
-      [check.form._permalink, check.propertyName, check[TYPE], check.provider].join(',')
-  )
+  // let sanctionsChecks = _.uniqBy(
+  //   checksSorted.filter(check => check[TYPE] === SANCTIONS_CHECK),
+  //   (check: any) =>
+  //     [check.form._permalink, check.propertyName, check[TYPE], check.provider].join(',')
+  // )
 
   // debugger
   // let latestChecks1 = _.uniqBy(timeDesc, TYPE)
   // let sanctionsChecks = timeDesc.filter(check => check[TYPE] === SANCTIONS_CHECK)
   // sanctionsChecks = _.uniqBy(sanctionsChecks, 'propertyName')
 
-  latestChecks = _.uniqBy(latestChecks.concat(sanctionsChecks), '_permalink')
+  // latestChecks = _.uniqBy(latestChecks.concat(sanctionsChecks), '_permalink')
   return { latestChecks, checks }
 }
 
