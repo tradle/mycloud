@@ -85,7 +85,7 @@ const fundChecksCP = {
 }
 
 /*
-  
+
   "pitchbookCheck": {
     "athenaMaps": [
         {
@@ -96,7 +96,7 @@ const fundChecksCP = {
         }
     ]
   }
- 
+
 */
 
 interface IPitchbookCheck {
@@ -485,7 +485,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       }
 
       let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, application, bot })
-      if (!check || !check.status || check.status.id.split('_')[1] != 'pass') {
+      if (!check || !isPassedCheck(check)) {
         logger.debug(`pitchbookCheck corporation does not exist`)
         return
       }
