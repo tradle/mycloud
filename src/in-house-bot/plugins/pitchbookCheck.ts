@@ -190,7 +190,7 @@ export class PitchbookCheckAPI {
     })
   }
 
-  public queryAthena = async (sqlCompany: string, sqlFund: string) => {
+  public queryAthena = async (sqlCompany: string, sqlFund: string): Promise<any> => {
     let idCompany: string
     let idFund: string
     let find: any = {}
@@ -301,13 +301,14 @@ export class PitchbookCheckAPI {
             )
           )
         })
-        this.logger.debug(`pitchbookCheck athena fund query result ${list}`)
+        this.logger.debug(`pitchbookCheck athena fund to lp query result ${list}`)
         find.fund = { status: true, error: null, data: list }
       } catch (err) {
         this.logger.error('pitchbookCheck athena error', err)
         find.fund = { status: false, error: err, data: null }
       }
     }
+    return find
   }
 
   public async lookup(form: any, application: IPBApp, req: IPBReq, companyChecks: any, fundChecks: any) {
