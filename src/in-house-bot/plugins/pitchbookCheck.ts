@@ -230,7 +230,7 @@ export class PitchbookCheckAPI {
       }
       if (!find.fund && resultFund != 'SUCCEEDED') {
         try {
-          resultCompany = await this.checkStatus(idFund)
+          resultFund = await this.checkStatus(idFund)
         } catch (err) {
           this.logger.error('pitchbookCheck athena error', err)
           find.fund = { status: false, error: err, data: null }
@@ -241,7 +241,7 @@ export class PitchbookCheckAPI {
       if (find.company && find.fund) break
 
       if (timePassed > 10000) {
-        let msg = (resultCompany != 'SUCCEEDED') ? " for company join" : " in fund join"
+        let msg = (resultCompany != 'SUCCEEDED') ? " in company to fund join" : " in fund to lp join"
         this.logger.error('pitchbookCheck athena error', 'result timeout' + msg)
         if (resultCompany != 'SUCCEEDED')
           find.company = { status: false, error: 'result timeout in lookup of Company to Fund relation', data: null }
@@ -273,11 +273,11 @@ export class PitchbookCheckAPI {
             )
           )
         })
-        this.logger.debug(`pitchbookCheck athena company query result ${list}`)
-        return { status: true, error: null, data: list }
+        this.logger.debug(`pitchbookCheck athena company to fund query result ${list}`)
+        find.company = { status: true, error: null, data: list }
       } catch (err) {
         this.logger.error('pitchbookCheck athena error', err)
-        return { status: false, error: err, data: null }
+        find.company = { status: false, error: err, data: null }
       }
     }
 
@@ -302,10 +302,10 @@ export class PitchbookCheckAPI {
           )
         })
         this.logger.debug(`pitchbookCheck athena fund query result ${list}`)
-        return { status: true, error: null, data: list }
+        find.fund = { status: true, error: null, data: list }
       } catch (err) {
         this.logger.error('pitchbookCheck athena error', err)
-        return { status: false, error: err, data: null }
+        find.fund = { status: false, error: err, data: null }
       }
     }
   }
