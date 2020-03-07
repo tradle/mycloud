@@ -474,22 +474,27 @@ export const getLatestCheck = async ({
   application: IPBApp
   bot: Bot
 }) => {
+  // if (req && req.latestChecks) return req.latestChecks.find(check => check[TYPE] === type)
+
   let latestChecks, payload
   if (req) {
     ;({ payload, latestChecks } = req)
-    if (!latestChecks) latestChecks = await getLatestChecks({ application, bot })
-    latestChecks = latestChecks.sort((a, b) => b._time - a._time)
-    let check = latestChecks.find(
-      check => check[TYPE] === type && (!payload || payload._permalink === check.form._permalink)
-    )
-    return check
+    // if (!latestChecks) ({ latestChecks } = await getLatestChecks({ application, bot }))
+    if (latestChecks) {
+      latestChecks = latestChecks.sort((a, b) => b._time - a._time)
+      return latestChecks.find(
+        check => check[TYPE] === type && (!payload || payload._permalink === check.form._permalink)
+      )
+    }
   }
-  let corpChecks =
+  let checkStubs =
     application.checks && application.checks.filter(checkStub => checkStub[TYPE] === type)
-  if (!corpChecks) return
-  let checks: any = await Promise.all(corpChecks.map(checkStub => bot.getResource(checkStub)))
-  const timeDesc = checks.slice().sort((a, b) => b._time - a._time)
-  return _.uniqBy(timeDesc, TYPE)[0]
+  if (!checkStubs) return
+  let checks: any = await Promise.all(checkStubs.map(checkStub => bot.getResource(checkStub)))
+  latestChecks = checks.slice().sort((a, b) => b._time - a._time)
+  return latestChecks.find(
+    check => check[TYPE] === type && (!payload || payload._permalink === check.form._permalink)
+  )
 }
 export const doesCheckNeedToBeCreated = async ({
   bot,
