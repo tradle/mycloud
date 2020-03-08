@@ -411,7 +411,7 @@
       }
     },
     "@tradle/bot-products": {
-      "version": "github:tradle/bot-products#6df95de77d9298f496346aae251afa5fab48894d",
+      "version": "github:tradle/bot-products#be124f7585ca3163290610cbd8eccd3be9ddbe16",
       "from": "github:tradle/bot-products",
       "requires": {
         "@tradle/build-resource": "^4.0.1",
@@ -550,7 +550,7 @@
     "@tradle/centrix": {
       "version": "1.0.0",
       "resolved": "git://github.com/tradle/centrix.git#a6b234e114b8fd24d576913a4e8cacc10bf024b7",
-      "integrity": "sha1-vpY8dztbsnRzde74x4QY8VchlvU=",
+      "integrity": "sha1-vf9SBmRlv7gfi0+oLuthcDaTyl4=",
       "optional": true,
       "requires": {
         "co": "^4.6.0",
@@ -581,7 +581,7 @@
       "from": "tradle/countries"
     },
     "@tradle/custom-models": {
-      "version": "github:tradle/custom-models#c8ace8aaaa190a0b3fb03740acdfe825d6b0bd25",
+      "version": "github:tradle/custom-models#c6e0fe8ef0bfe98658b5a1d3343c1d8d5c83ace3",
       "from": "github:tradle/custom-models",
       "requires": {
         "@tradle/validate-model": "^7.1.18"
@@ -775,7 +775,7 @@
       }
     },
     "@tradle/models": {
-      "version": "github:tradle/models#b9c9826dd89fce7b479160e0e0fc038f3b238c13",
+      "version": "github:tradle/models#1702702a7de10fec6b4cac5c2996a1907833fd4f",
       "from": "github:tradle/models"
     },
     "@tradle/models-cloud": {
@@ -787,7 +787,7 @@
       "from": "tradle/models-cloud-services"
     },
     "@tradle/models-corporate-onboarding": {
-      "version": "github:tradle/models-corporate-onboarding#130b2ff081210c28a3c2ff125f4fdbd245b7f312",
+      "version": "github:tradle/models-corporate-onboarding#982e4a1ad019d692f61545d787f0002f48431176",
       "from": "github:tradle/models-corporate-onboarding"
     },
     "@tradle/models-nz": {
@@ -990,9 +990,9 @@
       }
     },
     "@tradle/validate-model": {
-      "version": "7.1.20",
-      "resolved": "https://registry.npmjs.org/@tradle/validate-model/-/validate-model-7.1.20.tgz",
-      "integrity": "sha512-eMCEcd0TelHslDCMGKItDEnAMb5+U1rfDW7AI+44rcH3936IqLVIMoDum0ed8n64qdHU4jdymlUXXD4a61T4JQ==",
+      "version": "7.1.21",
+      "resolved": "https://registry.npmjs.org/@tradle/validate-model/-/validate-model-7.1.21.tgz",
+      "integrity": "sha512-w9IiJCKJ6mt8g136+TQROKo99WsFXVRJX41dUIzDbsbLEqmReuUwuZKBxwqDzP2Bfb9Ypn2nS5ljlNYpKxamEw==",
       "requires": {
         "@tradle/constants": "^2.1.0",
         "@tradle/merge-models": "^2.0.0",
