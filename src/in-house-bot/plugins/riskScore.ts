@@ -45,8 +45,6 @@ import { createModelStore } from '@tradle/dynamodb'
 // @ts-ignore
 const { parseStub, sanitize } = validateResource.utils
 
-// const riskFactors = require('../../../riskFactors.json')
-
 const CP_ONBOARDING = 'tradle.legal.ControllingPersonOnboarding'
 const CE_CP = 'tradle.legal.LegalEntityControllingPerson'
 const LE = 'tradle.legal.LegalEntity'
