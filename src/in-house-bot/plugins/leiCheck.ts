@@ -4,7 +4,9 @@ import { TYPE } from '@tradle/constants'
 // @ts-ignore
 import {
   getStatusMessageForCheck,
-  doesCheckNeedToBeCreated
+  doesCheckNeedToBeCreated,
+  getLatestCheck,
+  isPassedCheck
 } from '../utils'
 
 import {
@@ -38,8 +40,10 @@ const BO_ASPECTS = 'Beneficial ownership'
 const LEI_ASPECTS = 'Company existence'
 const GOVERNMENTAL = 'governmental'
 
+const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
+
 const ORDER_BY_TIMESTAMP_DESC = {
   property: 'timestamp',
   desc: true
@@ -393,10 +397,10 @@ export class LeiCheckAPI {
         rawData = this.mapLeiRelations(bo.data)
         status = { status: 'pass', dataSource }
       }
-      else if (!find.status) {
+      else if (!bo.status) {
         status = {
           status: 'error',
-          message: (typeof find.error === 'string' && bo.error) || bo.error.message
+          message: (typeof bo.error === 'string' && bo.error) || bo.error.message
         }
       }
       else if (bo.data.length == 0) {
@@ -424,10 +428,10 @@ export class LeiCheckAPI {
         rawData = lei.data
         status = { status: 'pass', dataSource }
       }
-      else if (!find.status) {
+      else if (!lei.status) {
         status = {
           status: 'error',
-          message: (typeof find.error === 'string' && lei.error) || lei.error.message
+          message: (typeof lei.error === 'string' && lei.error) || lei.error.message
         }
       }
       else if (lei.data.length == 0) {
@@ -453,6 +457,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!application) return
 
       if (FORM_TYPE_LE != payload[TYPE] || !payload['companyName']) return
+
+      logger.debug('leiCheck before corporation exists check')
+      let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, application, bot })
+      if (!check || !isPassedCheck(check)) return
 
       logger.debug('leiCheck before doesCheckNeedToBeCreated')
       let createCheck = await doesCheckNeedToBeCreated({

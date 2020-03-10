@@ -190,118 +190,184 @@ export class PitchbookCheckAPI {
     })
   }
 
-  public queryAthena = async (sql: string) => {
-    let id: string
-    this.logger.debug(`pitchbookCheck queryAthena() called with: ${sql}`)
+  public queryAthena = async (sqlCompany: string, sqlFund: string): Promise<any> => {
+    let idCompany: string
+    let idFund: string
+    let find: any = {}
+    this.logger.debug(`pitchbookCheck queryAthena() called with: ${sqlCompany} , ${sqlFund}`)
 
     try {
-      id = await this.getExecutionId(sql)
-      this.logger.error('athena execution id', id)
+      idCompany = await this.getExecutionId(sqlCompany)
+      this.logger.debug(`athena execution idCompany=${idCompany}`)
     } catch (err) {
-      this.logger.error('athena error', err)
-      return { status: false, error: err, data: null }
+      this.logger.error('pitchbookCheck athena error', err)
+      find.company = { status: false, error: err, data: null }
     }
+
+    try {
+      idFund = await this.getExecutionId(sqlFund)
+      this.logger.debug(`athena execution idFund=${idFund}`)
+    } catch (err) {
+      this.logger.error('pitchbookCheck athena error', err)
+      find.fund = { status: false, error: err, data: null }
+    }
+
+    if (find.company && find.fund)
+      return find
 
     await this.sleep(2000)
     let timePassed = 2000
     while (true) {
-      let result = 'INPROCESS'
-      try {
-        result = await this.checkStatus(id)
-      } catch (err) {
-        this.logger.error('athena error', err)
-        return { status: false, error: err, data: null }
+      let resultCompany = 'INPROCESS'
+      let resultFund = 'INPROCESS'
+      if (!find.company && resultCompany != 'SUCCEEDED') {
+        try {
+          resultCompany = await this.checkStatus(idCompany)
+        } catch (err) {
+          this.logger.error('athena error', err)
+          find.company = { status: false, error: err, data: null }
+        }
       }
-      if (result == 'SUCCEEDED') break
+      if (!find.fund && resultFund != 'SUCCEEDED') {
+        try {
+          resultFund = await this.checkStatus(idFund)
+        } catch (err) {
+          this.logger.error('pitchbookCheck athena error', err)
+          find.fund = { status: false, error: err, data: null }
+        }
+      }
+
+      if (resultCompany == 'SUCCEEDED' && resultFund == 'SUCCEEDED') break
+      if (find.company && find.fund) break
 
       if (timePassed > 10000) {
-        this.logger.error('athena error', 'result timeout')
-        return { status: false, error: 'result timeout', data: null }
+        let msg = (resultCompany != 'SUCCEEDED') ? " in company to fund join" : " in fund to lp join"
+        this.logger.error('pitchbookCheck athena error', 'result timeout' + msg)
+        if (resultCompany != 'SUCCEEDED')
+          find.company = { status: false, error: 'result timeout in lookup of Company to Fund relation', data: null }
+        if (resultFund != 'SUCCEEDED')
+          find.fund = { status: false, error: 'result timeout in lookup of Fund to LP relation', data: null }
+        return find
       }
       await this.sleep(POLL_INTERVAL)
       timePassed += POLL_INTERVAL
     }
-    try {
-      let data: any = await this.getResults(id)
-      let list = []
-      let header = this.buildHeader(data.ResultSet.ResultSetMetadata.ColumnInfo)
-      let top_row = _.map((_.head(data.ResultSet.Rows) as any).Data, (n: any) => {
-        return n.VarCharValue
-      })
-      let resultSet =
-        _.difference(header, top_row).length > 0 ? data.ResultSet.Rows : _.drop(data.ResultSet.Rows)
-      resultSet.forEach(item => {
-        list.push(
-          _.zipObject(
-            header,
-            _.map(item.Data, (n: any) => {
-              return n.VarCharValue
-            })
+
+    if (!find.company) {
+      try {
+        let data: any = await this.getResults(idCompany)
+        let list = []
+        let header = this.buildHeader(data.ResultSet.ResultSetMetadata.ColumnInfo)
+        let top_row = _.map((_.head(data.ResultSet.Rows) as any).Data, (n: any) => {
+          return n.VarCharValue
+        })
+        let resultSet =
+          _.difference(header, top_row).length > 0 ? data.ResultSet.Rows : _.drop(data.ResultSet.Rows)
+        resultSet.forEach(item => {
+          list.push(
+            _.zipObject(
+              header,
+              _.map(item.Data, (n: any) => {
+                return n.VarCharValue
+              })
+            )
           )
-        )
-      })
-      this.logger.debug('athena query result', list)
-      return { status: true, error: null, data: list }
-    } catch (err) {
-      this.logger.error('athena error', err)
-      return { status: false, error: err, data: null }
+        })
+        this.logger.debug(`pitchbookCheck athena company to fund query result ${list}`)
+        find.company = { status: true, error: null, data: list }
+      } catch (err) {
+        this.logger.error('pitchbookCheck athena error', err)
+        find.company = { status: false, error: err, data: null }
+      }
     }
+
+    if (!find.fund) {
+      try {
+        let data: any = await this.getResults(idFund)
+        let list = []
+        let header = this.buildHeader(data.ResultSet.ResultSetMetadata.ColumnInfo)
+        let top_row = _.map((_.head(data.ResultSet.Rows) as any).Data, (n: any) => {
+          return n.VarCharValue
+        })
+        let resultSet =
+          _.difference(header, top_row).length > 0 ? data.ResultSet.Rows : _.drop(data.ResultSet.Rows)
+        resultSet.forEach(item => {
+          list.push(
+            _.zipObject(
+              header,
+              _.map(item.Data, (n: any) => {
+                return n.VarCharValue
+              })
+            )
+          )
+        })
+        this.logger.debug(`pitchbookCheck athena fund to lp query result ${list}`)
+        find.fund = { status: true, error: null, data: list }
+      } catch (err) {
+        this.logger.error('pitchbookCheck athena error', err)
+        find.fund = { status: false, error: err, data: null }
+      }
+    }
+    return find
   }
 
   public async lookup(form: any, application: IPBApp, req: IPBReq, companyChecks: any, fundChecks: any) {
     let status
     this.logger.debug('pitchbookCheck lookup() called')
     let cnt = 0;
+
     // first check funds in company
-    let sql = `select cf.percent, f.* from pitchbook_company c, pitchbook_fund f, pitchbook_company_fund_relation cf
+    let sqlCompany = `select cf.percent, f.* from pitchbook_company c, pitchbook_fund f, pitchbook_company_fund_relation cf
                where c."company id" = cf."company id" and cf."fund id" = f."fund id"`
     for (let check of Object.keys(companyChecks)) {
       if (form[check])
-        sql += ` and lower(c."${companyChecks[check]}") = \'${form[check].toLowerCase()}\'`
+        sqlCompany += ` and lower(c."${companyChecks[check]}") = \'${form[check].toLowerCase()}\'`
     }
-    let find = await this.queryAthena(sql)
+
+    // lets try fund lp
+    let sqlFund = `select flp.percent, lp.* from pitchbook_fund f, pitchbook_limited_partner lp,
+    pitchbook_fund_lp_relation flp
+    where f."fund id" = flp."fund id" and flp."limited partner id" = lp."limited partner id"`
+    for (let check of Object.keys(fundChecks)) {
+      if (form[check])
+        sqlFund += ` and lower(f."${fundChecks[check]}") = \'${form[check].toLowerCase()}\'`
+    }
+
+    let find = await this.queryAthena(sqlCompany, sqlFund)
+
     let rawData: Array<any>
-    if (find.status && find.data.length > 0) {
-      this.logger.debug(`pitchbookCheck check() found ${find.data.length} records for company funds`)
+    let company = find.company
+    let fund = find.fund
+    if (company.status && company.data.length > 0) {
+      this.logger.debug(`pitchbookCheck check() found ${company.data.length} records for company funds`)
       let dataSourceLink = await this.getLinkToDataSource('pitchbook.fund')
-      rawData = this.mapFunds(find.data)
+      rawData = this.mapFunds(company.data)
       status = { status: 'pass', dataSource: dataSourceLink }
     }
-    else if (!find.status) {
+    else if (fund.status && fund.data.length > 0) {
+      this.logger.debug(`pitchbookCheck check() found ${fund.data.length} records for fund lp's`)
+      rawData = this.mapLimitedPartners(fund.data)
+      let dataSourceLink = await this.getLinkToDataSource('pitchbook.lp')
+      status = { status: 'pass', dataSource: dataSourceLink }
+    }
+    else if (company.status && company.data.length == 0 && fund.status && fund.data.length == 0) {
+      status = {
+        status: 'fail',
+        message: 'No matching entries found in company to fund relations and in fund to LP relations'
+      }
+    }
+    else if (!company.status) {
       status = {
         status: 'error',
-        message: (typeof find.error === 'string' && find.error) || find.error.message
+        message: (typeof company.error === 'string' && company.error) || company.error.message
       }
-      rawData = typeof find.error === 'object' && find.error
-    } else if (find.data.length == 0) {
-      // lets try fund lp
-      let sql = `select flp.percent, lp.* from pitchbook_fund f, pitchbook_limited_partner lp,
-                 pitchbook_fund_lp_relation flp
-                 where f."fund id" = flp."fund id" and flp."limited partner id" = lp."limited partner id"`
-      for (let check of Object.keys(fundChecks)) {
-        if (form[check])
-          sql += ` and lower(f."${fundChecks[check]}") = \'${form[check].toLowerCase()}\'`
+      rawData = typeof company.error === 'object' && company.error
+    } else if (!fund.status) {
+      status = {
+        status: 'error',
+        message: (typeof fund.error === 'string' && fund.error) || fund.error.message
       }
-      let find = await this.queryAthena(sql)
-      if (!find.status) {
-        status = {
-          status: 'error',
-          message: (typeof find.error === 'string' && find.error) || find.error.message
-        }
-      }
-      else if (find.data.length == 0) {
-        status = {
-          status: 'fail',
-          message: 'No matching entries found in company to fund relations or in fund to LP relations'
-        }
-      }
-      else {
-        this.logger.debug(`pitchbookCheck check() found ${find.data.length} records for fund lp's`)
-        // convert into psc
-        rawData = this.mapLimitedPartners(find.data)
-        let dataSourceLink = await this.getLinkToDataSource('pitchbook.lp')
-        status = { status: 'pass', dataSource: dataSourceLink }
-      }
+      rawData = typeof fund.error === 'object' && fund.error
     }
 
     await this.createCheck({ application, status, form, rawData, req })
