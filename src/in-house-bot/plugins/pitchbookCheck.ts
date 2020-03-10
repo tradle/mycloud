@@ -244,9 +244,9 @@ export class PitchbookCheckAPI {
         let msg = (resultCompany != 'SUCCEEDED') ? " in company to fund join" : " in fund to lp join"
         this.logger.error('pitchbookCheck athena error', 'result timeout' + msg)
         if (resultCompany != 'SUCCEEDED')
-          find.company = { status: false, error: 'result timeout in lookup of Company to Fund relation', data: null }
+          find.company = { status: false, error: 'timeout in lookup of Company to Fund relation', data: { id: idCompany } }
         if (resultFund != 'SUCCEEDED')
-          find.fund = { status: false, error: 'result timeout in lookup of Fund to LP relation', data: null }
+          find.fund = { status: false, error: 'timeout in lookup of Fund to LP relation', data: { id: idFund } }
         return find
       }
       await this.sleep(POLL_INTERVAL)
@@ -356,18 +356,37 @@ export class PitchbookCheckAPI {
         message: 'No matching entries found in company to fund relations and in fund to LP relations'
       }
     }
-    else if (!company.status) {
+    else if (!company.status && !company.data) {
       status = {
         status: 'error',
         message: (typeof company.error === 'string' && company.error) || company.error.message
       }
       rawData = typeof company.error === 'object' && company.error
-    } else if (!fund.status) {
+    } else if (!fund.status && !fund.data) {
       status = {
         status: 'error',
         message: (typeof fund.error === 'string' && fund.error) || fund.error.message
       }
       rawData = typeof fund.error === 'object' && fund.error
+    }
+    else if (company.data && fund.data) {
+      status = {
+        status: 'pending',
+        message: company.error
+      }
+      rawData = [company.data, fund.data]
+    } else if (company.data) {
+      status = {
+        status: 'pending',
+        message: company.error
+      }
+      rawData = [company.data]
+    } else if (fund.data) {
+      status = {
+        status: 'pending',
+        message: fund.error
+      }
+      rawData = [fund.data]
     }
 
     await this.createCheck({ application, status, form, rawData, req })
@@ -685,9 +704,9 @@ const hasPropertiesChanged = async ({
   let check = propertiesToCheck.filter(p => {
     let rValue = resource[p]
     let dbValue = dbRes[p]
-    if (!rValue && !dbValue) return false
-    if (cleanco.clean(rValue) === cleanco.clean(dbValue)) return false
+    if (!rValue || !dbValue) return false
     if (_.isEqual(dbValue, rValue)) return false
+    if (cleanco.clean(rValue.replace(/\./g, '')) === cleanco.clean(dbValue.replace(/\./g, ''))) return false
     return true
   })
 
