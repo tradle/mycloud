@@ -110,12 +110,30 @@ export class ImportRefdata {
     try {
       fs.ensureDirSync(TEMP + GB_PREFIX + table)
 
-      let get = await fetch(`https://register.fca.org.uk/ShPo_registerdownload?file=${name}`)
+      let get: any
+      let i = 0
+      while (true) {
+        try {
+          get = await fetch(`https://register.fca.org.uk/ShPo_registerdownload?file=${name}`)
+          break;
+        } catch (err) {
+          if (i++ > 5) throw err
+        }
+      }
       let html = await get.text()
       this.logger.debug('moveUKFile fetched html for ' + name)
       let idx1 = html.indexOf('.handleRedirect(')
       let idx2 = html.indexOf('\'', idx1 + 18)
-      get = await fetch('https://register.fca.org.uk' + html.substring(idx1 + 17, idx2))
+
+      i = 0
+      while (true) {
+        try {
+          get = await fetch('https://register.fca.org.uk' + html.substring(idx1 + 17, idx2))
+          break;
+        } catch (err) {
+          if (i++ > 5) throw err
+        }
+      }
 
       let key = `${GB_PREFIX}${table}/${name}.csv.gz`
       let file = TEMP + key
