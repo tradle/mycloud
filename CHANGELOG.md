@@ -2,14 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.6](https://github.com/tradle/mycloud/compare/v3.0.1-rc.5...v3.0.1-rc.6) (2020-03-04)
+## [3.0.1-rc.7](https://github.com/tradle/mycloud/compare/v3.0.1-rc.6...v3.0.1-rc.7) (2020-03-10)
 
 
 ### Bug Fixes
 
-* check overrides classification ([02a5edc](https://github.com/tradle/mycloud/commit/02a5edc))
-* no notifications exception ([5576a48](https://github.com/tradle/mycloud/commit/5576a48))
-* score details make uniformed ([028bc39](https://github.com/tradle/mycloud/commit/028bc39))
+* await missed ([1f1b1e0](https://github.com/tradle/mycloud/commit/1f1b1e0))
+* getLatestCheck should choose for specific form ([0aebe2a](https://github.com/tradle/mycloud/commit/0aebe2a))
+* latest check ([dbe5915](https://github.com/tradle/mycloud/commit/dbe5915))
+* no corp exists check fix ([d04bba4](https://github.com/tradle/mycloud/commit/d04bba4))
+* runs a lot of extra for all form types ([f6407f1](https://github.com/tradle/mycloud/commit/f6407f1))
+* typo call ([33ffa57](https://github.com/tradle/mycloud/commit/33ffa57))
+* wrong pitchbook BO was served ([1884ffe](https://github.com/tradle/mycloud/commit/1884ffe))
+
+
+### Features
+
+* recognize CE disguized as CP ([caae9a0](https://github.com/tradle/mycloud/commit/caae9a0))
+* shortTitle added to model and property ([07d3e45](https://github.com/tradle/mycloud/commit/07d3e45))
 
 
 
