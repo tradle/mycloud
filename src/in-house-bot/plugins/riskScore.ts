@@ -494,7 +494,12 @@ class RiskScoreAPI {
     application.scoreType = this.getScoreType(application.score, this.bot.models)
     application.ruledBasedScore = 0
 
-    let autohigh = details.filter(d => d.risk)
+    // let autohigh = details.filter(d => {
+    //   if (d.risk) return true
+    //   for (let p in d) if (d[p].risk) return true
+    //   return false
+    // })
+    let autohigh = this.getAutohigh(details)
     if (autohigh.length) {
       application.ruledBasedScore = 100
       application.scoreType = enumValue({
@@ -517,6 +522,16 @@ class RiskScoreAPI {
         value: 'autohigh'
       })
     }
+  }
+  getAutohigh(details) {
+    let autohigh = details.filter(d => {
+      if (d.risk) return true
+      for (let p in d) {
+        if (typeof d[p] === 'object' && this.getAutohigh([d[p]]).length) return true
+      }
+      return false
+    })
+    return autohigh
   }
   public getScoreType = (score, models) => {
     const { low, high, medium, autohigh } = this.riskFactors
