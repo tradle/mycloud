@@ -24,9 +24,13 @@ import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
+const UTF8 = 'utf-8'
+
 const TEMP = '/tmp/' // use lambda temp dir
 
 const ATHENA_OUTPUT = 'temp/athena'
+
+const LEI_SYNC_POINTS = 'temp/refdata/lei/syncpoints'
 
 const LEI_ORIGIN_NODE_PREFIX = 'temp/refdata/lei/lei_node_origin/'
 const LEI_NEXT_NODE_PREFIX = 'temp/refdata/lei/lei_next_node/'
@@ -115,31 +119,156 @@ export class ImportLei {
     } catch (err) {
       this.logger.error('importLeiData failed list', err)
     }
-    let changeNode = await this.moveFile(LEI_ORIGIN_NODE_PREFIX, current, 'lei_node.txt.gz')
+
+    let syncpoint = ''
+    if (current.includes(LEI_SYNC_POINTS))
+      syncpoint = await this.getSyncPoints()
+    let changeNode = false
+    let changeRelations = false
+    if (syncpoint === '') {
+      await this.updateSyncPoints('moveNode-begin')
+      changeNode = await this.moveFile(LEI_ORIGIN_NODE_PREFIX, current, 'lei_node.txt.gz')
+    }
+
     if (changeNode) {
+      await this.updateSyncPoints('createLeiNodeInputTable-begin')
       await this.createLeiNodeInputTable()
       await this.deleteAllInNextNode()
+
+      await this.updateSyncPoints('dropAndCreateNextNodeTable-begin')
       await this.dropAndCreateNextNodeTable()
+
+      await this.updateSyncPoints('createLeiNodeTable-begin')
       await this.createLeiNodeTable()
+
+      await this.updateSyncPoints('copyFromNextNode-begin')
       await this.copyFromNextNode()
-      let end = Date.now()
-      this.logger.debug(`importLei finished moving node only in ${(end - begin) / 1000} sec`)
-      return
     }
-
-    let changeRelations = await this.moveFile(LEI_ORIGIN_RELATION_PREFIX, current, 'lei_relation.txt.gz')
-
+    else if (syncpoint !== '') {
+      switch (syncpoint) {
+        case 'createLeiNodeInputTable-begin':
+          await this.createLeiNodeInputTable()
+          await this.deleteAllInNextNode()
+          await this.updateSyncPoints('dropAndCreateNextNodeTable-begin')
+          await this.dropAndCreateNextNodeTable()
+          await this.updateSyncPoints('createLeiNodeTable-begin')
+          await this.createLeiNodeTable()
+          await this.updateSyncPoints('copyFromNextNode-begin')
+          await this.copyFromNextNode()
+          await this.updateSyncPoints('moveRelation-begin')
+          changeRelations = await this.moveFile(LEI_ORIGIN_RELATION_PREFIX, current, 'lei_relation.txt.gz')
+          break
+        case 'dropAndCreateNextNodeTable-begin':
+          await this.dropAndCreateNextNodeTable()
+          await this.updateSyncPoints('createLeiNodeTable-begin')
+          await this.createLeiNodeTable()
+          await this.updateSyncPoints('copyFromNextNode-begin')
+          await this.copyFromNextNode()
+          await this.updateSyncPoints('moveRelation-begin')
+          changeRelations = await this.moveFile(LEI_ORIGIN_RELATION_PREFIX, current, 'lei_relation.txt.gz')
+          break
+        case 'createLeiNodeTable-begin':
+          await this.createLeiNodeTable()
+          await this.updateSyncPoints('copyFromNextNode-begin')
+          await this.copyFromNextNode()
+          await this.updateSyncPoints('moveRelation-begin')
+          changeRelations = await this.moveFile(LEI_ORIGIN_RELATION_PREFIX, current, 'lei_relation.txt.gz')
+          break
+        case 'copyFromNextNode-begin':
+          await this.copyFromNextNode()
+          await this.updateSyncPoints('moveRelation-begin')
+          changeRelations = await this.moveFile(LEI_ORIGIN_RELATION_PREFIX, current, 'lei_relation.txt.gz')
+          break
+        case 'moveRelation-begin':
+          changeRelations = await this.moveFile(LEI_ORIGIN_RELATION_PREFIX, current, 'lei_relation.txt.gz')
+          break
+        default:
+      }
+    }
 
     if (changeRelations) {
+      await this.updateSyncPoints('createLeiRelationInputTable-begin')
       await this.createLeiRelationInputTable()
       await this.deleteAllInNextRelation()
+
+      await this.updateSyncPoints('dropAndCreateNextRelationTable-begin')
       await this.dropAndCreateNextRelationTable()
+
+      await this.updateSyncPoints('createLeiRelationTable-begin')
       await this.createLeiRelationTable()
+
+      await this.updateSyncPoints('copyFromNextRelation-begin')
       await this.copyFromNextRelation()
 
+      await this.updateSyncPoints('createDataSourceRefresh-begin')
       await this.createDataSourceRefresh()
+      await this.updateSyncPoints('')
     }
-
+    else if (syncpoint !== '') {
+      switch (syncpoint) {
+        case 'moveRelation-begin':
+          changeRelations = await this.moveFile(LEI_ORIGIN_RELATION_PREFIX, current, 'lei_relation.txt.gz')
+          if (!changeRelations) {
+            await this.updateSyncPoints('')
+            break
+          }
+          await this.updateSyncPoints('createLeiRelationInputTable-begin')
+          await this.createLeiRelationInputTable()
+          await this.deleteAllInNextRelation()
+          await this.updateSyncPoints('dropAndCreateNextRelationTable-begin')
+          await this.dropAndCreateNextRelationTable()
+          await this.updateSyncPoints('createLeiRelationTable-begin')
+          await this.createLeiRelationTable()
+          await this.updateSyncPoints('copyFromNextRelation-begin')
+          await this.copyFromNextRelation()
+          await this.updateSyncPoints('createDataSourceRefresh-begin')
+          await this.createDataSourceRefresh()
+          await this.updateSyncPoints('')
+          break
+        case 'createLeiRelationInputTable-begin':
+          await this.createLeiRelationInputTable()
+          await this.deleteAllInNextRelation()
+          await this.updateSyncPoints('dropAndCreateNextRelationTable-begin')
+          await this.dropAndCreateNextRelationTable()
+          await this.updateSyncPoints('createLeiRelationTable-begin')
+          await this.createLeiRelationTable()
+          await this.updateSyncPoints('copyFromNextRelation-begin')
+          await this.copyFromNextRelation()
+          await this.updateSyncPoints('createDataSourceRefresh-begin')
+          await this.createDataSourceRefresh()
+          await this.updateSyncPoints('')
+          break
+        case 'dropAndCreateNextRelationTable-begin':
+          await this.dropAndCreateNextRelationTable()
+          await this.updateSyncPoints('createLeiRelationTable-begin')
+          await this.createLeiRelationTable()
+          await this.updateSyncPoints('copyFromNextRelation-begin')
+          await this.copyFromNextRelation()
+          await this.updateSyncPoints('createDataSourceRefresh-begin')
+          await this.createDataSourceRefresh()
+          await this.updateSyncPoints('')
+          break
+        case 'createLeiRelationTable-begin':
+          await this.createLeiRelationTable()
+          await this.updateSyncPoints('copyFromNextRelation-begin')
+          await this.copyFromNextRelation()
+          await this.updateSyncPoints('createDataSourceRefresh-begin')
+          await this.createDataSourceRefresh()
+          await this.updateSyncPoints('')
+          break
+        case 'copyFromNextRelation-begin':
+          await this.copyFromNextRelation()
+          await this.updateSyncPoints('createDataSourceRefresh-begin')
+          await this.createDataSourceRefresh()
+          await this.updateSyncPoints('')
+          break
+        case 'createDataSourceRefresh-begin':
+          await this.createDataSourceRefresh()
+          await this.updateSyncPoints('')
+          break
+        default:
+      }
+    }
     let end = Date.now()
     this.logger.debug(`importLei finished in ${(end - begin) / 1000} sec`)
   }
@@ -719,6 +848,29 @@ export class ImportLei {
     }
     let resp = await s3.headObject(params).promise()
     return resp.Metadata.md5
+  }
+
+  getSyncPoints = async (): Promise<string> => {
+    var params = {
+      Bucket: this.outputLocation,
+      Key: LEI_SYNC_POINTS
+    }
+    try {
+      const data = await s3.getObject(params).promise()
+      return data.Body.toString(UTF8)
+    } catch (err) {
+      // no file
+      return ''
+    }
+  }
+
+  updateSyncPoints = async (content: string) => {
+    var contentToPost = {
+      Bucket: this.outputLocation,
+      Key: LEI_SYNC_POINTS,
+      Body: content
+    }
+    let res = await s3.putObject(contentToPost).promise()
   }
 
   writeStreamToPromise = (stream: fs.WriteStream) => {

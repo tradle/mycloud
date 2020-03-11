@@ -33,7 +33,7 @@ const POLL_INTERVAL = 250
 const ATHENA_OUTPUT = 'temp/athena'
 
 const FORM_TYPE_LE = 'tradle.legal.LegalEntity'
-const LEI_CHECK = 'tradle.LEICheck'
+
 const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const PROVIDER = 'GLEIF – Global Legal Entity Identifier Foundation'
 const BO_ASPECTS = 'Beneficial ownership'
@@ -289,7 +289,7 @@ export class LeiCheckAPI {
   public createLEICheck = async ({ application, status, form, rawData, req }: ILeiCheck) => {
     // debugger
     let resource: any = {
-      [TYPE]: LEI_CHECK,
+      [TYPE]: CORPORATION_EXISTS,
       status: status.status,
       sourceType: GOVERNMENTAL,
       provider: PROVIDER,
@@ -457,10 +457,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!application) return
 
       if (FORM_TYPE_LE != payload[TYPE] || !payload['companyName']) return
-
-      logger.debug('leiCheck before corporation exists check')
-      let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, application, bot })
-      if (!check || !isPassedCheck(check)) return
 
       logger.debug('leiCheck before doesCheckNeedToBeCreated')
       let createCheck = await doesCheckNeedToBeCreated({
