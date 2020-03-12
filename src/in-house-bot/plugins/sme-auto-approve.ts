@@ -246,7 +246,12 @@ export class TreeBuilder {
         dateLastNotified,
         percentageOfOwnership
       } = associatedNode
-      _.extend(appStub, { timesNotified, notifiedStatus, dateLastNotified, percentageOfOwnership })
+      _.extend(appStub, {
+        timesNotified,
+        notifiedStatus,
+        dateLastNotified,
+        percentageOfOwnership
+      })
       appStub = sanitize(appStub).sanitized
     } else if (payload && payload[TYPE] === CP) {
       if (!appStub.top.nodes) appStub.top.nodes = {}
@@ -331,9 +336,9 @@ export class TreeBuilder {
   }
   async fillCpNode(req) {
     let { application, payload, latestChecks } = req
-    let ok, fail
+    let ok, fail, checks
     if (latestChecks && latestChecks.length) {
-      let checks = latestChecks.filter(check => check.form._permalink === payload._permalink)
+      checks = latestChecks.filter(check => check.form._permalink === payload._permalink)
       if (checks.length) {
         ok = checks.filter(
           check =>
@@ -349,16 +354,20 @@ export class TreeBuilder {
     if (application.numberOfCheckOverrides) {
       let checksOverride = application.checksOverride
       if (!checksOverride)
-        checksOverride = await this.bot.getResource(application, { backlinks: ['checksOverride'] })
+        ({ checksOverride } = await this.bot.getResource(application, {
+          backlinks: ['checksOverride']
+        }))
       checksOverride = await Promise.all(checksOverride.map(co => this.bot.objects.get(co._link)))
 
       let failed = 0
       let pass = 0
       let { checks } = req
       checksOverride.forEach(co => {
-        let check = checks.find(
-          c => co.check._permalink === c._permalink && c.form._permalink === payload._permalink
-        )
+        let check =
+          checks &&
+          checks.find(
+            c => co.check._permalink === c._permalink && c.form._permalink === payload._permalink
+          )
         if (!check) return
         // if (!co.form._permalink === payload._permalink) return
         let status = getEnumValueId({ model: this.bot.models[co[TYPE]], value: co.status })
