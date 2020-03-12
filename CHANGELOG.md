@@ -2,24 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.7](https://github.com/tradle/mycloud/compare/v3.0.1-rc.6...v3.0.1-rc.7) (2020-03-10)
+## [3.0.1-rc.8](https://github.com/tradle/mycloud/compare/v3.0.1-rc.7...v3.0.1-rc.8) (2020-03-12)
 
 
 ### Bug Fixes
 
-* await missed ([1f1b1e0](https://github.com/tradle/mycloud/commit/1f1b1e0))
-* getLatestCheck should choose for specific form ([0aebe2a](https://github.com/tradle/mycloud/commit/0aebe2a))
-* latest check ([dbe5915](https://github.com/tradle/mycloud/commit/dbe5915))
-* no corp exists check fix ([d04bba4](https://github.com/tradle/mycloud/commit/d04bba4))
-* runs a lot of extra for all form types ([f6407f1](https://github.com/tradle/mycloud/commit/f6407f1))
-* typo call ([33ffa57](https://github.com/tradle/mycloud/commit/33ffa57))
-* wrong pitchbook BO was served ([1884ffe](https://github.com/tradle/mycloud/commit/1884ffe))
+* autohigh got lost on details redesign ([27340dc](https://github.com/tradle/mycloud/commit/27340dc))
+* the var used out of scope ([cab04a6](https://github.com/tradle/mycloud/commit/cab04a6))
 
 
 ### Features
 
-* recognize CE disguized as CP ([caae9a0](https://github.com/tradle/mycloud/commit/caae9a0))
-* shortTitle added to model and property ([07d3e45](https://github.com/tradle/mycloud/commit/07d3e45))
+* change application name if LE is the first form in the product ([55bb11b](https://github.com/tradle/mycloud/commit/55bb11b))
+* model validation ([61fc165](https://github.com/tradle/mycloud/commit/61fc165))
 
 
 
