@@ -56,9 +56,10 @@ export class ReuseAPI {
         }
       }))
     } catch (err) {
+      this.logger.error('Search for LE to reuse', err)
       debugger
     }
-    if (!items || !items.length) return
+    if (!items || !items.length) return items
     items = items.filter(
       item => getEnumValueId({ model: models[COUNTRY], value: item.country }) === countryCode
     )
@@ -82,9 +83,10 @@ export class ReuseAPI {
         }
       }))
     } catch (err) {
+      this.logger.error('Search for CP to reuse', err)
       debugger
     }
-    if (!items || !items.length) return
+    if (!items || !items.length) return items
     let dateOfBirth = new Date(controllingEntityDateOfBirth)
     let dobYear = dateOfBirth.getFullYear()
     let dobMon = dateOfBirth.getMonth()
@@ -107,7 +109,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   const plugin: IPluginLifecycleMethods = {
     async onmessage(req: IPBReq) {
       let { application, payload } = req
-      if (!application) return
+      if (!application || application.draft) return
 
       if (payload[TYPE] !== CP) return
       let latestChecks: any = req.latestChecks || (await getLatestChecks({ application, bot }))
@@ -124,7 +126,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       else if (payload.controllingEntityDateOfBirth)
         resources = await reuseAPI.handlePerson({ req })
       else return
-      if (!resources.length) return
+      if (!resources || !resources.length) return
 
       let items: any
       try {
