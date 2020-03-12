@@ -585,9 +585,17 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       }
       // CHECK PASS
       if (status === 'pass' && hits.length === 1)
-        if (ptype === LEGAL_ENTITY && !application.applicantName)
-          application.applicantName = payload[map.companyName]
-
+        if (ptype === LEGAL_ENTITY) {
+          // if the application has name make sure that LE was the first form from which the name was derived
+          // first will be PR and then LE or vice versa
+          if (
+            !application.applicantName ||
+            application.forms.length === 1 ||
+            application.forms[0].submission._permalink === payload._permalink ||
+            application.forms[1].submission._permalink === payload._permalink
+          )
+            application.applicantName = payload[map.companyName]
+        }
       pchecks.push(
         openCorporates.createCorporateCheck({
           provider,
