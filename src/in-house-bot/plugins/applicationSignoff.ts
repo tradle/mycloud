@@ -9,11 +9,11 @@ const PROVIDER = 'Tradle'
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
   const plugin: IPluginLifecycleMethods = {
-    onFormsCollected: async ({ req }) => {
+    onFormsCollected: async ({ req }: { req: IPBReq }) => {
       let { application } = req
 
       if (!application) return
-      debugger
+      // debugger
       const { products } = conf
       const { requestFor } = application
       if (!products || !products[requestFor]) return
@@ -46,7 +46,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         aspects: ASPECTS,
         form,
         message: 'Placeholder for RM to make a final decision'
-        // associatedApplication
       }
       await applications.createCheck(resource, req)
     }
