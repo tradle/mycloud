@@ -990,9 +990,9 @@
       }
     },
     "@tradle/validate-model": {
-      "version": "7.1.21",
-      "resolved": "https://registry.npmjs.org/@tradle/validate-model/-/validate-model-7.1.21.tgz",
-      "integrity": "sha512-w9IiJCKJ6mt8g136+TQROKo99WsFXVRJX41dUIzDbsbLEqmReuUwuZKBxwqDzP2Bfb9Ypn2nS5ljlNYpKxamEw==",
+      "version": "7.1.22",
+      "resolved": "https://registry.npmjs.org/@tradle/validate-model/-/validate-model-7.1.22.tgz",
+      "integrity": "sha512-JTgdQ8Rw4NX050TYY6gZPMcCLXBX4oVy2z3JmwHl+QNWGq+tSWtKAcTdaF7Q1oYr0DSm2i2y5s7uVoRhlvYBvg==",
       "requires": {
         "@tradle/constants": "^2.1.0",
         "@tradle/merge-models": "^2.0.0",
