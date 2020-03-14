@@ -2,19 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.8](https://github.com/tradle/mycloud/compare/v3.0.1-rc.7...v3.0.1-rc.8) (2020-03-12)
+## [3.0.1-rc.9](https://github.com/tradle/mycloud/compare/v3.0.1-rc.8...v3.0.1-rc.9) (2020-03-12)
 
 
 ### Bug Fixes
 
-* autohigh got lost on details redesign ([27340dc](https://github.com/tradle/mycloud/commit/27340dc))
-* the var used out of scope ([cab04a6](https://github.com/tradle/mycloud/commit/cab04a6))
-
-
-### Features
-
-* change application name if LE is the first form in the product ([55bb11b](https://github.com/tradle/mycloud/commit/55bb11b))
-* model validation ([61fc165](https://github.com/tradle/mycloud/commit/61fc165))
+* no reuse on white glove ([1106e3a](https://github.com/tradle/mycloud/commit/1106e3a))
 
 
 
