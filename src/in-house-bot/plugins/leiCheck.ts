@@ -291,7 +291,6 @@ export class LeiCheckAPI {
     let resource: any = {
       [TYPE]: CORPORATION_EXISTS,
       status: status.status,
-      sourceType: GOVERNMENTAL,
       provider: PROVIDER,
       application,
       dateChecked: new Date().getTime(),
