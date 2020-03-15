@@ -47,6 +47,7 @@ const LEI_ASPECTS = 'Company existence'
 const GOVERNMENTAL = 'governmental'
 
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
+const LEI_CHECK = 'tradle.LEICheck'
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
 
@@ -214,7 +215,7 @@ export class LeiCheckAPI {
   public createLEICheck = async ({ application, status, form, rawData, req }: ILeiCheck) => {
     // debugger
     let resource: any = {
-      [TYPE]: CORPORATION_EXISTS,
+      [TYPE]: LEI_CHECK,
       status: status.status,
       provider: PROVIDER,
       application,

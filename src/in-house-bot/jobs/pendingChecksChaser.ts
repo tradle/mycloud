@@ -28,6 +28,7 @@ const LEI_PROVIDER = 'GLEIF – Global Legal Entity Identifier Foundation'
 
 const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
+const LEI_CHECK = 'tradle.LEICheck'
 
 interface PendingInfo {
   id: string
@@ -68,7 +69,7 @@ export class PendingChecksChaser {
   chase = async () => {
     this.logger.debug('pendingChecksChaser begins')
     await this.chaseType(BENEFICIAL_OWNER_CHECK, [PSC_PROVIDER, PITCHBOOK_PROVIDER, LEI_PROVIDER])
-    await this.chaseType(CORPORATION_EXISTS, [LEI_PROVIDER])
+    await this.chaseType(LEI_CHECK, [LEI_PROVIDER])
   }
 
   chaseType = async (type: string, providers: Array<string>) => {
