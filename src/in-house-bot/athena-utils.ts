@@ -77,7 +77,7 @@ export class AthenaHelper {
 }
 
 export async function sleep(ms: number) {
-  await this._sleep(ms)
+  await _sleep(ms)
 }
 
 function _sleep(ms: number) {
