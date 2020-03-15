@@ -1,6 +1,7 @@
 import uniqBy from 'lodash/uniqBy'
 import extend from 'lodash/extend'
 import size from 'lodash/size'
+import cleanco from 'cleanco'
 
 import { Bot, Logger, CreatePlugin, IPluginLifecycleMethods } from '../types'
 
@@ -203,17 +204,16 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         position,
         endDate: end_date && new Date(end_date).getTime()
       }
-      let isCompany =
-        !date_of_birth &&
-        !country_of_residence &&
-        identification &&
-        identification.registration_number
-      if (!isCompany) {
-        let le = await bot.getResource(legalEntity.submission)
-        isCompany = this.isCompany({
-          name,
-          country: le.country
-        })
+      let isCompany
+      if (!date_of_birth && !country_of_residence) {
+        if (identification && identification.registration_number) isCompany = true
+        else {
+          let le = await bot.getResource(legalEntity.submission)
+          isCompany = this.isCompany({
+            name,
+            country: le.country
+          })
+        }
       }
       if (isCompany || (identification && identification.registration_number)) {
         this.prefillCompany(prefill, { data: officer })
@@ -343,10 +343,17 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       formRequest.message = `Please review and correct the data below **for ${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
     },
     isCompany({ name, country }) {
+      let tokens = name.replace(/[^\w\s]/gi, '').split(' ')
+      let clean = cleanco.clean(name.replace(/\./g, ''))
+      if (tokens.length !== clean.length) {
+        debugger
+        // return true
+      }
+      // if (clean !== name.toLowerCase()) return true
       let id = getEnumValueId({ model: bot.models[COUNTRY], value: country })
       let keys = companyKeywords[id]
       if (!keys) return false
-      let tokens = name.replace(/[^\w\s]/gi, '').split(' ')
+
       return keys.filter(key => tokens.includes(key) || !isNaN(key)).length
     },
     async doSkipBO(application) {

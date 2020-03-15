@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.5](https://github.com/tradle/mycloud/compare/v3.0.1-rc.4...v3.0.1-rc.5) (2020-03-01)
+## [3.0.1-rc.9](https://github.com/tradle/mycloud/compare/v3.0.1-rc.8...v3.0.1-rc.9) (2020-03-12)
 
 
 ### Bug Fixes
 
-* not all countries have keywords for identification company or person ([1ec7a9c](https://github.com/tradle/mycloud/commit/1ec7a9c))
+* no reuse on white glove ([1106e3a](https://github.com/tradle/mycloud/commit/1106e3a))
 
 
 

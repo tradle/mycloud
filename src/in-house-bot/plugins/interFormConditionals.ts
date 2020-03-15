@@ -1,6 +1,8 @@
 import cloneDeep from 'lodash/cloneDeep'
 import size from 'lodash/size'
 import extend from 'lodash/extend'
+import get from 'lodash/get'
+
 import { CreatePlugin, IPBReq, IPluginLifecycleMethods, ValidatePluginConf } from '../types'
 import { TYPE } from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
@@ -12,21 +14,39 @@ const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const FORM_REQUEST = 'tradle.FormRequest'
 const APPLICATION = 'tradle.Application'
 const ENUM = 'tradle.Enum'
-export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
+const TERMS_AND_CONDITIONS = 'tradle.TermsAndConditions'
+const DATE_ACCEPTED_PROP = 'tsAndCsState.dateAccepted'
+const DATA_CLAIM = 'tradle.DataClaim'
+const UPDATE_RESPONSE = 'tradle.cloud.UpdateResponse'
+const ALLOW_WITHOUT_ACCEPTING = [DATA_CLAIM, UPDATE_RESPONSE]
+
+export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) => {
+  const { bot, conf: mainConf } = components
   const plugin: IPluginLifecycleMethods = {
     name: 'interFormConditionals',
     getRequiredForms: async ({ user, application }) => {
       if (!application) return
 
       if (application.processingDataBundle) return []
+
+      const { requestFor } = application
+
+      let { termsAndConditions } = mainConf.bot.products.plugins
+      let addTerms
+      if (termsAndConditions && termsAndConditions.enabled) {
+        const dateAccepted = get(user, DATE_ACCEPTED_PROP)
+        if (dateAccepted) {
+          if (dateAccepted < mainConf.termsAndConditions.lastModified) addTerms = true
+        } else if (!ALLOW_WITHOUT_ACCEPTING.includes(requestFor)) addTerms = true
+      }
       // || !application.forms || !application.forms.length) return
 
-      bot.logger.debug(`interFormConditionals: for ${application.requestFor}`)
-      const { requestFor } = application
+      bot.logger.debug(`interFormConditionals: for ${requestFor}`)
       let productForms = conf[requestFor]
       if (!productForms) {
         if (!application.maxFormTypesCount)
           application.maxFormTypesCount = bot.models[requestFor].forms.length
+        if (addTerms) return [TERMS_AND_CONDITIONS].concat(bot.models[requestFor].forms)
         return
       }
 
@@ -102,7 +122,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
 
       if (!application.maxFormTypesCount || application.maxFormTypesCount !== retForms.length)
         application.maxFormTypesCount = retForms.length
-      return retForms
+      if (addTerms) return [TERMS_AND_CONDITIONS].concat(retForms)
+      else return retForms
     },
     async onmessage(req: IPBReq) {
       const { payload, application, user } = req
@@ -159,7 +180,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
     async willRequestForm({ application, formRequest }) {
       // debugger
       if (!application) return
+
       const requestFor = application.requestFor
+
       let productConf = conf[requestFor]
       if (!productConf) return
 
