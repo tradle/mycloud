@@ -259,32 +259,34 @@ export class LeiCheckAPI {
       let bo = find.bo
       let rawData: Array<any>
       let status: any
-      if (bo.status && bo.data.length > 0) {
+      if (bo.status) {
         this.logger.debug(`leiCheck lookup() found ${bo.data.length} records in lei relations`)
-        convertRecords(bo.data)
-        rawData = leiRelations(bo.data)
-        status = { status: 'pass', dataSource }
-      }
-      else if (!bo.status) {
-        if (!bo.data) {
-          status = {
-            status: 'error',
-            message: (typeof bo.error === 'string' && bo.error) || bo.error.message
-          }
-        }
-        else if (bo.data.length == 0) {
-          status = {
-            status: 'fail',
-            message: 'No matching entries found in lei relations'
-          }
+        if (bo.data.length > 0) {
+          convertRecords(bo.data)
+          rawData = leiRelations(bo.data)
+          status = { status: 'pass', dataSource }
         }
         else {
           status = {
-            status: 'pending',
-            message: bo.error
+            status: 'fail',
+            message: 'No matching entries found in lei relations',
+            dataSource
           }
-          rawData = bo.data
         }
+      }
+      else if (!bo.data) {
+        status = {
+          status: 'error',
+          message: (typeof bo.error === 'string' && bo.error) || bo.error.message
+        }
+      }
+      else {
+        status = {
+          status: 'pending',
+          message: bo.error,
+          dataSource
+        }
+        rawData = bo.data
       }
       await this.createBOCheck({ application, status, form, rawData, req })
     }
@@ -294,34 +296,36 @@ export class LeiCheckAPI {
       let lei = find.lei
       let rawData: Array<any>
       let status: any
-      if (lei.status && lei.data.length > 0) {
+      if (lei.status) {
         this.logger.debug(`leiCheck lookup() found ${lei.data.length} records in lei nodes`)
-        convertRecords(lei.data)
-        rawData = lei.data
-        status = { status: 'pass', dataSource }
-      }
-      else if (!lei.status) {
-        if (!lei.data) {
-          status = {
-            status: 'error',
-            message: (typeof lei.error === 'string' && lei.error) || lei.error.message
-          }
-        }
-        else if (lei.data.length == 0) {
-          status = {
-            status: 'fail',
-            message: 'No matching entries found in lei nodes'
-          }
+        if (lei.data.length > 0) {
+          convertRecords(lei.data)
+          rawData = lei.data
+          status = { status: 'pass', dataSource }
         }
         else {
           status = {
-            status: 'pending',
-            message: lei.error
+            status: 'fail',
+            message: 'No matching entries found in lei nodes',
+            dataSource
           }
-          rawData = lei.data
         }
-        await this.createLEICheck({ application, status, form, rawData, req })
       }
+      else if (!lei.data) {
+        status = {
+          status: 'error',
+          message: (typeof lei.error === 'string' && lei.error) || lei.error.message
+        }
+      }
+      else {
+        status = {
+          status: 'pending',
+          message: lei.error,
+          dataSource
+        }
+        rawData = lei.data
+      }
+      await this.createLEICheck({ application, status, form, rawData, req })
     }
   }
 }
