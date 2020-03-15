@@ -9,6 +9,13 @@ import {
 } from '../utils'
 
 import {
+  pitchbookFunds,
+  pitchbookLimitedPartners,
+  sleep,
+  AthenaHelper
+} from '../athena-utils'
+
+import {
   Bot,
   CreatePlugin,
   Applications,
@@ -32,8 +39,7 @@ import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
-const POLL_INTERVAL = 250
-const ATHENA_OUTPUT = 'temp/athena'
+const POLL_INTERVAL = 500
 
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 
@@ -114,22 +120,15 @@ export class PitchbookCheckAPI {
   private logger: Logger
   private athena: AWS.Athena
 
+  private athenaHelper: AthenaHelper
+
   constructor({ bot, conf, applications, logger }) {
     this.bot = bot
     this.conf = conf
     this.applications = applications
     this.logger = logger
-    const accessKeyId = ''
-    const secretAccessKey = ''
-    const region = ''
-    this.athena = new AWS.Athena() //{ region, accessKeyId, secretAccessKey })
-  }
-
-  public sleep = async (ms: number) => {
-    await this._sleep(ms)
-  }
-  public _sleep = (ms: number) => {
-    return new Promise(resolve => setTimeout(resolve, ms))
+    this.athena = new AWS.Athena() // accessKeyId  secretAccessKey region
+    this.athenaHelper = new AthenaHelper(bot, logger, this.athena, 'pitchbookCheck')
   }
 
   getLinkToDataSource = async (id: string) => {
@@ -148,47 +147,6 @@ export class PitchbookCheckAPI {
       return undefined
     }
   }
-  public getExecutionId = async (sql: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const outputLocation = `s3://${this.bot.buckets.PrivateConf.id}/${ATHENA_OUTPUT}`
-      const database = this.bot.env.getStackResourceName('sec').replace(/\-/g, '_')
-      let params = {
-        QueryString: sql,
-        ResultConfiguration: { OutputLocation: outputLocation },
-        QueryExecutionContext: { Database: database }
-      }
-
-      /* Make API call to start the query execution */
-      this.athena.startQueryExecution(params, (err, results) => {
-        if (err) return reject(err)
-        return resolve(results.QueryExecutionId)
-      })
-    })
-  }
-  public checkStatus = async (id: string): Promise<string> => {
-    return new Promise<string>((resolve, reject) => {
-      this.athena.getQueryExecution({ QueryExecutionId: id }, (err, data) => {
-        if (err) return reject(err)
-        if (data.QueryExecution.Status.State === 'SUCCEEDED') return resolve('SUCCEEDED')
-        else if (['FAILED', 'CANCELLED'].includes(data.QueryExecution.Status.State))
-          return reject(new Error(`Query status: ${JSON.stringify(data.QueryExecution.Status, null, 2)}`))
-        else return resolve('INPROCESS')
-      })
-    })
-  }
-  public getResults = async (id: string) => {
-    return new Promise((resolve, reject) => {
-      this.athena.getQueryResults({ QueryExecutionId: id }, (err, data) => {
-        if (err) return reject(err)
-        return resolve(data)
-      })
-    })
-  }
-  public buildHeader = columns => {
-    return _.map(columns, (i: any) => {
-      return i.Name
-    })
-  }
 
   public queryAthena = async (sqlCompany: string, sqlFund: string): Promise<any> => {
     let idCompany: string
@@ -197,7 +155,7 @@ export class PitchbookCheckAPI {
     this.logger.debug(`pitchbookCheck queryAthena() called with: ${sqlCompany} , ${sqlFund}`)
 
     try {
-      idCompany = await this.getExecutionId(sqlCompany)
+      idCompany = await this.athenaHelper.getExecutionId(sqlCompany)
       this.logger.debug(`athena execution idCompany=${idCompany}`)
     } catch (err) {
       this.logger.error('pitchbookCheck athena error', err)
@@ -205,7 +163,7 @@ export class PitchbookCheckAPI {
     }
 
     try {
-      idFund = await this.getExecutionId(sqlFund)
+      idFund = await this.athenaHelper.getExecutionId(sqlFund)
       this.logger.debug(`athena execution idFund=${idFund}`)
     } catch (err) {
       this.logger.error('pitchbookCheck athena error', err)
@@ -215,64 +173,47 @@ export class PitchbookCheckAPI {
     if (find.company && find.fund)
       return find
 
-    await this.sleep(2000)
+    await sleep(2000)
     let timePassed = 2000
     while (true) {
-      let resultCompany = 'INPROCESS'
-      let resultFund = 'INPROCESS'
-      if (!find.company && resultCompany != 'SUCCEEDED') {
+      let resultCompany = false
+      let resultFund = false
+      if (!find.company && !resultCompany) {
         try {
-          resultCompany = await this.checkStatus(idCompany)
+          resultCompany = await this.athenaHelper.checkStatus(idCompany)
         } catch (err) {
           this.logger.error('athena error', err)
           find.company = { status: false, error: err, data: null }
         }
       }
-      if (!find.fund && resultFund != 'SUCCEEDED') {
+      if (!find.fund && !resultFund) {
         try {
-          resultFund = await this.checkStatus(idFund)
+          resultFund = await this.athenaHelper.checkStatus(idFund)
         } catch (err) {
           this.logger.error('pitchbookCheck athena error', err)
           find.fund = { status: false, error: err, data: null }
         }
       }
 
-      if (resultCompany == 'SUCCEEDED' && resultFund == 'SUCCEEDED') break
+      if (resultCompany && resultFund) break
       if (find.company && find.fund) break
 
-      if (timePassed > 10000) {
-        let msg = (resultCompany != 'SUCCEEDED') ? " in company to fund join" : " in fund to lp join"
-        this.logger.error('pitchbookCheck athena error', 'result timeout' + msg)
-        if (resultCompany != 'SUCCEEDED')
-          find.company = { status: false, error: 'timeout in lookup of Company to Fund relation', data: { id: idCompany } }
-        if (resultFund != 'SUCCEEDED')
-          find.fund = { status: false, error: 'timeout in lookup of Fund to LP relation', data: { id: idFund } }
+      if (timePassed > 3000) {
+        let msg = (!resultCompany) ? " in company to fund join" : " in fund to lp join"
+        this.logger.error('pitchbookCheck athena pending result' + msg)
+        if (!resultCompany)
+          find.company = { status: false, error: 'pending in lookup for Company to Fund relation', data: { id: idCompany, func: 'pitchbookFunds' } }
+        if (!resultFund)
+          find.fund = { status: false, error: 'pending in lookup for Fund to LP relation', data: { id: idFund, func: 'pitchbookLimitedPartners' } }
         return find
       }
-      await this.sleep(POLL_INTERVAL)
+      await sleep(POLL_INTERVAL)
       timePassed += POLL_INTERVAL
     }
 
     if (!find.company) {
       try {
-        let data: any = await this.getResults(idCompany)
-        let list = []
-        let header = this.buildHeader(data.ResultSet.ResultSetMetadata.ColumnInfo)
-        let top_row = _.map((_.head(data.ResultSet.Rows) as any).Data, (n: any) => {
-          return n.VarCharValue
-        })
-        let resultSet =
-          _.difference(header, top_row).length > 0 ? data.ResultSet.Rows : _.drop(data.ResultSet.Rows)
-        resultSet.forEach(item => {
-          list.push(
-            _.zipObject(
-              header,
-              _.map(item.Data, (n: any) => {
-                return n.VarCharValue
-              })
-            )
-          )
-        })
+        let list: Array<any> = await this.athenaHelper.getResults(idCompany)
         this.logger.debug(`pitchbookCheck athena company to fund query result ${list}`)
         find.company = { status: true, error: null, data: list }
       } catch (err) {
@@ -283,24 +224,7 @@ export class PitchbookCheckAPI {
 
     if (!find.fund) {
       try {
-        let data: any = await this.getResults(idFund)
-        let list = []
-        let header = this.buildHeader(data.ResultSet.ResultSetMetadata.ColumnInfo)
-        let top_row = _.map((_.head(data.ResultSet.Rows) as any).Data, (n: any) => {
-          return n.VarCharValue
-        })
-        let resultSet =
-          _.difference(header, top_row).length > 0 ? data.ResultSet.Rows : _.drop(data.ResultSet.Rows)
-        resultSet.forEach(item => {
-          list.push(
-            _.zipObject(
-              header,
-              _.map(item.Data, (n: any) => {
-                return n.VarCharValue
-              })
-            )
-          )
-        })
+        let list: Array<any> = await this.athenaHelper.getResults(idFund)
         this.logger.debug(`pitchbookCheck athena fund to lp query result ${list}`)
         find.fund = { status: true, error: null, data: list }
       } catch (err) {
@@ -341,12 +265,12 @@ export class PitchbookCheckAPI {
     if (company.status && company.data.length > 0) {
       this.logger.debug(`pitchbookCheck check() found ${company.data.length} records for company funds`)
       let dataSourceLink = await this.getLinkToDataSource('pitchbook.fund')
-      rawData = this.mapFunds(company.data)
+      rawData = pitchbookFunds(company.data)
       status = { status: 'pass', dataSource: dataSourceLink }
     }
     else if (fund.status && fund.data.length > 0) {
       this.logger.debug(`pitchbookCheck check() found ${fund.data.length} records for fund lp's`)
-      rawData = this.mapLimitedPartners(fund.data)
+      rawData = pitchbookLimitedPartners(fund.data)
       let dataSourceLink = await this.getLinkToDataSource('pitchbook.lp')
       status = { status: 'pass', dataSource: dataSourceLink }
     }
@@ -393,110 +317,6 @@ export class PitchbookCheckAPI {
 
   }
 
-  mapLimitedPartners = (find: Array<any>): Array<any> => {
-    let list = []
-    for (let row of find) {
-      let pscLike = {
-        data: {
-          address:
-          {
-            address_line_1: row["hq address line 1"],
-            address_line_2: row["hq address line 2"],
-            country: row["hq country"],
-            locality: row["hq city"],
-            postal_code: row["hq post code"],
-            region: row["hq state/province"],
-          },
-          identification:
-          {
-            country_registered: row["hq country"],
-            place_registered: row["hq location"],
-          },
-          kind: "corporate-entity-person-with-significant-control",
-          name: row["limited partner name"],
-          natures_of_control: []
-        }
-      }
-      let natures_of_control: string
-      if (row.percent < '25')
-        natures_of_control = 'ownership-of-shares-0-to-25-percent'
-      else if (row.percent >= '25' && row.percent < '50')
-        natures_of_control = 'ownership-of-shares-25-to-50-percent'
-      else if (row.percent >= '50' && row.percent < '75')
-        natures_of_control = 'ownership-of-shares-50-to-75-percent'
-      else
-        natures_of_control = 'ownership-of-shares-75-to-100-percent'
-      pscLike.data.natures_of_control.push(natures_of_control)
-
-      list.push(pscLike)
-
-      pscLike["hq phone"] = row["hq phone"]
-      pscLike["hq email"] = row["hq email"]
-      pscLike["primary contact phone"] = row["primary contact phone"]
-      pscLike["limited partner type"] = row["limited partner type"]
-      pscLike["aum"] = row["aum"]
-      pscLike["year founded"] = row["year founded"]
-      pscLike["primary contact"] = row["primary contact"]
-      pscLike["primary contact title"] = row["primary contact title"]
-      pscLike["primary contact email"] = row["primary contact email"]
-      pscLike["website"] = row["website"]
-
-    }
-    return list
-  }
-
-  mapFunds = (find: Array<any>): Array<any> => {
-    let list = []
-    for (let row of find) {
-      let pscLike = {
-        data: {
-          address: {
-            country: row["fund country"],
-            locality: row["fund city"],
-            region: row["fund state/province"]
-          },
-          identification: {
-            country_registered: row["fund country"],
-            place_registered: row["fund location"],
-          },
-          kind: "corporate-entity-person-with-significant-control",
-          name: row["fund name"],
-          natures_of_control: []
-        }
-      }
-
-      let natures_of_control: string
-      if (row.percent < '25')
-        natures_of_control = 'ownership-of-shares-0-to-25-percent'
-      else if (row.percent >= '25' && row.percent < '50')
-        natures_of_control = 'ownership-of-shares-25-to-50-percent'
-      else if (row.percent >= '50' && row.percent < '75')
-        natures_of_control = 'ownership-of-shares-50-to-75-percent'
-      else
-        natures_of_control = 'ownership-of-shares-75-to-100-percent'
-      pscLike.data.natures_of_control.push(natures_of_control)
-
-      pscLike["lps"] = row["lps"]
-      pscLike["fund sps"] = row["fund sps"]
-      pscLike["fund partners"] = row["fund partners"]
-      pscLike["fund no."] = row["fund no."]
-      pscLike["first fund"] = row["first fund"]
-      pscLike["vintage"] = row["vintage"]
-      pscLike["fund status"] = row["fund status"]
-      pscLike["fund size"] = row["fund size"]
-      pscLike["fund size group"] = row["fund size group"]
-      pscLike["fund type"] = row["fund type"]
-      pscLike["fund type"] = row["fund type"]
-      pscLike["close date"] = row["close date"]
-      pscLike["open date"] = row["open date"]
-      pscLike["fund target size low"] = row["fund target size low"]
-      pscLike["fund target size high"] = row["fund target size high"]
-      pscLike["fund target size"] = row["fund target size"]
-
-      list.push(pscLike)
-    }
-    return list
-  }
   public createCheck = async ({ application, status, form, rawData, req }: IPitchbookCheck) => {
     // debugger
     let resource: any = {
@@ -514,7 +334,11 @@ export class PitchbookCheckAPI {
     this.logger.debug('pitchbookCheck DataSourceLink: ' + JSON.stringify(resource.dataSource, null, 2))
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
-    if (rawData && Array.isArray(rawData)) {
+
+    if (status.status === 'pending') {
+      resource.pendingInfo = rawData
+    }
+    else if (rawData && Array.isArray(rawData)) {
       resource.rawData = sanitize(rawData).sanitized
       this.logger.debug('pitchbookCheck rawData:\n' + JSON.stringify(resource.rawData, null, 2))
     }

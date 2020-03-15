@@ -78,6 +78,11 @@ const COMMON_JOBS: Job[] = [
     period: 1 * MINUTE
   },
   {
+    name: 'pendingChecksChaser',
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
+    period: 2 * MINUTE
+  },
+  {
     name: 'importBasicCompanyData',
     function: DEFAULT_JOB_RUNNER_FUNCTION,
     period: 90 * MINUTE

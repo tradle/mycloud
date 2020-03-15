@@ -22,6 +22,7 @@ import { ImportMaxmindDb } from './importMaxmindDb'
 import { ImportBasicCompanyData } from './importBasicCompanyData'
 import { RoarFeedback } from './roarFeedback'
 import { Chaser } from './chaser'
+import { PendingChecksChaser } from './pendingChecksChaser'
 // import { Deployment } from '../deployment'
 
 const SAFETY_MARGIN_MILLIS = 20000
@@ -96,6 +97,15 @@ export const importPitchbookData: Executor = async ({ job, components }) => {
     importer.move()
   } catch (err) {
     components.bot.logger.error('job importPitchbookData failed', err)
+  }
+}
+
+export const pendingChecksChaser: Executor = async ({ job, components }) => {
+  let pendingChaser = new PendingChecksChaser(components.bot)
+  try {
+    pendingChaser.chase()
+  } catch (err) {
+    components.bot.logger.error('job pendingChecksChaser failed', err)
   }
 }
 
