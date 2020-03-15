@@ -340,8 +340,8 @@ export class PitchbookCheckAPI {
     }
     else if (rawData && Array.isArray(rawData)) {
       resource.rawData = sanitize(rawData).sanitized
-      this.logger.debug('pitchbookCheck rawData:\n' + JSON.stringify(resource.rawData, null, 2))
     }
+    this.logger.debug('pitchbookCheck resource:\n' + JSON.stringify(resource, null, 2))
 
     this.logger.debug(`${PROVIDER} Creating pitchbookCheck`)
     await this.applications.createCheck(resource, req)
