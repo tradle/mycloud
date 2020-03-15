@@ -152,13 +152,13 @@ export class LeiCheckAPI {
           result.bo = { status: false, error: 'pending result', data: [{ id: idBO, func: 'leiRelations' }] }
         if (!resultLEI)
           result.lei = { status: false, error: 'pending result', data: [{ id: idLEI }] }
-        return result
+        break
       }
       await sleep(POLL_INTERVAL)
       timePassed += POLL_INTERVAL
     }
 
-    if (!result.bo) {
+    if (resultBO) {
       try {
         let list: Array<any> = await this.athenaHelper.getResults(idBO)
         this.logger.debug('leiCheck BO athena query result', list)
@@ -169,7 +169,7 @@ export class LeiCheckAPI {
       }
     }
 
-    if (!result.lei) {
+    if (resultLEI) {
       try {
         let list: Array<any> = await this.athenaHelper.getResults(idLEI)
         this.logger.debug('leiCheck LEI athena query result', list)

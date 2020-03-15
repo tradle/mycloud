@@ -174,10 +174,10 @@ export class PitchbookCheckAPI {
       return find
 
     await sleep(2000)
+    let resultCompany = false
+    let resultFund = false
     let timePassed = 2000
     while (true) {
-      let resultCompany = false
-      let resultFund = false
       if (!find.company && !resultCompany) {
         try {
           resultCompany = await this.athenaHelper.checkStatus(idCompany)
@@ -205,13 +205,13 @@ export class PitchbookCheckAPI {
           find.company = { status: false, error: 'pending in lookup for Company to Fund relation', data: { id: idCompany, func: 'pitchbookFunds' } }
         if (!resultFund)
           find.fund = { status: false, error: 'pending in lookup for Fund to LP relation', data: { id: idFund, func: 'pitchbookLimitedPartners' } }
-        return find
+        break
       }
       await sleep(POLL_INTERVAL)
       timePassed += POLL_INTERVAL
     }
 
-    if (!find.company) {
+    if (resultCompany) {
       try {
         let list: Array<any> = await this.athenaHelper.getResults(idCompany)
         this.logger.debug(`pitchbookCheck athena company to fund query result ${list}`)
@@ -222,7 +222,7 @@ export class PitchbookCheckAPI {
       }
     }
 
-    if (!find.fund) {
+    if (resultFund) {
       try {
         let list: Array<any> = await this.athenaHelper.getResults(idFund)
         this.logger.debug(`pitchbookCheck athena fund to lp query result ${list}`)
