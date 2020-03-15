@@ -134,7 +134,7 @@ export class PscCheckAPI {
       }
       if (result) break
 
-      if (timePassed > 3000) {
+      if (timePassed > 5000) {
         this.logger.debug('pscCheck athena pending result')
         return { status: false, error: 'pending result', data: { id } }
       }
@@ -220,9 +220,9 @@ export class PscCheckAPI {
     else if (rawData && Array.isArray(rawData)) {
       convertRecords(rawData)
       resource.rawData = sanitize(rawData).sanitized
-      // if (this.conf.trace)
+      if (this.conf.trace)
+        this.logger.debug(`pscCheck rawData: ${JSON.stringify(resource.rawData, null, 2)}`)
     }
-    this.logger.debug(`pscCheck resource: ${JSON.stringify(resource, null, 2)}`)
 
     this.logger.debug(`${PROVIDER} Creating pscCheck`)
     await this.applications.createCheck(resource, req)

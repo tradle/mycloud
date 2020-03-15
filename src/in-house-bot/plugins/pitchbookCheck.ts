@@ -198,7 +198,7 @@ export class PitchbookCheckAPI {
       if (resultCompany && resultFund) break
       if (find.company && find.fund) break
 
-      if (timePassed > 2000) {
+      if (timePassed > 3000) {
         let msg = (!resultCompany) ? " in company to fund join" : " in fund to lp join"
         this.logger.error('pitchbookCheck athena pending result' + msg)
         if (!resultCompany)
@@ -340,8 +340,8 @@ export class PitchbookCheckAPI {
     }
     else if (rawData && Array.isArray(rawData)) {
       resource.rawData = sanitize(rawData).sanitized
+      this.logger.debug('pitchbookCheck rawData:\n' + JSON.stringify(resource.rawData, null, 2))
     }
-    this.logger.debug('pitchbookCheck resource:\n' + JSON.stringify(resource, null, 2))
 
     this.logger.debug(`${PROVIDER} Creating pitchbookCheck`)
     await this.applications.createCheck(resource, req)
