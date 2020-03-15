@@ -198,7 +198,7 @@ export class PitchbookCheckAPI {
       if (resultCompany && resultFund) break
       if (find.company && find.fund) break
 
-      if (timePassed > 3000) {
+      if (timePassed > 2000) {
         let msg = (!resultCompany) ? " in company to fund join" : " in fund to lp join"
         this.logger.error('pitchbookCheck athena pending result' + msg)
         if (!resultCompany)
@@ -293,19 +293,19 @@ export class PitchbookCheckAPI {
       }
       rawData = typeof fund.error === 'object' && fund.error
     }
-    else if (company.data && fund.data) {
+    else if (!company.status && company.data && !fund.status && fund.data) {
       status = {
         status: 'pending',
         message: company.error
       }
       rawData = [company.data, fund.data]
-    } else if (company.data) {
+    } else if (!company.status && company.data) {
       status = {
         status: 'pending',
         message: company.error
       }
       rawData = [company.data]
-    } else if (fund.data) {
+    } else if (!fund.status && fund.data) {
       status = {
         status: 'pending',
         message: fund.error
