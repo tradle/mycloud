@@ -134,7 +134,7 @@ export class PscCheckAPI {
       }
       if (result) break
 
-      if (timePassed > 3000) {
+      if (timePassed > 5000) {
         this.logger.debug('pscCheck athena pending result')
         return { status: false, error: 'pending result', data: { id } }
       }

@@ -123,14 +123,10 @@ export class PendingChecksChaser {
     }
     const { items } = await this.bot.db.find({
       allowScan: true,
-      orderBy: {
-        property: 'dateChecked',
-        desc: true
-      },
       filter: {
         EQ: eqClause,
         GTE: {
-          'dateChecked': Date.now() - 5 * 60 * 1000 // 5 min
+          'dateChecked': Date.now() - 10 * 60 * 1000 // 10 min
         },
         IN: {
           'provider': providers
