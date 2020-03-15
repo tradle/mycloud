@@ -122,11 +122,10 @@ export class PendingChecksChaser {
       'status.id': 'tradle.Status_pending'
     }
     const { items } = await this.bot.db.find({
-      allowScan: true,
       filter: {
         EQ: eqClause,
         GTE: {
-          'dateChecked': Date.now() - 10 * 60 * 1000 // 10 min
+          '_time': Date.now() - 10 * 60 * 1000 // 10 min
         },
         IN: {
           'provider': providers
