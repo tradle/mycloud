@@ -24,6 +24,8 @@ import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
+const MAX_TIME = 12 * 60 * 1000 // 12 min
+
 const UTF8 = 'utf-8'
 
 const TEMP = '/tmp/' // use lambda temp dir
@@ -129,19 +131,28 @@ export class ImportLei {
       await this.updateSyncPoints('moveNode-begin')
       changeNode = await this.moveFile(LEI_ORIGIN_NODE_PREFIX, current, 'lei_node.txt.gz')
     }
-
+    let now: number
     if (changeNode) {
       await this.updateSyncPoints('createLeiNodeInputTable-begin')
       await this.createLeiNodeInputTable()
       await this.deleteAllInNextNode()
 
       await this.updateSyncPoints('dropAndCreateNextNodeTable-begin')
+      now = Date.now()
+      if (now - begin > MAX_TIME)
+        return
       await this.dropAndCreateNextNodeTable()
 
       await this.updateSyncPoints('createLeiNodeTable-begin')
+      now = Date.now()
+      if (now - begin > MAX_TIME)
+        return
       await this.createLeiNodeTable()
 
       await this.updateSyncPoints('copyFromNextNode-begin')
+      now = Date.now()
+      if (now - begin > MAX_TIME)
+        return
       await this.copyFromNextNode()
     }
     else if (syncpoint !== '') {
@@ -150,33 +161,63 @@ export class ImportLei {
           await this.createLeiNodeInputTable()
           await this.deleteAllInNextNode()
           await this.updateSyncPoints('dropAndCreateNextNodeTable-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.dropAndCreateNextNodeTable()
           await this.updateSyncPoints('createLeiNodeTable-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.createLeiNodeTable()
           await this.updateSyncPoints('copyFromNextNode-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.copyFromNextNode()
           await this.updateSyncPoints('moveRelation-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           changeRelations = await this.moveFile(LEI_ORIGIN_RELATION_PREFIX, current, 'lei_relation.txt.gz')
           break
         case 'dropAndCreateNextNodeTable-begin':
           await this.dropAndCreateNextNodeTable()
           await this.updateSyncPoints('createLeiNodeTable-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.createLeiNodeTable()
           await this.updateSyncPoints('copyFromNextNode-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.copyFromNextNode()
           await this.updateSyncPoints('moveRelation-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           changeRelations = await this.moveFile(LEI_ORIGIN_RELATION_PREFIX, current, 'lei_relation.txt.gz')
           break
         case 'createLeiNodeTable-begin':
           await this.createLeiNodeTable()
           await this.updateSyncPoints('copyFromNextNode-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.copyFromNextNode()
           await this.updateSyncPoints('moveRelation-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           changeRelations = await this.moveFile(LEI_ORIGIN_RELATION_PREFIX, current, 'lei_relation.txt.gz')
           break
         case 'copyFromNextNode-begin':
           await this.copyFromNextNode()
           await this.updateSyncPoints('moveRelation-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           changeRelations = await this.moveFile(LEI_ORIGIN_RELATION_PREFIX, current, 'lei_relation.txt.gz')
           break
         case 'moveRelation-begin':
@@ -188,19 +229,31 @@ export class ImportLei {
 
     if (changeRelations) {
       await this.updateSyncPoints('createLeiRelationInputTable-begin')
+      now = Date.now()
+      if (now - begin > MAX_TIME)
+        return
       await this.createLeiRelationInputTable()
       await this.deleteAllInNextRelation()
 
       await this.updateSyncPoints('dropAndCreateNextRelationTable-begin')
+      now = Date.now()
+      if (now - begin > MAX_TIME)
+        return
       await this.dropAndCreateNextRelationTable()
 
       await this.updateSyncPoints('createLeiRelationTable-begin')
+      now = Date.now()
+      if (now - begin > MAX_TIME)
+        return
       await this.createLeiRelationTable()
 
       await this.updateSyncPoints('copyFromNextRelation-begin')
       await this.copyFromNextRelation()
 
       await this.updateSyncPoints('createDataSourceRefresh-begin')
+      now = Date.now()
+      if (now - begin > MAX_TIME)
+        return
       await this.createDataSourceRefresh()
       await this.updateSyncPoints('')
     }
@@ -213,15 +266,30 @@ export class ImportLei {
             break
           }
           await this.updateSyncPoints('createLeiRelationInputTable-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.createLeiRelationInputTable()
           await this.deleteAllInNextRelation()
           await this.updateSyncPoints('dropAndCreateNextRelationTable-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.dropAndCreateNextRelationTable()
           await this.updateSyncPoints('createLeiRelationTable-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.createLeiRelationTable()
           await this.updateSyncPoints('copyFromNextRelation-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.copyFromNextRelation()
           await this.updateSyncPoints('createDataSourceRefresh-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.createDataSourceRefresh()
           await this.updateSyncPoints('')
           break
@@ -229,36 +297,66 @@ export class ImportLei {
           await this.createLeiRelationInputTable()
           await this.deleteAllInNextRelation()
           await this.updateSyncPoints('dropAndCreateNextRelationTable-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.dropAndCreateNextRelationTable()
           await this.updateSyncPoints('createLeiRelationTable-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.createLeiRelationTable()
           await this.updateSyncPoints('copyFromNextRelation-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.copyFromNextRelation()
           await this.updateSyncPoints('createDataSourceRefresh-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.createDataSourceRefresh()
           await this.updateSyncPoints('')
           break
         case 'dropAndCreateNextRelationTable-begin':
           await this.dropAndCreateNextRelationTable()
           await this.updateSyncPoints('createLeiRelationTable-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.createLeiRelationTable()
           await this.updateSyncPoints('copyFromNextRelation-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.copyFromNextRelation()
           await this.updateSyncPoints('createDataSourceRefresh-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.createDataSourceRefresh()
           await this.updateSyncPoints('')
           break
         case 'createLeiRelationTable-begin':
           await this.createLeiRelationTable()
           await this.updateSyncPoints('copyFromNextRelation-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.copyFromNextRelation()
           await this.updateSyncPoints('createDataSourceRefresh-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.createDataSourceRefresh()
           await this.updateSyncPoints('')
           break
         case 'copyFromNextRelation-begin':
           await this.copyFromNextRelation()
           await this.updateSyncPoints('createDataSourceRefresh-begin')
+          now = Date.now()
+          if (now - begin > MAX_TIME)
+            return
           await this.createDataSourceRefresh()
           await this.updateSyncPoints('')
           break
@@ -269,8 +367,6 @@ export class ImportLei {
         default:
       }
     }
-    let end = Date.now()
-    this.logger.debug(`importLei finished in ${(end - begin) / 1000} sec`)
   }
 
   moveFile = async (s3location: string, current: Array<string>, outputFile: string): Promise<boolean> => {
