@@ -127,7 +127,7 @@ export class ImportLei {
       syncpoint = await this.getSyncPoints()
     let changeNode = false
     let changeRelations = false
-    if (syncpoint === '') {
+    if (syncpoint === '' || syncpoint === 'moveNode-begin') {
       await this.updateSyncPoints('moveNode-begin')
       changeNode = await this.moveFile(LEI_ORIGIN_NODE_PREFIX, current, 'lei_node.txt.gz')
     }
