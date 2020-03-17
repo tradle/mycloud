@@ -628,7 +628,7 @@ export class ImportLei {
                     bucket_count = 1
                    )
           AS SELECT * FROM lei_node_origin`
-    let res = await this.executeDDL(create, 10000, 120000)
+    let res = await this.executeDDL(create, 20000, 240000)
     this.logger.debug('importLei dropAndCreateNextNodeTable: ' + JSON.stringify(res, null, 2))
   }
 
@@ -871,7 +871,6 @@ export class ImportLei {
       this.logger.error('importLei executeDDL error', err)
       return undefined
     }
-
     await this.sleep(delay)
     let timePassed = delay
     while (true) {
@@ -889,8 +888,8 @@ export class ImportLei {
         this.logger.debug('tired of waiting')
         return undefined;
       }
-      await this.sleep(1000)
-      timePassed += 1000
+      await this.sleep(2000)
+      timePassed += 2000
     }
     try {
       let data = await this.getResults(id)
