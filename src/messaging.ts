@@ -476,6 +476,7 @@ export default class Messaging {
     }
 
     if (this.delivery.http.isStuck(deliveryError)) {
+      this.logger.debug(`aborting, delivery is stuck`, deliveryError)
       return false
     }
 
@@ -585,9 +586,7 @@ export default class Messaging {
         // OWNER may change to an array of strings in the future
         if (![].concat(prev[OWNER]).includes(author)) {
           throw new Errors.InvalidAuthor(
-            `expected ${
-              prev[OWNER]
-            } as specified in the prev verison's ${OWNER} property, got ${author}`
+            `expected ${prev[OWNER]} as specified in the prev verison's ${OWNER} property, got ${author}`
           )
         }
       } else if (prev[AUTHOR] !== author) {
