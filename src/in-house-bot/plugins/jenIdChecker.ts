@@ -495,6 +495,14 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
           }
         }
         if (anydata) {
+          await documentChecker.createCheck({ application, status, form, req })
+          await documentChecker.createVerification({
+            application,
+            form,
+            rawData: status.rawData,
+            req
+          })
+
           const payloadClone = _.cloneDeep(payload)
           payloadClone[PERMALINK] = payloadClone._permalink
           payloadClone[LINK] = payloadClone._link
