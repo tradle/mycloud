@@ -239,7 +239,7 @@
     "lodash": "~4.17.11",
     "lru-cache": "^4.1.1",
     "maxmind": "^4.0.0",
-    "mem": "^3.0.1",
+    "mem": "^4.0.0",
     "merge-sorted": "^1.0.0",
     "microtime-nodejs": "^1.0.0",
     "mkdirp": "^0.5.1",
