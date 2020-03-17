@@ -370,7 +370,8 @@ export class ImportLei {
   }
 
   moveFile = async (s3location: string, current: Array<string>, outputFile: string): Promise<boolean> => {
-    this.logger.debug('importLei ' + outputFile)
+    this.logger.debug(`importLei began move of ${outputFile}`)
+    let start = Date.now()
     try {
       let key = `${s3location}${outputFile}`
       fs.ensureDirSync(TEMP + 'lei')
@@ -378,7 +379,8 @@ export class ImportLei {
       let out = TEMP + 'lei/' + outputFile
 
       await this.s3downloadhttp('public/lei/' + outputFile, out)
-
+      let now = Date.now()
+      this.logger.debug(`importLei downloaded ${outputFile} at ${(now - start) / 1000} sec`)
       /*
       if (fileName.includes('rr_')) {
         await this.convertRelation(url, out)
@@ -388,7 +390,7 @@ export class ImportLei {
       }
       */
       let md5: string = await this.checksumFile('MD5', out)
-      this.logger.debug('importLei calculated md5 for ' + out + ', md5=' + md5)
+      this.logger.debug(`importLei calculated md5 for ${out}, md5=${md5} at ${(Date.now() - start) / 1000}`)
 
       if (current.includes(key)) {
         // check md5
@@ -409,7 +411,7 @@ export class ImportLei {
         Metadata: { md5 },
         Body: rstream
       }
-      this.logger.debug(`importLei about to upload for ${outputFile}`)
+      this.logger.debug(`importLei about to upload for ${outputFile} at ${(Date.now() - start) / 1000}`)
       let res = await s3.upload(contentToPost).promise()
 
       this.logger.debug(`importLei imported ${outputFile} data`)
