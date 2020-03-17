@@ -464,7 +464,68 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
       // debugger
       let status: any = await documentChecker.handleData(form, application)
 
-      if (conf.requestCorrectionFromClient && status.repeat) {
+      if (status.status === 'pass') {
+        let anydata = false
+        let personal = status.rawData.header.standardData
+        logger.debug(`jenIdChecker standardData \n ${JSON.stringify(personal, null, 2)}`)
+        let dateOfBirth: number
+        let dateOfExpiry: number
+        let documentNumber: string
+        let firstName: string
+        let lastName: string
+        if (personal) {
+          if (personal.dateofbirth) { //dateOfBirth
+            let dob = '19' + personal.dateofbirth.year + '-' + personal.dateofbirth.month + '-' + personal.dateofbirth.day
+            dateOfBirth = Date.parse(dob)
+            anydata = true
+          }
+          if (personal.dateofexpiry) { // dateOfExpiry
+            let expire = '20' + personal.dateofexpiry.year + '-' + personal.dateofexpiry.month + '-' + personal.dateofexpiry.day
+            dateOfExpiry = Date.parse(expire)
+            anydata = true
+          }
+          if (personal.documentnumber) { // documentNumber
+            documentNumber = personal.documentnumber.value
+            anydata = true
+          }
+          if (personal.name) {
+            firstName = personal.name.givenname // firstName
+            lastName = personal.name.surname    // lastName
+            anydata = true
+          }
+        }
+        if (anydata) {
+          const payloadClone = _.cloneDeep(payload)
+          payloadClone[PERMALINK] = payloadClone._permalink
+          payloadClone[LINK] = payloadClone._link
+          if (firstName) payloadClone.firstName = firstName
+          if (lastName) payloadClone.lastName = lastName
+          if (documentNumber) payloadClone.documentNumber = documentNumber
+          if (dateOfBirth) payloadClone.dateOfBirth = dateOfBirth
+          if (dateOfExpiry) payloadClone.dateOfExpiry = dateOfExpiry
+          // debugger
+          let formError: any = {
+            req,
+            user,
+            application
+          }
+          formError.details = {
+            prefill: payloadClone,
+            message: `Please review and correct the data below`
+          }
+
+          try {
+            await applications.requestEdit(formError)
+            return {
+              message: 'no request edit',
+              exit: true
+            }
+          } catch (err) {
+            debugger
+          }
+        }
+      }
+      else if (conf.requestCorrectionFromClient && status.repeat) {
         const payloadClone = _.cloneDeep(payload)
         payloadClone[PERMALINK] = payloadClone._permalink
         payloadClone[LINK] = payloadClone._link
