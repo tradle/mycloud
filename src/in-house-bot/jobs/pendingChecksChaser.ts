@@ -90,7 +90,7 @@ export class PendingChecksChaser {
           this.logger.debug(`pendingChecksChaser for type ${type} found ${list.length} results for ${info.id}`)
         }
       }
-      if (!rawData && readyCnt == checks.length) {
+      if (!rawData && readyCnt == pendigInfo.length) {
         // fail
         check.status = this.FAIL
         check.resultDetails = 'no match found'
