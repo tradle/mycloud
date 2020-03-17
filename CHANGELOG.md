@@ -2,18 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.10](https://github.com/tradle/mycloud/compare/v3.0.1-rc.9...v3.0.1-rc.10) (2020-03-16)
-
-
-### Bug Fixes
-
-* is company or person ([960e1d2](https://github.com/tradle/mycloud/commit/960e1d2))
-
-
-### Features
-
-* terms and conditions redesign ([7f80e15](https://github.com/tradle/mycloud/commit/7f80e15))
-* upgrade packages ([3e9cc74](https://github.com/tradle/mycloud/commit/3e9cc74))
+## [3.0.1-rc.11](https://github.com/tradle/mycloud/compare/v3.0.1-rc.10...v3.0.1-rc.11) (2020-03-17)
 
 
 
