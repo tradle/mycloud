@@ -2,7 +2,7 @@ import '../globals'
 
 import Debug from 'debug'
 import randomName from 'random-name'
-import leveldown from 'leveldown'
+import leveldown from 'memdown'
 import mkdirp from 'mkdirp'
 import once from 'lodash/once'
 import Client from '@tradle/aws-client'
