@@ -523,23 +523,23 @@ export const loadComponentsAndPlugins = ({
     productsAPI.plugins.use(keepProductListFresh, true) // prepend
     productsAPI.plugins.use(keepModelsFresh, true) // prepend
 
-    if (
-      plugins.termsAndConditions &&
-      plugins.termsAndConditions.enabled &&
-      conf.termsAndConditions
-    ) {
-      const tcPlugin = createTsAndCsPlugin({
-        termsAndConditions: conf.termsAndConditions,
-        productsAPI,
-        employeeManager,
-        get remediation() {
-          return components.remediation
-        },
-        logger: logger.sub('plugin-ts-and-cs')
-      })
+    // if (
+    //   plugins.termsAndConditions &&
+    //   plugins.termsAndConditions.enabled &&
+    //   conf.termsAndConditions
+    // ) {
+    //   const tcPlugin = createTsAndCsPlugin({
+    //     termsAndConditions: conf.termsAndConditions,
+    //     productsAPI,
+    //     employeeManager,
+    //     get remediation() {
+    //       return components.remediation
+    //     },
+    //     logger: logger.sub('plugin-ts-and-cs')
+    //   })
 
-      // productsAPI.plugins.use(tcPlugin, true) // prepend
-    }
+    //   productsAPI.plugins.use(tcPlugin, true) // prepend
+    // }
 
     productsAPI.plugins.use(approveWhenTheTimeComes(components))
     productsAPI.plugins.use(banter(components))
@@ -719,6 +719,7 @@ export const loadComponentsAndPlugins = ({
       'document-ocr',
       'bundleUpload',
       'draftApplication',
+      'termsAndConditions',
       'prefill-controllingPerson',
       'interFormConditionals',
       'regulatorRegistration',
@@ -741,8 +742,7 @@ export const loadComponentsAndPlugins = ({
       'documentValidity',
       'fill-myproduct',
       'checkOverride',
-      'prefill-controllingPerson',
-      't-and-c'
+      'prefill-controllingPerson'
     ].forEach(name => attachPlugin({ name, requiresConf: false }))
     // used for some demo
     // ;[

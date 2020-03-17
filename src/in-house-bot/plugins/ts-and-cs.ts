@@ -20,7 +20,7 @@ const TERMS_AND_CONDITIONS_FIRST_TIME =
 const TERMS_AND_CONDITIONS_NTH_TIME =
   'Our Terms and Conditions have changed. Please review them before continuing'
 
-export const name = 'termsAndConditions'
+export const name = 'ts-and-cs'
 export const createPlugin = (components: {
   logger: Logger
   productsAPI: any
