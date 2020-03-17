@@ -777,11 +777,6 @@ export class Deployment {
       return false
     }
 
-    const promiseMonitorChild = this._monitorChildStack({
-      stackId,
-      stackOwner: buildResource.permalink(identity)
-    })
-
     const friend = await this.bot.friends.add({
       url: apiUrl,
       org,
@@ -818,7 +813,10 @@ export class Deployment {
     }
 
     await childDeploymentRes.signAndSave()
-    await promiseMonitorChild
+    await this._monitorChildStack({
+      stackId,
+      stackOwner: buildResource.permalink(identity)
+    })
 
     return true
   }
@@ -1181,10 +1179,22 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _monitorChildStack = async ({ stackOwner, stackId }: ChildStackIdentifier) => {
-    return await Promise.props({
-      statusUpdates: stackOwner && this._setupStackStatusAlerts({ stackOwner, stackId }),
-      logging: this._setupLoggingAlerts({ stackId })
-    })
+    let attempts = 3
+    let error
+    while (attempts--) {
+      try {
+        return await Promise.props({
+          statusUpdates: stackOwner && this._setupStackStatusAlerts({ stackOwner, stackId }),
+          logging: this._setupLoggingAlerts({ stackId })
+        })
+      } catch (err) {
+        error = err
+        this.logger.debug('failed to subscribe to child stack alerts, retrying in 10s')
+        await utils.wait(10000)
+      }
+    }
+
+    throw error
   }
 
   private _setupStackStatusAlerts = async (opts: ChildStackIdentifier) => {
