@@ -27,6 +27,7 @@ const APPLICATION_SUBMITTED = 'tradle.ApplicationSubmitted'
 const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
 const NOTIFICATION = 'tradle.Notification'
 const STATUS = 'tradle.Status'
+const OVERRIDE_STATUS = 'tradle.OverrideStatus'
 
 type SmeVerifierOpts = {
   bot: Bot
@@ -275,18 +276,20 @@ export class TreeBuilder {
     if (application.numberOfCheckOverrides) {
       let checksOverride = application.checksOverride
       if (!checksOverride)
-        checksOverride = await this.bot.getResource(application, { backlinks: ['checksOverride'] })
-      checksOverride = Promise.all(
-        application.checkOverrides.map(co => this.bot.objects.get(co._link))
-      )
-      let failed = 0
-      let pass = 0
-      checksOverride.forEach(co => {
-        let status = getEnumValueId({ model: this.bot.models[co[TYPE]], value: co.status })
-        if (status === 'pass') pass++
-        else failed++
-      })
-      ok = ok + pass - failed
+        ({ checksOverride } = await this.bot.getResource(application, {
+          backlinks: ['checksOverride']
+        }))
+      if (checksOverride && checksOverride.length) {
+        checksOverride = await Promise.all(checksOverride.map(co => this.bot.objects.get(co._link)))
+        let failed = 0
+        let pass = 0
+        checksOverride.forEach(co => {
+          let status = getEnumValueId({ model: this.bot.models[OVERRIDE_STATUS], value: co.status })
+          if (status === 'pass') pass++
+          else failed++
+        })
+        ok = ok + pass - failed
+      } else debugger
     }
     let hours = 3600 * 60 * 24
     let {
