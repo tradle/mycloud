@@ -18,11 +18,11 @@ import * as Templates from '../templates'
 import Errors from '../../errors'
 import { TYPE } from '../../constants'
 // import { useRealSES } from '../../aws/config'
-import { enumValue, buildResourceStub } from '@tradle/build-resource'
+import { enumValue } from '@tradle/build-resource'
 
-import { hasPropertiesChanged, getEnumValueId, getLatestCheck } from '../utils'
+import { hasPropertiesChanged, getEnumValueId } from '../utils'
 import { appLinks } from '../../app-links'
-import { SMSBasedVerifier } from '../sms-based-verifier'
+// import { SMSBasedVerifier } from '../sms-based-verifier'
 // import { compare } from '@tradle/dynamodb/lib/utils'
 
 const REUSE_CHECK = 'tradle.ReuseOfDataCheck'
@@ -40,7 +40,6 @@ const NOTIFICATION = 'tradle.Notification'
 const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
 const SCORE_TYPE = 'tradle.ScoreType'
 const SM_POSITIONS = 'tradle.SeniorManagerPosition'
-const CHECK_OVERRIDE = 'tradle.CheckOverride'
 
 const defaultAlwaysNotifyIfShares = 25
 
