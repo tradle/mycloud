@@ -1179,22 +1179,10 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _monitorChildStack = async ({ stackOwner, stackId }: ChildStackIdentifier) => {
-    let attempts = 3
-    let error
-    while (attempts--) {
-      try {
-        return await Promise.props({
-          statusUpdates: stackOwner && this._setupStackStatusAlerts({ stackOwner, stackId }),
-          logging: this._setupLoggingAlerts({ stackId })
-        })
-      } catch (err) {
-        error = err
-        this.logger.debug('failed to subscribe to child stack alerts, retrying in 10s')
-        await utils.wait(10000)
-      }
-    }
-
-    throw error
+    return await Promise.props({
+      statusUpdates: stackOwner && this._setupStackStatusAlerts({ stackOwner, stackId }),
+      logging: this._setupLoggingAlerts({ stackId })
+    })
   }
 
   private _setupStackStatusAlerts = async (opts: ChildStackIdentifier) => {
