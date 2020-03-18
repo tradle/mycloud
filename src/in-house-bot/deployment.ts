@@ -777,11 +777,6 @@ export class Deployment {
       return false
     }
 
-    const promiseMonitorChild = this._monitorChildStack({
-      stackId,
-      stackOwner: buildResource.permalink(identity)
-    })
-
     const friend = await this.bot.friends.add({
       url: apiUrl,
       org,
@@ -818,7 +813,10 @@ export class Deployment {
     }
 
     await childDeploymentRes.signAndSave()
-    await promiseMonitorChild
+    await this._monitorChildStack({
+      stackId,
+      stackOwner: buildResource.permalink(identity)
+    })
 
     return true
   }

@@ -54,7 +54,7 @@ export const importPsc: Executor = async ({ job, components }) => {
   const { org } = orgConf
   let importer = new ImportPsc(components.bot, components.applications, org)
   try {
-    importer.movePSC() // notifyAdmin() //  movePSC()
+    await importer.movePSC() // notifyAdmin() //  movePSC()
   } catch (err) {
     components.bot.logger.error('job importPsc failed', err)
   }
@@ -65,7 +65,7 @@ export const importLei: Executor = async ({ job, components }) => {
   const { org } = orgConf
   let importer = new ImportLei(components.bot, components.applications, org)
   try {
-    importer.move() // notifyAdmin() //  movePSC()
+    await importer.move() // notifyAdmin() //  movePSC()
   } catch (err) {
     components.bot.logger.error('job importLei failed', err)
   }
@@ -76,7 +76,7 @@ export const importBasicCompanyData: Executor = async ({ job, components }) => {
   const { org } = orgConf
   let importer = new ImportBasicCompanyData(components.bot, components.applications, org)
   try {
-    importer.moveBasic() // notifyAdmin() //  movePSC()
+    await importer.moveBasic() // notifyAdmin() //  movePSC()
   } catch (err) {
     components.bot.logger.error('job importBasicCompanyData failed', err)
   }
@@ -85,7 +85,7 @@ export const importBasicCompanyData: Executor = async ({ job, components }) => {
 export const importRefdata: Executor = async ({ job, components }) => {
   let importer = new ImportRefdata(components.bot)
   try {
-    importer.move()
+    await importer.move()
   } catch (err) {
     components.bot.logger.error('job importRefdata failed', err)
   }
@@ -94,7 +94,7 @@ export const importRefdata: Executor = async ({ job, components }) => {
 export const importPitchbookData: Executor = async ({ job, components }) => {
   let importer = new ImportPitchbookData(components.bot)
   try {
-    importer.move()
+    await importer.move()
   } catch (err) {
     components.bot.logger.error('job importPitchbookData failed', err)
   }
@@ -103,7 +103,7 @@ export const importPitchbookData: Executor = async ({ job, components }) => {
 export const pendingChecksChaser: Executor = async ({ job, components }) => {
   let pendingChaser = new PendingChecksChaser(components.bot)
   try {
-    pendingChaser.chase()
+    await pendingChaser.chase()
   } catch (err) {
     components.bot.logger.error('job pendingChecksChaser failed', err)
   }
@@ -113,7 +113,7 @@ export const pendingChecksChaser: Executor = async ({ job, components }) => {
 export const importMaxmindDb: Executor = async ({ job, components }) => {
   let importer = new ImportMaxmindDb(components.bot)
   try {
-    importer.execute()
+    await importer.execute()
   } catch (err) {
     components.bot.logger.error('job importMaxmindDb failed', err)
   }
@@ -122,7 +122,7 @@ export const importMaxmindDb: Executor = async ({ job, components }) => {
 export const roarFeedback: Executor = async ({ job, components }) => {
   let roar = new RoarFeedback(components.bot, components.conf.bot)
   try {
-    roar.pullResponses()
+    await roar.pullResponses()
   } catch (err) {
     components.bot.logger.error('job roarFeedback failed', err)
   }
