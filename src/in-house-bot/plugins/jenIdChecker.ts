@@ -5,6 +5,7 @@ import sizeof from 'image-size'
 import _ from 'lodash'
 import sharp from 'sharp'
 import constants from '@tradle/constants'
+import { enumValue } from '@tradle/build-resource'
 import {
   Bot,
   Logger,
@@ -29,6 +30,7 @@ const PHOTO_ID = 'tradle.PhotoID'
 const STATUS = 'tradle.Status'
 const DOCUMENT_CHECKER_CHECK = 'tradle.documentChecker.Check'
 const ASPECTS = 'Document authentication and verification'
+const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 
 const PROVIDER = 'jenID Solutions GmbH.'
 
@@ -73,7 +75,7 @@ export class JenIdCheckerAPI {
   public handleData = async (form, application) => {
     await this.bot.resolveEmbeds(form)
     this.logger.debug('jenIdChecker handleData called')
-    let isPassport = form.documentType && form.documentType.id.split('_')[1] == 'passport' ? true : false
+    let isPassport = form.documentType && form.documentType.id.split('_')[1] === 'passport' ? true : false
 
     let frontImageInfo = await this.imageResize(form.scan.url, isPassport)
 
@@ -158,7 +160,7 @@ export class JenIdCheckerAPI {
     while (true) {
       result = await this.get(id, this.conf)
       if (result.success) {
-        if (result.data.status == 128) {
+        if (result.data.status === 128) {
           break
         } else {
           if (timePassed > 60000) {
@@ -225,30 +227,30 @@ export class JenIdCheckerAPI {
     }
   }
 
-  noFace = (data: any) => {
+  private noFace = (data: any) => {
     if (data.facedata) {
       for (let face of data.facedata) {
-        if (face.image == 'VISIBLE' && face.exists == '-1')
+        if (face.image === 'VISIBLE' && face.exists === '-1')
           return true
       }
     }
     return false
   }
 
-  collectMsg = (security: any) => {
+  private collectMsg = (security: any) => {
     let msg = ''
     let keys = Object.keys(security)
     for (let key of keys) {
       let arr = security[key]
       for (let elem of arr) {
-        if (elem.verified == '-1')
+        if (elem.verified === '-1')
           msg += elem.statusMsg
       }
     }
     return msg
   }
 
-  imageResize = async (dataUrl: string, isPassport: boolean) => {
+  private imageResize = async (dataUrl: string, isPassport: boolean) => {
     let pref = dataUrl.substring(0, dataUrl.indexOf(',') + 1)
     let buf = DataURI.decode(dataUrl)
     let dimensions: any = sizeof(buf);
@@ -281,7 +283,7 @@ export class JenIdCheckerAPI {
       let height = Math.round(currentHeight * coef)
       let resizedBuf = await sharp(buf).resize(width, height).toBuffer()
       let newDataUrl = pref + resizedBuf.toString('base64')
-      console.log(`jenIdChecker image resized w=${width}' h=${height}`)
+      this.logger.debug(`jenIdChecker image resized w=${width}' h=${height}`)
       return { url: newDataUrl, width, height }
     }
     this.logger.debug(`jenIdChecker image no change`)
@@ -441,7 +443,7 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
       const { user, application, applicant, payload } = req
 
       if (!application) return
-      if (payload[TYPE] != PHOTO_ID)
+      if (payload[TYPE] !== PHOTO_ID)
         return
       let form = payload
       // debugger
@@ -503,22 +505,40 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
             req
           })
 
+          let prefill: any = {}
           const payloadClone = _.cloneDeep(payload)
           payloadClone[PERMALINK] = payloadClone._permalink
           payloadClone[LINK] = payloadClone._link
-          if (firstName) payloadClone.firstName = firstName
-          if (lastName) payloadClone.lastName = lastName
-          if (documentNumber) payloadClone.documentNumber = documentNumber
-          if (dateOfBirth) payloadClone.dateOfBirth = dateOfBirth
-          if (dateOfExpiry) payloadClone.dateOfExpiry = dateOfExpiry
+
+          if (firstName) prefill.firstName = firstName
+          if (lastName) prefill.lastName = lastName
+          if (documentNumber) prefill.documentNumber = documentNumber
+          if (dateOfBirth) prefill.dateOfBirth = dateOfBirth
+          if (dateOfExpiry) prefill.dateOfExpiry = dateOfExpiry
+
+          let dataSource = enumValue({
+            model: bot.models[REFERENCE_DATA_SOURCES],
+            value: 'jenID'
+          })
+
+          let dataLineage = {
+            [dataSource.id]: {
+              properties: Object.keys(prefill)
+            }
+          }
+
           // debugger
           let formError: any = {
             req,
             user,
             application
           }
+
+          _.extend(payloadClone, prefill)
+
           formError.details = {
             prefill: payloadClone,
+            dataLineage,
             message: `Please review and correct the data below`
           }
 
