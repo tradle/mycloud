@@ -875,27 +875,11 @@ export const getAssociateResources = async ({
   const pr: ITradleObject = await bot.getResource(application.request)
   const { parentApplication, associatedResource } = pr
   if (!parentApplication) return {}
-  // const asociatedApplication = await this.bot.getResource(associatedResource, {backlinks: ['forms']})
-  let parentApp, associatedRes
+  let parentApp
   if (!resourceOnly)
-    parentApp = await bot.db.findOne({
-      filter: {
-        EQ: {
-          [TYPE]: APPLICATION,
-          _permalink: parentApplication
-        }
-      }
-    })
+    parentApp = await bot.getResource({ type: APPLICATION, permalink: parentApplication })
   if (applicationOnly) return { parentApp }
   let [type, hash] = associatedResource.split('_')
-  // const asociatedApplication = await this.bot.getResource(associatedResource, {backlinks: ['forms']})
-  associatedRes = await bot.db.findOne({
-    filter: {
-      EQ: {
-        [TYPE]: type,
-        _permalink: hash
-      }
-    }
-  })
+  let associatedRes = await bot.getResource({ type, permalink: hash })
   return { associatedRes, parentApp }
 }
