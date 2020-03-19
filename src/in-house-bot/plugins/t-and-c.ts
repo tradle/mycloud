@@ -25,7 +25,6 @@ export const createPlugin: CreatePlugin<void> = (
       if (!application) return
 
       let requestFor = application.requestFor
-      // let { termsAndConditions } = mainConf.bot.products.plugins
       let { enabled } = conf
       if (!enabled) return
       let addTerms
@@ -39,8 +38,8 @@ export const createPlugin: CreatePlugin<void> = (
       // destructure here instead of in createPlugin, because some may be defined lazily
       const { user, payload, type, application } = req
       if (payload[TYPE] !== TERMS_AND_CONDITIONS) return
-      let { termsAndConditions } = mainConf.bot.products.plugins
-      if (!termsAndConditions || !termsAndConditions.enabled) return
+      let { enabled } = conf
+      if (!enabled) return
 
       if (user.friend || employeeManager.isEmployee(user)) return
 
