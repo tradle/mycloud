@@ -112,7 +112,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!application || application.draft) return
 
       if (payload[TYPE] !== CP) return
-      let latestChecks: any = req.latestChecks || (await getLatestChecks({ application, bot }))
+      let latestChecks: ITradleCheck[] = req.latestChecks
+      if (!latestChecks) ({ latestChecks } = await getLatestChecks({ application, bot }))
       if (
         latestChecks &&
         latestChecks.find(
