@@ -129,6 +129,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (checkTypes.length) {
         let latestChecks: any = req.latestChecks
         if (!latestChecks) ({ latestChecks } = await getLatestChecks({ application, bot }))
+        if (!latestChecks) return
         let foundChecks = 0
         for (let i = 0; i < latestChecks.length; i++) {
           let c = latestChecks[i]
