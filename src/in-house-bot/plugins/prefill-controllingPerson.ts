@@ -88,6 +88,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       const statusM = bot.models[CHECK_STATUS]
       let forms = application.forms.filter(form => form.submission[TYPE] === CONTROLLING_PERSON)
       let officers, items
+      if (!check) return
       if (check.status.id !== `${CHECK_STATUS}_pass`) {
         if (pscCheck && pscCheck.status.id === `${CHECK_STATUS}_pass`)
           await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
