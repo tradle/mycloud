@@ -47,21 +47,24 @@ class AttestationsAPI {
     let { payload, application } = req
     let rejected = payload.items.filter(item => !item.confirmation)
     if (!rejected.length) return
-    if (!application) {
+
+    let noApplication = !application
+    if (noApplication) {
       application = await this.bot.getResource(payload.application, { backlinks: ['forms'] })
       req.application = application
     }
     let { models } = this.bot
 
+    let form = application.forms.find(
+      form => form.submission[TYPE] === PHOTO_ID || form.submission[TYPE] === PERSONAL_INFO
+    )
     await this.applications.createCheck(
       {
         [TYPE]: ATTESTATION_CHECK,
         status: 'warning',
         provider: application.applicantName,
-        application: payload.parent,
-        attestedBy: application.forms.find(
-          form => form[TYPE] === PHOTO_ID || form[TYPE] === PERSONAL_INFO
-        ),
+        application: payload.parentApplication,
+        attestedBy: form.submission,
         dateChecked: Date.now(),
         aspects: ASPECTS,
         form: payload,
@@ -71,6 +74,7 @@ class AttestationsAPI {
       },
       req
     )
+    if (noApplication) req.application = null
   }
 }
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger, conf }) => {
