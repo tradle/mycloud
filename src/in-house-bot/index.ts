@@ -734,7 +734,8 @@ export const loadComponentsAndPlugins = ({
       'cifasCheck',
       'client-edits',
       'roarIntegration',
-      'sme-auto-approve'
+      'sme-auto-approve',
+      'attestation',
     ].forEach(name => attachPlugin({ name }))
     ;[
       'hand-sig',
