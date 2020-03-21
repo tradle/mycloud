@@ -633,7 +633,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let { products, rules } = conf
       if (!products || !products[productId]) return
       let { models } = bot
-      if (rules && application.notifications) {
+      if (rules && application.notifications && application.scoreType) {
         let scoreType = getEnumValueId({ model: models[SCORE_TYPE], value: application.scoreType })
         if (application.ruledBasedScore === 100 || scoreType.indexOf('high') !== -1) {
           let previousScoreType = getEnumValueId({
