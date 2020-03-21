@@ -87,25 +87,25 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
   const plugin: IPluginLifecycleMethods = {
     name: 'attestation',
 
-    async onmessage(req: IPBReq) {
-      let { application, payload } = req
+    // async onmessage(req: IPBReq) {
+    //   let { application, payload } = req
 
-      if (payload[TYPE] === ATTESTATION) {
-        await attestationAPI.checkAttestation(req)
-        return
-      }
-      if (!application) return
-      let { products } = conf
-      let { items, requestFor } = application
-      if (!products || !products.includes(requestFor)) return
+    //   if (payload[TYPE] === ATTESTATION) {
+    //     await attestationAPI.checkAttestation(req)
+    //     return
+    //   }
+    //   if (!application) return
+    //   let { products } = conf
+    //   let { items, requestFor } = application
+    //   if (!products || !products.includes(requestFor)) return
 
-      if (!items) return
-      items = await Promise.all(items.map(item => bot.getResource(item)))
+    //   if (!items) return
+    //   items = await Promise.all(items.map(item => bot.getResource(item)))
 
-      items = items.filter(item => products.includes(item[TYPE]))
-      if (!items.length) return
-      debugger
-    },
+    //   items = items.filter(item => products.includes(item[TYPE]))
+    //   if (!items.length) return
+    //   debugger
+    // },
     async didApproveApplication(opts: IWillJudgeAppArg, certificate: ITradleObject) {
       let { application, user, req } = opts
 
