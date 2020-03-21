@@ -22,6 +22,7 @@ const TEMP = '/tmp/' // use lambda temp dir
 
 const GB_PREFIX = 'refdata/gb/'
 const DE_PREFIX = 'refdata/de/'
+const FATCA_PREFIX = 'refdata/fatca/ffi_list/'
 
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
@@ -40,22 +41,64 @@ export class ImportRefdata {
     this.outputLocation = this.bot.buckets.PrivateConf.id //BUCKET //
   }
 
-  move = async () => {
+  public move = async () => {
     this.logger.debug("ImportRefData called")
-    let current: Array<string> = await this.list()
+    let current: string[] = await this.list()
     await this.moveUKFile('EMDAgents', 'emd_agents', current)
     await this.moveUKFile('EMoneyFirms', 'e_money_firms', current)
     await this.moveUKFile('CreditInstitutions', 'credit_institutions', current)
     await this.moveUKFile('PSDFirms', 'firms_psd_perm', current)
     await this.moveBafin(current)
+    await this.moveFFIList(current)
   }
 
-  moveBafin = async (current: Array<string>) => {
+  private moveFFIList = async (current: string[]) => {
+    this.logger.debug('ImportRefData: moveFFIList called')
+    fs.ensureDirSync(TEMP + FATCA_PREFIX)
+    let path = 'https://apps.irs.gov/app/fatcaFfiList/data/FFIListFull.csv'
+    let get = await fetch(path)
+    let name = `${FATCA_PREFIX}FFIListFull.csv.gz`
+    let file = TEMP + name
+    let fout = fs.createWriteStream(file)
+    let promise = this.writeStreamToPromise(fout)
+    get.body.pipe(zlib.createGzip()).pipe(fout)
+    await promise
+    this.logger.debug('ImportRefData: moveFFIList downloded into temp')
+
+    let md5: string = await this.checksumFile('MD5', file)
+    this.logger.debug(`ImportRefData: computed md5 ${md5}`)
+    if (current.includes(name)) {
+      // check md5
+      let hash = await this.currentMD5(name)
+      this.logger.debug(`ImportRefData: current md5 ${hash}`)
+      if (md5 === hash) {
+        fs.unlinkSync(file)
+        this.logger.debug('ImportRefData: do not import FFIList data, no change')
+        return
+      }
+    }
+
+    let rstream = fs.createReadStream(file)
+
+    const contentToPost: AWS.S3.Types.PutObjectRequest = {
+      Bucket: this.outputLocation,
+      Key: name,
+      Metadata: { md5 },
+      Body: rstream
+    }
+    this.logger.debug('ImportRefData: uploading FFIList data')
+    let res = await s3.upload(contentToPost).promise()
+    await this.createDataSourceRefresh('ffilist')
+    this.logger.debug('ImportRefData: imported FFIList data')
+    fs.unlinkSync(file)
+  }
+
+  private moveBafin = async (current: string[]) => {
     this.logger.debug('ImportRefData: moveBufin called')
 
     fs.ensureDirSync(TEMP + DE_PREFIX)
 
-    var response = await fetch('https://portal.mvp.bafin.de/database/InstInfo/sucheForm.do', {
+    let response = await fetch('https://portal.mvp.bafin.de/database/InstInfo/sucheForm.do', {
       method: 'post',
       body: 'sucheButtonInstitut=Search',
       headers: {
@@ -83,7 +126,7 @@ export class ImportRefdata {
       // check md5
       let hash = await this.currentMD5(name)
       this.logger.debug(`ImportRefData: current md5 ${hash}`)
-      if (md5 == hash) {
+      if (md5 === hash) {
         fs.unlinkSync(file)
         this.logger.debug('ImportRefData: do not import Bafin data, no change')
         return
@@ -105,7 +148,7 @@ export class ImportRefdata {
     fs.unlinkSync(file)
   }
 
-  moveUKFile = async (name: string, table: string, current: Array<string>) => {
+  private moveUKFile = async (name: string, table: string, current: string[]) => {
     this.logger.debug('moveUKFile ' + name)
     try {
       fs.ensureDirSync(TEMP + GB_PREFIX + table)
@@ -148,7 +191,7 @@ export class ImportRefdata {
       if (current.includes(key)) {
         // check md5
         let hash = await this.currentMD5(key)
-        if (md5 == hash) {
+        if (md5 === hash) {
           fs.unlinkSync(file)
           this.logger.debug(`do not import ${name} data, no change`)
           return
@@ -175,7 +218,7 @@ export class ImportRefdata {
     }
   }
 
-  checksumFile = (algorithm: string, path: string): Promise<string> => {
+  private checksumFile = (algorithm: string, path: string): Promise<string> => {
     return new Promise((resolve, reject) =>
       fs.createReadStream(path)
         .on('error', reject)
@@ -187,7 +230,7 @@ export class ImportRefdata {
     )
   }
 
-  list = async (): Promise<Array<string>> => {
+  private list = async (): Promise<string[]> => {
     let params = {
       Bucket: this.outputLocation,
       Prefix: 'refdata/'
@@ -201,8 +244,8 @@ export class ImportRefdata {
     return keys
   }
 
-  currentMD5 = async (key: string) => {
-    var params = {
+  private currentMD5 = async (key: string) => {
+    let params = {
       Bucket: this.outputLocation,
       Key: key
     }
@@ -210,7 +253,7 @@ export class ImportRefdata {
     return resp.Metadata.md5
   }
 
-  createDataSourceRefresh = async (name: string) => {
+  private createDataSourceRefresh = async (name: string) => {
     let provider = enumValue({
       model: this.bot.models[REFERENCE_DATA_SOURCES],
       value: name
@@ -223,7 +266,7 @@ export class ImportRefdata {
     await this.bot.signAndSave(resource)
   }
 
-  writeStreamToPromise = (stream: fs.WriteStream) => {
+  private writeStreamToPromise = (stream: fs.WriteStream) => {
     return new Promise((resolve, reject) => {
       stream.on('finish', resolve).on('error', reject)
     })
