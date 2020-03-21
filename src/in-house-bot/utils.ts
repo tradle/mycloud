@@ -539,29 +539,14 @@ export const doesCheckNeedToBeCreated = async ({
 }
 export const getLatestChecks = async ({ application, bot }) => {
   if (!application.checks || !application.checks.length) return {}
-  let checks: any = await Promise.all(
-    application.checks
-      .map(stub => _.omit(parseStub(stub), 'link'))
-      .map(stub => bot.getResource(stub))
-  )
+  let checks: any[] = await Promise.all(application.checks.map(stub => bot.getLatestResource(stub)))
 
-  const checksSorted = checks.slice().sort((a, b) => b._time - a._time)
+  const checksSorted: ITradleCheck[] = checks.sort((a, b) => b._time - a._time)
 
-  let latestChecks = _.uniqBy(checksSorted, (check: any) =>
+  let latestChecks: ITradleCheck[] = _.uniqBy(checksSorted, (check: any) =>
     [check.form._permalink, check.propertyName, check[TYPE], check.provider].join(',')
   )
-  // let sanctionsChecks = _.uniqBy(
-  //   checksSorted.filter(check => check[TYPE] === SANCTIONS_CHECK),
-  //   (check: any) =>
-  //     [check.form._permalink, check.propertyName, check[TYPE], check.provider].join(',')
-  // )
 
-  // debugger
-  // let latestChecks1 = _.uniqBy(timeDesc, TYPE)
-  // let sanctionsChecks = timeDesc.filter(check => check[TYPE] === SANCTIONS_CHECK)
-  // sanctionsChecks = _.uniqBy(sanctionsChecks, 'propertyName')
-
-  // latestChecks = _.uniqBy(latestChecks.concat(sanctionsChecks), '_permalink')
   return { latestChecks, checks }
 }
 
