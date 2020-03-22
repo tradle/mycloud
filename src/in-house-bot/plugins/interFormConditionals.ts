@@ -1,10 +1,12 @@
 import cloneDeep from 'lodash/cloneDeep'
 import size from 'lodash/size'
 import extend from 'lodash/extend'
+import omit from 'lodash/omit'
 
 import { CreatePlugin, IPBReq, IPluginLifecycleMethods, ValidatePluginConf } from '../types'
 import { TYPE } from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
+import { isSubClassOf } from '../utils'
 // @ts-ignore
 const { parseStub, sanitize } = validateResource.utils
 
@@ -13,8 +15,11 @@ const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const FORM_REQUEST = 'tradle.FormRequest'
 const APPLICATION = 'tradle.Application'
 const ENUM = 'tradle.Enum'
+const CHECK = 'tradle.Check'
+const CHECK_OVERRIDE = 'tradle.CheckOverride'
+const APPLICATION_APPROVAL = 'tradle.ApplicationApproval'
 
-export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
+export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
   const plugin: IPluginLifecycleMethods = {
     name: 'interFormConditionals',
     getRequiredForms: async ({ user, application }) => {
@@ -156,6 +161,72 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
             )
           // debugger
         }
+        let onCreate = conf.onCreate && conf.onCreate[payload[TYPE]]
+        if (!onCreate) return
+        let createdTypes = {}
+        onCreate.forEach(async c => {
+          let { condition, create } = c
+          let type = create.type
+          if (createdTypes[type]) return
+          condition = normalizeFormula({ formula: condition, payload })
+          try {
+            let value = new Function('application', 'forms', 'payload', `return ${condition}`)(
+              application,
+              forms,
+              payload
+            )
+            if (!value) return
+            let resource = cloneDeep(create)
+            for (let p in resource) {
+              try {
+                let val = new Function('application', 'forms', `return ${create[p]}`)(
+                  application,
+                  forms
+                )
+                resource[p] = val
+              } catch (err) {}
+            }
+            delete resource.type
+            let model = models[type]
+            if (type === APPLICATION_APPROVAL) {
+              await applications.approve({ req, user, application })
+              return
+            }
+            let isCheck = isSubClassOf(CHECK, model, models)
+
+            if (isCheck) {
+              extend(resource, {
+                [TYPE]: type,
+                dateChecked: Date.now(),
+                form: payload,
+                application,
+                top: application.top
+              })
+              if (!resource.provider) {
+                let myBadge = await bot.db.findOne({
+                  filter: {
+                    EQ: {
+                      [TYPE]: 'tradle.MyEmployeeOnboarding',
+                      'owner.permalink': payload._author
+                    }
+                  }
+                })
+                resource.provider = myBadge.name
+              }
+            }
+            resource = sanitize(resource).sanitized
+            createdTypes[type] = true
+            if (isCheck) await applications.createCheck(resource, req)
+            else
+              await bot
+                .draft({
+                  resource
+                })
+                .signAndSave()
+          } catch (err) {
+            debugger
+          }
+        })
       })
     },
     async willRequestForm({ application, formRequest }) {
@@ -296,7 +367,7 @@ function normalizeEnums({ forms, models }) {
   return newForms
 }
 
-function normalizeFormula({ formula }) {
+function normalizeFormula({ formula, payload }: { formula: string; payload?: any }) {
   formula = formula
     .trim()
     .replace(/\s=\s/g, ' === ')
@@ -319,6 +390,10 @@ function normalizeFormula({ formula }) {
     idx = f.length
     formula = `${f}${formula.slice(idx1)}`
   }
+  if (payload) {
+    idx = formula.indexOf('this.', idx)
+    if (idx !== -1) formula = formula.replace(/this\./g, 'payload.')
+  }
   if (hasChanges) console.log(formula)
   return formula
 }
@@ -327,6 +402,7 @@ export const validateConf: ValidatePluginConf = async ({ bot, pluginConf }) => {
   const { models } = bot
   debugger
   for (let modelId in pluginConf) {
+    if (modelId === 'onCreate') continue
     if (!models[modelId]) throw new Error(`missing model: ${modelId}`)
     checkConf({ conf: pluginConf[modelId], modelId, models })
   }
