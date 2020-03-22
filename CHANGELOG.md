@@ -2,24 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.17](https://github.com/tradle/mycloud/compare/v3.0.1-rc.16...v3.0.1-rc.17) (2020-03-22)
-
-
-### Bug Fixes
-
-* attestations ([7c5c6c8](https://github.com/tradle/mycloud/commit/7c5c6c8))
-* attestations ([6251431](https://github.com/tradle/mycloud/commit/6251431))
-* function returns different type of value ([0975ff4](https://github.com/tradle/mycloud/commit/0975ff4))
-* minor fix ([ac26d4c](https://github.com/tradle/mycloud/commit/ac26d4c))
-* minor fix ([dbc58fe](https://github.com/tradle/mycloud/commit/dbc58fe))
-* minor fix ([ac490c8](https://github.com/tradle/mycloud/commit/ac490c8))
-* optimizations ([4fc860a](https://github.com/tradle/mycloud/commit/4fc860a))
+## [3.0.1-rc.18](https://github.com/tradle/mycloud/compare/v3.0.1-rc.17...v3.0.1-rc.18) (2020-03-22)
 
 
 ### Features
 
-* attestations ([5f42aa2](https://github.com/tradle/mycloud/commit/5f42aa2))
-* attestations ([29568a8](https://github.com/tradle/mycloud/commit/29568a8))
+* emergency response ([ae9956b](https://github.com/tradle/mycloud/commit/ae9956b))
 
 
 
