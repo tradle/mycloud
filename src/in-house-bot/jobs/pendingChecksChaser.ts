@@ -76,7 +76,7 @@ export class PendingChecksChaser {
     this.logger.debug('pendingChecksChaser begins')
     await this.chaseType(BENEFICIAL_OWNER_CHECK, [PSC_PROVIDER, PITCHBOOK_PROVIDER, LEI_PROVIDER])
     await this.chaseType(LEI_CHECK, [LEI_PROVIDER])
-    await this.chaseType(FATCA_CHECK, [IRS_PROVIDER])
+    // await this.chaseType(FATCA_CHECK, [IRS_PROVIDER])
   }
 
   private chaseType = async (type: string, providers: string[]) => {
