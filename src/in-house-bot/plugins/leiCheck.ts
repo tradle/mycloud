@@ -46,6 +46,8 @@ const BO_ASPECTS = 'Beneficial ownership'
 const LEI_ASPECTS = 'Company existence'
 const GOVERNMENTAL = 'governmental'
 
+const COMPANY_NAME = 'companyName'
+
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 const LEI_CHECK = 'tradle.LEICheck'
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
@@ -81,7 +83,7 @@ export class LeiCheckAPI {
     this.athenaHelper = new AthenaHelper(bot, logger, this.athena, 'leiCheck')
   }
 
-  getLinkToDataSource = async (id: string) => {
+  private getLinkToDataSource = async (id: string) => {
     try {
       return await this.bot.db.findOne({
         filter: {
@@ -161,7 +163,7 @@ export class LeiCheckAPI {
 
     if (resultBO) {
       try {
-        let list: Array<any> = await this.athenaHelper.getResults(idBO)
+        let list: any[] = await this.athenaHelper.getResults(idBO)
         this.logger.debug('leiCheck BO athena query result', list)
         result.bo = { status: true, error: null, data: list }
       } catch (err) {
@@ -172,7 +174,7 @@ export class LeiCheckAPI {
 
     if (resultLEI) {
       try {
-        let list: Array<any> = await this.athenaHelper.getResults(idLEI)
+        let list: any[] = await this.athenaHelper.getResults(idLEI)
         this.logger.debug('leiCheck LEI athena query result', list)
         result.lei = { status: true, error: null, data: list }
       } catch (err) {
@@ -258,7 +260,7 @@ export class LeiCheckAPI {
     {
       // relations
       let bo = find.bo
-      let rawData: Array<any>
+      let rawData: any[]
       let status: any
       if (bo.status) {
         this.logger.debug(`leiCheck lookup() found ${bo.data.length} records in lei relations`)
@@ -295,7 +297,7 @@ export class LeiCheckAPI {
     {
       // node
       let lei = find.lei
-      let rawData: Array<any>
+      let rawData: any[]
       let status: any
       if (lei.status) {
         this.logger.debug(`leiCheck lookup() found ${lei.data.length} records in lei nodes`)
@@ -341,7 +343,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const { application, payload } = req
       if (!application) return
 
-      if (FORM_TYPE_LE != payload[TYPE] || !payload['companyName']) return
+      if (FORM_TYPE_LE !== payload[TYPE] || !payload[COMPANY_NAME]) return
 
       logger.debug('leiCheck before doesCheckNeedToBeCreated')
       let createCheck = await doesCheckNeedToBeCreated({
@@ -350,14 +352,14 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         application,
         provider: PROVIDER,
         form: payload,
-        propertiesToCheck: ['companyName'],
+        propertiesToCheck: [COMPANY_NAME],
         prop: 'form',
         req
       })
       logger.debug(`leiCheck after doesCheckNeedToBeCreated with createCheck=${createCheck}`)
 
       if (!createCheck) return
-      let r = await leiCheckAPI.lookup(payload, application, req, payload['companyName'])
+      let r = await leiCheckAPI.lookup(payload, application, req, payload[COMPANY_NAME])
     }
   }
   return { plugin }

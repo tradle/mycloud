@@ -24,7 +24,7 @@ export class AthenaHelper {
     this.usedby = usedby
   }
 
-  buildHeader = (columns: any) => {
+  private buildHeader = (columns: any) => {
     return _.map(columns, (i: any) => {
       return i.Name
     })
@@ -84,10 +84,10 @@ function _sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-export function pitchbookLimitedPartners(find: Array<any>): Array<any> {
+export function pitchbookLimitedPartners(find: any[]): any[] {
   let list = []
   for (let row of find) {
-    let pscLike = {
+    let pscLike: any = {
       data: {
         address:
         {
@@ -125,21 +125,21 @@ export function pitchbookLimitedPartners(find: Array<any>): Array<any> {
     pscLike["hq email"] = row["hq email"]
     pscLike["primary contact phone"] = row["primary contact phone"]
     pscLike["limited partner type"] = row["limited partner type"]
-    pscLike["aum"] = row["aum"]
+    pscLike.aum = row.aum
     pscLike["year founded"] = row["year founded"]
     pscLike["primary contact"] = row["primary contact"]
     pscLike["primary contact title"] = row["primary contact title"]
     pscLike["primary contact email"] = row["primary contact email"]
-    pscLike["website"] = row["website"]
+    pscLike.website = row.website
 
   }
   return list
 }
 
-export function pitchbookFunds(find: Array<any>): Array<any> {
+export function pitchbookFunds(find: any[]): any[] {
   let list = []
   for (let row of find) {
-    let pscLike = {
+    let pscLike: any = {
       data: {
         address: {
           country: row["fund country"],
@@ -167,12 +167,12 @@ export function pitchbookFunds(find: Array<any>): Array<any> {
       natures_of_control = 'ownership-of-shares-75-to-100-percent'
     pscLike.data.natures_of_control.push(natures_of_control)
 
-    pscLike["lps"] = row["lps"]
+    pscLike.lps = row.lps
     pscLike["fund sps"] = row["fund sps"]
     pscLike["fund partners"] = row["fund partners"]
     pscLike["fund no."] = row["fund no."]
     pscLike["first fund"] = row["first fund"]
-    pscLike["vintage"] = row["vintage"]
+    pscLike.vintage = row.vintage
     pscLike["fund status"] = row["fund status"]
     pscLike["fund size"] = row["fund size"]
     pscLike["fund size group"] = row["fund size group"]
@@ -189,12 +189,12 @@ export function pitchbookFunds(find: Array<any>): Array<any> {
   return list
 }
 
-export function leiRelations(find: Array<any>): Array<any> {
+export function leiRelations(find: any[]): any[] {
   let list = []
   for (let row of find) {
-    if (row.relationshiptype == 'IS_ULTIMATELY_CONSOLIDATED_BY')
+    if (row.relationshiptype === 'IS_ULTIMATELY_CONSOLIDATED_BY')
       continue
-    let pscLike = {
+    let pscLike: any = {
       data: {
         address: {
           address_line_1: row.legaladdress.firstaddressline,
@@ -224,12 +224,12 @@ export function leiRelations(find: Array<any>): Array<any> {
         natures_of_control = 'ownership-of-shares-50-to-75-percent'
       else if (value >= 75)
         natures_of_control = 'ownership-of-shares-75-to-100-percent'
-      pscLike["percentageOfOwnership"] = row.percent
+      pscLike.percentageOfOwnership = row.percent
     }
     pscLike.data.natures_of_control.push(natures_of_control)
 
-    pscLike["lei"] = row.lei
-    pscLike["status"] = row.status
+    pscLike.lei = row.lei
+    pscLike.status = row.status
     pscLike["relation Start Date"] = row.relationstartdate
     pscLike["initial Registration Date"] = row.initialregistrationdate
     pscLike["last Update Date"] = row.lastupdatedate
@@ -249,7 +249,7 @@ export const converters = {
   leiRelations
 }
 
-export function convertRecords(arr: Array<any>) {
+export function convertRecords(arr: any[]) {
   if (arr.length > 0) {
     arr.forEach(rdata => {
       for (let key of Object.keys(rdata)) {
@@ -261,7 +261,7 @@ export function convertRecords(arr: Array<any>) {
 }
 
 function makeJson(str: string) {
-  if (str.charAt(0) != '{')
+  if (str.charAt(0) !== '{')
     return str
   let arr = Array.from(str)
   let idx = 1
@@ -269,16 +269,16 @@ function makeJson(str: string) {
   return obj.v
 }
 
-function build(arr: Array<string>, idx: number): any {
+function build(arr: string[], idx: number): any {
   let name = ''
   let obj = {}
   for (; idx < arr.length; idx++) {
-    if (arr[idx] == '=') {
-      if (arr[idx + 1] == '{') {
+    if (arr[idx] === '=') {
+      if (arr[idx + 1] === '{') {
         let ret = build(arr, idx + 2)
         obj[name] = ret.v
         idx = ret.i
-      } else if (arr[idx + 1] == '[') {
+      } else if (arr[idx + 1] === '[') {
         let ret = buildStringArray(arr, idx + 2)
         obj[name] = ret.v
         name = ''
@@ -289,9 +289,9 @@ function build(arr: Array<string>, idx: number): any {
         name = ''
         idx = ret.i
       }
-    } else if (arr[idx] == '}') {
+    } else if (arr[idx] === '}') {
       return { v: obj, i: idx }
-    } else if (arr[idx] == ',') {
+    } else if (arr[idx] === ',') {
       name = ''
       idx++
     } else {
@@ -301,29 +301,29 @@ function build(arr: Array<string>, idx: number): any {
   return obj
 }
 
-function buildStringArray(arr: Array<string>, idx: number) {
+function buildStringArray(arr: string[], idx: number) {
   let strArr = []
   let val = ''
   while (true) {
-    if (arr[idx] == ',') {
+    if (arr[idx] === ',') {
       strArr.push(val)
       val = ''
       idx++ // skip space
-    } else if (arr[idx] == ']') {
+    } else if (arr[idx] === ']') {
       return { v: strArr, i: idx }
     }
     val += arr[idx++]
   }
 }
 
-function buildString(arr: Array<string>, idx: number) {
+function buildString(arr: string[], idx: number) {
   let val = ''
   while (true) {
-    if (arr[idx] == ',') {
-      if (val == 'null') val = ''
+    if (arr[idx] === ',') {
+      if (val === 'null') val = ''
       return { v: val, i: idx + 1 } // skip space
-    } else if (arr[idx] == '}') {
-      if (val == 'null') val = ''
+    } else if (arr[idx] === '}') {
+      if (val === 'null') val = ''
       return { v: val, i: idx - 1 }
     }
     val += arr[idx++]
