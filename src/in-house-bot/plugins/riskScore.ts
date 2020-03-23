@@ -158,7 +158,7 @@ class RiskScoreAPI {
       corpExistsCheck &&
       getEnumValueId({ model: models[STATUS], value: corpExistsCheck.status }) !== 'pass'
     ) {
-      debugger
+      // debugger
       scoreDetails.companyNotFound = true
     }
     return scoreDetails
