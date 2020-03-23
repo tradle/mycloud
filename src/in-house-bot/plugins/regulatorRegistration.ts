@@ -12,7 +12,11 @@ import {
   isPassedCheck
 } from '../utils'
 
-import { get } from '../../utils'
+import {
+  sleep,
+  convertRecords,
+  AthenaHelper
+} from '../athena-utils'
 
 import {
   Bot,
@@ -36,7 +40,7 @@ import validateResource from '@tradle/validate-resource'
 const { sanitize } = validateResource.utils
 import remapKeys from 'remap-keys'
 
-const POLL_INTERVAL = 250
+const POLL_INTERVAL = 500
 const ATHENA_OUTPUT = 'temp/athena'
 
 const Registry = {
@@ -87,21 +91,19 @@ export class RegulatorRegistrationAPI {
   private conf: any
   private applications: Applications
   private logger: Logger
-
   private athena: AWS.Athena
+  private athenaHelper: AthenaHelper
 
   constructor({ bot, conf, applications, logger }) {
     this.bot = bot
     this.conf = conf
     this.applications = applications
     this.logger = logger
-    const accessKeyId = ''
-    const secretAccessKey = ''
-    const region = 'us-east-1'
     this.athena = new AWS.Athena() //{ region, accessKeyId, secretAccessKey })
+    this.athenaHelper = new AthenaHelper(bot, logger, this.athena, 'regulatorRegistration')
   }
 
-  getDataSource = async (id: string) => {
+  private getDataSource = async (id: string) => {
     return await this.bot.db.findOne({
       filter: {
         EQ: {
@@ -113,108 +115,39 @@ export class RegulatorRegistrationAPI {
     });
   }
 
-  public sleep = async ms => {
-    await this._sleep(ms)
-  }
-  public _sleep = ms => {
-    return new Promise(resolve => setTimeout(resolve, ms))
-  }
-  public getExecutionId = async sql => {
-    return new Promise((resolve, reject) => {
-      const outputLocation = `s3://${this.bot.buckets.PrivateConf.id}/${ATHENA_OUTPUT}`
-      this.logger.debug(`regulatorRegistration getExecutionId with ${sql}`)
-      const database = this.bot.env.getStackResourceName('sec').replace(/\-/g, '_')
-      this.logger.debug(`regulatorRegistration getExecutionId in db ${database}`)
-      let params = {
-        QueryString: sql,
-        ResultConfiguration: { OutputLocation: outputLocation },
-        QueryExecutionContext: { Database: database }
-      }
-
-      /* Make API call to start the query execution */
-      this.athena.startQueryExecution(params, (err, results) => {
-        if (err) return reject(err)
-        return resolve(results.QueryExecutionId)
-      })
-    })
-  }
-  public checkStatus = async (id): Promise<string> => {
-    return new Promise<string>((resolve, reject) => {
-      this.athena.getQueryExecution({ QueryExecutionId: id }, (err, data) => {
-        if (err) return reject(err)
-        if (data.QueryExecution.Status.State === 'SUCCEEDED') return resolve('SUCCEEDED')
-        else if (['FAILED', 'CANCELLED'].includes(data.QueryExecution.Status.State))
-          return reject(
-            new Error(`Query status: ${JSON.stringify(data.QueryExecution.Status, null, 2)}`)
-          )
-        else return resolve('INPROCESS')
-      })
-    })
-  }
-  public getResults = async id => {
-    return new Promise((resolve, reject) => {
-      this.athena.getQueryResults({ QueryExecutionId: id }, (err, data) => {
-        if (err) return reject(err)
-        return resolve(data)
-      })
-    })
-  }
-  public buildHeader = columns => {
-    return _.map(columns, (i: any) => {
-      return i.Name
-    })
-  }
-
-  public queryAthena = async (sql: string) => {
+  private queryAthena = async (sql: string, map: any) => {
     let id
     this.logger.debug(`regulatorRegistration queryAthena() called with sql ${sql}`)
 
     try {
-      id = await this.getExecutionId(sql)
+      id = await this.athenaHelper.getExecutionId(sql)
       this.logger.debug('athena execution id', id)
     } catch (err) {
       this.logger.debug('athena error', err)
       return { status: false, error: err, data: null }
     }
 
-    await this.sleep(1000)
-    let timePassed = 1000
+    await sleep(2000)
+    let timePassed = 2000
     while (true) {
-      let result = 'INPROCESS'
+      let result = false
       try {
-        result = await this.checkStatus(id)
+        result = await this.athenaHelper.checkStatus(id)
       } catch (err) {
         this.logger.debug('athena error', err)
         return { status: false, error: err, data: null }
       }
-      if (result == 'SUCCEEDED') break
+      if (result) break
 
       if (timePassed > 10000) {
-        this.logger.debug('athena error', 'result timeout')
-        return { status: false, error: 'result timeout', data: null }
+        this.logger.debug('athena result timeout')
+        return { status: false, error: 'pending result', data: [{ id, remapKeys: map }] }
       }
-      await this.sleep(POLL_INTERVAL)
+      await sleep(POLL_INTERVAL)
       timePassed += POLL_INTERVAL
     }
     try {
-      let data: any = await this.getResults(id)
-      let list = []
-      let header = this.buildHeader(data.ResultSet.ResultSetMetadata.ColumnInfo)
-      let top_row = _.map((_.head(data.ResultSet.Rows) as any).Data, (n: any) => {
-        return n.VarCharValue
-      })
-      let resultSet =
-        _.difference(header, top_row).length > 0 ? data.ResultSet.Rows : _.drop(data.ResultSet.Rows)
-      resultSet.forEach(item => {
-        list.push(
-          _.zipObject(
-            header,
-            _.map(item.Data, (n: any) => {
-              return n.VarCharValue
-            })
-          )
-        )
-      })
+      let list: any = await this.athenaHelper.getResults(id)
       this.logger.debug('athena query result', list)
       return { status: true, error: null, data: list }
     } catch (err) {
@@ -223,27 +156,29 @@ export class RegulatorRegistrationAPI {
     }
   }
 
-  public mapToSubject = type => {
+  public mapToSubject = (type: string) => {
     for (let subject of this.conf.athenaMaps) {
-      if (subject.type == type) return subject
+      if (subject.type === type) return subject
     }
     return null
   }
   public async check({ subject, form, application, req, user }) {
     let status
-    let formRegistrationNumber = form[subject.check] //.replace(/-/g, '').replace(/^0+/, '') // '133693';
+    let formRegistrationNumber = form[subject.check]
     this.logger.debug(`regulatorRegistration check() called with number ${formRegistrationNumber}`)
     let sql = util.format(subject.query, formRegistrationNumber)
-    let find = subject.test ? subject.test : await this.queryAthena(sql)
+    let find = subject.test ? subject.test : await this.queryAthena(sql, subject.map)
     let rawData
     let prefill
-    if (find.status == false) {
-      status = {
-        status: 'error',
-        message: (typeof find.error === 'string' && find.error) || find.error.message
+    if (!find.status) {
+      if (!find.data) {
+        status = {
+          status: 'error',
+          message: (typeof find.error === 'string' && find.error) || find.error.message
+        }
+        rawData = typeof find.error === 'object' && find.error
       }
-      rawData = typeof find.error === 'object' && find.error
-    } else if (find.data.length == 0) {
+    } else if (find.data.length === 0) {
       status = {
         status: 'fail',
         message: `Company with provided number ${formRegistrationNumber} is not found`
@@ -309,7 +244,7 @@ export class RegulatorRegistrationAPI {
       provider: PROVIDER,
       application,
       dateChecked: new Date().getTime(),
-      aspects: aspects,
+      aspects,
       form
     }
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
@@ -375,7 +310,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       if (payload._prevlink) {
         let dbRes = await bot.objects.get(payload._prevlink)
-        if (dbRes[subject.check] == payload[subject.check]) return
+        if (dbRes[subject.check] === payload[subject.check]) return
       }
 
       logger.debug('regulatorRegistration before doesCheckNeedToBeCreated')
