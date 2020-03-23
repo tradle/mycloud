@@ -189,12 +189,14 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
             delete resource.type
             let model = models[type]
             if (type === APPLICATION_APPROVAL) {
+              logger.debug(`Approving application ${application.requestFor}`)
               await applications.approve({ req, user, application })
               return
             }
             let isCheck = isSubClassOf(CHECK, model, models)
 
             if (isCheck) {
+              logger.debug(`Creating check ${type}`)
               extend(resource, {
                 [TYPE]: type,
                 dateChecked: Date.now(),
@@ -203,6 +205,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
                 top: application.top
               })
               if (!resource.provider) {
+                logger.debug(`Looking for a badge for ${payload._author}`)
                 let myBadge = await bot.db.findOne({
                   filter: {
                     EQ: {
@@ -224,6 +227,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
                 })
                 .signAndSave()
           } catch (err) {
+            logger.error(`interFormsConditionals: error while checking onCreate`, err)
             debugger
           }
         })
