@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.20](https://github.com/tradle/mycloud/compare/v3.0.1-rc.19...v3.0.1-rc.20) (2020-03-23)
+## [3.0.1-rc.21](https://github.com/tradle/mycloud/compare/v3.0.1-rc.20...v3.0.1-rc.21) (2020-03-24)
+
+
+### Bug Fixes
+
+* approve application when everything else is done ([132445a](https://github.com/tradle/mycloud/commit/132445a))
+* check status before resetting it ([6ef3b56](https://github.com/tradle/mycloud/commit/6ef3b56))
 
 
 
