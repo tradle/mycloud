@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "3.0.1-rc.18",
+  "version": "3.0.1-rc.22",
   "main": "index.js",
   "private": true,
   "repository": "https://github.com/tradle/mycloud",
@@ -184,7 +184,7 @@
     "@tradle/plugin-onfido": "github:tradle/plugin-onfido",
     "@tradle/protocol": "^5.1.0",
     "@tradle/qr": "^2.1.0",
-    "@tradle/qr-schema": "^2.0.0",
+    "@tradle/qr-schema": "^2.0.2",
     "@tradle/schema-graphql": "github:tradle/schema-graphql",
     "@tradle/schema-joi": "github:tradle/schema-joi",
     "@tradle/test-helpers": "github:tradle/test-helpers",

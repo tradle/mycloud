@@ -133,6 +133,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       })
       forms = normalizeEnums({ forms: { [payload[TYPE]]: payload }, models })
       if (!forms[payload[TYPE]]) forms[payload[TYPE]] = payload
+      let approveApplication
       allFormulas.forEach(async val => {
         let [propName, formula] = val
         let prop = model.properties[propName]
@@ -190,7 +191,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
             let model = models[type]
             if (type === APPLICATION_APPROVAL) {
               logger.debug(`Approving application ${application.requestFor}`)
-              await applications.approve({ req, user, application })
+              approveApplication = true
               return
             }
             let isCheck = isSubClassOf(CHECK, model, models)
@@ -232,6 +233,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           }
         })
       })
+      if (approveApplication) await applications.approve({ req, user, application })
     },
     async willRequestForm({ application, formRequest }) {
       // debugger

@@ -72,6 +72,8 @@ export class ReuseAPI {
       controllingEntityDateOfBirth,
       controllingEntityCountryOfResidence
     } = payload
+    if (!prefilledName || !controllingEntityDateOfBirth || !controllingEntityCountryOfResidence)
+      return
     let items
     try {
       ;({ items } = await this.bot.db.find({
@@ -91,7 +93,10 @@ export class ReuseAPI {
     let dobYear = dateOfBirth.getFullYear()
     let dobMon = dateOfBirth.getMonth()
     items = items.filter(item => {
-      if (item.controllingEntityCountryOfResidence.id !== controllingEntityCountryOfResidence.id)
+      if (
+        !item.controllingEntityCountryOfResidence ||
+        item.controllingEntityCountryOfResidence.id !== controllingEntityCountryOfResidence.id
+      )
         return false
       let d = new Date(item.controllingEntityDateOfBirth)
       return d.getFullYear() === dobYear && d.getMonth() === dobMon
