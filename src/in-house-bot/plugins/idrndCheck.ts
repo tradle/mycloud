@@ -38,7 +38,7 @@ const ASPECTS = 'Selfie fraud detection'
 const PROVIDER = 'ID R&D'
 const REPEAT = 'REPEAT'
 
-const API_URL = 'https://api.zoomauth.com/api/v1/biometrics'
+const API_URL = 'https://server/check_liveness' //????????????????????????
 
 const REQUEST_TIMEOUT = 10000
 
@@ -68,7 +68,7 @@ export class IDLiveFaceCheckAPI {
     this.applications = applications
     this.logger = logger
     let locale = conf.locale ? conf.locale : 'en'
-    const fileContents = fs.readFileSync('./idrndCheck_message_' + locale + '.json', 'utf8')
+    const fileContents = fs.readFileSync('./idrndCheck_messages_' + locale + '.json', 'utf8')
     this.messageMap = JSON.parse(fileContents)
   }
 
