@@ -280,6 +280,7 @@ export interface IPubKey {
   fingerprint: string
   networkName?: string
   curve?: string
+  importedFrom?: string
 }
 
 export interface IEncodedPriv {

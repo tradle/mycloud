@@ -394,14 +394,15 @@ export default class Identities implements IHasLogger {
     this.objects.addMetadata(identity)
     const link = identity._link
     const permalink = identity._permalink
-    const putPubKeys = identity.pubkeys.map(({ type, pub, fingerprint }) =>
+    const putPubKeys = identity.pubkeys.map(({ type, pub, fingerprint, importedFrom }) =>
       this.putPubKey({
         type,
         pub,
         fingerprint,
         link,
         permalink,
-        _time: identity._time
+        _time: identity._time,
+        importedFrom
       })
     )
 
@@ -417,6 +418,7 @@ export default class Identities implements IHasLogger {
     link: string
     permalink: string
     _time: number
+    importedFrom?: string
   }): Promise<any> => {
     const { pub, permalink, link, _time } = props
     this._ensureFresh(props)
@@ -477,7 +479,7 @@ export default class Identities implements IHasLogger {
       throw new Errors.InvalidInput(`_sigPubKey doesn't match specified ${AUTHOR}`)
     }
 
-    await this.verifyOrgAuthor(object)
+    await Promise.all([this.verifyOrgAuthor(object), this.verifyMasterAuthor(object)])
   }
 
   public verifyOrgAuthor = async (object: ITradleObject) => {
@@ -494,6 +496,21 @@ export default class Identities implements IHasLogger {
       [SIG]: orgsig,
       [AUTHOR]: org
     })
+  }
+
+  public verifyMasterAuthor = async (object: ITradleObject) => {
+    if (!object._masterAuthor) return
+
+    const identity = await this.byPermalink(object._masterAuthor)
+    const key = identity.pubkeys.find(
+      ({ pub, importedFrom }) => pub === object._sigPubKey && importedFrom === object._author
+    )
+
+    if (!key) {
+      throw new Errors.InvalidAuthor(
+        `invalid _masterAuthor, expected master identity to have _sigPubKey ${object._sigPubKey}`
+      )
+    }
   }
 
   public addContact = async (identity: IIdentity): Promise<void> => {
@@ -548,7 +565,8 @@ const normalizePub = key => {
       link: typeforce.String,
       permalink: typeforce.String,
       pub: typeforce.String,
-      _time: typeforce.Number
+      _time: typeforce.Number,
+      importedFrom: typeforce.maybe(typeforce.String)
     },
     key
   )
