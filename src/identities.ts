@@ -499,9 +499,9 @@ export default class Identities implements IHasLogger {
   public addContact = async (identity: IIdentity): Promise<void> => {
     const result = await this.validateNewContact(identity)
     // debug('validated contact:', prettify(result))
-    if (!result.exists) {
-      await this.addContactWithoutValidating(result.identity)
-    }
+    // if (!result.exists) {
+    await this.addContactWithoutValidating(identity)
+    // }
   }
 
   public delContact = async (identity: IIdentity) => {
