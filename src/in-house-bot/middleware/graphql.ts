@@ -70,9 +70,13 @@ export const createAuth = (lambda: Lambda) => {
   return createGraphqlAuthHandler(lambda, {
     isGuestAllowed,
     canUserRunQuery: opts => {
-      const { ctx, user, query } = opts
+      const { ctx, user, masterUser, query } = opts
       const { employeeManager } = ctx.components as IBotComponents
-      return isGuestAllowed(opts) || (user && employeeManager.isEmployee(user))
+      if (isGuestAllowed(opts)) return true
+
+      return [user, masterUser]
+        .filter(value => value)
+        .some(user => employeeManager.isEmployee(user))
     }
   })
 }
