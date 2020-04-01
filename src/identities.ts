@@ -477,7 +477,7 @@ export default class Identities implements IHasLogger {
       throw new Errors.InvalidInput(`_sigPubKey doesn't match specified ${AUTHOR}`)
     }
 
-    await this.verifyOrgAuthor(object)
+    await Promise.all([this.verifyOrgAuthor(object), this.verifyMasterAuthor(object)])
   }
 
   public verifyOrgAuthor = async (object: ITradleObject) => {
@@ -494,6 +494,21 @@ export default class Identities implements IHasLogger {
       [SIG]: orgsig,
       [AUTHOR]: org
     })
+  }
+
+  public verifyMasterAuthor = async (object: ITradleObject) => {
+    if (!object._masterAuthor) return
+
+    const identity = await this.byPermalink(object._masterAuthor)
+    const key = identity.pubkeys.find(
+      ({ pub, importedFrom }) => pub === object._sigPubKey && importedFrom === object._author
+    )
+
+    if (!key) {
+      throw new Errors.InvalidAuthor(
+        `invalid _masterAuthor, expected master identity to have _sigPubKey ${object._sigPubKey}`
+      )
+    }
   }
 
   public addContact = async (identity: IIdentity): Promise<void> => {
