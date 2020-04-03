@@ -354,9 +354,9 @@ export default class Identities implements IHasLogger {
     } catch (err) {} // tslint:disable-line no-empty
 
     if (existing) {
-      if (existing.link === link) {
+      if (existing._link === link) {
         this.logger.debug(`mapping is already up to date for identity ${permalink}`)
-      } else if (identity[PREVLINK] !== existing.link) {
+      } else if (identity[PREVLINK] !== existing._link) {
         this.logger.warn('identity mapping collision. Refusing to add contact:', identity)
         throw new Error(`refusing to add identity with link: "${link}"`)
       }
@@ -390,7 +390,7 @@ export default class Identities implements IHasLogger {
     }
 
     identity = clone(identity)
-
+    // debugger
     this.objects.addMetadata(identity)
     const link = identity._link
     const permalink = identity._permalink
@@ -592,6 +592,9 @@ const getPubKeyMappingQuery = ({ pub, time }): DBFindOpts => ({
     EQ: {
       [TYPE]: PUB_KEY,
       pub
+    },
+    NULL: {
+      importedFrom: true
     },
     LT: {
       _time: time
