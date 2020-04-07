@@ -29,6 +29,9 @@ import {
 import { TYPE, PERMALINK, LINK } from '@tradle/constants'
 
 import validateResource from '@tradle/validate-resource'
+
+import { messages } from './idrndCheckMessages'
+
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
@@ -75,8 +78,7 @@ export class IDLiveFaceCheckAPI {
     this.applications = applications
     this.logger = logger
     let locale = conf.locale ? conf.locale : 'en'
-    const fileContents = fs.readFileSync('./idrndCheck_messages_' + locale + '.json', 'utf8')
-    this.messageMap = JSON.parse(fileContents)
+    this.messageMap = messages[locale]
   }
 
   public selfieLiveness = async (form, application) => {
