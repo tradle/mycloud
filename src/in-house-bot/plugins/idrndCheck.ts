@@ -21,7 +21,9 @@ import {
 
 import {
   doesCheckNeedToBeCreated,
-  getStatusMessageForCheck
+  getStatusMessageForCheck,
+  ensureThirdPartyServiceConfigured,
+  getThirdPartyServiceInfo
 } from '../utils'
 
 import { TYPE, PERMALINK, LINK } from '@tradle/constants'
@@ -37,8 +39,6 @@ const ASPECTS = 'Selfie fraud detection'
 
 const PROVIDER = 'ID R&D'
 const REPEAT = 'REPEAT'
-
-const API_URL = 'https://server/check_liveness' //????????????????????????
 
 const REQUEST_TIMEOUT = 10000
 
@@ -57,9 +57,16 @@ interface IDLiveFaceCheck {
   req: IPBReq
 }
 
+type IDLiveFaceConf = {
+  apiUrl?: string
+  apiKey?: string
+  locale?: string
+}
+
 export class IDLiveFaceCheckAPI {
   private bot: Bot
   private logger: Logger
+  private conf: IDLiveFaceConf
   private applications: Applications
   private messageMap: any
 
@@ -73,8 +80,10 @@ export class IDLiveFaceCheckAPI {
   }
 
   public selfieLiveness = async (form, application) => {
+    const { apiKey, apiUrl } = this.conf
     let rawData: any
     let message: any
+
     const models = this.bot.models
     await this.bot.resolveEmbeds(form)
     let facemap = form.facemap.url
@@ -82,9 +91,13 @@ export class IDLiveFaceCheckAPI {
 
     const dataToUpload = new FormData()
     dataToUpload.append('facemap', buf, 'blob')
-
+    const headers = {}
+    if (apiKey) {
+      _.extend(headers, { Authorization: apiKey })
+    }
     try {
-      const res = await fetch(API_URL + '/liveness', dataToUpload, {
+      const res = await fetch(apiUrl + '/liveness', dataToUpload, {
+        headers,
         timeout: REQUEST_TIMEOUT
       })
       if (res.ok) {
@@ -139,11 +152,17 @@ export class IDLiveFaceCheckAPI {
   }
 }
 
-export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (
-  { bot, applications },
-  { conf, logger }
-) => {
-  const documentChecker = new IDLiveFaceCheckAPI({ bot, applications, conf, logger })
+export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (components, pluginOpts) => {
+  const { bot, applications } = components
+  let { logger, conf = {} } = pluginOpts
+
+  const documentChecker = new IDLiveFaceCheckAPI({
+    bot, applications, conf: {
+      ...getThirdPartyServiceInfo(components.conf, 'idrndliveface'),
+      ...conf
+    }, logger
+  })
+
   const plugin: IPluginLifecycleMethods = {
     validateForm: async ({ req }) => {
       if (req.skipChecks) return
@@ -213,5 +232,9 @@ export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (
     plugin,
     api: documentChecker
   }
+}
+
+export const validateConf: ValidatePluginConf = async ({ conf }) => {
+  ensureThirdPartyServiceConfigured(conf, 'idrndliveface')
 }
 
