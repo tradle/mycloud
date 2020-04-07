@@ -354,9 +354,9 @@ export default class Identities implements IHasLogger {
     } catch (err) {} // tslint:disable-line no-empty
 
     if (existing) {
-      if (existing.link === link) {
+      if (existing._link === link) {
         this.logger.debug(`mapping is already up to date for identity ${permalink}`)
-      } else if (identity[PREVLINK] !== existing.link) {
+      } else if (identity[PREVLINK] !== existing._link) {
         this.logger.warn('identity mapping collision. Refusing to add contact:', identity)
         throw new Error(`refusing to add identity with link: "${link}"`)
       }
@@ -390,18 +390,19 @@ export default class Identities implements IHasLogger {
     }
 
     identity = clone(identity)
-
+    // debugger
     this.objects.addMetadata(identity)
     const link = identity._link
     const permalink = identity._permalink
-    const putPubKeys = identity.pubkeys.map(({ type, pub, fingerprint }) =>
+    const putPubKeys = identity.pubkeys.map(({ type, pub, fingerprint, importedFrom }) =>
       this.putPubKey({
         type,
         pub,
         fingerprint,
         link,
         permalink,
-        _time: identity._time
+        _time: identity._time,
+        importedFrom
       })
     )
 
@@ -417,6 +418,7 @@ export default class Identities implements IHasLogger {
     link: string
     permalink: string
     _time: number
+    importedFrom?: string
   }): Promise<any> => {
     const { pub, permalink, link, _time } = props
     this._ensureFresh(props)
@@ -477,7 +479,7 @@ export default class Identities implements IHasLogger {
       throw new Errors.InvalidInput(`_sigPubKey doesn't match specified ${AUTHOR}`)
     }
 
-    await this.verifyOrgAuthor(object)
+    await Promise.all([this.verifyOrgAuthor(object), this.verifyMasterAuthor(object)])
   }
 
   public verifyOrgAuthor = async (object: ITradleObject) => {
@@ -496,12 +498,27 @@ export default class Identities implements IHasLogger {
     })
   }
 
+  public verifyMasterAuthor = async (object: ITradleObject) => {
+    if (!object._masterAuthor) return
+
+    const identity = await this.byPermalink(object._masterAuthor)
+    const key = identity.pubkeys.find(
+      ({ pub, importedFrom }) => pub === object._sigPubKey && importedFrom === object._author
+    )
+
+    if (!key) {
+      throw new Errors.InvalidAuthor(
+        `invalid _masterAuthor, expected master identity to have _sigPubKey ${object._sigPubKey}`
+      )
+    }
+  }
+
   public addContact = async (identity: IIdentity): Promise<void> => {
     const result = await this.validateNewContact(identity)
     // debug('validated contact:', prettify(result))
-    if (!result.exists) {
-      await this.addContactWithoutValidating(result.identity)
-    }
+    // if (!result.exists) {
+    await this.addContactWithoutValidating(identity)
+    // }
   }
 
   public delContact = async (identity: IIdentity) => {
@@ -548,7 +565,8 @@ const normalizePub = key => {
       link: typeforce.String,
       permalink: typeforce.String,
       pub: typeforce.String,
-      _time: typeforce.Number
+      _time: typeforce.Number,
+      importedFrom: typeforce.maybe(typeforce.String)
     },
     key
   )
@@ -574,6 +592,9 @@ const getPubKeyMappingQuery = ({ pub, time }): DBFindOpts => ({
     EQ: {
       [TYPE]: PUB_KEY,
       pub
+    },
+    NULL: {
+      importedFrom: true
     },
     LT: {
       _time: time

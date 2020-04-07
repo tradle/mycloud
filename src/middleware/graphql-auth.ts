@@ -21,6 +21,7 @@ type GAComponents = {
 interface CanUserRunQueryInput {
   ctx: any
   user: IUser
+  masterUser?: IUser,
   query: any
 }
 
@@ -90,7 +91,13 @@ export const createHandler = ({
       logger.debug('looking up query author')
       try {
         await identities.verifyAuthor(queryObj)
-        ctx.user = user = await bot.users.get(queryObj._author)
+        const users = Promise.all([
+          bot.users.get(queryObj._author),
+          queryObj._masterAuthor ? bot.users.get(queryObj._masterAuthor) : Promise.resolve(null)
+        ])
+
+        ctx.user = user = users[0]
+        ctx.masterUser = users[1]
       } catch (err) {
         Errors.rethrow(err, 'system')
         if (Errors.isNotFound(err) || Errors.matches(err, Errors.UnknownAuthor)) {
@@ -103,7 +110,7 @@ export const createHandler = ({
       }
     }
 
-    let allowed = canUserRunQuery({ ...isAllowedInput, user })
+    let allowed = canUserRunQuery({ ...isAllowedInput, user, masterUser: ctx.masterUser })
     if (isPromise(allowed)) allowed = await allowed
     if (!allowed) {
       forbid(ctx)
