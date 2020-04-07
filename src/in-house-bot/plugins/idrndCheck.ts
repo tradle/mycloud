@@ -103,7 +103,7 @@ export class IDLiveFaceCheckAPI {
       if (res.ok) {
         let json = await res.json()
         rawData = sanitize(json).sanitized
-        this.logger.debug('Liveness selfie check:', JSON.stringify(rawData, null, 2))
+        this.logger.debug('idrndCheck Liveness selfie check:', JSON.stringify(rawData, null, 2))
       }
       else throw Error(res.statusText)
     } catch (err) {
@@ -112,12 +112,12 @@ export class IDLiveFaceCheckAPI {
         models,
         resource: facemap
       })}": ${err.message}`
-      this.logger.error('Liveness selfie check error', err)
+      this.logger.error('idrndCheck Liveness selfie check error', err)
       return { status: 'fail', rawData: {}, message }
     }
 
     if (rawData.error_code) {
-      this.logger.error('selfie liveness check error', rawData.error_code)
+      this.logger.error('idrndCheck selfie liveness check error, repeat', rawData.error_code)
       // error happens
       return { status: 'repeat', rawData }
     }
@@ -146,9 +146,9 @@ export class IDLiveFaceCheckAPI {
       if (status.rawData.probability)
         resource.livenessScore = status.rawData.probability
     }
-    this.logger.debug(`Creating ${PROVIDER} check for ${ASPECTS}`)
+    this.logger.debug(`idrndCheck Creating ${PROVIDER} check for ${ASPECTS}`)
     await this.applications.createCheck(resource, req)
-    this.logger.debug(`Created ${PROVIDER} check for ${ASPECTS}`)
+    this.logger.debug(`idrndCheck Created ${PROVIDER} check for ${ASPECTS}`)
   }
 }
 
@@ -171,7 +171,7 @@ export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (components, plugi
       if (!application) return
       if (payload[TYPE] !== SELFIE)
         return
-
+      logger.debug('idrndCheck called')
       // debugger
       let toCheck = await doesCheckNeedToBeCreated({
         bot,
