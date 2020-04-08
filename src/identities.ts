@@ -37,7 +37,7 @@ interface GetPubKeyMappingOpts {
 }
 
 // requirement for byPermalink query efficiency
-const validatePubKeyModel = model => {
+const validatePubKeyModel = (model) => {
   const firstIndex = model.indexes[0]
   if (firstIndex.hashKey !== 'permalink') {
     throw new Errors.InvalidInput(
@@ -121,8 +121,8 @@ export default class Identities implements IHasLogger {
       'getPubKey'
     )
 
-    this._cachePub = keyObj => getLatestCachified.set([keyObj.pub], normalizePub(keyObj))
-    this._uncachePub = keyObj => getLatestCachified.del([keyObj.pub])
+    this._cachePub = (keyObj) => getLatestCachified.set([keyObj.pub], normalizePub(keyObj))
+    this._uncachePub = (keyObj) => getLatestCachified.del([keyObj.pub])
 
     this.getLatestPubKeyMapping = getLatestCachified.call
 
@@ -135,16 +135,16 @@ export default class Identities implements IHasLogger {
       'byPermalink'
     )
 
-    this._cacheIdentity = identity => {
+    this._cacheIdentity = (identity) => {
       const { link, permalink } = getLinks(identity)
       getIdentityCachified.set([permalink], identity)
-      getNormalizedPubKeys(identity).forEach(key => this._cachePub(key))
+      getNormalizedPubKeys(identity).forEach((key) => this._cachePub(key))
     }
 
-    this._uncacheIdentity = identity => {
+    this._uncacheIdentity = (identity) => {
       const { link, permalink } = getLinks(identity)
       getIdentityCachified.del([permalink])
-      getNormalizedPubKeys(identity).forEach(key => this._uncachePub(key))
+      getNormalizedPubKeys(identity).forEach((key) => this._uncachePub(key))
     }
 
     this.byPermalink = getIdentityCachified.call
@@ -290,7 +290,8 @@ export default class Identities implements IHasLogger {
   public getExistingIdentityMapping = async (identity): Promise<PubKeyMapping> => {
     this.logger.debug('checking existing mappings for pub keys')
 
-    const { pubkeys } = identity
+    // const { pubkeys } = identity
+    const pubkeys = identity.pubkeys.filter((p) => !p.importedFrom)
     // optimize for common case
     try {
       return await this.getLatestPubKeyMapping(pubkeys[0].pub)
@@ -301,7 +302,7 @@ export default class Identities implements IHasLogger {
     }
 
     this.logger.debug('uncommon case, running more lookups')
-    const lookups = pubkeys.slice(1).map(key => this.getLatestPubKeyMapping(key.pub))
+    const lookups = pubkeys.slice(1).map((key) => this.getLatestPubKeyMapping(key.pub))
     return firstSuccess(lookups)
   }
 
@@ -336,7 +337,7 @@ export default class Identities implements IHasLogger {
   //   })
   // })
 
-  public validateNewContact = async identity => {
+  public validateNewContact = async (identity) => {
     this._ensureFresh(identity)
     identity = omitVirtual(identity)
     if (identity._link || identity._permalink) {
@@ -523,7 +524,7 @@ export default class Identities implements IHasLogger {
 
   public delContact = async (identity: IIdentity) => {
     this._uncacheIdentity(identity)
-    await Promise.map(getNormalizedPubKeys(identity), key => this.db.del(key))
+    await Promise.map(getNormalizedPubKeys(identity), (key) => this.db.del(key))
   }
 
   public delContactWithHistory = async (identity: IIdentity) => {
@@ -536,7 +537,7 @@ export default class Identities implements IHasLogger {
       }
     })
 
-    await Promise.map(items, item => this.db.del(item), {
+    await Promise.map(items, (item) => this.db.del(item), {
       concurrency: 20
     })
   }
@@ -557,9 +558,9 @@ export default class Identities implements IHasLogger {
 
 export { Identities }
 
-const isUpdateKey = key => key.type === 'ec' && key.purpose === 'update'
+const isUpdateKey = (key) => key.type === 'ec' && key.purpose === 'update'
 
-const normalizePub = key => {
+const normalizePub = (key) => {
   typeforce(
     {
       link: typeforce.String,
@@ -579,7 +580,7 @@ const normalizePub = key => {
 
 const getNormalizedPubKeys = (identity: IIdentity) => {
   const { link, permalink } = getLinks(identity)
-  return identity.pubkeys.map(key => ({
+  return identity.pubkeys.map((key) => ({
     ...key,
     link,
     permalink,
