@@ -105,14 +105,17 @@ export class IDLiveFaceCheckAPI {
         rawData = sanitize(json).sanitized
         this.logger.debug('idrndCheck Liveness selfie check:', JSON.stringify(rawData, null, 2))
       }
-      else throw Error(res.statusText)
+      else {
+        this.logger.debug('idrndCheck error, status=' + res.status + ', text=' + res.statusText)
+        throw Error(res.statusText)
+      }
     } catch (err) {
+      this.logger.error('idrndCheck Liveness selfie check error', err)
       debugger
       message = `Check was not completed for "${buildResource.title({
         models,
         resource: selfie
       })}": ${err.message}`
-      this.logger.error('idrndCheck Liveness selfie check error', err)
       return { status: 'fail', rawData: {}, message }
     }
 
