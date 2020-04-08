@@ -1,4 +1,4 @@
-// @ts-ignore
+import AWS from 'aws-sdk'
 import FormData from 'form-data'
 import DataURI from 'strong-data-uri'
 import fs from 'fs'
@@ -27,6 +27,9 @@ import {
 import { TYPE, PERMALINK, LINK } from '@tradle/constants'
 
 import validateResource from '@tradle/validate-resource'
+
+import { messages } from './idrndCheckMessages'
+
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
@@ -36,11 +39,11 @@ const SELFIE_SPOOF_PROOF_CHECK = 'tradle.SpoofProofSelfieCheck'
 const ASPECTS = 'Selfie fraud detection'
 
 const PROVIDER = 'ID R&D'
+
 const REPEAT = 'REPEAT'
 
-const API_URL = 'https://server/check_liveness' //????????????????????????
-
 const REQUEST_TIMEOUT = 10000
+const UTF8 = 'utf-8'
 
 const ERROR_CODES = [
   'FACE_TOO_CLOSE',
@@ -57,56 +60,80 @@ interface IDLiveFaceCheck {
   req: IPBReq
 }
 
+interface ServiceConf {
+  apiKey: string
+  apiUrl: string
+  path: string
+}
+
+const s3 = new AWS.S3()
+
 export class IDLiveFaceCheckAPI {
   private bot: Bot
   private logger: Logger
+  private conf: any
   private applications: Applications
   private messageMap: any
-
   constructor({ bot, applications, conf, logger }) {
     this.bot = bot
     this.applications = applications
     this.logger = logger
     let locale = conf.locale ? conf.locale : 'en'
-    const fileContents = fs.readFileSync('./idrndCheck_messages_' + locale + '.json', 'utf8')
-    this.messageMap = JSON.parse(fileContents)
+    this.messageMap = messages[locale]
   }
 
-  public selfieLiveness = async (form, application) => {
+  private getMessage = (code: string) => {
+    if (this.messageMap[code])
+      return this.messageMap[code] + '. ' + this.messageMap[REPEAT]
+    return this.messageMap[REPEAT]
+  }
+  public selfieLiveness = async (form, application, serviceConf: ServiceConf) => {
     let rawData: any
     let message: any
+
     const models = this.bot.models
+
     await this.bot.resolveEmbeds(form)
-    let facemap = form.facemap.url
-    let buf = DataURI.decode(facemap)
+    let selfie = form.selfie.url
+    let buf = DataURI.decode(selfie)
 
     const dataToUpload = new FormData()
     dataToUpload.append('facemap', buf, 'blob')
 
     try {
-      const res = await fetch(API_URL + '/liveness', dataToUpload, {
-        timeout: REQUEST_TIMEOUT
-      })
+      const url = serviceConf.apiUrl + '/' + serviceConf.path + '/check_liveness'
+      this.logger.debug(`idrndCheck url=${url}`)
+      const res = await fetch(url,
+        {
+          method: 'POST',
+          body: dataToUpload,
+          headers: { 'Authorization': serviceConf.apiKey },
+          timeout: REQUEST_TIMEOUT
+        }
+      )
       if (res.ok) {
         let json = await res.json()
         rawData = sanitize(json).sanitized
-        this.logger.debug('Liveness selfie check:', JSON.stringify(rawData, null, 2))
+        this.logger.debug('idrndCheck Liveness selfie check:', JSON.stringify(rawData, null, 2))
       }
-      else throw Error(res.statusText)
+      else {
+        this.logger.debug('idrndCheck error, status=' + res.status + ', text=' + res.statusText)
+        throw Error('http status=' + res.status + ', ' + res.statusText)
+      }
     } catch (err) {
+      this.logger.error('idrndCheck Liveness selfie check error', err)
       debugger
       message = `Check was not completed for "${buildResource.title({
         models,
-        resource: facemap
+        resource: selfie
       })}": ${err.message}`
-      this.logger.error('Liveness selfie check error', err)
       return { status: 'fail', rawData: {}, message }
     }
 
     if (rawData.error_code) {
-      this.logger.error('selfie liveness check error', rawData.error_code)
+      this.logger.error('idrndCheck selfie liveness check error, repeat', rawData.error_code)
       // error happens
-      return { status: 'repeat', rawData }
+      return { status: 'repeat', rawData, message: this.getMessage(rawData.error_code) }
     }
     else if (rawData.probability < 0.5)
       return { status: 'fail', rawData, message: 'possibility of fraud' }
@@ -133,17 +160,37 @@ export class IDLiveFaceCheckAPI {
       if (status.rawData.probability)
         resource.livenessScore = status.rawData.probability
     }
-    this.logger.debug(`Creating ${PROVIDER} check for ${ASPECTS}`)
+    this.logger.debug(`idrndCheck Creating ${PROVIDER} check for ${ASPECTS}`)
     await this.applications.createCheck(resource, req)
-    this.logger.debug(`Created ${PROVIDER} check for ${ASPECTS}`)
+    this.logger.debug(`idrndCheck Created ${PROVIDER} check for ${ASPECTS}`)
+  }
+
+  public getServiceConfig = async (bucket: string): Promise<ServiceConf> => {
+    let params = {
+      Bucket: bucket,
+      Key: 'discovery/ecs-services.json'
+    }
+    try {
+      const data = await s3.getObject(params).promise()
+      const json = JSON.parse(data.Body.toString(UTF8))
+      if (json.services && json.services.idrndliveface && json.services.idrndliveface.enabled)
+        return { apiKey: json.apiKey, apiUrl: json.apiUrl, path: json.services.idrndliveface.path }
+      return undefined
+    } catch (err) {
+      this.logger.debug('idrndCheck service config not found')
+      return undefined
+    }
   }
 }
 
-export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (
-  { bot, applications },
-  { conf, logger }
-) => {
-  const documentChecker = new IDLiveFaceCheckAPI({ bot, applications, conf, logger })
+export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (components, pluginOpts) => {
+  const { bot, applications } = components
+  let { logger, conf = {} } = pluginOpts
+
+  const documentChecker = new IDLiveFaceCheckAPI({
+    bot, applications, conf, logger
+  })
+
   const plugin: IPluginLifecycleMethods = {
     validateForm: async ({ req }) => {
       if (req.skipChecks) return
@@ -152,6 +199,13 @@ export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (
       if (!application) return
       if (payload[TYPE] !== SELFIE)
         return
+      logger.debug('idrndCheck called')
+
+      const serviceConf: ServiceConf = await documentChecker.getServiceConfig(bot.buckets.PrivateConf.id)
+      if (!serviceConf) {
+        logger.debug('idrndCheck no service config found')
+        return
+      }
 
       // debugger
       let toCheck = await doesCheckNeedToBeCreated({
@@ -171,9 +225,9 @@ export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (
         return
       }
       // debugger
-      let status: any = await documentChecker.selfieLiveness(payload, application)
+      let status: any = await documentChecker.selfieLiveness(payload, application, serviceConf)
 
-      if (status.repeat) {
+      if (status.status === 'repeat') {
         const payloadClone = _.cloneDeep(payload)
         payloadClone[PERMALINK] = payloadClone._permalink
         payloadClone[LINK] = payloadClone._link
@@ -185,14 +239,9 @@ export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (
           application
         }
 
-        let message = ''
-        if (this.messageMap[status.rawData.error_code]) {
-          message = this.messageMap[status.rawData.error_code] + '. '
-        }
-
         formError.details = {
           prefill: payloadClone,
-          message: `${message}${this.messageMap[REPEAT]}`
+          message: status.message
         }
 
         try {
@@ -214,4 +263,3 @@ export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (
     api: documentChecker
   }
 }
-
