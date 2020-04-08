@@ -94,14 +94,17 @@ export class IDLiveFaceCheckAPI {
     const dataToUpload = new FormData()
     dataToUpload.append('facemap', buf, 'blob')
 
-    const headers = { Authorization: serviceConf.apiKey }
     try {
       const url = serviceConf.apiUrl + '/' + serviceConf.path + '/check_liveness'
       this.logger.debug(`idrndCheck url=${url}`)
-      const res = await fetch(url, dataToUpload, {
-        headers,
-        timeout: REQUEST_TIMEOUT
-      })
+      const res = await fetch(url,
+        {
+          method: 'POST',
+          body: dataToUpload,
+          headers: { 'Authorization': serviceConf.apiKey },
+          timeout: REQUEST_TIMEOUT
+        }
+      )
       if (res.ok) {
         let json = await res.json()
         rawData = sanitize(json).sanitized
