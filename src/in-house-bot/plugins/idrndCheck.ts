@@ -84,8 +84,8 @@ export class IDLiveFaceCheckAPI {
 
   private getMessage = (code: string) => {
     if (this.messageMap[code])
-      return this.messageMap[code] + '. '
-    return ''
+      return this.messageMap[code] + '. ' + this.messageMap[REPEAT]
+    return this.messageMap[REPEAT]
   }
   public selfieLiveness = async (form, application, serviceConf: ServiceConf) => {
     let rawData: any
@@ -241,7 +241,7 @@ export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (components, plugi
 
         formError.details = {
           prefill: payloadClone,
-          message: `${status.message}${this.messageMap[REPEAT]}`
+          message: status.message
         }
 
         try {
