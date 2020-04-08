@@ -39,7 +39,7 @@ const SELFIE_SPOOF_PROOF_CHECK = 'tradle.SpoofProofSelfieCheck'
 const ASPECTS = 'Selfie fraud detection'
 
 const PROVIDER = 'ID R&D'
-const PATH = 'idrndliveface'
+
 const REPEAT = 'REPEAT'
 
 const REQUEST_TIMEOUT = 10000
@@ -96,7 +96,9 @@ export class IDLiveFaceCheckAPI {
 
     const headers = { Authorization: serviceConf.apiKey }
     try {
-      const res = await fetch(serviceConf.apiUrl + '/' + serviceConf.path + '/check_liveness', dataToUpload, {
+      const url = serviceConf.apiUrl + '/' + serviceConf.path + '/check_liveness'
+      this.logger.debug(`idrndCheck url=${url}`)
+      const res = await fetch(url, dataToUpload, {
         headers,
         timeout: REQUEST_TIMEOUT
       })
@@ -107,7 +109,7 @@ export class IDLiveFaceCheckAPI {
       }
       else {
         this.logger.debug('idrndCheck error, status=' + res.status + ', text=' + res.statusText)
-        throw Error(res.statusText)
+        throw Error('http status=' + res.status + ', ' + res.statusText)
       }
     } catch (err) {
       this.logger.error('idrndCheck Liveness selfie check error', err)
@@ -163,7 +165,7 @@ export class IDLiveFaceCheckAPI {
       const data = await s3.getObject(params).promise()
       const json = JSON.parse(data.Body.toString(UTF8))
       if (json.services && json.services.idrndliveface && json.services.idrndliveface.enabled)
-        return { apiKey: json.apiKey, apiUrl: json.apiUrl, path: json.services.idrndliveface[PATH] }
+        return { apiKey: json.apiKey, apiUrl: json.apiUrl, path: json.services.idrndliveface.path }
       return undefined
     } catch (err) {
       this.logger.debug('idrndCheck service config not found')
