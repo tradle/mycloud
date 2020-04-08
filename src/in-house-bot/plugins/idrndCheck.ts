@@ -81,6 +81,12 @@ export class IDLiveFaceCheckAPI {
     let locale = conf.locale ? conf.locale : 'en'
     this.messageMap = messages[locale]
   }
+
+  private getMessage = (code: string) => {
+    if (this.messageMap[code])
+      return this.messageMap[code] + '. '
+    return ''
+  }
   public selfieLiveness = async (form, application, serviceConf: ServiceConf) => {
     let rawData: any
     let message: any
@@ -127,7 +133,7 @@ export class IDLiveFaceCheckAPI {
     if (rawData.error_code) {
       this.logger.error('idrndCheck selfie liveness check error, repeat', rawData.error_code)
       // error happens
-      return { status: 'repeat', rawData }
+      return { status: 'repeat', rawData, message: this.getMessage(rawData.error_code) }
     }
     else if (rawData.probability < 0.5)
       return { status: 'fail', rawData, message: 'possibility of fraud' }
@@ -221,7 +227,7 @@ export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (components, plugi
       // debugger
       let status: any = await documentChecker.selfieLiveness(payload, application, serviceConf)
 
-      if (status.repeat) {
+      if (status.status === 'repeat') {
         const payloadClone = _.cloneDeep(payload)
         payloadClone[PERMALINK] = payloadClone._permalink
         payloadClone[LINK] = payloadClone._link
@@ -233,14 +239,9 @@ export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (components, plugi
           application
         }
 
-        let message = ''
-        if (this.messageMap[status.rawData.error_code]) {
-          message = this.messageMap[status.rawData.error_code] + '. '
-        }
-
         formError.details = {
           prefill: payloadClone,
-          message: `${message}${this.messageMap[REPEAT]}`
+          message: `${status.message}${this.messageMap[REPEAT]}`
         }
 
         try {
