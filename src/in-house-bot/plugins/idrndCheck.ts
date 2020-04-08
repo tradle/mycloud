@@ -96,7 +96,7 @@ export class IDLiveFaceCheckAPI {
 
     const headers = { Authorization: serviceConf.apiKey }
     try {
-      const res = await fetch(serviceConf.apiUrl + '/' + serviceConf.path + '/liveness', dataToUpload, {
+      const res = await fetch(serviceConf.apiUrl + '/' + serviceConf.path + '/check_liveness', dataToUpload, {
         headers,
         timeout: REQUEST_TIMEOUT
       })
