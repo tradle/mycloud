@@ -1,4 +1,4 @@
-// @ts-ignore
+import AWS from 'aws-sdk'
 import FormData from 'form-data'
 import DataURI from 'strong-data-uri'
 import fs from 'fs'
@@ -21,9 +21,7 @@ import {
 
 import {
   doesCheckNeedToBeCreated,
-  getStatusMessageForCheck,
-  ensureThirdPartyServiceConfigured,
-  getThirdPartyServiceInfo
+  getStatusMessageForCheck
 } from '../utils'
 
 import { TYPE, PERMALINK, LINK } from '@tradle/constants'
@@ -41,9 +39,11 @@ const SELFIE_SPOOF_PROOF_CHECK = 'tradle.SpoofProofSelfieCheck'
 const ASPECTS = 'Selfie fraud detection'
 
 const PROVIDER = 'ID R&D'
+const PATH = 'idrndliveface'
 const REPEAT = 'REPEAT'
 
 const REQUEST_TIMEOUT = 10000
+const UTF8 = 'utf-8'
 
 const ERROR_CODES = [
   'FACE_TOO_CLOSE',
@@ -60,19 +60,20 @@ interface IDLiveFaceCheck {
   req: IPBReq
 }
 
-type IDLiveFaceConf = {
-  apiUrl?: string
-  apiKey?: string
-  locale?: string
+interface ServiceConf {
+  apiKey: string
+  apiUrl: string
+  path: string
 }
+
+const s3 = new AWS.S3()
 
 export class IDLiveFaceCheckAPI {
   private bot: Bot
   private logger: Logger
-  private conf: IDLiveFaceConf
+  private conf: any
   private applications: Applications
   private messageMap: any
-
   constructor({ bot, applications, conf, logger }) {
     this.bot = bot
     this.applications = applications
@@ -80,9 +81,7 @@ export class IDLiveFaceCheckAPI {
     let locale = conf.locale ? conf.locale : 'en'
     this.messageMap = messages[locale]
   }
-
-  public selfieLiveness = async (form, application) => {
-    const { apiKey, apiUrl } = this.conf
+  public selfieLiveness = async (form, application, serviceConf: ServiceConf) => {
     let rawData: any
     let message: any
 
@@ -93,12 +92,10 @@ export class IDLiveFaceCheckAPI {
 
     const dataToUpload = new FormData()
     dataToUpload.append('facemap', buf, 'blob')
-    const headers = {}
-    if (apiKey) {
-      _.extend(headers, { Authorization: apiKey })
-    }
+
+    const headers = { Authorization: serviceConf.apiKey }
     try {
-      const res = await fetch(apiUrl + '/liveness', dataToUpload, {
+      const res = await fetch(serviceConf.apiUrl + '/' + serviceConf.path + '/liveness', dataToUpload, {
         headers,
         timeout: REQUEST_TIMEOUT
       })
@@ -152,6 +149,23 @@ export class IDLiveFaceCheckAPI {
     await this.applications.createCheck(resource, req)
     this.logger.debug(`idrndCheck Created ${PROVIDER} check for ${ASPECTS}`)
   }
+
+  public getServiceConfig = async (bucket: string): Promise<ServiceConf> => {
+    let params = {
+      Bucket: bucket,
+      Key: 'discovery/ecs-services.json'
+    }
+    try {
+      const data = await s3.getObject(params).promise()
+      const json = JSON.parse(data.Body.toString(UTF8))
+      if (json.services && json.services.idrndliveface && json.services.idrndliveface.enabled)
+        return { apiKey: json.apiKey, apiUrl: json.apiUrl, path: json.services.idrndliveface[PATH] }
+      return undefined
+    } catch (err) {
+      this.logger.debug('idrndCheck service config not found')
+      return undefined
+    }
+  }
 }
 
 export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (components, pluginOpts) => {
@@ -159,10 +173,7 @@ export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (components, plugi
   let { logger, conf = {} } = pluginOpts
 
   const documentChecker = new IDLiveFaceCheckAPI({
-    bot, applications, conf: {
-      ...getThirdPartyServiceInfo(components.conf, 'idrndliveface'),
-      ...conf
-    }, logger
+    bot, applications, conf, logger
   })
 
   const plugin: IPluginLifecycleMethods = {
@@ -174,6 +185,13 @@ export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (components, plugi
       if (payload[TYPE] !== SELFIE)
         return
       logger.debug('idrndCheck called')
+
+      const serviceConf: ServiceConf = await documentChecker.getServiceConfig(bot.buckets.PrivateConf.id)
+      if (!serviceConf) {
+        logger.debug('idrndCheck no service config found')
+        return
+      }
+
       // debugger
       let toCheck = await doesCheckNeedToBeCreated({
         bot,
@@ -192,7 +210,7 @@ export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (components, plugi
         return
       }
       // debugger
-      let status: any = await documentChecker.selfieLiveness(payload, application)
+      let status: any = await documentChecker.selfieLiveness(payload, application, serviceConf)
 
       if (status.repeat) {
         const payloadClone = _.cloneDeep(payload)
@@ -235,8 +253,3 @@ export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (components, plugi
     api: documentChecker
   }
 }
-
-export const validateConf: ValidatePluginConf = async ({ conf }) => {
-  ensureThirdPartyServiceConfigured(conf, 'idrndliveface')
-}
-
