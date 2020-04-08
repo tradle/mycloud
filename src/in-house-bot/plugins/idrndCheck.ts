@@ -86,9 +86,10 @@ export class IDLiveFaceCheckAPI {
     let message: any
 
     const models = this.bot.models
+
     await this.bot.resolveEmbeds(form)
-    let facemap = form.facemap.url
-    let buf = DataURI.decode(facemap)
+    let selfie = form.selfie.url
+    let buf = DataURI.decode(selfie)
 
     const dataToUpload = new FormData()
     dataToUpload.append('facemap', buf, 'blob')
@@ -109,7 +110,7 @@ export class IDLiveFaceCheckAPI {
       debugger
       message = `Check was not completed for "${buildResource.title({
         models,
-        resource: facemap
+        resource: selfie
       })}": ${err.message}`
       this.logger.error('idrndCheck Liveness selfie check error', err)
       return { status: 'fail', rawData: {}, message }
