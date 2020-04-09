@@ -2,12 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.22](https://github.com/tradle/mycloud/compare/v3.0.1-rc.21...v3.0.1-rc.22) (2020-03-25)
+## [3.0.1-rc.23](https://github.com/tradle/mycloud/compare/v3.0.1-rc.22...v3.0.1-rc.23) (2020-04-09)
 
 
-### Bug Fixes
+### Features
 
-* failed to reuse for a person ([091613b](https://github.com/tradle/mycloud/commit/091613b))
+* allow rl_tradle_PubKey to queries to guests ([e3938ae](https://github.com/tradle/mycloud/commit/e3938ae))
+* models upgrade ([a150fee](https://github.com/tradle/mycloud/commit/a150fee))
+* optimizing query for pubKey; typo fix ([bf95811](https://github.com/tradle/mycloud/commit/bf95811))
+* pairing devices ([060e9f5](https://github.com/tradle/mycloud/commit/060e9f5))
+* pairing identities ([16b1486](https://github.com/tradle/mycloud/commit/16b1486))
+* support masterUser in graphql middleware ([63c792e](https://github.com/tradle/mycloud/commit/63c792e))
+* validate _masterAuthor if present ([2e8f9e2](https://github.com/tradle/mycloud/commit/2e8f9e2))
 
 
 
