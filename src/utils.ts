@@ -168,7 +168,7 @@ export const allSettled = <T>(promises: Promise<T>[]): Promise<ISettledPromise<T
 
 export const toPathValuePairs = obj => {
   if (_.isEmpty(obj)) return []
-  return traverse(obj).reduce(function(pairs, val) {
+  return traverse(obj).reduce(function (pairs, val) {
     if (this.isLeaf) {
       pairs.push([this.path, val])
     }
@@ -255,7 +255,7 @@ export function now() {
  */
 export function cachifyPromiser(fn, opts = {}) {
   let promise
-  const cachified = function(...args) {
+  const cachified = function (...args) {
     if (args.length) {
       throw new Errors.InvalidInput(
         'functions cachified with cachifyPromiser do not accept arguments'
@@ -332,7 +332,7 @@ export const logifyFunction = ({
   logInputOutput?: boolean
   printError?: (err: any, args: any[]) => string
 }) => {
-  return async function(...args) {
+  return async function (...args) {
     const taskName = typeof name === 'function' ? name.apply(this, args) : name
 
     const start = Date.now()
@@ -382,7 +382,7 @@ export const logify = <T>(component: T, opts: LogifyOpts, methods?: string[]): T
   }
 
   const { name } = component.constructor
-  methods.forEach(method => {
+  methods.forEach((method) => {
     const val = component[method] as Function
     if (!val) throw new Errors.InvalidInput(`component doesn't have method ${method}`)
 
@@ -459,8 +459,8 @@ export function cachify({
   cloneOnGet?: boolean
 }) {
   const pending = {}
-  const maybeClone = cloneOnGet ? _.cloneDeep : obj => obj
-  const cachifiedGet = async key => {
+  const maybeClone = cloneOnGet ? _.cloneDeep : (obj) => obj
+  const cachifiedGet = async (key) => {
     const keyStr = stableStringify(key)
     let val = cache.get(keyStr)
     if (val != null) {
@@ -482,7 +482,7 @@ export function cachify({
 
     if (logger) logger.silly(`cache miss`, { key })
     const promise = get(key)
-    promise.catch(err => cache.del(keyStr))
+    promise.catch((err) => cache.del(keyStr))
     cache.set(keyStr, promise)
     // promise.then(result => cache.set(keyStr, result))
     return promise.then(maybeClone)
@@ -507,7 +507,7 @@ export function cachify({
       await put(key, value, ...rest)
       cache.set(keyStr, value)
     },
-    del: async key => {
+    del: async (key) => {
       const keyStr = stableStringify(key)
       if (logger) logger.silly('cache unset', { key })
       cache.del(keyStr)
@@ -521,7 +521,7 @@ export function timestamp() {
 }
 
 export function executeSuperagentRequest(req) {
-  return req.then(res => {
+  return req.then((res) => {
     if (!res.ok) {
       throw new Error(res.text || `request to ${req.url} failed`)
     }
@@ -666,7 +666,7 @@ export const batchProcess = async ({
 }
 
 export const settleMap = (data, fn): Promise => {
-  return RESOLVED_PROMISE.then(() => allSettled(data.map(item => fn(item))))
+  return RESOLVED_PROMISE.then(() => allSettled(data.map((item) => fn(item))))
 }
 
 export const settleSeries = <T>(data, fn: (item: any) => T | Promise<T>): ISettledPromise<T> => {
@@ -817,7 +817,7 @@ export const download = async ({ url }: { url: string }) => {
   return buf
 }
 
-export const processResponse = async res => {
+export const processResponse = async (res) => {
   if (!res.ok || res.status > 300) {
     let message: string
     try {
@@ -847,7 +847,7 @@ export const processResponse = async res => {
   return text
 }
 
-export const doesHttpEndpointExist = async url => {
+export const doesHttpEndpointExist = async (url) => {
   try {
     const res = await fetch(url, { method: 'HEAD' })
     return res.status === 200
@@ -858,7 +858,7 @@ export const doesHttpEndpointExist = async url => {
 }
 
 export function batchByByteLength(arr: (string | Buffer)[], max) {
-  arr = arr.filter(s => s.length)
+  arr = arr.filter((s) => s.length)
 
   const batches = []
   let cur = []
@@ -892,7 +892,7 @@ export function batchByByteLength(arr: (string | Buffer)[], max) {
 
 export const RESOLVED_PROMISE = Promise.resolve()
 export const promiseNoop = (...args: any[]) => RESOLVED_PROMISE
-export const identityPromise: <T>(val: T) => Promise<T> = val => Promise.resolve(val)
+export const identityPromise: <T>(val: T) => Promise<T> = (val) => Promise.resolve(val)
 
 export function defineGetter(obj, property, getter) {
   Object.defineProperty(obj, property, {
@@ -932,8 +932,8 @@ export const applyFunction = (fn, context, args) => {
  * @param  {Function} fn function that expects a callback parameter
  * @return {Function} function that returns a promise
  */
-export const wrap = fn => {
-  return async function(...args) {
+export const wrap = (fn) => {
+  return async function (...args) {
     const callback = args.pop()
     let ret
     try {
@@ -947,7 +947,7 @@ export const wrap = fn => {
   }
 }
 
-export const networkFromIdentifier = str => {
+export const networkFromIdentifier = (str) => {
   const [flavor, networkName] = str.split(':')
   const networks = require('./networks')
   const forFlavor = networks[flavor] || {}
@@ -975,7 +975,7 @@ export const getSealBasePubKey = (seal: Seal) => {
   }
 }
 
-export const summarizeObject = object => {
+export const summarizeObject = (object) => {
   const links = buildResource.links(object)
   const summary = {
     ...links,
@@ -994,7 +994,7 @@ export const summarizeObject = object => {
   return summary
 }
 
-export const uniqueStrict = arr => {
+export const uniqueStrict = (arr) => {
   const map = new Map()
   const uniq: any[] = []
   for (const item of arr) {
@@ -1007,7 +1007,7 @@ export const uniqueStrict = arr => {
   return uniq
 }
 
-export const getRequestIps = req => {
+export const getRequestIps = (req) => {
   return [req.ip, req.get('x-forwarded-for'), req.get('x-real-ip')].filter(notNull)
 }
 
@@ -1023,8 +1023,8 @@ export const createLambdaContext = (fun, cb?) => {
   return {
     /* Methods */
     done,
-    succeed: res => done(null, res),
-    fail: err => done(err, null),
+    succeed: (res) => done(null, res),
+    fail: (err) => done(err, null),
     getRemainingTimeInMillis: () => endTime - new Date().getTime(),
 
     /* Properties */
@@ -1033,9 +1033,7 @@ export const createLambdaContext = (fun, cb?) => {
     functionVersion: `offline_functionVersion_for_${functionName}`,
     invokedFunctionArn: `offline_invokedFunctionArn_for_${functionName}`,
     invokeid: `offline_invokeid_for_${functionName}`,
-    awsRequestId: `offline_awsRequestId_${Math.random()
-      .toString(10)
-      .slice(2)}`,
+    awsRequestId: `offline_awsRequestId_${Math.random().toString(10).slice(2)}`,
     logGroupName: `offline_logGroupName_for_${functionName}`,
     logStreamName: `offline_logStreamName_for_${functionName}`,
     identity: {},
@@ -1049,14 +1047,14 @@ export const logResponseBody = (logger: Logger) => (req, res, next) => {
   const oldEnd = res.end
   const chunks: Buffer[] = []
 
-  res.write = chunk => {
+  res.write = (chunk) => {
     chunks.push(chunk)
 
     // @ts-ignore
     oldWrite.apply(res, arguments)
   }
 
-  res.end = chunk => {
+  res.end = (chunk) => {
     if (chunk) chunks.push(chunk)
 
     const body = Buffer.concat(chunks).toString('utf8')
@@ -1076,7 +1074,7 @@ export const updateTimestamp = (resource: any, time: number = Date.now()) => {
   resource._time = time
 }
 
-export const ensureTimestamped = resource => {
+export const ensureTimestamped = (resource) => {
   if (!resource._time) {
     if (resource[SIG]) throw new Errors.InvalidInput(`expected unsigned resource`)
 
@@ -1097,14 +1095,14 @@ export const ensureTimestamped = resource => {
 export const cachifyFunction = (container: CacheContainer, method: string) => {
   const original = container[method]
   const { cache, logger } = container
-  const getKey = args => stableStringify(args)
+  const getKey = (args) => stableStringify(args)
   const call = async (...args) => {
     const str = getKey(args)
     const cached = cache.get(str)
     if (cached) {
       if (isPromise(cached)) {
         // refetch on error
-        return cached.catch(err => call(...args))
+        return cached.catch((err) => call(...args))
       }
 
       logger.silly('cache hit', str)
@@ -1114,7 +1112,7 @@ export const cachifyFunction = (container: CacheContainer, method: string) => {
     logger.silly('cache miss', str.slice(0, 10) + '...')
     const result = original.apply(container, args)
     if (isPromise(result)) {
-      result.catch(err => cache.del(str))
+      result.catch((err) => cache.del(str))
     }
 
     cache.set(str, result)
@@ -1130,7 +1128,7 @@ export const cachifyFunction = (container: CacheContainer, method: string) => {
 
 export const timeMethods = <T>(obj: T, logger: Logger): T => {
   logger = logger.sub('timer')
-  Object.keys(obj).forEach(key => {
+  Object.keys(obj).forEach((key) => {
     const val = obj[key]
     if (typeof val !== 'function') return
 
@@ -1163,7 +1161,7 @@ export const syncClock = async (bot: Bot) => {
   // a cheap request that will trigger clock sync
   return bot.tasks.add({
     name: 'sync-clock',
-    promise: PrivateConf.head(PRIVATE_CONF_BUCKET.identity).catch(err => {
+    promise: PrivateConf.head(PRIVATE_CONF_BUCKET.identity).catch((err) => {
       Errors.rethrow(err, 'developer')
     })
   })
@@ -1195,7 +1193,7 @@ export const getMessageGist = (message): any => {
   }
 }
 
-export const toModelsMap = models =>
+export const toModelsMap = (models) =>
   _.transform(
     models,
     (result, model: any) => {
@@ -1230,10 +1228,10 @@ export const isLocalHost = (host: string) => {
   return isIP && IP.isPrivate(host)
 }
 
-export const pickNonNull = <T>(obj: T): T => _.pickBy(obj as any, val => val != null) as T
+export const pickNonNull = <T>(obj: T): T => _.pickBy(obj as any, (val) => val != null) as T
 export const toUnsigned = (obj: ITradleObject) => _.omit(omitVirtual(obj), [SIG])
 export const parseEnumValue = validateResource.utils.parseEnumValue
-export const getEnumValueId = opts => parseEnumValue(opts).id
+export const getEnumValueId = (opts) => parseEnumValue(opts).id
 
 // export const omitVirtualRecursive = resource => {
 //   if (!resource[SIG]) return _.clone(resource)
@@ -1254,19 +1252,19 @@ const TIME_BLOCK_SIZE = {
   QUAD_WEEK: 2419200000
 }
 
-export const getHourNumber = time => {
+export const getHourNumber = (time) => {
   return getTimeblockNumber(TIME_BLOCK_SIZE.HOUR, time)
 }
 
-export const getDayNumber = time => {
+export const getDayNumber = (time) => {
   return getTimeblockNumber(TIME_BLOCK_SIZE.DAY, time)
 }
 
-export const getWeekNumber = time => {
+export const getWeekNumber = (time) => {
   return getTimeblockNumber(TIME_BLOCK_SIZE.WEEK, time)
 }
 
-export const getQuadWeekNumber = time => {
+export const getQuadWeekNumber = (time) => {
   return getTimeblockNumber(TIME_BLOCK_SIZE.QUAD_WEEK, time)
 }
 
@@ -1283,17 +1281,17 @@ export const extendTradleObject = (a, b) => {
 }
 
 export const getStubsByType = (stubs: ResourceStub[], type: string): ParsedResourceStub[] => {
-  return stubs.map(parseStub).filter(parsed => parsed.type === type)
+  return stubs.map(parseStub).filter((parsed) => parsed.type === type)
 }
 
-export const isUnsignedType = modelId => UNSIGNED_TYPES.includes(modelId)
+export const isUnsignedType = (modelId) => UNSIGNED_TYPES.includes(modelId)
 
 type IsPlainObjectOpts = {
   allowBuffers?: boolean
 }
 
 export const isPlainObject = (obj, opts: IsPlainObjectOpts = {}) =>
-  traverse(obj).reduce(function(isPlain, val) {
+  traverse(obj).reduce(function (isPlain, val) {
     if (isPlain === false) {
       this.update(val, true) // stop here
       return false
@@ -1310,11 +1308,11 @@ export const isPlainObject = (obj, opts: IsPlainObjectOpts = {}) =>
 
 export const defaultPrimaryKeysSchema = { hashKey: '_permalink' }
 
-export const getPrimaryKeySchema = model => {
+export const getPrimaryKeySchema = (model) => {
   return normalizeIndexedProperty(model.primaryKeys || defaultPrimaryKeysSchema)
 }
 
-export const normalizeIndexedProperty = schema => {
+export const normalizeIndexedProperty = (schema) => {
   if (Array.isArray(schema)) {
     return { hashKey: schema[0], rangeKey: schema[1] }
   }
@@ -1336,7 +1334,7 @@ export const instrumentWithXray = (Component: any, withXrays: any) => {
   Object.keys(withXrays).forEach(method => {
     const orig = Component.prototype[method]
     const instrument = withXrays[method]
-    Component.prototype[method] = async function(...args) {
+    Component.prototype[method] = async function (...args) {
       if (!this.env) throw new Errors.InvalidInput('expected component to have "env"')
 
       const { logger = consoleLogger } = this
@@ -1348,7 +1346,7 @@ export const instrumentWithXray = (Component: any, withXrays: any) => {
 
       return AWSXray.captureAsyncFunc(
         `${name}.${method}`,
-        async subsegment => {
+        async (subsegment) => {
           instrument(args, subsegment)
           try {
             return await orig.call(this, ...args)
@@ -1432,11 +1430,21 @@ const normalizeSendOpts = async (bot: Bot, opts) => {
   return opts
 }
 
-const normalizeRecipient = to => to.id || to
+const normalizeRecipient = (to) => to.id || to
 
 export { normalizeSendOpts, normalizeRecipient }
 
-export const toBotMessageEvent = ({ bot, user, message }): IBotMessageEvent => {
+export const toBotMessageEvent = ({
+  bot,
+  user,
+  masterUser,
+  message
+}: {
+  bot: Bot
+  user: any
+  masterUser?: any
+  message: any
+}): IBotMessageEvent => {
   // identity permalink serves as user id
   const { object } = message
   const type = object[TYPE]
@@ -1447,6 +1455,7 @@ export const toBotMessageEvent = ({ bot, user, message }): IBotMessageEvent => {
     payload: object,
     object,
     type,
+    masterUser,
     link: object._link,
     permalink: object._permalink
   }
@@ -1456,8 +1465,8 @@ export const getResourceModuleStore = (bot: Bot) => ({
   get models() {
     return bot.models
   },
-  sign: resource => bot.sign(resource),
-  save: resource => {
+  sign: (resource) => bot.sign(resource),
+  save: (resource) => {
     // not supported yet
     // if (resource.link === resource.permalink) {
     //   return bot.save(resource.toJSON(), resource.diff)
@@ -1544,7 +1553,7 @@ export const listIamRoles = async (iam: AWS.IAM) => {
 export const requireOpts = (opts: any, props: string | string[]) => {
   const missing = []
     .concat(props)
-    .filter(required => _.get(opts, required) == null)
+    .filter((required) => _.get(opts, required) == null)
     .map(prop => `"${prop}"`)
   if (missing.length) throw new Errors.InvalidInput(`expected ${missing.join(', ')}`)
 }
@@ -1568,7 +1577,7 @@ export const selectModelProps = ({ object, models }) => {
   const model = models[object[TYPE]]
   const objModel = models['tradle.Object']
   const props = Object.keys(model.properties).filter(
-    prop => prop === TYPE || !objModel.properties[prop]
+    (prop) => prop === TYPE || !objModel.properties[prop]
   )
 
   const selected = _.pick(object, props)
@@ -1577,10 +1586,7 @@ export const selectModelProps = ({ object, models }) => {
 }
 
 export const getCurrentCallStack = (lineOffset: number = 2) =>
-  new Error().stack
-    .split('\n')
-    .slice(lineOffset)
-    .join('\n')
+  new Error().stack.split('\n').slice(lineOffset).join('\n')
 
 export const handleAbandonedPromise = (promise: Promise, logger: Logger = consoleLogger) => {
   // prevent unhandled rejection
@@ -1594,7 +1600,7 @@ export const handleAbandonedPromise = (promise: Promise, logger: Logger = consol
 export const isPrimitiveType = val => typeof val !== 'object'
 
 export const plainify = obj =>
-  traverse(obj).map(function(value) {
+  traverse(obj).map(function (value) {
     if (this.circular) this.remove()
     if (value == null) return
     if (isPrimitiveType(value)) return
@@ -1617,7 +1623,7 @@ export const plainify = obj =>
   })
 
 export const wrapSlowPoke = ({ fn, time, onSlow }) =>
-  async function(...args) {
+  async function (...args) {
     const start = Date.now()
     const { stack } = new Error('slow poke')
     try {
@@ -1635,7 +1641,7 @@ export const wrapSlowPoke = ({ fn, time, onSlow }) =>
   }
 
 export const replaceDeep = (obj: any, match: any, replacement: any) => {
-  traverse(obj).forEach(function(value) {
+  traverse(obj).forEach(function (value) {
     if (_.isEqual(value, match)) {
       this.update(replacement)
     }
@@ -1645,10 +1651,9 @@ export const replaceDeep = (obj: any, match: any, replacement: any) => {
 type Promiser<Input, Output> = (input: Input) => Promise<Output>
 type ErrorHandler = (err: any) => void
 
-export const tryAsync = <A, B>(
-  fn: Promiser<A, B | void>,
-  onError: ErrorHandler = noop
-) => async input => {
+export const tryAsync = <A, B>(fn: Promiser<A, B | void>, onError: ErrorHandler = noop) => async (
+  input
+) => {
   try {
     return await fn(input)
   } catch (err) {

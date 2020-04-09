@@ -352,12 +352,12 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   }
 
   // shortcuts
-  public onmessage = handler =>
+  public onmessage = (handler) =>
     this.middleware.hookSimple(EventTopics.message.inbound.sync, handler)
-  public oninit = handler => this.middleware.hookSimple(EventTopics.init.sync, handler)
-  public onseal = handler => this.middleware.hookSimple(EventTopics.seal.read.sync, handler)
-  public onreadseal = handler => this.middleware.hookSimple(EventTopics.seal.read.sync, handler)
-  public onwroteseal = handler => this.middleware.hookSimple(EventTopics.seal.wrote.sync, handler)
+  public oninit = (handler) => this.middleware.hookSimple(EventTopics.init.sync, handler)
+  public onseal = (handler) => this.middleware.hookSimple(EventTopics.seal.read.sync, handler)
+  public onreadseal = (handler) => this.middleware.hookSimple(EventTopics.seal.read.sync, handler)
+  public onwroteseal = (handler) => this.middleware.hookSimple(EventTopics.seal.wrote.sync, handler)
 
   public lambdas: LambdaMap
   public get defaultEncryptionKey(): string {
@@ -431,7 +431,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       bot.define(
         'blockchain',
         './blockchain',
-        Blockchain =>
+        (Blockchain) =>
           new Blockchain({
             logger: logger.sub('blockchain'),
             network,
@@ -439,7 +439,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
           })
       )
 
-      bot.define('seals', './seals', Seals => new Seals(getSealsOpts()))
+      bot.define('seals', './seals', (Seals) => new Seals(getSealsOpts()))
     }
 
     // bot.define('faucet', './faucet', createFaucet => createFaucet({
@@ -546,7 +546,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     }))
 
     bot.secrets = new Secrets({
-      obfuscateSecretName: name => crypto.obfuscateSecretName(bot.defaultEncryptionKey, name),
+      obfuscateSecretName: (name) => crypto.obfuscateSecretName(bot.defaultEncryptionKey, name),
       credstash: createCredstash({
         algorithm: CREDSTASH_ALGORITHM,
         kmsKey: bot.defaultEncryptionKey,
@@ -709,7 +709,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     bot.define(
       'mailer',
       './mailer',
-      Mailer =>
+      (Mailer) =>
         new Mailer({
           client: bot.aws.ses,
           logger: bot.logger.sub('mailer')
@@ -719,7 +719,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     bot.define(
       'backlinks',
       './backlinks',
-      Backlinks =>
+      (Backlinks) =>
         new Backlinks({
           storage,
           modelStore,
@@ -731,7 +731,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     bot.define(
       'streamProcessor',
       './stream-processor',
-      StreamProcessor =>
+      (StreamProcessor) =>
         new StreamProcessor({
           store: bot.conf.sub('stream-state')
         })
@@ -775,7 +775,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     this._resourceModuleStore = getResourceModuleStore(this)
 
     this.lambdas = Object.keys(lambdaCreators).reduce((map, name) => {
-      map[name] = opts =>
+      map[name] = (opts) =>
         lambdaCreators[name].createLambda({
           ...opts,
           bot: this
@@ -814,7 +814,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     if (ready) this.ready()
   }
 
-  public toMessageBatch = batch => {
+  public toMessageBatch = (batch) => {
     const recipients = pluck(batch, 'to').map(normalizeRecipient)
     if (_.uniq(recipients).length > 1) {
       throw new Errors.InvalidInput(`expected a single recipient`)
@@ -833,19 +833,19 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     }))
   }
 
-  public sendBatch = async batch => {
+  public sendBatch = async (batch) => {
     return this.send(this.toMessageBatch(batch))
   }
 
-  public send = async opts => {
-    const batch = await Promise.map([].concat(opts), oneOpts => normalizeSendOpts(this, oneOpts))
+  public send = async (opts) => {
+    const batch = await Promise.map([].concat(opts), (oneOpts) => normalizeSendOpts(this, oneOpts))
     const byRecipient = _.groupBy(batch, 'recipient')
     const recipients = Object.keys(byRecipient)
     this.logger.debug(`queueing messages to ${recipients.length} recipients`, {
       recipients
     })
 
-    const results = await Promise.map(recipients, recipient =>
+    const results = await Promise.map(recipients, (recipient) =>
       this._sendBatch({
         recipient,
         batch: byRecipient[recipient]
@@ -859,8 +859,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   }
 
   public _sendBatch = async ({ recipient, batch }) => {
-    const { friend = null } = batch.find(message => message.friend) || {}
-    const types = batch.map(m => m[TYPE]).join(', ')
+    const { friend = null } = batch.find((message) => message.friend) || {}
+    const types = batch.map((m) => m[TYPE]).join(', ')
     this.logger.debug(`sending to ${recipient}: ${types}`)
     await this.outboundMessageLocker.lock(recipient)
     let messages
@@ -884,7 +884,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
         await this._fireMessageBatchEvent({
           async: true,
           spread: true,
-          batch: messages.map(message =>
+          batch: messages.map((message) =>
             toBotMessageEvent({
               bot: this,
               message,
@@ -986,10 +986,10 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
     return {
       identity,
-      keys: keys.map(stub =>
+      keys: keys.map((stub) =>
         crypto.exportKey({
           ...stub,
-          ...identity.pubkeys.find(pub => pub.fingerprint === stub.fingerprint)
+          ...identity.pubkeys.find((pub) => pub.fingerprint === stub.fingerprint)
         })
       )
     }
@@ -1007,7 +1007,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const model = this.models[resource[TYPE]]
     if (model) {
       const backlinks = this._pickBacklinks(resource)
-      if (_.some(backlinks, arr => arr.length)) {
+      if (_.some(backlinks, (arr) => arr.length)) {
         throw new Errors.InvalidInput(`remove backlinks before signing!`)
       }
     }
@@ -1015,7 +1015,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     return await this.identity.sign({ object: resource, author })
   }
 
-  private _pickBacklinks = resource =>
+  private _pickBacklinks = (resource) =>
     pickBacklinks({
       model: this.models[resource[TYPE]],
       resource
@@ -1185,7 +1185,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     })
   }
 
-  public createNewVersion = async resource => {
+  public createNewVersion = async (resource) => {
     const latest = buildResource.version(resource)
     const signed = await this.sign(latest)
     addLinks(signed)
@@ -1260,7 +1260,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     await Promise.delay(delay)
   }
 
-  private construct = Ctor => {
+  private construct = (Ctor) => {
     return new Ctor(this)
   }
 
@@ -1293,23 +1293,23 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   }) => {
     if (!messages.length) return
 
-    const recipientPermalinks = _.uniq(messages.map(m => m._recipient))
-    const recipients = await Promise.map(recipientPermalinks, permalink =>
+    const recipientPermalinks = _.uniq(messages.map((m) => m._recipient))
+    const recipients = await Promise.map(recipientPermalinks, (permalink) =>
       this.users.get(permalink)
     )
-    const events = messages.map(message =>
+    const events = messages.map((message) =>
       toBotMessageEvent({
         bot: this,
-        user: recipients.find(user => user.id === message._recipient),
+        user: recipients.find((user) => user.id === message._recipient),
         message
       })
     )
 
-    const byRecipient = _.groupBy(events, event => event.user.id)
+    const byRecipient = _.groupBy(events, (event) => event.user.id)
     if (async) {
       return await Promise.map(
         _.values(byRecipient),
-        async batch => {
+        async (batch) => {
           await this._fireMessageBatchEvent({ batch, async, spread: true })
         },
         { concurrency: COUNTERPARTY_CONCURRENCY }
@@ -1318,8 +1318,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
     return await Promise.map(
       _.values(byRecipient),
-      async batch => {
-        return await Promise.mapSeries(batch, data => this._fireMessageEvent({ data, async }))
+      async (batch) => {
+        return await Promise.mapSeries(batch, (data) => this._fireMessageEvent({ data, async }))
       },
       { concurrency: COUNTERPARTY_CONCURRENCY }
     )
@@ -1337,17 +1337,22 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const bySender = _.groupBy(messages, '_author')
     return await Promise.map(
       _.values(bySender),
-      async batch => {
+      async (batch) => {
         const userId = batch[0]._author
         await this.inboundMessageLocker.lock(userId)
         try {
           const user = await this.users.createIfNotExists({ id: userId })
-          const batch = messages.map(message => toBotMessageEvent({ bot: this, user, message }))
+          let { _masterAuthor } = messages[0].object
+          let masterUser = _masterAuthor && (await this.users.get(_masterAuthor))
+
+          const batch = messages.map((message) =>
+            toBotMessageEvent({ bot: this, user, masterUser, message })
+          )
           // logger.debug(`feeding ${messages.length} messages to business logic`)
           if (async) {
             await this._fireMessageBatchEvent({ inbound: true, batch, async, spread: true })
           } else {
-            await Promise.mapSeries(batch, data =>
+            await Promise.mapSeries(batch, (data) =>
               this._fireMessageEvent({ data, async, inbound: true })
             )
           }
@@ -1381,7 +1386,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   }) => {
     const { async, spread, seals } = opts
     const event = async ? toAsyncEvent(opts.event) : opts.event
-    const payloads = seals.map(seal => ({ seal }))
+    const payloads = seals.map((seal) => ({ seal }))
     return spread
       ? await this.fireBatch(event, payloads)
       : await this.fire(toBatchEvent(event), payloads)
@@ -1400,7 +1405,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const { changes, async, spread } = opts
     const base = EventTopics.resource.save
     const topic = async ? base.async : base.sync
-    const payloads = await Promise.map(changes, change => maybeAddOld(this, change, async))
+    const payloads = await Promise.map(changes, (change) => maybeAddOld(this, change, async))
     return spread ? await this.fireBatch(topic, payloads) : await this.fire(topic.batch, payloads)
   }
 
@@ -1419,7 +1424,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     inbound?: boolean
   }) => {
     const { batch, async, spread, inbound = false } = opts
-    if (!batch.every(item => item.message._inbound === inbound)) {
+    if (!batch.every((item) => item.message._inbound === inbound)) {
       throw new Errors.InvalidInput('expected all messages to be either inbound or outbound')
     }
 
@@ -1454,7 +1459,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const batches = _.chunk(errors, batchSize)
     const baseTopic = EventTopics.delivery.error
     const topic = async ? baseTopic.async : baseTopic
-    await Promise.each(batches, batch => this.fireBatch(topic, batch))
+    await Promise.each(batches, (batch) => this.fireBatch(topic, batch))
   }
 }
 
@@ -1473,6 +1478,6 @@ const maybeAddOld = (
 const addOld = (bot: Bot, target: ISaveEventPayload): Promise<ISaveEventPayload> => {
   return bot.objects
     .get(target.value._prevlink)
-    .then(old => (target.old = old), Errors.ignoreNotFound)
+    .then((old) => (target.old = old), Errors.ignoreNotFound)
     .then(() => target)
 }

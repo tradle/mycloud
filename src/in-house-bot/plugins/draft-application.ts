@@ -1,8 +1,5 @@
 import { TYPE } from '@tradle/constants'
-import {
-  CreatePlugin,
-  IPBReq
-} from '../types'
+import { CreatePlugin, IPBReq } from '../types'
 
 const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const DEPLOYMENT = 'tradle.cloud.Deployment'
@@ -10,9 +7,9 @@ const DRAFT = 'tradle.DraftApplication'
 const DRAFTS_DISABLED = true
 
 export const name = 'draft-application'
-export const createPlugin:CreatePlugin<void> = (components, { logger }) => {
+export const createPlugin: CreatePlugin<void> = (components, { logger }) => {
   const { bot, productsAPI, employeeManager } = components
-  const handleFormPrefill = async (req:IPBReq) => {
+  const handleFormPrefill = async (req: IPBReq) => {
     const { payload } = req
     req.draftApplication = await bot.getResourceByStub(req.payload.draft)
     logger.debug('received form prefill', {
@@ -21,10 +18,10 @@ export const createPlugin:CreatePlugin<void> = (components, { logger }) => {
     })
   }
 
-  const handleProductRequest = async (req:IPBReq) => {
+  const handleProductRequest = async (req: IPBReq) => {
     const { user, payload, message } = req
     const { requestFor } = payload
-    req.isFromEmployee = employeeManager.isEmployee(req.user)
+    req.isFromEmployee = employeeManager.isEmployee(req)
     if (!req.isFromEmployee) return
 
     if (DRAFTS_DISABLED) {
@@ -37,12 +34,14 @@ export const createPlugin:CreatePlugin<void> = (components, { logger }) => {
       return false
     }
 
-    if (requestFor === EMPLOYEE_ONBOARDING &&
-      message.forward) {
-      logger.warn(`refusing to allow application for employee onboarding from own employee to another organization`, {
-        employee: user.id,
-        toOrg: message.forward
-      })
+    if (requestFor === EMPLOYEE_ONBOARDING && message.forward) {
+      logger.warn(
+        `refusing to allow application for employee onboarding from own employee to another organization`,
+        {
+          employee: user.id,
+          toOrg: message.forward
+        }
+      )
 
       await productsAPI.sendSimpleMessage({
         req,
@@ -60,8 +59,11 @@ export const createPlugin:CreatePlugin<void> = (components, { logger }) => {
     // HACK
     if (requestFor === DEPLOYMENT) return
 
-    logger.debug('creating application draft, as this is an employee applying on behalf of a customer')
-    const draftApplication = bot.draft({ type: DRAFT })
+    logger.debug(
+      'creating application draft, as this is an employee applying on behalf of a customer'
+    )
+    const draftApplication = bot
+      .draft({ type: DRAFT })
       .set({
         applicant: user.identity,
         context: req.context,
@@ -96,7 +98,7 @@ export const createPlugin:CreatePlugin<void> = (components, { logger }) => {
 
   const plugin = {
     'onmessage:tradle.ProductRequest': handleProductRequest,
-    'onmessage:tradle.FormPrefill': handleFormPrefill,
+    'onmessage:tradle.FormPrefill': handleFormPrefill
   }
 
   return { plugin }

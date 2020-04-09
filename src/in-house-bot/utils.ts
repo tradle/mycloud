@@ -50,7 +50,7 @@ const SANCTIONS_CHECK = 'tradle.SanctionsCheck'
 
 export { isEmployee }
 
-export const createEditConfOp = edit => async opts => {
+export const createEditConfOp = (edit) => async (opts) => {
   const { bot } = opts.commander
   const botConf = opts.commander.conf.bot
   const current = _.cloneDeep(botConf)
@@ -97,7 +97,7 @@ export const toggleProduct = createEditConfOp(
 
     // allow to use title
     const byTitle = Object.keys(models.all).filter(
-      id => models.all[id].title.toLowerCase() === product.toLowerCase()
+      (id) => models.all[id].title.toLowerCase() === product.toLowerCase()
     )
 
     if (byTitle.length > 2) {
@@ -127,7 +127,7 @@ export const toggleProduct = createEditConfOp(
 
     const newProductsList = enable
       ? products.concat(product)
-      : products.filter(id => id !== product)
+      : products.filter((id) => id !== product)
 
     conf.bot.products.enabled = newProductsList
   }
@@ -138,14 +138,14 @@ export const toggleProduct = createEditConfOp(
 export const sendConfirmedSeals = async (bot: Bot, seals: Seal[]) => {
   if (!seals.length) return
 
-  const confirmed = seals.filter(s => s.unconfirmed == null && s.counterparty)
+  const confirmed = seals.filter((s) => s.unconfirmed == null && s.counterparty)
   bot.logger.debug(`actually sending ${confirmed.length} confirmed seals`)
   if (!confirmed.length) return
 
   await bot.send(confirmed.map(sealToSendOpts))
 }
 
-const sealToSendOpts = seal => {
+const sealToSendOpts = (seal) => {
   const object: ITradleObject = pickNonNull({
     ..._.pick(seal, SEAL_MODEL_PROPS),
     [TYPE]: SealModel.id,
@@ -166,7 +166,7 @@ const sealToSendOpts = seal => {
 export const getFormattedNameFromForm = (form: any): string | void => {
   const personal = getNameFromForm(form)
   if (personal) {
-    return [personal.firstName, personal.lastName].filter(str => str).join(' ')
+    return [personal.firstName, personal.lastName].filter((str) => str).join(' ')
   }
 
   switch (form[TYPE]) {
@@ -226,18 +226,18 @@ export const getCountryFromForm = (form: any): ResourceStub => {
   }
 }
 
-const maybeCapitalizeWords = str => {
+const maybeCapitalizeWords = (str) => {
   if (str.toUpperCase() === str || str.toLowerCase() === str) {
     return str
       .split(/\s+/)
-      .map(str => _.capitalize(str))
+      .map((str) => _.capitalize(str))
       .join(' ')
   }
 
   return str
 }
 
-export const parseScannedDate = str => {
+export const parseScannedDate = (str) => {
   const parts = getDateParts(str)
   if (parts) {
     const { year, month, day } = parts
@@ -255,9 +255,9 @@ export const toISODateString = (date: number | string) => {
   if (date) return new Date(date).toISOString().slice(0, 10)
 }
 
-const getDateParts = str => {
+const getDateParts = (str) => {
   if (ISO_DATE.test(str)) {
-    const [year, month, day] = str.split('-').map(str => Number(str))
+    const [year, month, day] = str.split('-').map((str) => Number(str))
     return {
       year,
       month: month - 1,
@@ -268,7 +268,7 @@ const getDateParts = str => {
   // dd/mm/yyyy
   const euType1 = str.match(/^(\d{2})\/(\d{2})\/(\d{2,4})$/)
   if (euType1) {
-    let [day, month, year] = euType1.slice(1).map(n => Number(n))
+    let [day, month, year] = euType1.slice(1).map((n) => Number(n))
     if (month > 12) {
       // oof, guesswork
       ;[day, month] = [month, day]
@@ -308,7 +308,7 @@ export const getAppLinks = ({
 }) => {
   if (!host) host = bot.apiBaseUrl
 
-  const [mobile, web] = ['mobile', 'web'].map(platform =>
+  const [mobile, web] = ['mobile', 'web'].map((platform) =>
     bot.appLinks.getChatLink({
       provider: permalink,
       host,
@@ -356,7 +356,7 @@ export const getAppLinksInstructions = ({
 }
 
 const hasApplication = (stubs, application) => {
-  return stubs.find(stub => stub.statePermalink === application._permalink)
+  return stubs.find((stub) => stub.statePermalink === application._permalink)
 }
 
 const judgedStatuses = ['approved', 'denied']
@@ -410,7 +410,7 @@ export const getPropertyTitle = validateResource.utils.getPropertyTitle
 export { getEnumValueId }
 
 export const getFormStubs = ({ forms }: { forms?: ApplicationSubmission[] }) =>
-  (forms || []).map(appSub => appSub.submission)
+  (forms || []).map((appSub) => appSub.submission)
 
 export const getParsedFormStubs = ({ forms }: { forms?: ApplicationSubmission[] }) =>
   getFormStubs({ forms }).map(parseStub)
@@ -483,17 +483,18 @@ export const getLatestCheck = async ({
     if (latestChecks) {
       latestChecks = latestChecks.sort((a, b) => b._time - a._time)
       return latestChecks.find(
-        check => check[TYPE] === type && (!payload || payload._permalink === check.form._permalink)
+        (check) =>
+          check[TYPE] === type && (!payload || payload._permalink === check.form._permalink)
       )
     }
   }
   let checkStubs =
-    application.checks && application.checks.filter(checkStub => checkStub[TYPE] === type)
+    application.checks && application.checks.filter((checkStub) => checkStub[TYPE] === type)
   if (!checkStubs) return
-  let checks: any = await Promise.all(checkStubs.map(checkStub => bot.getResource(checkStub)))
+  let checks: any = await Promise.all(checkStubs.map((checkStub) => bot.getResource(checkStub)))
   latestChecks = checks.slice().sort((a, b) => b._time - a._time)
   return latestChecks.find(
-    check => check[TYPE] === type && (!payload || payload._permalink === check.form._permalink)
+    (check) => check[TYPE] === type && (!payload || payload._permalink === check.form._permalink)
   )
 }
 export const doesCheckNeedToBeCreated = async ({
@@ -523,15 +524,15 @@ export const doesCheckNeedToBeCreated = async ({
     _.extend(req, { checks, latestChecks })
     bot.logger.debug(`getChecks took: ${Date.now() - startTime}`)
   }
-  let items = req.checks.filter(check => check.provider === provider)
+  let items = req.checks.filter((check) => check.provider === provider)
   // let items = await getChecks({ bot, type, application, provider })
   if (!items.length) return true
 
-  let checks = items.filter(r => r[prop]._link === form._link)
+  let checks = items.filter((r) => r[prop]._link === form._link)
   if (checks.length) return false
   let hasChanged = await hasPropertiesChanged({ resource: form, bot, propertiesToCheck, req })
   if (hasChanged) return true
-  let checkForThisForm = items.filter(r => r[prop]._permalink === form._permalink)
+  let checkForThisForm = items.filter((r) => r[prop]._permalink === form._permalink)
   if (!checkForThisForm.length) return true
   checkForThisForm.sort((a, b) => b._time - a._time)
   if (checkForThisForm[0].status.id.endsWith('_error')) return true
@@ -539,7 +540,9 @@ export const doesCheckNeedToBeCreated = async ({
 }
 export const getLatestChecks = async ({ application, bot }) => {
   if (!application.checks || !application.checks.length) return {}
-  let checks: any[] = await Promise.all(application.checks.map(stub => bot.getLatestResource(stub)))
+  let checks: any[] = await Promise.all(
+    application.checks.map((stub) => bot.getLatestResource(stub))
+  )
 
   const checksSorted: ITradleCheck[] = checks.sort((a, b) => b._time - a._time)
 
@@ -617,7 +620,7 @@ export const hasPropertiesChanged = async ({
   let r: any = {}
   // Use defaultPropMap for creating mapped resource if the map was not supplied or
   // if not all properties listed in map - that is allowed if the prop names are the same as default
-  let check = propertiesToCheck.filter(p => {
+  let check = propertiesToCheck.filter((p) => {
     let rValue = resource[p]
     let dbValue = dbRes[p]
     if (!rValue && !dbValue) return false
@@ -643,7 +646,7 @@ export const getUserIdentifierFromRequest = (req: IPBReq) => {
 
 export const ensureHandSigLast = (forms: string[]) =>
   _.sortBy(forms, [
-    a => {
+    (a) => {
       return a === HAND_SIGNATURE ? 1 : 0
     }
   ])

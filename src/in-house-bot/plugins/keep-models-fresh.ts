@@ -12,12 +12,12 @@ export const createPlugin = ({
   // unique identifier for counterparty
   // which will be used to track freshness.
   // defaults to user.id
-  getIdentifier=getDefaultIdentifierFromReq,
+  getIdentifier = getDefaultIdentifierFromReq,
   send
 }: {
-  getModelsPackForUser: (user) => any,
+  getModelsPackForUser: (user) => any
   send: ({ req, to, object }) => Promise<any>
-  getIdentifier?: (req:any) => string
+  getIdentifier?: (req: any) => string
 }) => {
   // modelsObject => modelsArray
   // modelsArray => modelsHash
@@ -35,7 +35,7 @@ export const createPlugin = ({
       user,
       modelsPack,
       identifier,
-      send: object => send({ req, to: user, object })
+      send: (object) => send({ req, to: user, object })
     })
   }
 
@@ -50,11 +50,11 @@ export const sendModelsPackIfUpdated = async ({
   send,
   identifier
 }: {
-  user: any,
-  modelsPack: any,
-  send: (pack:any) => Promise<any>,
+  user: any
+  modelsPack: any
+  send: (pack: any) => Promise<any>
   identifier?: string
-}):Promise<boolean> => {
+}): Promise<boolean> => {
   if (!identifier) identifier = user.id
 
   if (!user[PROPERTY] || typeof user[PROPERTY] !== 'object') {
@@ -73,7 +73,7 @@ export const sendModelsPackIfUpdated = async ({
 
 export const createModelsPackGetter = ({ bot, productsAPI, employeeManager }) => {
   return async (user) => {
-    if (employeeManager.isEmployee(user)) {
+    if (employeeManager.isEmployee({ user })) {
       return await bot.modelStore.getCumulativeModelsPack()
     }
 

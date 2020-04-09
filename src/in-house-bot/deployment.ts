@@ -238,7 +238,7 @@ export class Deployment {
 
   public static encodeRegion = (region: string) => region.replace(/[-]/g, '.')
   public static decodeRegion = (region: string) => region.replace(/[.]/g, '-')
-  public static decodeBlockchainEnumValue = value =>
+  public static decodeBlockchainEnumValue = (value) =>
     utils
       .getEnumValueId({
         model: BlockchainNetworkModel,
@@ -638,7 +638,7 @@ export class Deployment {
 
     if (referrerUrl && deploymentUUID) {
       this.logger.debug('calling parent')
-      const callHomeToParent = this.callHomeTo(callHomeOpts).catch(err => {
+      const callHomeToParent = this.callHomeTo(callHomeOpts).catch((err) => {
         this.logger.debug('failed to call home to parent', {
           error: err.stack,
           parent: referrerUrl
@@ -653,7 +653,7 @@ export class Deployment {
     if (!referrerUrl || !urlsFuzzyEqual(referrerUrl, TRADLE.API_BASE_URL)) {
       this.logger.debug('calling tradle')
       const callTradleOpts = _.omit(callHomeOpts, ['referrerUrl', 'deploymentUUID'])
-      const callHomeToTradle = this.callHomeToTradle(callTradleOpts).catch(err => {
+      const callHomeToTradle = this.callHomeToTradle(callTradleOpts).catch((err) => {
         this.logger.debug('failed to call home to tradle', {
           error: err.stack
         })
@@ -865,7 +865,7 @@ export class Deployment {
     const configurerUser = await this.bot.users.get(configurer)
 
     let message
-    if (isEmployee(configurerUser)) {
+    if (isEmployee({ user: configurerUser })) {
       const someLinks = _.omit(links, 'employeeOnboarding')
       message = `The MyCloud you drafted has been launched
 
@@ -882,7 +882,7 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  public notifyCreatorsOfChildDeployment = async childDeployment => {
+  public notifyCreatorsOfChildDeployment = async (childDeployment) => {
     const { apiUrl, identity } = childDeployment
     const configuration = await this.bot.getResource(childDeployment.configuration)
     // stall till 10000 before time's up
@@ -899,7 +899,7 @@ ${this.genUsageInstructions(links)}`
     const notifyConfigurer = this.notifyConfigurer({
       configurer: _author,
       links
-    }).catch(err => {
+    }).catch((err) => {
       this.logger.error('failed to send message to creator', err)
       Errors.rethrow(err, 'developer')
     })
@@ -913,7 +913,7 @@ ${this.genUsageInstructions(links)}`
           format: 'html',
           ...this.genLaunchedEmail({ ...links, fromOrg: this.org })
         })
-        .catch(err => {
+        .catch((err) => {
           this.logger.error('failed to email creators', err)
           Errors.rethrow(err, 'developer')
         })
@@ -923,7 +923,7 @@ ${this.genUsageInstructions(links)}`
     }
 
     const results = await utils.allSettled([notifyConfigurer, emailAdmin])
-    const firstErr = results.find(result => result.reason)
+    const firstErr = results.find((result) => result.reason)
     if (firstErr) throw firstErr
   }
 
@@ -934,13 +934,13 @@ ${this.genUsageInstructions(links)}`
       permalink
     })
 
-  public genLaunchEmailBody = values => {
+  public genLaunchEmailBody = (values) => {
     const renderConf = _.get(this.conf || {}, 'templates.launch') || {}
     const opts = _.defaults(renderConf, DEFAULT_LAUNCH_TEMPLATE_OPTS)
     return this.genEmailBody({ ...opts, values })
   }
 
-  public genLaunchedEmailBody = values => {
+  public genLaunchedEmailBody = (values) => {
     const renderConf = _.get(this.conf || {}, 'templates.launched') || {}
     const opts = _.defaults(renderConf, DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS)
     return this.genEmailBody({ ...opts, values })
@@ -950,12 +950,12 @@ ${this.genUsageInstructions(links)}`
     return Templates.email[template](Templates.renderData(data, values))
   }
 
-  public genLaunchEmail = opts => ({
+  public genLaunchEmail = (opts) => ({
     subject: LAUNCH_MESSAGE,
     body: this.genLaunchEmailBody(opts)
   })
 
-  public genLaunchedEmail = opts => ({
+  public genLaunchedEmail = (opts) => ({
     subject: ONLINE_MESSAGE,
     body: this.genLaunchedEmailBody(opts)
   })
@@ -983,7 +983,7 @@ ${this.genUsageInstructions(links)}`
 
     const { Resources, Mappings, Parameters } = template
     const { deployment } = Mappings
-    const logoPromise = getLogo(configuration).catch(err => {
+    const logoPromise = getLogo(configuration).catch((err) => {
       this.logger.warn('failed to get logo', { domain })
     })
 
@@ -1025,7 +1025,7 @@ ${this.genUsageInstructions(links)}`
     })
 
     const initProps = template.Resources.Initialize.Properties
-    Object.keys(initProps).forEach(key => {
+    Object.keys(initProps).forEach((key) => {
       if (key !== 'ServiceToken' && key !== 'commit') {
         delete initProps[key]
       }
@@ -1142,11 +1142,12 @@ ${this.genUsageInstructions(links)}`
   // look for -deploymentbucket-*
   public getDeploymentBucketLogicalName = () => `${this._thisStackName}-deploymentbucket`
 
-  public getRegionalBucketName = (region:string) => this.regionalS3.getRegionalBucketName({ 
-    bucket: this.getDeploymentBucketLogicalName(),
-    region
-  })
-  
+  public getRegionalBucketName = (region: string) =>
+    this.regionalS3.getRegionalBucketName({
+      bucket: this.getDeploymentBucketLogicalName(),
+      region
+    })
+
   public getDeploymentBucketForRegion = async (region: string) => {
     if (region === this._thisRegion) {
       return this.deploymentBucket.id
@@ -1197,19 +1198,19 @@ ${this.genUsageInstructions(links)}`
   }
 
   private static getS3KeysForLambdaCode = (template: CFTemplate): string[] => {
-    return _.uniq(getLambdaS3Keys(template).map(k => k.value)) as string[]
+    return _.uniq(getLambdaS3Keys(template).map((k) => k.value)) as string[]
   }
 
   private static getS3KeysForSubstacks = (template: CFTemplate) => {
     return getResourcesByType(template, 'AWS::CloudFormation::Stack')
-      .map(stack => {
+      .map((stack) => {
         const { TemplateURL } = stack.Properties
         if (TemplateURL['Fn::Sub']) return TemplateURL['Fn::Sub']
 
         const [delimiter, parts] = TemplateURL['Fn::Join']
-        return parts.filter(part => typeof part === 'string').join(delimiter)
+        return parts.filter((part) => typeof part === 'string').join(delimiter)
       })
-      .map(url => url.match(/\.s3\.amazonaws\.com\/(.*)$/)[1])
+      .map((url) => url.match(/\.s3\.amazonaws\.com\/(.*)$/)[1])
   }
 
   public static getS3DependencyKeys = (template: CFTemplate) => {
@@ -1236,7 +1237,7 @@ ${this.genUsageInstructions(links)}`
     }
 
     const target = this._bucket(bucket)
-    const exists = await Promise.all(keys.map(key => target.exists(key)))
+    const exists = await Promise.all(keys.map((key) => target.exists(key)))
     keys = keys.filter((key, i) => !exists[i])
 
     if (!keys.length) {
@@ -1341,7 +1342,7 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  public draftUpdateRequest = opts => {
+  public draftUpdateRequest = (opts) => {
     utils.requireOpts(opts, ['tag', 'provider'])
 
     // if (parent[TYPE] !== PARENT_DEPLOYMENT) {
@@ -1508,9 +1509,7 @@ ${this.genUsageInstructions(links)}`
       req = await this.lookupLatestUpdateRequest({ provider })
       if (req._link !== updateResponse.request._link) {
         throw new Error(
-          `expected update response for request ${req._link}, got for request ${
-            updateResponse.request._link
-          }`
+          `expected update response for request ${req._link}, got for request ${updateResponse.request._link}`
         )
       }
     } catch (err) {
@@ -1556,7 +1555,7 @@ ${this.genUsageInstructions(links)}`
         })
       )
       .signAndSave()
-      .then(r => r.toJSON())
+      .then((r) => r.toJSON())
   }
 
   public lookupLatestUpdateRequest = async ({ provider }: { provider: string }) => {
@@ -1639,7 +1638,7 @@ ${this.genUsageInstructions(links)}`
 
     await Promise.mapSeries(
       friends,
-      async friend => {
+      async (friend) => {
         logger.debug(`notifying ${friend.name} about MyCloud update`)
         await bot.send({
           friend,
@@ -1655,7 +1654,7 @@ ${this.genUsageInstructions(links)}`
   public getCurrentAdminEmail = async (): Promise<string> => {
     const { aws, stackUtils } = this.bot
     const resources = await stackUtils.getStackResources()
-    const { PhysicalResourceId } = resources.find(r => {
+    const { PhysicalResourceId } = resources.find((r) => {
       return r.ResourceType === 'AWS::SNS::Topic' && r.LogicalResourceId === 'AwsAlertsAlarm'
     })
 
@@ -1665,7 +1664,7 @@ ${this.genUsageInstructions(links)}`
       })
       .promise()
 
-    const emails = Subscriptions.filter(s => s.Protocol === 'email')
+    const emails = Subscriptions.filter((s) => s.Protocol === 'email')
     if (emails.length) {
       return emails[0].Endpoint
     }
@@ -1713,7 +1712,7 @@ ${this.genUsageInstructions(links)}`
         releaseChannel: getReleaseChannel(tag)
       })
       .signAndSave()
-      .then(r => r.toJSON())
+      .then((r) => r.toJSON())
   }
 
   private _createTopicForCrossAccountEvents = async ({
@@ -1850,11 +1849,7 @@ ${this.genUsageInstructions(links)}`
         permalink: existing._permalink
       })
 
-      await this.bot
-        .draft({ resource: existing })
-        .set(props)
-        .version()
-        .signAndSave()
+      await this.bot.draft({ resource: existing }).set(props).version().signAndSave()
     } else {
       this.logger.debug('creating tmp topic', { topic })
       await this.bot.signAndSave({

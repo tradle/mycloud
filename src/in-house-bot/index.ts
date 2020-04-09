@@ -261,7 +261,7 @@ export const loadComponentsAndPlugins = ({
     // }
   })
 
-  const getPluginConf = name => plugins[name] || defaultConfs[name]
+  const getPluginConf = (name) => plugins[name] || defaultConfs[name]
   const usedPlugins = []
   const ignoredPlugins = []
   const attachPlugin = ({
@@ -289,7 +289,7 @@ export const loadComponentsAndPlugins = ({
     let api
     let plugin
     try {
-      ; ({ api, plugin } = Plugins.get(name).createPlugin(components, {
+      ;({ api, plugin } = Plugins.get(name).createPlugin(components, {
         conf: pConf,
         logger: logger.sub(`plugin-${name}`)
       }))
@@ -309,7 +309,7 @@ export const loadComponentsAndPlugins = ({
     productsAPI.plugins.use(plugin, prepend)
   }
 
-  const send = opts => productsAPI.send(opts)
+  const send = (opts) => productsAPI.send(opts)
   const employeeManager = createEmployeeManager({
     logger: logger.sub('employees'),
     bot,
@@ -421,7 +421,7 @@ export const loadComponentsAndPlugins = ({
 
     bot.hookSimple(
       bot.events.topics.resource.save.async,
-      tryAsync(handleResourceChange, err => {
+      tryAsync(handleResourceChange, (err) => {
         logger.error('resource change handler failed', err)
       })
     )
@@ -438,7 +438,7 @@ export const loadComponentsAndPlugins = ({
 
     bot.hookSimple(
       bot.events.topics.resource.delete,
-      tryAsync(handleResourceDelete, err => {
+      tryAsync(handleResourceDelete, (err) => {
         logger.error('resource delete handler failed', err)
       })
     )
@@ -473,7 +473,7 @@ export const loadComponentsAndPlugins = ({
     })
 
     const bizPlugins = require('@tradle/biz-plugins')
-    bizPlugins.forEach(plugin =>
+    bizPlugins.forEach((plugin) =>
       productsAPI.plugins.use(
         plugin({
           bot,
@@ -601,7 +601,7 @@ export const loadComponentsAndPlugins = ({
     )
     productsAPI.plugins.use(
       {
-        onmessage: async req => {
+        onmessage: async (req) => {
           let { application, payload } = req
           if (!application) return
           let ptype = payload[TYPE]
@@ -610,7 +610,7 @@ export const loadComponentsAndPlugins = ({
 
           let forms = []
           let hasFormsOfPayloadType
-          application.forms.forEach(stub => {
+          application.forms.forEach((stub) => {
             let sub = stub.submission
             let subType = sub[TYPE]
             if (subType === PRODUCT_REQUEST) return
@@ -632,11 +632,11 @@ export const loadComponentsAndPlugins = ({
     )
     productsAPI.plugins.use(
       {
-        onmessage: async req => {
+        onmessage: async (req) => {
           let { user, payload } = req
           if (!payload[ORG]) return
 
-          const isEmployee = employeeManager.isEmployee(user)
+          const isEmployee = employeeManager.isEmployee(req)
           if (!isEmployee) return
 
           const myPermalink = await promiseMyPermalink
@@ -655,18 +655,18 @@ export const loadComponentsAndPlugins = ({
           payload = await witness(bot, payload)
           req.payload = req.object = req.message.object = payload
         },
-        onPendingApplicationCollision: async input => {
+        onPendingApplicationCollision: async (input) => {
           const { req, pending } = input
-          if (employeeManager.isEmployee(req.user)) {
+          if (employeeManager.isEmployee(req)) {
             // allow it
             await productsAPI.addApplication({ req })
             return
           }
 
-          await Promise.each(defaultHandlers, handler => handler(input))
+          await Promise.each(defaultHandlers, (handler) => handler(input))
         },
         willCreateApplication: async ({ user, application }) => {
-          if (employeeManager.isEmployee(user)) {
+          if (employeeManager.isEmployee({ user })) {
             application.draft = true
           }
         }
@@ -736,16 +736,16 @@ export const loadComponentsAndPlugins = ({
       'client-edits',
       'roarIntegration',
       'sme-auto-approve',
-      'attestation',
-    ].forEach(name => attachPlugin({ name }))
-      ;[
-        'hand-sig',
-        'forms-counter',
-        'documentValidity',
-        'fill-myproduct',
-        'checkOverride',
-        'prefill-controllingPerson'
-      ].forEach(name => attachPlugin({ name, requiresConf: false }))
+      'attestation'
+    ].forEach((name) => attachPlugin({ name }))
+    ;[
+      'hand-sig',
+      'forms-counter',
+      'documentValidity',
+      'fill-myproduct',
+      'checkOverride',
+      'prefill-controllingPerson'
+    ].forEach((name) => attachPlugin({ name, requiresConf: false }))
     // used for some demo
     // ;[
     //   'plugin1',
@@ -845,11 +845,11 @@ const tweakProductListPerRecipient = (components: IBotComponents) => {
     if (bot.isLocal) return
     if (formRequest.form !== PRODUCT_REQUEST) return
 
-    const hidden = employeeManager.isEmployee(user)
+    const hidden = employeeManager.isEmployee({ user })
       ? HIDDEN_PRODUCTS.employee
       : HIDDEN_PRODUCTS.customer
 
-    formRequest.chooser.oneOf = formRequest.chooser.oneOf.filter(product => {
+    formRequest.chooser.oneOf = formRequest.chooser.oneOf.filter((product) => {
       // allow showing hidden products explicitly by listing them in conf
       // e.g. Tradle might want to list MyCloud, but for others it'll be invisible
       return enabled.includes(product) || !hidden.includes(product)
@@ -920,7 +920,7 @@ const approveWhenTheTimeComes = (components: IBotComponents): PluginLifecycle.Me
 
 const banter = (components: IBotComponents) => {
   const { bot, productsAPI } = components
-  const handleSimpleMessage = async req => {
+  const handleSimpleMessage = async (req) => {
     const { user, application, object } = req
     const { message } = object
     bot.debug(`processing simple message: ${message}`)
@@ -958,7 +958,7 @@ ${PRODUCT_LIST_MENU_MESSAGE}`
       }
     })
   }
-  const handleDataBundleSubmitted = async req => {
+  const handleDataBundleSubmitted = async (req) => {
     const { application, user, payload } = req
     if (!application) {
       bot.logger.debug(`Received ${payload[TYPE]} but no application`)
@@ -1033,7 +1033,7 @@ const sendModelsPackToNewEmployees = (components: IBotComponents) => {
         await sendModelsPackIfUpdated({
           user,
           modelsPack,
-          send: object => productsAPI.send({ req, to: user, application, object })
+          send: (object) => productsAPI.send({ req, to: user, application, object })
         })
       }
     }

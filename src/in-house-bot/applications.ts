@@ -109,7 +109,9 @@ export class Applications implements IHasModels {
     notifications?: any
   }) {
     if (!notifications)
-      notifications = await Promise.all(application.notifications.map(n => this.bot.getResource(n)))
+      notifications = await Promise.all(
+        application.notifications.map((n) => this.bot.getResource(n))
+      )
     let { tree } = application
     let top
     if (tree) top = application
@@ -174,7 +176,7 @@ export class Applications implements IHasModels {
       props.form._permalink !== props.form._link
     ) {
       oldCheck = checks.find(
-        check =>
+        (check) =>
           check.provider === props.provider &&
           !check.inactive &&
           check.form._permalink === props.form._permalink &&
@@ -182,10 +184,7 @@ export class Applications implements IHasModels {
       )
       if (oldCheck) props.previousCheck = buildResourceStub({ resource: oldCheck })
     }
-    let check = await bot
-      .draft({ type })
-      .set(props)
-      .signAndSave()
+    let check = await bot.draft({ type }).set(props).signAndSave()
 
     let checkResource = check.toJSON({ virtual: true })
 
@@ -206,20 +205,20 @@ export class Applications implements IHasModels {
       // }
       req.latestChecks = latestChecks
     }
-    let idx = latestChecks.findIndex(c => c[TYPE] === props[TYPE])
+    let idx = latestChecks.findIndex((c) => c[TYPE] === props[TYPE])
     if (idx !== -1) latestChecks.splice(idx, 1)
     latestChecks.push(checkResource)
 
-    let failedChecks = latestChecks.filter(check => !isPassedCheck(check))
+    let failedChecks = latestChecks.filter((check) => !isPassedCheck(check))
     if (failedChecks.length) {
       application.numberOfChecksFailed = failedChecks.length
       application.hasFailedChecks = true
       application.hasFailedScreeningChecks =
-        failedChecks.findIndex(check => check[TYPE] === SANCTIONS_CHECK) !== -1
+        failedChecks.findIndex((check) => check[TYPE] === SANCTIONS_CHECK) !== -1
       application.hasFailedDocumentValidityChecks =
-        failedChecks.findIndex(check => check[TYPE] === DOCUMENT_VALIDITY_CHECK) !== -1
+        failedChecks.findIndex((check) => check[TYPE] === DOCUMENT_VALIDITY_CHECK) !== -1
       application.hasFailedEntityExistanceChecks =
-        failedChecks.findIndex(check => check[TYPE] === CORPORATION_EXISTS_CHECK) !== -1
+        failedChecks.findIndex((check) => check[TYPE] === CORPORATION_EXISTS_CHECK) !== -1
     } else {
       if (application.numberOfChecksFailed) {
         application.numberOfChecksFailed = 0
@@ -229,7 +228,7 @@ export class Applications implements IHasModels {
       }
     }
     if (checkResource[TYPE] === SANCTIONS_CHECK) {
-      let sanctionsChecks = latestChecks.filter(check => check[TYPE] === SANCTIONS_CHECK)
+      let sanctionsChecks = latestChecks.filter((check) => check[TYPE] === SANCTIONS_CHECK)
       if (sanctionsChecks.length) {
         sanctionsChecks = uniqBy(sanctionsChecks, 'propertyName')
         if (application.screeningCheckCount !== sanctionsChecks.length)
@@ -280,19 +279,19 @@ export class Applications implements IHasModels {
     await this._commitApplicationUpdate({ application })
   }
 
-  public updateApplication = async application => {
+  public updateApplication = async (application) => {
     await this._commitApplicationUpdate({ application })
   }
 
-  public approve = async opts => {
+  public approve = async (opts) => {
     return this.judgeApplication({ ...opts, approve: true })
   }
 
-  public deny = async opts => {
+  public deny = async (opts) => {
     return this.judgeApplication({ ...opts, approve: false })
   }
 
-  public verify = async opts => {
+  public verify = async (opts) => {
     return await this.productsAPI.verify(opts)
   }
 
@@ -307,26 +306,26 @@ export class Applications implements IHasModels {
 
     const formStubs = getCustomerFormStubs({ application })
     const verifications = await this.getVerificationsForApplication({ application })
-    const verified = verifications.map(verification => parseStub(verification.document))
-    return formStubs.filter(stub => {
+    const verified = verifications.map((verification) => parseStub(verification.document))
+    return formStubs.filter((stub) => {
       const { permalink } = parseStub(stub)
-      return !verified.find(form => form.permalink === permalink)
+      return !verified.find((form) => form.permalink === permalink)
     })
   }
 
   public getVerificationsForApplication = async ({ application }: AppInfo) => {
     const { verifications = [] } = application
-    return await Promise.map(verifications, appSub => this.bot.getResource(appSub.submission))
+    return await Promise.map(verifications, (appSub) => this.bot.getResource(appSub.submission))
   }
 
   public getCustomerForms = async ({ application }: AppInfo) => {
     const stubs = getCustomerFormStubs({ application })
-    return await Promise.all(stubs.map(stub => this.bot.getResource(stub)))
+    return await Promise.all(stubs.map((stub) => this.bot.getResource(stub)))
   }
 
   public getVerificationsForCustomerForms = async ({ application }: AppInfo) => {
-    const stubs = (application.verifications || []).map(appSub => appSub.submission)
-    return await Promise.all(stubs.map(stub => this.bot.getResource(stub)))
+    const stubs = (application.verifications || []).map((appSub) => appSub.submission)
+    return await Promise.all(stubs.map((stub) => this.bot.getResource(stub)))
   }
 
   public getCustomerFormsAndVerifications = async ({ application }: AppInfo) => {
@@ -352,14 +351,14 @@ export class Applications implements IHasModels {
     if (!formStubs.length) return []
 
     const verifications = await Promise.all(
-      stubs.verifications.map(stub => this.bot.getResource(stub))
+      stubs.verifications.map((stub) => this.bot.getResource(stub))
     )
 
     // avoid building increasingly tall trees of verifications
-    const sourcesOnly = flatMap(verifications, v => (isEmpty(v.sources) ? v : v.sources))
-    return await formStubs.map(async formStub => {
+    const sourcesOnly = flatMap(verifications, (v) => (isEmpty(v.sources) ? v : v.sources))
+    return await formStubs.map(async (formStub) => {
       const sources = sourcesOnly.filter(
-        v => parseStub(v.document).link === parseStub(formStub).link
+        (v) => parseStub(v.document).link === parseStub(formStub).link
       )
       // if (!sources.length) {
       //   this.logger.debug('not issuing verification for form, as no source verifications found', formStub)
@@ -388,9 +387,9 @@ export class Applications implements IHasModels {
     const forms = await this.getCustomerForms({ application })
     const counterparty = getApplicantPermalink(application)
     // avoid re-sealing
-    const subs = forms.filter(sub => !sub._seal)
+    const subs = forms.filter((sub) => !sub._seal)
     // verifications are sealed in issueVerifications
-    await Promise.all(subs.map(object => this.bot.sealIfNotBatching({ counterparty, object })))
+    await Promise.all(subs.map((object) => this.bot.sealIfNotBatching({ counterparty, object })))
   }
 
   public createSealsForApprovedApplication = async ({ application }: AppInfo) => {
@@ -399,7 +398,7 @@ export class Applications implements IHasModels {
 
     const { certificate } = application
     if (certificate && !certificate._seal) {
-      const sealCert = bot.getResource(certificate).then(object =>
+      const sealCert = bot.getResource(certificate).then((object) =>
         bot.sealIfNotBatching({
           counterparty: getApplicantPermalink(application),
           object
@@ -409,7 +408,7 @@ export class Applications implements IHasModels {
       promises.push(sealCert)
     }
 
-    return await Promise.all(promises).then(results => flatten(results))
+    return await Promise.all(promises).then((results) => flatten(results))
   }
 
   public organizeSubmissions = (application: IPBApp) => {
@@ -417,7 +416,7 @@ export class Applications implements IHasModels {
     return application
   }
 
-  public requestEdit = async opts => {
+  public requestEdit = async (opts) => {
     const { req = {}, item } = opts
     if (item && item[TYPE]) {
       this.validatePartialResource(item)
@@ -480,11 +479,11 @@ export class Applications implements IHasModels {
 
     const { latestChecks } = await getLatestChecks({ application, bot: this.bot })
     const byAPI: any = groupBy(latestChecks, 'provider')
-    const latest = Object.keys(byAPI).map(provider => byAPI[provider].pop())
-    const allPassed = latest.every(check => isPassedCheck(check))
+    const latest = Object.keys(byAPI).map((provider) => byAPI[provider].pop())
+    const allPassed = latest.every((check) => isPassedCheck(check))
     this.logger.silly('have all checks passed?', {
       application: application._permalink,
-      checks: latest.map(check => this.buildStub(check))
+      checks: latest.map((check) => this.buildStub(check))
     })
 
     return allPassed
@@ -554,10 +553,10 @@ export class Applications implements IHasModels {
     let checks
     if (req) checks = req.checks
     else {
-      const checksOfType = application.checks.filter(check => check[TYPE] === type)
-      checks = await Promise.all(checksOfType.map(check => this.bot.getResource(check)))
+      const checksOfType = application.checks.filter((check) => check[TYPE] === type)
+      checks = await Promise.all(checksOfType.map((check) => this.bot.getResource(check)))
     }
-    const deactivatedChecks = checks.filter(check => {
+    const deactivatedChecks = checks.filter((check) => {
       if (check.isInactive) return false
       // by check type
       if (!form) return true
@@ -568,7 +567,7 @@ export class Applications implements IHasModels {
     if (!deactivatedChecks.length) return
 
     await Promise.all(
-      deactivatedChecks.map(check =>
+      deactivatedChecks.map((check) =>
         this.bot.versionAndSave({
           ...check,
           isInactive: true
@@ -590,10 +589,7 @@ export class Applications implements IHasModels {
     user: IPBUser
     application: ITradleObject
   }) => {
-    const res = await this.bot
-      .draft({ type: APPLICATION })
-      .set(application)
-      .signAndSave()
+    const res = await this.bot.draft({ type: APPLICATION }).set(application).signAndSave()
 
     const signed = res.toJSON({ virtual: true })
     if (!user.applications) {
@@ -733,7 +729,7 @@ export class Applications implements IHasModels {
     const { user } = req
     if (!user) return
 
-    return this.employeeManager.isEmployee(user)
+    return this.employeeManager.isEmployee(req)
   }
 
   // public requestEdit = async (opts: {
@@ -771,12 +767,12 @@ export class Applications implements IHasModels {
 
 const getCustomerSubmissions = ({ forms }: { forms: ApplicationSubmission[] }) => {
   if (!forms) return []
-  return forms.filter(f => !PRUNABLE_FORMS.includes(f.submission[TYPE]))
+  return forms.filter((f) => !PRUNABLE_FORMS.includes(f.submission[TYPE]))
 }
 
 const getCustomerFormStubs = ({ application }: AppInfo) => {
   const { forms = [] } = application
-  return getCustomerSubmissions({ forms }).map(s => s.submission)
+  return getCustomerSubmissions({ forms }).map((s) => s.submission)
 }
 
 // const getApplicationWithCustomerSubmittedForms = (application: IPBApp):IPBApp => ({
@@ -788,15 +784,15 @@ const getCustomerFormStubs = ({ application }: AppInfo) => {
 
 const getCustomerFormsAndVerificationStubs = ({ application }: AppInfo) => ({
   forms: getCustomerFormStubs({ application }),
-  verifications: (application.verifications || []).map(appSub => appSub.submission)
+  verifications: (application.verifications || []).map((appSub) => appSub.submission)
 })
 
 const getLatestVerifications = ({ verifications }) => {
-  verifications = verifications.filter(v => !v.revoked)
+  verifications = verifications.filter((v) => !v.revoked)
   if (!verifications.length) return verifications
 
-  const perForm = groupBy(verifications, v => parseStub(v.document).permalink)
-  return Object.keys(perForm).map(formPermalink => maxBy(perForm[formPermalink], '_time'))
+  const perForm = groupBy(verifications, (v) => parseStub(v.document).permalink)
+  return Object.keys(perForm).map((formPermalink) => maxBy(perForm[formPermalink], '_time'))
 }
 
 const getApplicantPermalink = (application: IPBApp) => parseStub(application.applicant).permalink

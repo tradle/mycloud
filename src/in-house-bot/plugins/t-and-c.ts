@@ -41,7 +41,7 @@ export const createPlugin: CreatePlugin<void> = (
       let { enabled } = conf
       if (!enabled) return
 
-      if (user.friend || employeeManager.isEmployee(user)) return
+      if (user.friend || employeeManager.isEmployee(req)) return
 
       if (payload.termsAndConditions.trim() === mainConf.termsAndConditions.value.trim()) {
         logger.debug(`updating ${user.id}.${DATE_ACCEPTED_PROP}`)
