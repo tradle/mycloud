@@ -71,7 +71,7 @@ export class ImportCzechData {
     let moved = false
     for (let el in input) {
       let now = Date.now()
-      if (now - start < TIME_LIMIT) {
+      if (now - start > TIME_LIMIT) {
         this.logger.debug("ImportCzech run out of time limit")
         break
       }
