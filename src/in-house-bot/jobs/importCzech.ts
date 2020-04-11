@@ -94,7 +94,7 @@ export class ImportCzechData {
     const contentToPost: AWS.S3.Types.PutObjectRequest = {
       Bucket: this.outputLocation,
       Key: CZ_PREFIX_TEMP + file,
-      Body: rstream
+      Body: rstream.body
     }
     this.logger.debug(`importCzech: uploading ${file}`)
     let res = await s3.upload(contentToPost).promise()
