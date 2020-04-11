@@ -23,6 +23,7 @@ import { ImportBasicCompanyData } from './importBasicCompanyData'
 import { RoarFeedback } from './roarFeedback'
 import { Chaser } from './chaser'
 import { PendingChecksChaser } from './pendingChecksChaser'
+import { ImportCzechData } from './importCzech'
 // import { Deployment } from '../deployment'
 
 const SAFETY_MARGIN_MILLIS = 20000
@@ -109,6 +110,14 @@ export const pendingChecksChaser: Executor = async ({ job, components }) => {
   }
 }
 
+export const importCzech: Executor = async ({ job, components }) => {
+  let importer = new ImportCzechData(components.bot)
+  try {
+    await importer.move()
+  } catch (err) {
+    components.bot.logger.error('job importCzech failed', err)
+  }
+}
 
 export const importMaxmindDb: Executor = async ({ job, components }) => {
   let importer = new ImportMaxmindDb(components.bot)
