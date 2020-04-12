@@ -132,15 +132,15 @@ export class ImportCzechData {
     let localfile = TEMP + 'companies/' + file
     fs.ensureDirSync(TEMP + 'companies')
 
-    //const singleUrl = `https://dataor.justice.cz/api/file/${file}.csv.gz`
-    //let get = await fetch(singleUrl, { timeout: 5000 })
+    const singleUrl = `https://dataor.justice.cz/api/file/${file}`
+    let get = await fetch(singleUrl, { timeout: 5000 })
 
-    await this.s3downloadhttp(`public/cz/companies/2020/${file}.csv.gz`, localfile)
+    //await this.s3downloadhttp(`public/cz/companies/2020/${file}`, localfile)
 
-    //let fout = fs.createWriteStream(localfile)
-    //let promise = this.writeStreamToPromise(fout)
-    //get.body.pipe(fout)
-    //await promise
+    let fout = fs.createWriteStream(localfile)
+    let promise = this.writeStreamToPromise(fout)
+    get.body.pipe(fout)
+    await promise
 
     let rstream: fs.ReadStream = fs.createReadStream(localfile)
 
