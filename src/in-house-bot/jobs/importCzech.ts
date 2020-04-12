@@ -174,7 +174,7 @@ export class ImportCzechData {
       WITH SERDEPROPERTIES (
         'separatorChar' = ',',
         'quoteChar' = '"',
-        'escapeChar' = '\\'
+        'escapeChar' = '\\\\'
       )
       STORED AS TEXTFILE
       LOCATION
