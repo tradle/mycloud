@@ -1,5 +1,6 @@
 import fetch from 'node-fetch'
 import AWS from 'aws-sdk'
+import fs from 'fs-extra'
 
 import {
   Bot,
@@ -14,9 +15,12 @@ import {
 import { TYPE } from '@tradle/constants'
 import { enumValue } from '@tradle/build-resource'
 
-const CZ_PREFIX = 'refdata/cz/'
-const CZ_PREFIX_TEMP = 'temp/refdata/cz/'
+const CZ_COMPANIES_PREFIX = 'refdata/cz/companies/'
+const CZ_PREFIX_TEMP = 'temp/refdata/cz/companies_origin/'
+const CZ_PREFIX_ORC_TEMP = 'temp/refdata/cz/companies_orc/'
+const TEMP = '/tmp/' // use lambda temp dir
 const TIME_LIMIT = 11 * 60 * 1000
+const BUCKET_COUNT = 4
 
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
@@ -90,24 +94,47 @@ export class ImportCzechData {
       }
     }
 
-    this.logger.debug("ImportCzech finished")
     if (!moved)
       return
+    if (await this.checkFiles() === BUCKET_COUNT)
+      return
+
     await this.createOriginTable()
+    await this.deleteAllInNext()
+    await this.dropAndCreateNextTable()
+    await this.copyFromNext()
+    this.logger.debug("ImportCzech finished")
   }
   private moveElementList = async (file: string) => {
     this.logger.debug(`importCzech: moveList called for ${file}`)
+
+    let localfile = TEMP + 'companies/' + file
+    fs.ensureDirSync(TEMP + 'companies')
+
     const singleUrl = `https://dataor.justice.cz/api/file/${file}.csv.gz`
-    let rstream = await fetch(singleUrl)
+    let get = await fetch(singleUrl, { timeout: 5000 })
+    let fout = fs.createWriteStream(localfile)
+    let promise = this.writeStreamToPromise(fout)
+    get.body.pipe(fout)
+    await promise
+
+    let rstream: fs.ReadStream = fs.createReadStream(localfile)
 
     const contentToPost: AWS.S3.Types.PutObjectRequest = {
       Bucket: this.outputLocation,
       Key: CZ_PREFIX_TEMP + file,
-      Body: rstream.body
+      Body: rstream
     }
     this.logger.debug(`importCzech: uploading ${file}`)
     let res = await s3.upload(contentToPost).promise()
     this.logger.debug(`importCzech: uploaded ${file}`)
+    fs.unlinkSync(localfile)
+  }
+
+  private writeStreamToPromise = (stream: fs.WriteStream) => {
+    return new Promise((resolve, reject) => {
+      stream.on('finish', resolve).on('error', reject)
+    })
   }
 
   private createOriginTable = async () => {
@@ -117,7 +144,7 @@ export class ImportCzechData {
         name string,
         data string,
         ceasedate string,
-        recorddate
+        recorddate string
       )
       ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.OpenCSVSerde'
       WITH SERDEPROPERTIES (
@@ -134,12 +161,104 @@ export class ImportCzechData {
         'compressionType'='gzip', 
         'typeOfData'='file')`
 
-    await this.athenaDDL(createTab, 2000)
+    await this.executeDDL(createTab, 2000)
   }
 
-  public athenaDDL = async (sql: string, delay: number, wait: number = 10000) => {
+  private dropAndCreateNextTable = async () => {
+    this.logger.debug('importCzech dropAndCreateNextTable() called')
+    let data: any = await this.executeDDL('DROP TABLE czech_data_origin_bucketed', 3000)
+
+    const create = `CREATE TABLE czech_data_origin_bucketed 
+                    WITH (
+                    format = \'ORC\', 
+                    external_location = \'s3://${this.outputLocation}/${CZ_PREFIX_ORC_TEMP}\', 
+                    bucketed_by = ARRAY[\'ico\'], 
+                    bucket_count = ${BUCKET_COUNT}
+      AS SELECT ico, name, data, ceasedate, recorddate FROM czech_data_origin`
+    let res = await this.executeDDL(create, 10000, 120000)
+    this.logger.debug('importCzech dropAndCreateNextTable: ' + JSON.stringify(res, null, 2))
+  }
+
+  private deleteAllInNext = async () => {
+    this.logger.debug('importCzech deleteAllInNext() called')
+    let param1 = {
+      Bucket: this.outputLocation,
+      Prefix: CZ_PREFIX_ORC_TEMP
+    };
+
+    let data = await s3.listObjectsV2(param1).promise()
+    let toDelete = []
+    for (let content of data.Contents) {
+      let key = content.Key
+      toDelete.push({ Key: key })
+    }
+
+    let param2 = {
+      Bucket: this.outputLocation,
+      Delete: {
+        Objects: toDelete
+      }
+    }
+
+    try {
+      let res = await s3.deleteObjects(param2).promise();
+      this.logger.debug('importCzech deleteAllInNext finished', res)
+    } catch (err) {
+      this.logger.error('importCzech deleteAllInNext error', err);
+    }
+
+  }
+
+  private copyFromNext = async () => {
+    this.logger.debug('importCzech copyFromNext() called')
+    let param = {
+      Bucket: this.outputLocation,
+      Prefix: CZ_PREFIX_ORC_TEMP
+    };
+
+    let data = await s3.listObjectsV2(param).promise()
+    let toCopy = []
+    for (let content of data.Contents) {
+      let key = content.Key
+      toCopy.push(key)
+    }
+    this.logger.debug('importCzech to copy' + JSON.stringify(toCopy))
+
+    let promises = []
+    for (let key of toCopy) {
+      let destKey = CZ_COMPANIES_PREFIX + key.substring(key.indexOf('bucket-'))
+      let params = {
+        Bucket: this.outputLocation,
+        CopySource: `${this.outputLocation}/${key}`,
+        Key: destKey
+      }
+      promises.push(s3.copyObject(params).promise())
+    }
+
+    for (let promise of promises)
+      await promise
+  }
+
+
+  private checkFiles = async (): Promise<number> => {
+    this.logger.debug('importCzech checkFiles() called')
+    let param = {
+      Bucket: this.outputLocation,
+      Prefix: CZ_COMPANIES_PREFIX
+    };
+
+    let data = await s3.listObjectsV2(param).promise()
+    let cnt = 0
+    for (let content of data.Contents) {
+      cnt++
+    }
+    return cnt
+  }
+
+
+  public executeDDL = async (sql: string, delay: number, wait: number = 10000) => {
     let id: string
-    this.logger.debug(`importCzech athenaDDL() called with sql ${sql}`)
+    this.logger.debug(`importCzech executeDDL() called with sql ${sql}`)
 
     try {
       id = await this.athenaHelper.getExecutionId(sql)
