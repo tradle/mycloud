@@ -111,11 +111,17 @@ export class ImportCzechData {
 
   private s3downloadhttp = async (key: string, localDest: string) => {
     let url = `http://referencedata.tradle.io.s3-website-us-east-1.amazonaws.com/${key}`
-    let get = await fetch(url)
-    let fout = fs.createWriteStream(localDest)
-    let promise = this.writeStreamToPromise(fout)
-    get.body.pipe(fout)
-    await promise
+    this.logger.debug(`importCzech s3downloadhttp downloading from ${url}`)
+    try {
+      let get = await fetch(url)
+      let fout = fs.createWriteStream(localDest)
+      let promise = this.writeStreamToPromise(fout)
+      get.body.pipe(fout)
+      await promise
+    } catch (err) {
+      this.logger.error(`importCzech s3downloadhttp error`, err)
+      return
+    }
     let stats = fs.statSync(localDest)
     let fileSizeInBytes = stats["size"]
     this.logger.debug(`importCzech s3downloadhttp downloaded file of size ${fileSizeInBytes}`)
