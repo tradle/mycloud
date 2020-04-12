@@ -6,6 +6,11 @@ import {
   Logger,
 } from '../types'
 
+import {
+  sleep,
+  AthenaHelper
+} from '../athena-utils'
+
 import { TYPE } from '@tradle/constants'
 import { enumValue } from '@tradle/build-resource'
 
@@ -23,11 +28,15 @@ export class ImportCzechData {
   private bot: Bot
   private logger: Logger
   private outputLocation: string
+  private athenaHelper: AthenaHelper
+  private athena: AWS.Athena
 
   constructor(bot: Bot) {
     this.bot = bot
     this.logger = bot.logger
     this.outputLocation = this.bot.buckets.PrivateConf.id //BUCKET //
+    this.athena = new AWS.Athena() //{ region, accessKeyId, secretAccessKey })
+    this.athenaHelper = new AthenaHelper(bot, this.logger, this.athena, 'importCzech')
   }
 
   private inputList = async (): Promise<string[]> => {
@@ -69,7 +78,7 @@ export class ImportCzechData {
     let input: string[] = await this.inputList()
     this.logger.debug("ImportCzech input: " + input)
     let moved = false
-    for (let el in input) {
+    for (let el of input) {
       let now = Date.now()
       if (now - start > TIME_LIMIT) {
         this.logger.debug("ImportCzech run out of time limit")
@@ -84,8 +93,8 @@ export class ImportCzechData {
     this.logger.debug("ImportCzech finished")
     if (!moved)
       return
+    await this.createOriginTable()
   }
-
   private moveElementList = async (file: string) => {
     this.logger.debug(`importCzech: moveList called for ${file}`)
     const singleUrl = `https://dataor.justice.cz/api/file/${file}.csv.gz`
@@ -101,4 +110,71 @@ export class ImportCzechData {
     this.logger.debug(`importCzech: uploaded ${file}`)
   }
 
+  private createOriginTable = async () => {
+    this.logger.debug('importCzech createOriginTable() called')
+    let createTab = `CREATE EXTERNAL TABLE IF NOT EXISTS czech_data_origin (
+        ico string,
+        name string,
+        data string,
+        ceasedate string,
+        recorddate
+      )
+      ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.OpenCSVSerde'
+      WITH SERDEPROPERTIES (
+        'separatorChar' = ',',
+        'quoteChar' = '"',
+        'escapeChar' = '\\'
+      )
+      STORED AS TEXTFILE
+      LOCATION
+        's3://${this.outputLocation}/${CZ_PREFIX_TEMP}'
+      TBLPROPERTIES (
+        'skip.header.line.count'='1',
+        'classification'='csv', 
+        'compressionType'='gzip', 
+        'typeOfData'='file')`
+
+    await this.athenaDDL(createTab, 2000)
+  }
+
+  public athenaDDL = async (sql: string, delay: number, wait: number = 10000) => {
+    let id: string
+    this.logger.debug(`importCzech athenaDDL() called with sql ${sql}`)
+
+    try {
+      id = await this.athenaHelper.getExecutionId(sql)
+      this.logger.debug('importCzech athena execution id', id)
+    } catch (err) {
+      this.logger.error('importCzech athena error', err)
+      return undefined
+    }
+
+    await sleep(delay)
+    let timePassed = delay
+    while (true) {
+      let result = false
+      try {
+        result = await this.athenaHelper.checkStatus(id)
+      } catch (err) {
+        this.logger.error('importCzech athena error', err)
+        return undefined
+      }
+      if (result) break
+
+      if (timePassed > wait) {
+        this.logger.debug('importCzech athena tired of waiting')
+        return undefined
+      }
+      await sleep(1000)
+      timePassed += 1000
+    }
+    try {
+      let list: any[] = await this.athenaHelper.getResults(id)
+      this.logger.debug(`importCzech athena query result contains ${list.length} rows`)
+      return { status: true, error: null, data: list }
+    } catch (err) {
+      this.logger.error('importCzech athena error', err)
+      return undefined
+    }
+  }
 }
