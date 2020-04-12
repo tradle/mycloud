@@ -111,7 +111,7 @@ export class ImportCzechData {
 
   private s3downloadhttp = async (key: string, localDest: string) => {
     let url = `http://referencedata.tradle.io.s3-website-us-east-1.amazonaws.com/${key}`
-    this.logger.debug(`importCzech s3downloadhttp downloading from ${url}`)
+    this.logger.debug(`importCzech s3downloadhttp time from ${url}`)
     try {
       let get = await fetch(url)
       let fout = fs.createWriteStream(localDest)
