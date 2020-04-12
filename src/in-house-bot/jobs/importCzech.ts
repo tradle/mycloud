@@ -116,6 +116,9 @@ export class ImportCzechData {
     let promise = this.writeStreamToPromise(fout)
     get.body.pipe(fout)
     await promise
+    let stats = fs.statSync(localDest)
+    let fileSizeInBytes = stats["size"]
+    this.logger.debug(`importCzech s3downloadhttp downloaded file of size ${fileSizeInBytes}`)
   }
   private moveElementList = async (file: string) => {
     this.logger.debug(`importCzech: moveList called for ${file}`)
