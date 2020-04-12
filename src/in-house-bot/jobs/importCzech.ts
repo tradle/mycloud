@@ -77,10 +77,12 @@ export class ImportCzechData {
     this.logger.debug("ImportCzech called")
     let start = Date.now()
 
+    let create = false
     if (await this.checkFiles() === BUCKET_COUNT) {
       this.logger.debug('ImportCzech target bucket filled')
       return
     }
+    create = true
 
     let current: string[] = await this.loadedList()
     this.logger.debug("ImportCzech loaded: " + current)
@@ -99,7 +101,7 @@ export class ImportCzechData {
       }
     }
 
-    if (!moved)
+    if (!moved && !create)
       return
 
     await this.createOriginTable()
