@@ -108,18 +108,30 @@ export class ImportCzechData {
     await this.copyFromNext()
     this.logger.debug("ImportCzech finished")
   }
+
+  private s3downloadhttp = async (key: string, localDest: string) => {
+    let url = `http://referencedata.tradle.io.s3-website-us-east-1.amazonaws.com/${key}`
+    let get = await fetch(url)
+    let fout = fs.createWriteStream(localDest)
+    let promise = this.writeStreamToPromise(fout)
+    get.body.pipe(fout)
+    await promise
+  }
   private moveElementList = async (file: string) => {
     this.logger.debug(`importCzech: moveList called for ${file}`)
 
     let localfile = TEMP + 'companies/' + file
     fs.ensureDirSync(TEMP + 'companies')
 
-    const singleUrl = `https://dataor.justice.cz/api/file/${file}.csv.gz`
-    let get = await fetch(singleUrl, { timeout: 5000 })
-    let fout = fs.createWriteStream(localfile)
-    let promise = this.writeStreamToPromise(fout)
-    get.body.pipe(fout)
-    await promise
+    //const singleUrl = `https://dataor.justice.cz/api/file/${file}.csv.gz`
+    //let get = await fetch(singleUrl, { timeout: 5000 })
+
+    await this.s3downloadhttp(`public/cz/companies/2020/${file}.csv.gz`, localfile)
+
+    //let fout = fs.createWriteStream(localfile)
+    //let promise = this.writeStreamToPromise(fout)
+    //get.body.pipe(fout)
+    //await promise
 
     let rstream: fs.ReadStream = fs.createReadStream(localfile)
 
