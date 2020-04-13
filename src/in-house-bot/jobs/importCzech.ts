@@ -196,10 +196,10 @@ export class ImportCzechData {
 
     const create = `CREATE TABLE czech_data_origin_bucketed 
                     WITH (
-                    format = \'ORC\', 
-                    external_location = \'s3://${this.outputLocation}/${CZ_PREFIX_ORC_TEMP}\', 
-                    bucketed_by = ARRAY[\'ico\'], 
-                    bucket_count = ${BUCKET_COUNT}
+                    format = 'ORC', 
+                    external_location = 's3://${this.outputLocation}/${CZ_PREFIX_ORC_TEMP}', 
+                    bucketed_by = ARRAY['ico'], 
+                    bucket_count = ${BUCKET_COUNT})
       AS SELECT ico, name, data, ceasedate, recorddate FROM czech_data_origin`
     let res = await this.executeDDL(create, 10000, 120000)
     this.logger.debug('importCzech dropAndCreateNextTable: ' + JSON.stringify(res, null, 2))
