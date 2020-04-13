@@ -213,11 +213,14 @@ export class ImportCzechData {
     };
 
     let data = await s3.listObjectsV2(param1).promise()
+
     let toDelete = []
     for (let content of data.Contents) {
       let key = content.Key
       toDelete.push({ Key: key })
     }
+    if (toDelete.length === 0)
+      return
 
     let param2 = {
       Bucket: this.outputLocation,
