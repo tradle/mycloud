@@ -24,7 +24,7 @@ import Errors from '../errors'
 import { Commands } from './commands'
 import Logger from '../logger'
 
-const prettify = obj => JSON.stringify(obj, null, 2)
+const prettify = (obj) => JSON.stringify(obj, null, 2)
 const COMMAND_REGEX = /^\/?([^\s]+)\s*(.*)?\s*$/
 const FORBIDDEN_MESSAGE = 'Who do you think you are, the admin? This attempt will be logged.'
 const NOT_FOUND_MESSAGE = 'command not found'
@@ -54,11 +54,11 @@ interface IExecOpts extends ICommandParams {
 
 export const DEFAULT_ERROR_MESSAGE = `sorry, I don't understand. To see the list of supported commands, type: /help`
 export const COMMANDS_NAMES = Commands.keys()
-export const EMPLOYEE_COMMANDS_NAMES = Commands.keys().filter(key => !Commands.get(key).adminOnly)
+export const EMPLOYEE_COMMANDS_NAMES = Commands.keys().filter((key) => !Commands.get(key).adminOnly)
 
 export const CUSTOMER_COMMANDS_NAMES = ['help', 'listproducts', 'forgetme', 'tours']
 
-CUSTOMER_COMMANDS_NAMES.forEach(name => {
+CUSTOMER_COMMANDS_NAMES.forEach((name) => {
   const command = Commands.get(name)
   if (!command) throw new Error(`command not found: ${name}`)
 })
@@ -168,7 +168,7 @@ export class Commander {
     await this.sendSimpleMessage({ req, to, message })
   }
 
-  public send = async opts => {
+  public send = async (opts) => {
     return await this.productsAPI.send(opts)
   }
 
@@ -305,7 +305,7 @@ export class Commander {
     const { req, commandName } = ctx
     const { user } = req
     if (user) {
-      ctx.employee = this.employeeManager.isEmployee(user)
+      ctx.employee = this.employeeManager.isEmployee(req)
     }
 
     this.ensureHasCommand(ctx)

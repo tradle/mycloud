@@ -716,6 +716,7 @@ export interface IUser {
 export interface IBotMessageEvent {
   bot: Bot
   user: IUser
+  masterUser?: IUser
   message: ITradleMessage
   payload: ITradleObject
   object: ITradleObject

@@ -28,12 +28,12 @@ export const createPlugin = (components: {
   remediation?: Remediation
   termsAndConditions: DatedValue
 }) => {
-  const onmessage = async req => {
+  const onmessage = async (req) => {
     // destructure here instead of in createPlugin, because some may be defined lazily
     const { logger, productsAPI, employeeManager, remediation, termsAndConditions } = components
 
     const { user, payload, type, application } = req
-    if (user.friend || employeeManager.isEmployee(user)) return
+    if (user.friend || employeeManager.isEmployee(req)) return
 
     if (ALLOW_WITHOUT_ACCEPTING.includes(type)) {
       return

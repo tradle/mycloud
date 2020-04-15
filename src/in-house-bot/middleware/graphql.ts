@@ -26,14 +26,14 @@ export const keepModelsFresh = (lambda: Lambda) => {
       productsAPI
     })
 
-    return async user => {
+    return async (user) => {
       const modelsPack = await getModelsPackForUser(user)
       if (!modelsPack) return
 
       const sent = await sendModelsPackIfUpdated({
         user,
         modelsPack,
-        send: object => bot.send({ to: user, object })
+        send: (object) => bot.send({ to: user, object })
       })
 
       if (sent) {
@@ -67,7 +67,7 @@ export const createAuth = (lambda: Lambda) => {
 
   return createGraphqlAuthHandler(lambda, {
     isGuestAllowed,
-    canUserRunQuery: opts => {
+    canUserRunQuery: (opts) => {
       const { ctx, user, masterUser, query } = opts
       const { employeeManager } = ctx.components as IBotComponents
       if (isGuestAllowed(opts)) return true
@@ -81,10 +81,10 @@ export const createAuth = (lambda: Lambda) => {
       } catch (err) {
         lambda.logger.debug('failed to parse query', err)
       }
-
-      return [user, masterUser]
-        .filter(value => value)
-        .some(user => employeeManager.isEmployee(user))
+      return employeeManager.isEmployee(opts)
+      // return [user, masterUser]
+      //   .filter(value => value)
+      //   .some(user => employeeManager.isEmployee(user))
     }
   })
 }
