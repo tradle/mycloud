@@ -267,14 +267,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       // debugger
       let ptype = payload[TYPE]
-      let { products, propertyMap } = conf
-      let productId = application.requestFor
-      if (!products || !products[productId] || !products[productId].includes(ptype)) {
-        logger.debug('not running check as form is missing "country"')
-        return
-      }
+      let { propertyMap } = conf
 
-      let map = propertyMap && propertyMap[payload[TYPE]]
+      let map = propertyMap && propertyMap[ptype]
       if (map) map = { ...defaultPropMap, ...map }
       else map = defaultPropMap
 
