@@ -109,9 +109,12 @@ export class ModelStore extends EventEmitter {
 
     this.on('update:cumulative', pack => {
       this.cumulativeModelsPack = pack
-      if (pack.models) {
-        this.addModels(pack.models)
-      }
+      if (!pack.models) return
+
+      // prevent collisions
+      const models = _.keyBy(pack.models, 'id')
+      this.removeModels(models)
+      this.addModels(models)
     })
   }
 

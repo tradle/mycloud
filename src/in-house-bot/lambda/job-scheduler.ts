@@ -73,6 +73,11 @@ const COMMON_JOBS: Job[] = [
     period: 20 * MINUTE,
   },
   {
+    name: 'importCzech',
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
+    period: 20 * MINUTE,
+  },
+  {
     name: 'roarFeedback',
     function: DEFAULT_JOB_RUNNER_FUNCTION,
     period: 1 * MINUTE

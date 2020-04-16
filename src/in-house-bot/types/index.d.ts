@@ -158,8 +158,8 @@ export interface IPBReq {
   applicant?: IPBUser
   isFromEmployee?: boolean
   skipChecks?: boolean
-  checks?:ITradleCheck[]
-  latestChecks?:ITradleCheck[]
+  checks?: ITradleCheck[]
+  latestChecks?: ITradleCheck[]
   previousPayloadVersion?: ITradleObject
 }
 
