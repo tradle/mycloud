@@ -2,12 +2,7 @@ import { utils as tradleUtils } from '@tradle/engine'
 import validateResource from '@tradle/validate-resource'
 import constants from '../constants'
 import Errors from '../errors'
-import {
-  ITradleObject,
-  Bot,
-  Logger,
-  IUser,
-} from '../types'
+import { ITradleObject, Bot, Logger, IUser } from '../types'
 import { isPromise } from '../utils'
 
 const { TYPE, SIG, SIGNATURE_FRESHNESS_LEEWAY } = constants
@@ -21,7 +16,7 @@ type GAComponents = {
 interface CanUserRunQueryInput {
   ctx: any
   user: IUser
-  masterUser?: IUser,
+  masterUser?: IUser
   query: any
 }
 
@@ -32,13 +27,10 @@ type GAOpts = {
   canUserRunQuery: CanUserRunQuery
 }
 
-export const createHandler = ({
-  bot,
-  logger
-}: GAComponents, {
-  isGuestAllowed,
-  canUserRunQuery
-}: GAOpts) => {
+export const createHandler = (
+  { bot, logger }: GAComponents,
+  { isGuestAllowed, canUserRunQuery }: GAOpts
+) => {
   const { identities } = bot
   return async (ctx, next) => {
     const method = ctx.method.toLowerCase()
@@ -55,7 +47,7 @@ export const createHandler = ({
 
     logger.debug('authenticating')
     const auth = ctx.headers['x-tradle-auth']
-    const queryObj:ITradleObject = {
+    const queryObj: ITradleObject = {
       [TYPE]: 'tradle.GraphQLQuery',
       body: tradleUtils.stringify(ctx.event),
       ...(auth ? JSON.parse(auth) : {})
@@ -90,8 +82,9 @@ export const createHandler = ({
     if (auth && !user) {
       logger.debug('looking up query author')
       try {
+        bot.objects.addMetadata(queryObj)
         await identities.verifyAuthor(queryObj)
-        const users = Promise.all([
+        const users = await Promise.all([
           bot.users.get(queryObj._author),
           queryObj._masterAuthor ? bot.users.get(queryObj._masterAuthor) : Promise.resolve(null)
         ])
@@ -129,12 +122,12 @@ const getDrift = (time: number) => {
     const type = drift > 0 ? 'ahead' : 'behind'
     return {
       type,
-      amount: abs,
+      amount: abs
     }
   }
 }
 
-const forbid = (ctx, message=FORBIDDEN_MESSAGE) => setError(ctx, 403, message)
+const forbid = (ctx, message = FORBIDDEN_MESSAGE) => setError(ctx, 403, message)
 const markInvalid = (ctx, message) => setError(ctx, 400, message)
 
 const setError = (ctx, status, message) => {

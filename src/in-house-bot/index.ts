@@ -289,7 +289,7 @@ export const loadComponentsAndPlugins = ({
     let api
     let plugin
     try {
-      ;({ api, plugin } = Plugins.get(name).createPlugin(components, {
+      ; ({ api, plugin } = Plugins.get(name).createPlugin(components, {
         conf: pConf,
         logger: logger.sub(`plugin-${name}`)
       }))
@@ -700,6 +700,7 @@ export const loadComponentsAndPlugins = ({
       'smart-prefill',
       'lens',
       'required-forms',
+      'czechCheck',
       'openCorporates',
       'complyAdvantage',
       // 'controllingPersonRegistration',
@@ -738,14 +739,14 @@ export const loadComponentsAndPlugins = ({
       'sme-auto-approve',
       'attestation'
     ].forEach((name) => attachPlugin({ name }))
-    ;[
-      'hand-sig',
-      'forms-counter',
-      'documentValidity',
-      'fill-myproduct',
-      'checkOverride',
-      'prefill-controllingPerson'
-    ].forEach((name) => attachPlugin({ name, requiresConf: false }))
+      ;[
+        'hand-sig',
+        'forms-counter',
+        'documentValidity',
+        'fill-myproduct',
+        'checkOverride',
+        'prefill-controllingPerson'
+      ].forEach((name) => attachPlugin({ name, requiresConf: false }))
     // used for some demo
     // ;[
     //   'plugin1',
