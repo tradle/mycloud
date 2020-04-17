@@ -129,7 +129,7 @@ export class PscCheckAPI {
       }
       if (result) break
 
-      if (timePassed > 5000) {
+      if (timePassed > 10000) {
         this.logger.debug('czechCheck athena pending result')
         return { status: false, error: 'pending result', data: { id } }
       }
@@ -178,7 +178,7 @@ export class PscCheckAPI {
     } else {
       let message: string
       this.logger.debug(`czechCheck check() found ${find.data.length} records`)
-      if (name.toLowerCase() !== find.data.name.toLowerCase()) {
+      if (name.toLowerCase() !== find.data[0].name.toLowerCase()) {
         message = `Warning: Company name is not the exact match: ${name} vs. ${find.data.name}`
       }
       find.data[0].data = makeJson(find.data[0].data)
