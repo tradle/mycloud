@@ -5,6 +5,7 @@ import {
   getStatusMessageForCheck,
   doesCheckNeedToBeCreated,
   getLatestCheck,
+  getEnumValueId,
   getCheckParameters,
   isPassedCheck
 } from '../utils'
@@ -51,7 +52,10 @@ const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 const PROVIDER = 'https://dataor.justice.cz/'
 const DISPLAY_NAME = 'Ministry of Justice of the Czech Republic'
 const ASPECTS = 'Public Register'
+const BO_ASPECTS = 'Beneficial ownership'
 const GOVERNMENTAL = 'governmental'
+const COUNTRY = 'tradle.Country'
+const STATUS = 'tradle.Status'
 
 const defaultPropMap = {
   companyName: 'companyName',
@@ -72,7 +76,7 @@ interface IPscCheck {
   req: IPBReq
 }
 
-export class PscCheckAPI {
+export class CzechCheckAPI {
   private bot: Bot
   private conf: any
   private applications: Applications
@@ -187,6 +191,27 @@ export class PscCheckAPI {
     return status
   }
 
+  public createBOCheck = async ({ application, status, form, rawData, req }: IPscCheck) => {
+    // debugger
+    let resource: any = {
+      [TYPE]: BENEFICIAL_OWNER_CHECK,
+      status,
+      sourceType: GOVERNMENTAL,
+      provider: PROVIDER,
+      application,
+      dateChecked: new Date().getTime(),
+      aspects: BO_ASPECTS,
+      form
+    }
+
+    resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
+    if (status.message) resource.resultDetails = status.message
+    resource.rawData = sanitize(rawData).sanitized
+
+    this.logger.debug(`czechCheck createBOCheck rawData: ${JSON.stringify(resource.rawData, null, 2)}`)
+
+    await this.applications.createCheck(resource, req)
+  }
   public createCorporateCheck = async ({
     provider,
     application,
@@ -256,7 +281,7 @@ export class PscCheckAPI {
 }
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
-  const czechCheckAPI = new PscCheckAPI({ bot, conf, applications, logger })
+  const czechCheckAPI = new CzechCheckAPI({ bot, conf, applications, logger })
   // debugger
   const plugin: IPluginLifecycleMethods = {
     async onmessage(req: IPBReq) {
@@ -344,11 +369,195 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         req
       })
 
+      if (status === 'pass') {
+        let arr: any[] = pscLikeRawData(rawData[0].data)
+        for (let bo of arr) {
+          await czechCheckAPI.createBOCheck({ application, status, form: payload, rawData, req })
+        }
+      }
+    },
+
+    async validateForm({ req }) {
+      const { user, application, payload } = req
+      // debugger
+      if (!application) return
+
+      if (payload[TYPE] !== LEGAL_ENTITY) return
+      let { propertyMap, companiesHouseApiKey } = conf
+      let map = propertyMap && propertyMap[payload[TYPE]]
+      if (map) map = { ...defaultPropMap, ...map }
+      else map = defaultPropMap
+
+      if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) {
+        logger.debug('skipping prefill"')
+        return
+      }
+
+      if (payload._prevlink && payload.registrationDate) return
+
+      let checks: any = req.latestChecks || application.checks
+
+      if (!checks) return
+
+      let stubs = checks.filter(check => check[TYPE] === CORPORATION_EXISTS)
+      if (!stubs || !stubs.length) return
+
+      let result: any = await Promise.all(stubs.map(check => bot.getResource(check)))
+
+      result.sort((a, b) => b._time - a._time)
+
+      result = _.uniqBy(result, TYPE)
+      let message
+      let prefill: any = {}
+      let errors
+      if (getEnumValueId({ model: bot.models[STATUS], value: result[0].status }) !== 'pass')
+        message = 'The company was not found. Please fill out the form'
+      else {
+        let check = result[0]
+        let companyInfo = check.rawData && check.rawData.length && check.rawData[0]
+        if (!companyInfo) return
+        let name = companyInfo.name
+        let company_number = companyInfo.ico
+
+        let incorporation_date = companyInfo.recorddate
+
+        if (incorporation_date) prefill.registrationDate = new Date(incorporation_date).getTime()
+
+        let data: any[] = companyInfo.data
+        for (let part of data) {
+          if (part.udajTyp.kod === "SIDLO") {
+            _.extend(prefill, {
+              streetAddress: part.adresa.ulice + ' ' + part.adresa.cisloText,
+              city: part.adresa.obec
+            })
+            break;
+          }
+        }
+
+        let wrongName = name.toLowerCase() !== payload.companyName.toLowerCase()
+        if (wrongName) prefill.companyName = name
+        let wrongNumber = company_number.toLowerCase() !== payload.registrationNumber.toLowerCase()
+        if (wrongNumber) prefill.registrationNumber = company_number
+        prefill = sanitize(prefill).sanitized
+        if (!_.size(prefill)) return
+        try {
+          let hasChanges
+          for (let p in prefill) {
+            if (!payload[p]) hasChanges = true
+            else if (typeof payload[p] === 'object' && !_.isEqual(payload[p], prefill[p]))
+              hasChanges = true
+            else if (payload[p] !== prefill[p]) hasChanges = true
+            if (hasChanges) break
+          }
+          if (!hasChanges) {
+            logger.error(`Nothing changed`)
+            return
+          }
+        } catch (err) {
+          debugger
+          return
+        }
+        let error = ''
+        if (wrongName) {
+          error = 'Is it your company?'
+          errors = [{ name: 'companyName', error: 'Is it your company?' }]
+        }
+        if (wrongNumber) {
+          if (!error) error = 'Is it your company?'
+          if (!errors) errors = []
+          errors.push({ name: 'registrationNumber', error: 'Is it your company?' })
+        }
+        message = `${error} Please review and correct the data below for **${name}**`
+      }
+      let country = getEnumValueId({ model: bot.models[COUNTRY], value: payload[map.country] })
+
+      try {
+        return await this.sendFormError({
+          req,
+          payload,
+          country,
+          prefill,
+          errors,
+          message
+        })
+      } catch (err) {
+        debugger
+      }
     }
   }
+
   return {
     plugin
   }
+}
+
+function pscLikeRawData(find: any[]): any[] {
+  let list = []
+  let identification: any
+  let bo: any[]
+  for (let part of find) {
+    if (part.spisZn.kod === "SPIS_ZN") {
+      identification =
+      {
+        country_registered: 'Czech Republic',
+        place_registered: part.spisZn.soud.nazev
+      }
+    }
+    if (part.udajTyp.kod === "SPOLECNIK") {
+      bo = part.podudaje
+      break
+    }
+  }
+
+  for (let row of bo) {
+    let pscLike: any = {
+      data: {}
+    }
+    pscLike.data.identification = identification
+    if (row.osoba.ico) {
+      pscLike.data.name = row.osoba.nazev
+      pscLike.data.registrationNumber = row.osoba.ico
+      pscLike.data.kind = 'corporate-entity-person-with-significant-control'
+    }
+    else {
+      pscLike.data.name = row.osoba.jmeno + ' ' + row.osoba.prijmeni
+      pscLike.data.kind = 'individual-person-with-significant-control'
+    }
+    pscLike.data.address = {
+      country: row.adresa.statNazev,
+      locality: row.adresa.obec
+    }
+    let line = row.adresa.ulice
+    if (row.adresa.cisloText)
+      line += ' ' + row.adresa.cisloText
+    else if (row.adresa.cisloPo && row.adresa.cisloOr)
+      line += ' ' + row.adresa.cisloPo + ' / ' + row.adresa.cisloOr
+    if (row.adresa.castObce)
+      line += ' ' + row.adresa.castObce
+    pscLike.data.address.address_line_1 = line
+
+    if (row.adresa.psc)
+      pscLike.data.address.postal_code = row.adresa.psc
+
+    pscLike.data.natures_of_control = []
+
+    if (row.podudaje && row.podudaje[0] && row.podudaje[0].hodnotaUdaje &&
+      row.podudaje[0].hodnotaUdaje.souhrn) {
+      let percent = row.podudaje[0].hodnotaUdaje.souhrn.textValue
+      let natures_of_control: string
+      if (percent < '25%')
+        natures_of_control = 'ownership-of-shares-0-to-25-percent'
+      else if (percent >= '25%' && row.percent < '50%')
+        natures_of_control = 'ownership-of-shares-25-to-50-percent'
+      else if (percent >= '50%' && row.percent < '75%')
+        natures_of_control = 'ownership-of-shares-50-to-75-percent'
+      else
+        natures_of_control = 'ownership-of-shares-75-to-100-percent'
+      pscLike.data.natures_of_control.push(natures_of_control)
+    }
+    list.push(pscLike)
+  }
+  return list
 }
 
 function makeJson(str: string) {
