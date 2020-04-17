@@ -134,6 +134,7 @@ export default class Identities implements IHasLogger {
       },
       'byPermalink'
     )
+    // this._cacheIdentity = () => {}
 
     this._cacheIdentity = (identity) => {
       const { link, permalink } = getLinks(identity)
@@ -516,6 +517,7 @@ export default class Identities implements IHasLogger {
 
   public addContact = async (identity: IIdentity): Promise<void> => {
     const result = await this.validateNewContact(identity)
+    this._uncacheIdentity(identity)
     // debug('validated contact:', prettify(result))
     // if (!result.exists) {
     await this.addContactWithoutValidating(identity)
