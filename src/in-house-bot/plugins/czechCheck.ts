@@ -181,6 +181,7 @@ export class PscCheckAPI {
       if (name.toLowerCase() !== find.data.name.toLowerCase()) {
         message = `Warning: Company name is not the exact match: ${name} vs. ${find.data.name}`
       }
+      find.data[0].data = makeJson(find.data[0].data)
       status = { status: 'pass', message, rawData: find.data }
     }
     return status
@@ -347,5 +348,74 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   }
   return {
     plugin
+  }
+}
+
+function makeJson(str: string) {
+  let arr: string[] = Array.from(str)
+  return buildArr(arr, 0)
+}
+
+function buildArr(arr: string[], start: number) {
+  let objs = []
+  let idx = start + 1
+  while (arr[idx] === '{' && idx < arr.length) {
+    let obj = build(arr, idx + 1)
+    idx = obj.i
+    objs.push(obj.v)
+    if (idx >= arr.length - 1)
+      break;
+    if (arr[idx + 1] === ',' && arr[idx + 2] === ' ') {
+      idx += 3
+    }
+    else if (arr[idx + 1] === ']') {
+      idx++
+      break;
+    }
+  }
+  return { v: objs, i: idx }
+}
+
+function build(arr: string[], idx: number) {
+  let name = ''
+  let obj = {}
+  for (; idx < arr.length; idx++) {
+    if (arr[idx] === '=') {
+      if (arr[idx + 1] === '{') {
+        let ret = build(arr, idx + 2)
+        obj[name] = ret.v
+        idx = ret.i
+        name = ''
+      } else if (arr[idx + 1] === '[') {
+        let ret = buildArr(arr, idx + 1)
+        obj[name] = ret.v
+        name = ''
+        idx = ret.i
+      } else {
+        let ret = buildString(arr, idx + 1)
+        obj[name] = ret.v
+        name = ''
+        idx = ret.i
+      }
+    } else if (arr[idx] === '}') {
+      return { v: obj, i: idx }
+    } else if (arr[idx] === ';') {
+      name = ''
+    } else if (arr[idx] !== ']') {
+      name += arr[idx]
+    }
+  }
+  return { v: obj, i: idx }
+}
+
+function buildString(arr: string[], idx: number) {
+  let val = ''
+  while (idx < arr.length) {
+    if (arr[idx] === ';') {
+      return { v: val, i: idx }
+    } else if (arr[idx] === '}') {
+      return { v: val, i: idx - 1 }
+    }
+    val += arr[idx++]
   }
 }
