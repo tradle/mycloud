@@ -80,6 +80,7 @@ export type PublicInfo = {
   org: IOrganization
   style: any
   tour: any
+  currency: string
 }
 
 const MINUTE = 3600000
@@ -117,7 +118,7 @@ const parts = {
     bucket: 'PrivateConf',
     key: PRIVATE_CONF_BUCKET.termsAndConditions,
     ttl: DEFAULT_TTL,
-    parse: value => value.toString()
+    parse: (value) => value.toString()
   },
   kycServiceDiscovery: {
     bucket: 'PrivateConf',
@@ -176,7 +177,7 @@ export class Conf {
       termsAndConditions = conf.termsAndConditions
         .getDatedValue()
         // ignore empty values
-        .then(datedValue => datedValue.value && datedValue)
+        .then((datedValue) => datedValue.value && datedValue)
         .catch(Errors.ignoreNotFound)
     }
 
@@ -220,7 +221,7 @@ export class Conf {
       )
     }
 
-    const results = await allSettled(enabled.map(product => this.modelStore.get(product)))
+    const results = await allSettled(enabled.map((product) => this.modelStore.get(product)))
     const missing = results.map((result, i) => result.isRejected && enabled[i]).filter(_.identity)
 
     if (missing.length) {
@@ -241,7 +242,7 @@ export class Conf {
   }) => {
     const conf = await this.load(components)
     await Promise.all(
-      Object.keys(plugins).map(async name => {
+      Object.keys(plugins).map(async (name) => {
         const plugin = Plugins.get(name)
         if (!plugin) throw new Errors.InvalidInput(`plugin not found: ${name}`)
         if (!(plugin.validateConf || plugin.updateConf)) return
@@ -344,6 +345,7 @@ export class Conf {
 
   public assemblePublicInfo = ({ identity, org, style, bot }: IInfoInput): PublicInfo => {
     const tour = _.get(bot, 'tours.intro')
+    const currency = _.get(bot, 'defaultCurrency')
     return {
       sandbox: bot.sandbox,
       bot: {
@@ -357,6 +359,7 @@ export class Conf {
       id: getHandleFromName(org.name),
       org: buildResource.omitVirtual(org),
       style,
+      currency,
       tour
     }
   }
@@ -401,7 +404,7 @@ export class Conf {
 
     const { style } = conf
     if (!style.logo) {
-      const logo = await getLogo(deploymentConf).catch(err => {
+      const logo = await getLogo(deploymentConf).catch((err) => {
         this.logger.warn('failed to get logo', { domain: deploymentConf.domain })
       })
 
