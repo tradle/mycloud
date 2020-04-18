@@ -482,7 +482,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         }
         message = `${error} Please review and correct the data below for **${name}**`
       }
-      let country = getEnumValueId({ model: bot.models[COUNTRY], value: payload[map.country] })
       try {
         return await this.sendFormError({
           req,
@@ -529,6 +528,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       }
       if (errors) _.extend(formError.details, { errors })
       try {
+        logger.debug('czechCheck sendFormError requestEdit')
         await applications.requestEdit(formError)
         return {
           message: 'no request edit',
@@ -536,6 +536,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         }
       } catch (err) {
         debugger
+        logger.error('czechCheck sendFormError requestEdit error', err)
       }
     }
   }
