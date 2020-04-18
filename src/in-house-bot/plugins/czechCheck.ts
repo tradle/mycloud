@@ -554,15 +554,16 @@ function pscLikeRawData(find: any[]): any[] {
     pscLike.data.natures_of_control = []
 
     if (row.podudaje && row.podudaje[0] && row.podudaje[0].hodnotaUdaje &&
-      row.podudaje[0].hodnotaUdaje.souhrn) {
+      row.podudaje[0].hodnotaUdaje.souhrn && row.podudaje[0].hodnotaUdaje.souhrn.textValue) {
       let percent = row.podudaje[0].hodnotaUdaje.souhrn.textValue
-      percent = percent.substring(percent.length - 1).trim()
+      percent = percent.endsWith('%') ? percent.substring(percent.length - 1).trim() : percent
+      let percentNum = Number(percent)
       let natures_of_control: string
-      if (percent < '25')
+      if (percentNum < 25)
         natures_of_control = 'ownership-of-shares-0-to-25-percent'
-      else if (percent >= '25' && row.percent < '50')
+      else if (percentNum >= 25 && percentNum < 50)
         natures_of_control = 'ownership-of-shares-25-to-50-percent'
-      else if (percent >= '50' && row.percent < '75')
+      else if (percentNum >= 50 && percentNum < 75)
         natures_of_control = 'ownership-of-shares-50-to-75-percent'
       else
         natures_of_control = 'ownership-of-shares-75-to-100-percent'
