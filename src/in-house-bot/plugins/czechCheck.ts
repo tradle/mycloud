@@ -426,10 +426,22 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         let data: any[] = companyInfo.data
         for (let part of data) {
           if (part.udajTyp.kod === "SIDLO") {
-            _.extend(prefill, {
-              streetAddress: part.adresa.ulice + ' ' + part.adresa.cisloText,
-              city: part.adresa.obec
-            })
+
+            let address: any = {
+              locality: part.adresa.obec
+            }
+            let line = part.adresa.ulice
+            if (part.adresa.cisloText)
+              line += ' ' + part.adresa.cisloText
+            else if (part.adresa.cisloPo && part.adresa.cisloOr)
+              line += ' ' + part.adresa.cisloPo + ' / ' + part.adresa.cisloOr
+            if (part.adresa.castObce)
+              line += ' ' + part.adresa.castObce
+            address.address_line_1 = line
+            if (part.adresa.psc)
+              address.postalCode = part.adresa.psc
+
+            _.extend(prefill, address)
             break;
           }
         }
@@ -496,7 +508,7 @@ function pscLikeRawData(find: any[]): any[] {
   let identification: any
   let bo: any[]
   for (let part of find) {
-    if (part.spisZn.kod === "SPIS_ZN") {
+    if (part.spisZn.soud.kod === "SPIS_ZN") {
       identification =
       {
         country_registered: 'Czech Republic',
