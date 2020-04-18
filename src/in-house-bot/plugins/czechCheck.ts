@@ -508,14 +508,14 @@ function pscLikeRawData(find: any[]): any[] {
   let identification: any
   let bo: any[]
   for (let part of find) {
-    if (part.spisZn.soud.kod === "SPIS_ZN") {
+    if (part.udajTyp.kod === "SPIS_ZN") {
       identification =
       {
         country_registered: 'Czech Republic',
         place_registered: part.spisZn.soud.nazev
       }
     }
-    if (part.udajTyp.kod === "SPOLECNIK") {
+    else if (part.udajTyp.kod === "SPOLECNIK") {
       bo = part.podudaje
       break
     }
