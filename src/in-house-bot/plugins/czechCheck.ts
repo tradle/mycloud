@@ -1,4 +1,4 @@
-import { TYPE } from '@tradle/constants'
+import constants from '@tradle/constants'
 
 // @ts-ignore
 import {
@@ -26,6 +26,9 @@ import {
   IPBReq,
   Logger
 } from '../types'
+
+const { TYPE, PERMALINK, LINK } = constants
+
 import Errors from '../../errors'
 import { buildResourceStub } from '@tradle/build-resource'
 import AWS from 'aws-sdk'
@@ -392,18 +395,15 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         logger.debug('skipping prefill')
         return
       }
-      logger.debug('czechCheck validateForm 0')
+      logger.debug('czechCheck validateForm called')
       if (payload._prevlink && payload.registrationDate) return
 
       let checks: any = req.latestChecks || application.checks
 
       if (!checks) return
 
-      logger.debug('czechCheck validateForm 1')
-
       let stubs = checks.filter(check => check[TYPE] === CORPORATION_EXISTS)
       if (!stubs || !stubs.length) return
-      logger.debug('czechCheck validateForm 2')
       let result: any = await Promise.all(stubs.map(check => bot.getResource(check)))
 
       result.sort((a, b) => b._time - a._time)
@@ -412,7 +412,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let message
       let prefill: any = {}
       let errors
-      logger.debug('czechCheck validateForm 3')
       if (getEnumValueId({ model: bot.models[STATUS], value: result[0].status }) !== 'pass')
         message = 'The company was not found. Please fill out the form'
       else {
@@ -448,7 +447,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
             break;
           }
         }
-        logger.debug('czechCheck validateForm 4')
         let wrongName = name.toLowerCase() !== payload.companyName.toLowerCase()
         if (wrongName) prefill.companyName = name
         let wrongNumber = company_number.toLowerCase() !== payload.registrationNumber.toLowerCase()
@@ -485,16 +483,57 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         message = `${error} Please review and correct the data below for **${name}**`
       }
       let country = getEnumValueId({ model: bot.models[COUNTRY], value: payload[map.country] })
-      logger.debug('czechCheck validateForm 5')
       try {
         return await this.sendFormError({
           req,
           payload,
-          country,
           prefill,
           errors,
           message
         })
+      } catch (err) {
+        debugger
+      }
+    },
+
+    async sendFormError({
+      req,
+      payload,
+      prefill,
+      errors,
+      message
+    }: {
+      req: IPBReq
+      payload: ITradleObject
+      prefill?: any
+      errors?: any
+      message: string
+    }) {
+      logger.debug('czechCheck sendFormError called')
+      let { application, user } = req
+      const payloadClone = _.cloneDeep(payload)
+      payloadClone[PERMALINK] = payloadClone._permalink
+      payloadClone[LINK] = payloadClone._link
+
+      _.extend(payloadClone, prefill)
+      // debugger
+      let formError: any = {
+        req,
+        user,
+        application
+      }
+
+      formError.details = {
+        prefill: payloadClone,
+        message
+      }
+      if (errors) _.extend(formError.details, { errors })
+      try {
+        await applications.requestEdit(formError)
+        return {
+          message: 'no request edit',
+          exit: true
+        }
       } catch (err) {
         debugger
       }
