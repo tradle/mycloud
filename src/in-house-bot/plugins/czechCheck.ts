@@ -562,7 +562,7 @@ function pscLikeRawData(find: any[]): any[] {
 
 function makeJson(str: string) {
   let arr: string[] = Array.from(str)
-  return buildArr(arr, 0)
+  return buildArr(arr, 0).v
 }
 
 function buildArr(arr: string[], start: number) {
