@@ -383,25 +383,27 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!application) return
 
       if (payload[TYPE] !== LEGAL_ENTITY) return
-      let { propertyMap, companiesHouseApiKey } = conf
+      let { propertyMap } = conf
       let map = propertyMap && propertyMap[payload[TYPE]]
       if (map) map = { ...defaultPropMap, ...map }
       else map = defaultPropMap
 
       if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) {
-        logger.debug('skipping prefill"')
+        logger.debug('skipping prefill')
         return
       }
-
+      logger.debug('czechCheck validateForm 0')
       if (payload._prevlink && payload.registrationDate) return
 
       let checks: any = req.latestChecks || application.checks
 
       if (!checks) return
 
+      logger.debug('czechCheck validateForm 1')
+
       let stubs = checks.filter(check => check[TYPE] === CORPORATION_EXISTS)
       if (!stubs || !stubs.length) return
-
+      logger.debug('czechCheck validateForm 2')
       let result: any = await Promise.all(stubs.map(check => bot.getResource(check)))
 
       result.sort((a, b) => b._time - a._time)
@@ -410,6 +412,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let message
       let prefill: any = {}
       let errors
+      logger.debug('czechCheck validateForm 3')
       if (getEnumValueId({ model: bot.models[STATUS], value: result[0].status }) !== 'pass')
         message = 'The company was not found. Please fill out the form'
       else {
@@ -445,7 +448,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
             break;
           }
         }
-
+        logger.debug('czechCheck validateForm 4')
         let wrongName = name.toLowerCase() !== payload.companyName.toLowerCase()
         if (wrongName) prefill.companyName = name
         let wrongNumber = company_number.toLowerCase() !== payload.registrationNumber.toLowerCase()
@@ -482,7 +485,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         message = `${error} Please review and correct the data below for **${name}**`
       }
       let country = getEnumValueId({ model: bot.models[COUNTRY], value: payload[map.country] })
-
+      logger.debug('czechCheck validateForm 5')
       try {
         return await this.sendFormError({
           req,
