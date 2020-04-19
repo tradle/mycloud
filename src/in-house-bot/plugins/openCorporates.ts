@@ -41,7 +41,7 @@ const API = 'tradle.API'
 const API_BASED_VERIFIED_METHOD = 'tradle.APIBasedVerificationMethod'
 const CH_URL = 'https://beta.companieshouse.gov.uk'
 
-const CZECH_COUNTRY_CODE = 'CS' // handled by czechCheck
+const CZECH_COUNTRY_CODE = 'CZ' // handled by czechCheck
 
 interface IOpenCorporatesConf {
   products: any
