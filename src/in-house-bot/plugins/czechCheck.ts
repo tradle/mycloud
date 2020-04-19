@@ -60,7 +60,7 @@ const GOVERNMENTAL = 'governmental'
 const COUNTRY = 'tradle.Country'
 const STATUS = 'tradle.Status'
 
-const CZECH_COUNTRY_CODE = 'CZ'
+const CZECH_COUNTRY_ID = 'CS'
 
 const defaultPropMap = {
   companyName: 'companyName',
@@ -313,7 +313,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         return
       }
 
-      if (payload[map.country].id.split('_')[1] !== CZECH_COUNTRY_CODE)
+      if (payload[map.country].id.split('_')[1] !== CZECH_COUNTRY_ID)
         return
 
       let { resource, error } = await getCheckParameters({
