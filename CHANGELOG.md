@@ -2,19 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.25](https://github.com/tradle/mycloud/compare/v3.0.1-rc.24...v3.0.1-rc.25) (2020-04-17)
+## [3.0.1-rc.26](https://github.com/tradle/mycloud/compare/v3.0.1-rc.25...v3.0.1-rc.26) (2020-04-19)
 
 
 ### Bug Fixes
 
-* pairing devices ([7161234](https://github.com/tradle/mycloud/commit/7161234))
+* czech 2 letter code ([3d2b7a2](https://github.com/tradle/mycloud/commit/3d2b7a2))
 
 
 ### Features
 
-* pairing devices ([b6ff68d](https://github.com/tradle/mycloud/commit/b6ff68d))
-* pairing devices ([fd42d7b](https://github.com/tradle/mycloud/commit/fd42d7b))
-* setting for provider default currency ([a1679a3](https://github.com/tradle/mycloud/commit/a1679a3))
+* default locale to format money and numbers ([bde7a93](https://github.com/tradle/mycloud/commit/bde7a93))
+* models upgrade ([1c9a4b0](https://github.com/tradle/mycloud/commit/1c9a4b0))
 
 
 
