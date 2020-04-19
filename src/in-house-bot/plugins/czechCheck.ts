@@ -393,14 +393,16 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (map) map = { ...defaultPropMap, ...map }
       else map = defaultPropMap
 
+      logger.debug('czechCheck validateForm called 1')
       if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) {
         logger.debug('skipping prefill')
         return
       }
+      logger.debug('czechCheck validateForm called 2')
       if (payload[map.country].id.split('_')[1] !== CZECH_COUNTRY_ID)
         return
 
-      logger.debug('czechCheck validateForm called')
+      logger.debug('czechCheck validateForm called 3')
       if (payload._prevlink && payload.registrationDate) return
 
       let checks: any = req.latestChecks || application.checks
