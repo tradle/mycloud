@@ -52,15 +52,15 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (!checks) return
 
       let stubs = checks.filter(
-        check =>
+        (check) =>
           check[TYPE] === CORPORATION_EXISTS ||
           check[TYPE] === BENEFICIAL_OWNER_CHECK ||
           check[TYPE] === CLIENT_ACTION_REQUIRED_CHECK
       )
       if (!stubs.length) return
       logger.debug('found ' + stubs.length + ' checks')
-      let result = await Promise.all(stubs.map(check => bot.getResource(check)))
-      result = result.filter(check => !check.isInactive)
+      let result = await Promise.all(stubs.map((check) => bot.getResource(check)))
+      result = result.filter((check) => !check.isInactive)
       result.sort((a, b) => b._time - a._time)
 
       // result = uniqBy(result, r => r[TYPE] && r.provider && r.form._permalink)
@@ -68,25 +68,25 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         [r.form._permalink, r.propertyName, r[TYPE], r.provider].join(',')
       )
 
-      let legalEntity = application.forms.find(f => f.submission[TYPE] === LEGAL_ENTITY)
+      let legalEntity = application.forms.find((f) => f.submission[TYPE] === LEGAL_ENTITY)
       let legalEntityPermalink = legalEntity.submission._permalink
       let check = result.find(
-        c => c[TYPE] === CORPORATION_EXISTS && c.form._permalink === legalEntityPermalink
+        (c) => c[TYPE] === CORPORATION_EXISTS && c.form._permalink === legalEntityPermalink
       )
       let pscCheck = result.find(
-        c =>
+        (c) =>
           c[TYPE] === BENEFICIAL_OWNER_CHECK &&
           c.provider === 'http://download.companieshouse.gov.uk/en_pscdata.html'
       )
       let pitchbookCheck = result.find(
-        c =>
+        (c) =>
           c[TYPE] === BENEFICIAL_OWNER_CHECK &&
           c.provider === 'PitchBook Data, Inc.' &&
           c.form._permalink === legalEntityPermalink
       )
-      let carCheck = result.find(c => c[TYPE] === CLIENT_ACTION_REQUIRED_CHECK)
+      let carCheck = result.find((c) => c[TYPE] === CLIENT_ACTION_REQUIRED_CHECK)
       const statusM = bot.models[CHECK_STATUS]
-      let forms = application.forms.filter(form => form.submission[TYPE] === CONTROLLING_PERSON)
+      let forms = application.forms.filter((form) => form.submission[TYPE] === CONTROLLING_PERSON)
       let officers, items
       if (!check) return
       if (check.status.id !== `${CHECK_STATUS}_pass`) {
@@ -116,19 +116,20 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         check.rawData[0].company &&
         check.rawData[0].company.officers
 
+      if (!officers) officers = []
       if (officers.length)
-        officers = officers.filter(o => o.officer.position !== 'agent' && !o.officer.inactive)
+        officers = officers.filter((o) => o.officer.position !== 'agent' && !o.officer.inactive)
 
       let officer
       if (!forms.length) {
         officer = officers.length && officers[0].officer
       } else {
-        items = await Promise.all(forms.map(f => bot.getResource(f.submission)))
+        items = await Promise.all(forms.map((f) => bot.getResource(f.submission)))
         if (items.length) {
           for (let i = 0; i < officers.length && !officer; i++) {
             let o = officers[i].officer
             // if (o.inactive) continue
-            let oldOfficer = items.find(item => {
+            let oldOfficer = items.find((item) => {
               let oname = o.name.toLowerCase().trim()
               let iname = item.name && item.name.toLowerCase().trim()
               let pname = item.prefilledName && item.prefilledName.toLowerCase().trim()
@@ -355,7 +356,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let keys = companyKeywords[id]
       if (!keys) return false
 
-      return keys.filter(key => tokens.includes(key) || !isNaN(key)).length
+      return keys.filter((key) => tokens.includes(key) || !isNaN(key)).length
     },
     async doSkipBO(application) {
       let pconf = conf[application.requestFor]
@@ -364,10 +365,10 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (!skipBo) return false
 
       let forms = Object.keys(skipBo)
-      let cforms: any = application.forms.filter(f => forms.includes(f.submission[TYPE]))
+      let cforms: any = application.forms.filter((f) => forms.includes(f.submission[TYPE]))
       if (!cforms.length) return false
 
-      cforms = await Promise.all(cforms.map(f => bot.getResource(f.submission)))
+      cforms = await Promise.all(cforms.map((f) => bot.getResource(f.submission)))
       cforms.sort((a, b) => b._time - a._time)
       cforms = uniqBy(cforms, '_permalink')
 
@@ -433,7 +434,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         )
         beneficialOwners = uniqBy(beneficialOwners, 'data.name')
       }
-      let bo = beneficialOwners.find(bo => this.compare(officer.name, bo))
+      let bo = beneficialOwners.find((bo) => this.compare(officer.name, bo))
       if (!bo) return
       this.prefillIndividual(prefill, bo)
       return true
@@ -511,12 +512,12 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
     },
     getNationality(nationality, countryOfResidence) {
       let model = bot.models[COUNTRY]
-      let items = model.enum.filter(c => c.nationality === nationality)
+      let items = model.enum.filter((c) => c.nationality === nationality)
       if (!items || !items.length) return
       if (items.length === 1) return enumValue({ model, value: items[0].id })
       else {
         let cid = getEnumValueId({ model: bot.models[COUNTRY], value: countryOfResidence })
-        return items.find(item => item.id === cid)
+        return items.find((item) => item.id === cid)
       }
     },
     prefillCompany(prefill, bo) {
@@ -557,7 +558,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
     },
     addNatureOfControl(prefill, natures_of_control) {
       if (!natures_of_control) return
-      let natureOfControl = bot.models['tradle.PercentageOfOwnership'].enum.find(e =>
+      let natureOfControl = bot.models['tradle.PercentageOfOwnership'].enum.find((e) =>
         natures_of_control.includes(e.id.replace(/\./g, '-'))
       )
       if (natureOfControl)
@@ -567,7 +568,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         }
     },
     async prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck }) {
-      if (!items) items = await Promise.all(forms.map(f => bot.getResource(f.submission)))
+      if (!items) items = await Promise.all(forms.map((f) => bot.getResource(f.submission)))
       if (!pscCheck) return
 
       if (pscCheck.status.id !== `${CHECK_STATUS}_pass`) return
@@ -599,14 +600,14 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         // debugger
         logger.debug('name = ' + name)
 
-        if (items.find(item => item.name === name || item.prefilledName === name)) continue
+        if (items.find((item) => item.name === name || item.prefilledName === name)) continue
 
         let isIndividual = kind.startsWith('individual')
         if (isIndividual) {
           // const prefixes = ['mr', 'ms', 'dr', 'mrs', ]
           if (officers && officers.length) {
             let boName = name.toLowerCase().trim()
-            if (officers.find(o => this.compare(o.officer.name, bene))) continue
+            if (officers.find((o) => this.compare(o.officer.name, bene))) continue
           }
         } else if (!kind.startsWith('corporate-')) return
         let prefill: any = {
@@ -654,7 +655,7 @@ function getCountryByTitle(country, models) {
   let mapCountry = countryMap[country]
   if (mapCountry) country = mapCountry
   let c = country.toUpperCase()
-  let countryR = models[COUNTRY].enum.find(val => val.title.toUpperCase() === c)
+  let countryR = models[COUNTRY].enum.find((val) => val.title.toUpperCase() === c)
   return (
     countryR && {
       id: `${COUNTRY}_${countryR.id}`,
