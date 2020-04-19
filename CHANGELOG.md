@@ -2,18 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.26](https://github.com/tradle/mycloud/compare/v3.0.1-rc.25...v3.0.1-rc.26) (2020-04-19)
+## [3.0.1-rc.27](https://github.com/tradle/mycloud/compare/v3.0.1-rc.26...v3.0.1-rc.27) (2020-04-19)
 
 
 ### Bug Fixes
 
-* czech 2 letter code ([3d2b7a2](https://github.com/tradle/mycloud/commit/3d2b7a2))
-
-
-### Features
-
-* default locale to format money and numbers ([bde7a93](https://github.com/tradle/mycloud/commit/bde7a93))
-* models upgrade ([1c9a4b0](https://github.com/tradle/mycloud/commit/1c9a4b0))
+* null pointer when no officers ([2ef4932](https://github.com/tradle/mycloud/commit/2ef4932))
 
 
 
