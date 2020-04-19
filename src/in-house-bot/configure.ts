@@ -81,6 +81,7 @@ export type PublicInfo = {
   style: any
   tour: any
   currency: string
+  locale: string
 }
 
 const MINUTE = 3600000
@@ -345,7 +346,8 @@ export class Conf {
 
   public assemblePublicInfo = ({ identity, org, style, bot }: IInfoInput): PublicInfo => {
     const tour = _.get(bot, 'tours.intro')
-    const currency = _.get(bot, 'defaultCurrency')
+    const currency = _.get(bot, 'defaultCurrency') || 'USD'
+    const locale = _.get(bot, 'defaultLocale')
     return {
       sandbox: bot.sandbox,
       bot: {
@@ -360,6 +362,7 @@ export class Conf {
       org: buildResource.omitVirtual(org),
       style,
       currency,
+      locale,
       tour
     }
   }
