@@ -397,6 +397,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         logger.debug('skipping prefill')
         return
       }
+      if (payload[map.country].id.split('_')[1] !== CZECH_COUNTRY_ID)
+        return
+
       logger.debug('czechCheck validateForm called')
       if (payload._prevlink && payload.registrationDate) return
 
