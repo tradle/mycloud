@@ -60,6 +60,8 @@ const GOVERNMENTAL = 'governmental'
 const COUNTRY = 'tradle.Country'
 const STATUS = 'tradle.Status'
 
+const CZECH_COUNTRY_CODE = 'CS'
+
 const defaultPropMap = {
   companyName: 'companyName',
   registrationDate: 'registrationDate',
@@ -312,7 +314,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       }
 
       let countryId = getEnumValueId({ model: bot.models[COUNTRY], value: payload[map.country] })
-      if (countryId !== 'CS') return
+      if (countryId !== CZECH_COUNTRY_CODE) return
 
       let { resource, error } = await getCheckParameters({
         plugin: DISPLAY_NAME,

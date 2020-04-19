@@ -41,6 +41,8 @@ const API = 'tradle.API'
 const API_BASED_VERIFIED_METHOD = 'tradle.APIBasedVerificationMethod'
 const CH_URL = 'https://beta.companieshouse.gov.uk'
 
+const CZECH_COUNTRY_CODE = 'CS' // handled by czechCheck
+
 interface IOpenCorporatesConf {
   products: any
   propertyMap: any
@@ -532,6 +534,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         )
         return
       }
+
+      let countryId = getEnumValueId({ model: bot.models[COUNTRY], value: payload[map.country] })
+      if (countryId !== CZECH_COUNTRY_CODE) return
 
       let { resource, error } = await getCheckParameters({
         plugin: DISPLAY_NAME,
