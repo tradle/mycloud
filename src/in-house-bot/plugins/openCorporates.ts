@@ -536,7 +536,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       }
 
       let countryId = getEnumValueId({ model: bot.models[COUNTRY], value: payload[map.country] })
-      if (countryId !== CZECH_COUNTRY_CODE) return
+      if (countryId === CZECH_COUNTRY_CODE) return
 
       let { resource, error } = await getCheckParameters({
         plugin: DISPLAY_NAME,
