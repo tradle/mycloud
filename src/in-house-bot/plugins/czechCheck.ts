@@ -32,6 +32,7 @@ const { TYPE, PERMALINK, LINK } = constants
 import Errors from '../../errors'
 import { buildResourceStub } from '@tradle/build-resource'
 import AWS from 'aws-sdk'
+import dateformat from 'dateformat'
 import _ from 'lodash'
 import util from 'util'
 import validateResource from '@tradle/validate-resource'
@@ -213,7 +214,7 @@ export class CzechCheckAPI {
     if (status.message) resource.resultDetails = status.message
     resource.rawData = sanitize(rawData).sanitized
 
-    //this.logger.debug(`czechCheck createBOCheck rawData: ${JSON.stringify(resource.rawData, null, 2)}`)
+    this.logger.debug(`czechCheck createBOCheck rawData: ${JSON.stringify(resource.rawData, null, 2)}`)
 
     await this.applications.createCheck(resource, req)
   }
@@ -239,11 +240,16 @@ export class CzechCheckAPI {
     checkR.message = getStatusMessageForCheck({ models: this.bot.models, check: checkR })
 
     if (message) checkR.resultDetails = message
-    if (rawData) checkR.rawData = rawData
-
+    if (rawData) {
+      if (checkR.status === 'pass') {
+        checkR.rawData = pscLikeCompanyRawData(rawData[0])
+      }
+      else
+        checkR.rawData = rawData
+    }
     checkR = sanitize(checkR).sanitized
 
-    this.logger.debug(`czechCheck createCorporateCheck: ${JSON.stringify(checkR, null, 2)}`)
+    this.logger.debug(`czechCheck createCorporateCheck rawData: ${JSON.stringify(checkR.rawData, null, 2)}`)
 
     let check = await this.applications.createCheck(checkR, req)
 
@@ -375,7 +381,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       })
 
       if (status === 'pass') {
-        let arr: any[] = pscLikeRawData(rawData[0].data)
+        let arr: any[] = pscLikeBORawData(rawData[0].data)
         await czechCheckAPI.createBOCheck({ application, status, form: payload, rawData: arr, req })
       }
     },
@@ -551,7 +557,78 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   }
 }
 
-function pscLikeRawData(find: any[]): any[] {
+function pscLikeCompanyRawData(record: any): any {
+  let res: any = { company: {} }
+
+  res.company.name = record.name
+  res.company.company_number = record.ico
+  res.company.jurisdiction_code = 'CZ'
+  res.company.incorporation_date = record.recorddate
+
+  res.company.source = {
+    publisher: 'Ministerstvo spravedlnosti České republiky',
+    url: 'https://dataor.justice.cz/',
+    retrieved_at: dateformat(new Date(), "yyyy-mm-dd'T'HH:mm:ss+00:00")
+  }
+
+  for (let part of record.data) {
+    if (part.udajTyp && part.udajTyp.kod === "PRAVNI_FORMA") {
+      res.company.company_type = part.pravniForma.nazev
+    }
+    else if (part.udajTyp && part.udajTyp.kod === "SIDLO") {
+      let line = part.adresa.ulice
+      if (part.adresa.cisloText)
+        line += ' ' + part.adresa.cisloText
+      else if (part.adresa.cisloPo && part.adresa.cisloOr)
+        line += ' ' + part.adresa.cisloPo + ' / ' + part.adresa.cisloOr
+      if (part.adresa.castObce)
+        line += ' ' + part.adresa.castObce
+
+      let oneline = line + ' ' + part.adresa.obec + (part.adresa.psc ? ' ' + part.adresa.psc : '')
+      res.registered_address = {
+        street_address: line,
+        locality: part.adresa.obec,
+        postal_code: part.adresa.psc,
+        country: part.adresa.statNazev
+      }
+      res.company.registered_address_in_full = oneline
+    }
+  }
+  res.company.officers = officers(record.data)
+  return [res]
+}
+
+function officers(data: any[]) {
+  let offArr = []
+
+  for (let part of data) {
+    if (part.udajTyp && part.udajTyp.kod === "STATUTARNI_ORGAN") {
+      let officers = part.podudaje
+
+      for (let offic of officers) {
+        if (offic.udajTyp.kod !== "STATUTARNI_ORGAN_CLEN")
+          continue
+        let boss: any = {
+          officer: {}
+        }
+        // console.log(offic)
+        boss.officer.name = offic.osoba.jmeno + ' ' + offic.osoba.prijmeni
+        boss.officer.date_of_birth = offic.osoba.narozDatum
+        boss.officer.appointed_on = offic.zapisDatum
+        boss.officer.resigned_on = offic.vymazDatum
+        boss.officer.country_of_residence = offic.adresa.statNazev
+        boss.officer.officer_role = part.udajTyp.nazev
+        boss.officer.inactive = offic.vymazDatum ? true : false
+
+        offArr.push(boss)
+      }
+
+    }
+  }
+  return offArr
+}
+
+function pscLikeBORawData(find: any[]): any[] {
   let list = []
   let identification: any
   let bo: any[]
@@ -570,6 +647,8 @@ function pscLikeRawData(find: any[]): any[] {
   }
 
   for (let row of bo) {
+    if (row.vymazDatum)
+      continue
     let pscLike: any = {
       data: {}
     }
