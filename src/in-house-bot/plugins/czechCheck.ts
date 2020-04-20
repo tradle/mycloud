@@ -213,7 +213,7 @@ export class CzechCheckAPI {
     if (status.message) resource.resultDetails = status.message
     resource.rawData = sanitize(rawData).sanitized
 
-    this.logger.debug(`czechCheck createBOCheck rawData: ${JSON.stringify(resource.rawData, null, 2)}`)
+    //this.logger.debug(`czechCheck createBOCheck rawData: ${JSON.stringify(resource.rawData, null, 2)}`)
 
     await this.applications.createCheck(resource, req)
   }
@@ -376,9 +376,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       if (status === 'pass') {
         let arr: any[] = pscLikeRawData(rawData[0].data)
-        for (let bo of arr) {
-          await czechCheckAPI.createBOCheck({ application, status, form: payload, rawData, req })
-        }
+        await czechCheckAPI.createBOCheck({ application, status, form: payload, rawData: arr, req })
       }
     },
 
