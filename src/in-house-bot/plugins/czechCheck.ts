@@ -429,35 +429,22 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         let check = result[0]
         let companyInfo = check.rawData && check.rawData.length && check.rawData[0]
         if (!companyInfo) return
-        let name = companyInfo.name
-        let company_number = companyInfo.ico
+        let name = companyInfo.company.name
+        let company_number = companyInfo.company.company_number
 
-        let incorporation_date = companyInfo.recorddate
+        let incorporation_date = companyInfo.company.incorporation_date
 
         if (incorporation_date) prefill.registrationDate = new Date(incorporation_date).getTime()
 
-        let data: any[] = companyInfo.data
-        for (let part of data) {
-          if (part.udajTyp.kod === "SIDLO") {
-
-            let address: any = {
-              locality: part.adresa.obec
-            }
-            let line = part.adresa.ulice
-            if (part.adresa.cisloText)
-              line += ' ' + part.adresa.cisloText
-            else if (part.adresa.cisloPo && part.adresa.cisloOr)
-              line += ' ' + part.adresa.cisloPo + ' / ' + part.adresa.cisloOr
-            if (part.adresa.castObce)
-              line += ' ' + part.adresa.castObce
-            address.address_line_1 = line
-            if (part.adresa.psc)
-              address.postalCode = part.adresa.psc
-
-            _.extend(prefill, address)
-            break;
-          }
+        let addr = companyInfo.company.registered_address
+        let address: any = {
+          address_line_1: addr.street_address,
+          locality: addr.locality,
+          postalCode: addr.postal_code,
+          country: addr.country
         }
+        _.extend(prefill, address)
+
         let wrongName = name.toLowerCase() !== payload.companyName.toLowerCase()
         if (wrongName) prefill.companyName = name
         let wrongNumber = company_number.toLowerCase() !== payload.registrationNumber.toLowerCase()
@@ -585,7 +572,7 @@ function pscLikeCompanyRawData(record: any): any {
         line += ' ' + part.adresa.castObce
 
       let oneline = line + ' ' + part.adresa.obec + (part.adresa.psc ? ' ' + part.adresa.psc : '')
-      res.registered_address = {
+      res.company.registered_address = {
         street_address: line,
         locality: part.adresa.obec,
         postal_code: part.adresa.psc,
