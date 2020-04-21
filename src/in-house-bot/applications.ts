@@ -112,6 +112,10 @@ export class Applications implements IHasModels {
       notifications = await Promise.all(
         application.notifications.map((n) => this.bot.getResource(n))
       )
+    if (!notifications  ||  !notifications.length) {
+      this.logger.debug(`Application for ${application.requestFor} has no notifications`)
+      return
+    }
     let { tree } = application
     let top
     if (tree) top = application
