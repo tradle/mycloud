@@ -63,7 +63,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       result = result.filter((check) => !check.isInactive)
       result.sort((a, b) => b._time - a._time)
 
-      // result = uniqBy(result, r => r[TYPE] && r.provider && r.form._permalink)
       result = uniqBy(result, (r: any) =>
         [r.form._permalink, r.propertyName, r[TYPE], r.provider].join(',')
       )
@@ -274,7 +273,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         extend(prefill, { firstName, lastName, middleName })
       }
 
-      // prefill = sanitize(prefill).sanitized
       let cePrefill = { ...prefill }
       cePrefill = sanitize(cePrefill).sanitized
       let provider = enumValue({
@@ -351,7 +349,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         debugger
         // return true
       }
-      // if (clean !== name.toLowerCase()) return true
       let id = getEnumValueId({ model: bot.models[COUNTRY], value: country })
       let keys = companyKeywords[id]
       if (!keys) return false
