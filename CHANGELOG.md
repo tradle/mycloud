@@ -2,12 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.27](https://github.com/tradle/mycloud/compare/v3.0.1-rc.26...v3.0.1-rc.27) (2020-04-19)
+## [3.0.1-rc.28](https://github.com/tradle/mycloud/compare/v3.0.1-rc.27...v3.0.1-rc.28) (2020-04-21)
 
 
 ### Bug Fixes
 
-* null pointer when no officers ([2ef4932](https://github.com/tradle/mycloud/commit/2ef4932))
+* application tree ([92f781f](https://github.com/tradle/mycloud/commit/92f781f))
+* prefill-controllingPerson in a wrong place ([82e78cb](https://github.com/tradle/mycloud/commit/82e78cb))
 
 
 
