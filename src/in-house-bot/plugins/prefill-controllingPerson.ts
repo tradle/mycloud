@@ -356,7 +356,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       return keys.filter((key) => tokens.includes(key) || !isNaN(key)).length
     },
     async doSkipBO(application) {
-      let pconf = conf[application.requestFor]
+      let pconf = conf && conf[application.requestFor]
       if (!pconf) return false
       let { skipBo } = pconf
       if (!skipBo) return false
