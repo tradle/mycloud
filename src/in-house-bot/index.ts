@@ -722,7 +722,7 @@ export const loadComponentsAndPlugins = ({
       'bundleUpload',
       'draftApplication',
       'termsAndConditions',
-      'prefill-controllingPerson',
+      // 'prefill-controllingPerson',
       'interFormConditionals',
       'regulatorRegistration',
       'pscCheck',
@@ -745,7 +745,7 @@ export const loadComponentsAndPlugins = ({
         'documentValidity',
         'fill-myproduct',
         'checkOverride',
-        // 'prefill-controllingPerson'
+        'prefill-controllingPerson'
       ].forEach((name) => attachPlugin({ name, requiresConf: false }))
     // used for some demo
     // ;[
