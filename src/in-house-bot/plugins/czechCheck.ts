@@ -32,6 +32,7 @@ const { TYPE, PERMALINK, LINK } = constants
 import Errors from '../../errors'
 import { buildResourceStub } from '@tradle/build-resource'
 import AWS from 'aws-sdk'
+import dateformat from 'dateformat'
 import _ from 'lodash'
 import util from 'util'
 import validateResource from '@tradle/validate-resource'
@@ -59,6 +60,8 @@ const BO_ASPECTS = 'Beneficial ownership'
 const GOVERNMENTAL = 'governmental'
 const COUNTRY = 'tradle.Country'
 const STATUS = 'tradle.Status'
+
+const CZECH_COUNTRY_ID = 'CS'
 
 const defaultPropMap = {
   companyName: 'companyName',
@@ -237,11 +240,16 @@ export class CzechCheckAPI {
     checkR.message = getStatusMessageForCheck({ models: this.bot.models, check: checkR })
 
     if (message) checkR.resultDetails = message
-    if (rawData) checkR.rawData = rawData
-
+    if (rawData) {
+      if (checkR.status === 'pass') {
+        checkR.rawData = pscLikeCompanyRawData(rawData[0])
+      }
+      else
+        checkR.rawData = rawData
+    }
     checkR = sanitize(checkR).sanitized
 
-    this.logger.debug(`czechCheck createCorporateCheck: ${JSON.stringify(checkR, null, 2)}`)
+    this.logger.debug(`czechCheck createCorporateCheck rawData: ${JSON.stringify(checkR.rawData, null, 2)}`)
 
     let check = await this.applications.createCheck(checkR, req)
 
@@ -311,8 +319,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         return
       }
 
-      let countryId = getEnumValueId({ model: bot.models[COUNTRY], value: payload[map.country] })
-      if (countryId !== 'CS') return
+      if (payload[map.country].id.split('_')[1] !== CZECH_COUNTRY_ID)
+        return
 
       let { resource, error } = await getCheckParameters({
         plugin: DISPLAY_NAME,
@@ -373,10 +381,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       })
 
       if (status === 'pass') {
-        let arr: any[] = pscLikeRawData(rawData[0].data)
-        for (let bo of arr) {
-          await czechCheckAPI.createBOCheck({ application, status, form: payload, rawData, req })
-        }
+        let arr: any[] = pscLikeBORawData(rawData[0].data)
+        await czechCheckAPI.createBOCheck({ application, status, form: payload, rawData: arr, req })
       }
     },
 
@@ -391,11 +397,16 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (map) map = { ...defaultPropMap, ...map }
       else map = defaultPropMap
 
+      logger.debug('czechCheck validateForm called 1')
       if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) {
         logger.debug('skipping prefill')
         return
       }
-      logger.debug('czechCheck validateForm called')
+      logger.debug('czechCheck validateForm called 2')
+      if (payload[map.country].id.split('_')[1] !== CZECH_COUNTRY_ID)
+        return
+
+      logger.debug('czechCheck validateForm called 3')
       if (payload._prevlink && payload.registrationDate) return
 
       let checks: any = req.latestChecks || application.checks
@@ -418,35 +429,22 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         let check = result[0]
         let companyInfo = check.rawData && check.rawData.length && check.rawData[0]
         if (!companyInfo) return
-        let name = companyInfo.name
-        let company_number = companyInfo.ico
+        let name = companyInfo.company.name
+        let company_number = companyInfo.company.company_number
 
-        let incorporation_date = companyInfo.recorddate
+        let incorporation_date = companyInfo.company.incorporation_date
 
         if (incorporation_date) prefill.registrationDate = new Date(incorporation_date).getTime()
 
-        let data: any[] = companyInfo.data
-        for (let part of data) {
-          if (part.udajTyp.kod === "SIDLO") {
-
-            let address: any = {
-              locality: part.adresa.obec
-            }
-            let line = part.adresa.ulice
-            if (part.adresa.cisloText)
-              line += ' ' + part.adresa.cisloText
-            else if (part.adresa.cisloPo && part.adresa.cisloOr)
-              line += ' ' + part.adresa.cisloPo + ' / ' + part.adresa.cisloOr
-            if (part.adresa.castObce)
-              line += ' ' + part.adresa.castObce
-            address.address_line_1 = line
-            if (part.adresa.psc)
-              address.postalCode = part.adresa.psc
-
-            _.extend(prefill, address)
-            break;
-          }
+        let addr = companyInfo.company.registered_address
+        let address: any = {
+          address_line_1: addr.street_address,
+          locality: addr.locality,
+          postalCode: addr.postal_code,
+          country: addr.country
         }
+        _.extend(prefill, address)
+
         let wrongName = name.toLowerCase() !== payload.companyName.toLowerCase()
         if (wrongName) prefill.companyName = name
         let wrongNumber = company_number.toLowerCase() !== payload.registrationNumber.toLowerCase()
@@ -546,7 +544,78 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   }
 }
 
-function pscLikeRawData(find: any[]): any[] {
+function pscLikeCompanyRawData(record: any): any {
+  let res: any = { company: {} }
+
+  res.company.name = record.name
+  res.company.company_number = record.ico
+  res.company.jurisdiction_code = 'CZ'
+  res.company.incorporation_date = record.recorddate
+
+  res.company.source = {
+    publisher: 'Ministerstvo spravedlnosti České republiky',
+    url: 'https://dataor.justice.cz/',
+    retrieved_at: dateformat(new Date(), "yyyy-mm-dd'T'HH:mm:ss+00:00")
+  }
+
+  for (let part of record.data) {
+    if (part.udajTyp && part.udajTyp.kod === "PRAVNI_FORMA") {
+      res.company.company_type = part.pravniForma.nazev
+    }
+    else if (part.udajTyp && part.udajTyp.kod === "SIDLO") {
+      let line = part.adresa.ulice
+      if (part.adresa.cisloText)
+        line += ' ' + part.adresa.cisloText
+      else if (part.adresa.cisloPo && part.adresa.cisloOr)
+        line += ' ' + part.adresa.cisloPo + ' / ' + part.adresa.cisloOr
+      if (part.adresa.castObce)
+        line += ' ' + part.adresa.castObce
+
+      let oneline = line + ' ' + part.adresa.obec + (part.adresa.psc ? ' ' + part.adresa.psc : '')
+      res.company.registered_address = {
+        street_address: line,
+        locality: part.adresa.obec,
+        postal_code: part.adresa.psc,
+        country: part.adresa.statNazev
+      }
+      res.company.registered_address_in_full = oneline
+    }
+  }
+  res.company.officers = officers(record.data)
+  return [res]
+}
+
+function officers(data: any[]) {
+  let offArr = []
+
+  for (let part of data) {
+    if (part.udajTyp && part.udajTyp.kod === "STATUTARNI_ORGAN") {
+      let officers = part.podudaje
+
+      for (let offic of officers) {
+        if (offic.udajTyp.kod !== "STATUTARNI_ORGAN_CLEN")
+          continue
+        let boss: any = {
+          officer: {}
+        }
+        // console.log(offic)
+        boss.officer.name = offic.osoba.jmeno + ' ' + offic.osoba.prijmeni
+        boss.officer.date_of_birth = offic.osoba.narozDatum
+        boss.officer.appointed_on = offic.zapisDatum
+        boss.officer.resigned_on = offic.vymazDatum
+        boss.officer.country_of_residence = offic.adresa.statNazev
+        boss.officer.officer_role = part.udajTyp.nazev
+        boss.officer.inactive = offic.vymazDatum ? true : false
+
+        offArr.push(boss)
+      }
+
+    }
+  }
+  return offArr
+}
+
+function pscLikeBORawData(find: any[]): any[] {
   let list = []
   let identification: any
   let bo: any[]
@@ -565,6 +634,8 @@ function pscLikeRawData(find: any[]): any[] {
   }
 
   for (let row of bo) {
+    if (row.vymazDatum)
+      continue
     let pscLike: any = {
       data: {}
     }
