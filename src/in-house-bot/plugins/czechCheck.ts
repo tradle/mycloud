@@ -441,7 +441,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           address_line_1: addr.street_address,
           locality: addr.locality,
           postalCode: addr.postal_code,
-          country: addr.country
+          // country: addr.country
         }
         _.extend(prefill, address)
 
