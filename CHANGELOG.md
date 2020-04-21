@@ -2,12 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.27](https://github.com/tradle/mycloud/compare/v3.0.1-rc.26...v3.0.1-rc.27) (2020-04-19)
-
-
-### Bug Fixes
-
-* null pointer when no officers ([2ef4932](https://github.com/tradle/mycloud/commit/2ef4932))
+## [3.0.1-rc.30](https://github.com/tradle/mycloud/compare/v3.0.1-rc.29...v3.0.1-rc.30) (2020-04-21)
 
 
 
