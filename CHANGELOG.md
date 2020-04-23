@@ -2,14 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.31](https://github.com/tradle/mycloud/compare/v3.0.1-rc.30...v3.0.1-rc.31) (2020-04-22)
+## [3.0.1-rc.32](https://github.com/tradle/mycloud/compare/v3.0.1-rc.31...v3.0.1-rc.32) (2020-04-23)
 
 
 ### Bug Fixes
 
-* country is not needed to be prefilled since it's entered by customer ([652317f](https://github.com/tradle/mycloud/commit/652317f))
-* prefill CP without conf ([af7094c](https://github.com/tradle/mycloud/commit/af7094c))
-* prefill CP without conf ([a8f0747](https://github.com/tradle/mycloud/commit/a8f0747))
+* application tree was dependant on another plugin ([b56e4f4](https://github.com/tradle/mycloud/commit/b56e4f4))
 
 
 
