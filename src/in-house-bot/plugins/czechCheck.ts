@@ -139,7 +139,7 @@ export class CzechCheckAPI {
       }
       if (result) break
 
-      if (timePassed > 10000) {
+      if (timePassed > 30000) {
         this.logger.debug('czechCheck athena pending result')
         return { status: false, error: 'pending result', data: { id } }
       }
@@ -438,10 +438,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
         let addr = companyInfo.company.registered_address
         let address: any = {
-          address_line_1: addr.street_address,
-          locality: addr.locality,
+          streetAddress: addr.street_address,
+          city: addr.locality,
           postalCode: addr.postal_code,
-          // country: addr.country
         }
         _.extend(prefill, address)
 
@@ -563,20 +562,25 @@ function pscLikeCompanyRawData(record: any): any {
       res.company.company_type = part.pravniForma.nazev
     }
     else if (part.udajTyp && part.udajTyp.kod === "SIDLO") {
-      let line = part.adresa.ulice
+      let line: string
+      if (part.adresa.ulice)
+        line = part.adresa.ulice
+      else if (part.adresa.castObce)
+        line = part.adresa.castObce
       if (part.adresa.cisloText)
         line += ' ' + part.adresa.cisloText
       else if (part.adresa.cisloPo && part.adresa.cisloOr)
         line += ' ' + part.adresa.cisloPo + ' / ' + part.adresa.cisloOr
-      if (part.adresa.castObce)
-        line += ' ' + part.adresa.castObce
+      else if (part.adresa.cisloPo)
+        line += ' ' + part.adresa.cisloPo
+      if (part.adresa.castObce && part.adresa.ulice)
+        line += ', ' + part.adresa.castObce
 
       let oneline = line + ' ' + part.adresa.obec + (part.adresa.psc ? ' ' + part.adresa.psc : '')
       res.company.registered_address = {
         street_address: line,
         locality: part.adresa.obec,
         postal_code: part.adresa.psc,
-        country: part.adresa.statNazev
       }
       res.company.registered_address_in_full = oneline
     }
@@ -653,13 +657,19 @@ function pscLikeBORawData(find: any[]): any[] {
       country: row.adresa.statNazev,
       locality: row.adresa.obec
     }
-    let line = row.adresa.ulice
+    let line: string
+    if (row.adresa.ulice)
+      line = row.adresa.ulice
+    else if (row.adresa.castObce)
+      line = row.adresa.castObce
     if (row.adresa.cisloText)
       line += ' ' + row.adresa.cisloText
     else if (row.adresa.cisloPo && row.adresa.cisloOr)
       line += ' ' + row.adresa.cisloPo + ' / ' + row.adresa.cisloOr
-    if (row.adresa.castObce)
-      line += ' ' + row.adresa.castObce
+    else if (row.adresa.cisloPo)
+      line += ' ' + row.adresa.cisloPo
+    if (row.adresa.castObce && row.adresa.ulice)
+      line += ', ' + row.adresa.castObce
     pscLike.data.address.address_line_1 = line
 
     if (row.adresa.psc)
