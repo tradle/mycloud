@@ -61,7 +61,7 @@ const GOVERNMENTAL = 'governmental'
 const COUNTRY = 'tradle.Country'
 const STATUS = 'tradle.Status'
 
-const CZECH_COUNTRY_ID = 'CS'
+const CZECH_COUNTRY_ID = 'CZ'
 
 const defaultPropMap = {
   companyName: 'companyName',
