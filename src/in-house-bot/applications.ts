@@ -119,9 +119,13 @@ export class Applications implements IHasModels {
     let { tree } = application
     let top
     if (tree) top = application
-    else {
+    else if (application.top) {
       top = await this.bot.getLatestResource(application.top)
       tree = top.tree
+    }
+    else {
+      debugger
+      return
     }
     notifications.forEach((n: any) => {
       let form = n.form
