@@ -30,7 +30,7 @@ import {
 const { TYPE, PERMALINK, LINK } = constants
 
 import Errors from '../../errors'
-import { buildResourceStub } from '@tradle/build-resource'
+import { buildResourceStub, enumValue } from '@tradle/build-resource'
 import AWS from 'aws-sdk'
 import dateformat from 'dateformat'
 import _ from 'lodash'
@@ -519,8 +519,20 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         application
       }
 
+      let dataSource = enumValue({
+        model: bot.models[REFERENCE_DATA_SOURCES],
+        value: 'justice.cz'
+      })
+
+      let dataLineage = {
+        [dataSource.id]: {
+          properties: Object.keys(prefill)
+        }
+      }
+
       formError.details = {
         prefill: payloadClone,
+        dataLineage,
         message
       }
       if (errors) _.extend(formError.details, { errors })
