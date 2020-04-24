@@ -532,7 +532,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       formError.details = {
         prefill: payloadClone,
-        //dataLineage,
+        dataLineage,
         message
       }
       if (errors) _.extend(formError.details, { errors })
