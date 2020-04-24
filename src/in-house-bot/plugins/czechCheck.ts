@@ -519,7 +519,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         application
       }
 
-      /*
       let dataSource = enumValue({
         model: bot.models[REFERENCE_DATA_SOURCES],
         value: 'justice.cz'
@@ -530,7 +529,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           properties: Object.keys(prefill)
         }
       }
-      */
 
       formError.details = {
         prefill: payloadClone,
