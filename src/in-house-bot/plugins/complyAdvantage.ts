@@ -103,8 +103,6 @@ class ComplyAdvantageAPI {
     companyNameProperty?: string
   }) {
     let criteria = pConf.filter
-    // let companyName, registrationDate
-    // let resource = payload
     const { application, payload } = req
 
     let map = propertyMap
@@ -130,7 +128,17 @@ class ComplyAdvantageAPI {
       req
     })
     if (!createCheck) return
-
+    let { notMatched } = createCheck
+    if (notMatched  &&  _.size(notMatched) === 1) {
+      debugger
+      let dateProp
+      if ('registrationDate' in notMatched)
+        dateProp = 'registrationDate'
+      else if ('dateOfBirth' in notMatched)
+        dateProp = 'dateOfBirth'
+      if (dateProp  &&
+         (new Date(notMatched[dateProp]).getFullYear() === new Date(payload[dateProp]).getFullYear())) return    
+    }
     let defaultMap: any = defaultPropMap
 
     // Check if the check parameters changed
@@ -154,21 +162,23 @@ class ComplyAdvantageAPI {
       debugger
       companyName = resource[propertyName]
     }
+
     this.logger.debug(`${PROVIDER} for: ${companyName}`)
     if (companyName && !registrationDate) {
-      let check: any = await getLatestCheck({
-        type: CORPORATION_EXISTS,
-        req,
-        application,
-        bot: this.bot
-      })
-      if (check.rawData[0]) {
-        let date = check.rawData[0].company.incorporation_date
-        if (date) {
-          registrationDate = parseScannedDate(date)
-          resource.registrationDate = registrationDate
-        }
-      }
+      return
+      // let check: any = await getLatestCheck({
+      //   type: CORPORATION_EXISTS,
+      //   req,
+      //   application,
+      //   bot: this.bot
+      // })
+      // if (check.rawData[0]) {
+      //   let date = check.rawData[0].company.incorporation_date
+      //   if (date) {
+      //     registrationDate = parseScannedDate(date)
+      //     resource.registrationDate = registrationDate
+      //   }
+      // }      
     }
 
     if (!companyName || !registrationDate) {
