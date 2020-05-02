@@ -505,6 +505,7 @@ export const doesCheckNeedToBeCreated = async ({
   form,
   propertiesToCheck,
   prop,
+  isCaseSensitive,
   req
 }: {
   bot: Bot
@@ -514,10 +515,11 @@ export const doesCheckNeedToBeCreated = async ({
   form: ITradleObject
   propertiesToCheck: string[]
   prop: string
+  isCaseSensitive?: boolean
   req: IPBReq
 }) => {
   // debugger
-  if (!application.checks || !application.checks.length) return true
+  if (!application.checks || !application.checks.length) return {needsCheck: true }
   if (!req.checks) {
     let startTime = Date.now()
     let { checks = [], latestChecks = [] } = await getLatestChecks({ application, bot })
@@ -526,17 +528,16 @@ export const doesCheckNeedToBeCreated = async ({
   }
   let items = req.checks.filter((check) => check.provider === provider)
   // let items = await getChecks({ bot, type, application, provider })
-  if (!items.length) return true
+  if (!items.length) return { needsCheck: true }
 
   let checks = items.filter((r) => r[prop]._link === form._link)
   if (checks.length) return false
-  let hasChanged = await hasPropertiesChanged({ resource: form, bot, propertiesToCheck, req })
-  if (hasChanged) return true
+  let { needsCheck, notMatched } = await getChangedProperties({ resource: form, bot, propertiesToCheck, req })
+  if (needsCheck ) return { needsCheck, notMatched }
   let checkForThisForm = items.filter((r) => r[prop]._permalink === form._permalink)
-  if (!checkForThisForm.length) return true
+  if (!checkForThisForm.length) return { needsCheck: true, notMatched }
   checkForThisForm.sort((a, b) => b._time - a._time)
-  if (checkForThisForm[0].status.id.endsWith('_error')) return true
-  return hasChanged
+  if (checkForThisForm[0].status.id.endsWith('_error')) return { needsCheck: true, notMatched }
 }
 export const getLatestChecks = async ({ application, bot }) => {
   if (!application.checks || !application.checks.length) return {}
@@ -590,15 +591,33 @@ export const hasPropertiesChanged = async ({
   resource,
   bot,
   propertiesToCheck,
-  req
+  req,
+  isCaseSensitive
 }: {
   resource: ITradleObject
   bot: Bot
   propertiesToCheck: string[]
   req: IPBReq
+  isCaseSensitive?: boolean
+}) => {
+  let { notMatched, needsCheck } = await getChangedProperties({resource, bot, propertiesToCheck, isCaseSensitive, req})
+  return needsCheck
+}
+export const getChangedProperties = async ({
+  resource,
+  bot,
+  propertiesToCheck,
+  isCaseSensitive,
+  req
+}: {
+  resource: ITradleObject
+  bot: Bot
+  propertiesToCheck: string[]
+  isCaseSensitive?: boolean
+  req: IPBReq
 }) => {
   // debugger
-  if (!resource._prevlink) return true
+  if (!resource._prevlink) return { needsCheck: true }
   let dbRes = req.previousPayloadVersion
   if (!dbRes) {
     try {
@@ -612,25 +631,29 @@ export const hasPropertiesChanged = async ({
         )}`
       )
       debugger
-      return true
+      return { needsCheck: true }
     }
     req.previousPayloadVersion = dbRes
   }
-  if (!dbRes) return true
+  if (!dbRes) return { needsCheck: true }
   let r: any = {}
   // Use defaultPropMap for creating mapped resource if the map was not supplied or
   // if not all properties listed in map - that is allowed if the prop names are the same as default
-  let check = propertiesToCheck.filter((p) => {
+  let notMatched = {}
+  propertiesToCheck.forEach((p) => {
     let rValue = resource[p]
     let dbValue = dbRes[p]
-    if (!rValue && !dbValue) return false
-    if (rValue === dbValue) return false
-    if (_.isEqual(dbValue, rValue)) return false
-    return true
+    if (!rValue && !dbValue) return
+    if (rValue === dbValue) return
+    if (!isCaseSensitive  && typeof rValue === 'string') {
+      if (dbValue.toLowerCase() === rValue.toLowerCase()) return 
+    }
+    if (_.isEqual(dbValue, rValue)) return
+    notMatched[p] = dbValue
   })
 
-  if (check.length) return true
-  else return false
+  if (_.size(notMatched)) return { needsCheck: true, notMatched }
+  return {}
 }
 
 export const getUserIdentifierFromRequest = (req: IPBReq) => {

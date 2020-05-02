@@ -41,7 +41,7 @@ const API = 'tradle.API'
 const API_BASED_VERIFIED_METHOD = 'tradle.APIBasedVerificationMethod'
 const CH_URL = 'https://beta.companieshouse.gov.uk'
 
-const CZECH_COUNTRY_ID = 'CS' // handled by czechCheck
+const CZECH_COUNTRY_ID = 'CZ' // handled by czechCheck
 
 interface IOpenCorporatesConf {
   products: any
@@ -815,30 +815,30 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
   }
 }
 
-async function checkTheCheck(payload, application, propertyMap, conf, bot) {
-  let { associatedResource } = application
-  if (!associatedResource) return true
-  let atype = associatedResource[TYPE]
-  if (!conf.forms[atype]) return
-  let aRes = await bot.getResource(associatedResource)
+// async function checkTheCheck(payload, application, propertyMap, conf, bot) {
+//   let { associatedResource } = application
+//   if (!associatedResource) return true
+//   let atype = associatedResource[TYPE]
+//   if (!conf.forms[atype]) return
+//   let aRes = await bot.getResource(associatedResource)
 
-  let mapP = propertyMap && propertyMap[payload[TYPE]]
-  if (mapP) mapP = { ...defaultPropMap, ...mapP }
-  else mapP = defaultPropMap
-  let companyName = payload[mapP.companyName]
-  let registrationNumber = payload[mapP.registrationNumber]
-  let country = payload[mapP.country]
+//   let mapP = propertyMap && propertyMap[payload[TYPE]]
+//   if (mapP) mapP = { ...defaultPropMap, ...mapP }
+//   else mapP = defaultPropMap
+//   let companyName = payload[mapP.companyName]
+//   let registrationNumber = payload[mapP.registrationNumber]
+//   let country = payload[mapP.country]
 
-  let mapA = propertyMap && propertyMap[atype]
-  if (mapA) mapA = { ...defaultPropMap, ...mapA }
-  else mapA = defaultPropMap
+//   let mapA = propertyMap && propertyMap[atype]
+//   if (mapA) mapA = { ...defaultPropMap, ...mapA }
+//   else mapA = defaultPropMap
 
-  return (
-    companyName !== associatedResource[mapA.companyName] ||
-    country !== associatedResource[mapA.country] ||
-    registrationNumber !== associatedResource[mapA.registrationNumber]
-  )
-}
+//   return (
+//     companyName !== associatedResource[mapA.companyName] ||
+//     country !== associatedResource[mapA.country] ||
+//     registrationNumber !== associatedResource[mapA.registrationNumber]
+//   )
+// }
 
 // Search for jurisdiction and the by company number
 // async _fetch(resource, conf, application) {

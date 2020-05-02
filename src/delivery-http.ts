@@ -86,6 +86,8 @@ export default class Delivery extends EventEmitter implements IDelivery {
           error: Errors.export(err),
           message: messages[0]._link,
           willRetry,
+          endpoint, 
+          friend: friend._permalink
         })
 
         return willRetry
