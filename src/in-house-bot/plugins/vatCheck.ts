@@ -89,7 +89,6 @@ export class VatCheckAPI {
     let countryCode = country.id.split('_')[1]
 
     let status: any
-
     let rawData: any
 
     let cleanVat = this.cleanVat(vat)
@@ -153,7 +152,7 @@ export class VatCheckAPI {
 
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
-    else if (rawData && Array.isArray(rawData)) {
+    if (rawData) {
       resource.rawData = sanitize(rawData).sanitized
     }
 
