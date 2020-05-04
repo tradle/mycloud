@@ -2,19 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.34](https://github.com/tradle/mycloud/compare/v3.0.1-rc.33...v3.0.1-rc.34) (2020-05-04)
-
-
-### Bug Fixes
-
-* don't run extra check against the same data ([a31406f](https://github.com/tradle/mycloud/commit/a31406f))
-
-
-### Features
-
-* more info to pass to the user ([147a260](https://github.com/tradle/mycloud/commit/147a260))
-* pairing devices ([e5c6a7d](https://github.com/tradle/mycloud/commit/e5c6a7d))
-* when the check needs to be created return also the changed props for the plugin to be able to analyze more if needed ([fa8cd55](https://github.com/tradle/mycloud/commit/fa8cd55))
+## [3.0.1-rc.35](https://github.com/tradle/mycloud/compare/v3.0.1-rc.34...v3.0.1-rc.35) (2020-05-04)
 
 
 
