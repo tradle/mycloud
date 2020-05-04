@@ -737,7 +737,8 @@ export const loadComponentsAndPlugins = ({
       'client-edits',
       'roarIntegration',
       'sme-auto-approve',
-      'attestation'
+      'attestation',
+      'vatCheck'
     ].forEach((name) => attachPlugin({ name }))
       ;[
         'hand-sig',
