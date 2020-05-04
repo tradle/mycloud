@@ -4,10 +4,8 @@ import constants from '@tradle/constants'
 import {
   getStatusMessageForCheck,
   doesCheckNeedToBeCreated,
-  getLatestCheck,
   getEnumValueId,
   getCheckParameters,
-  isPassedCheck
 } from '../utils'
 
 import {
@@ -29,8 +27,7 @@ import {
 
 const { TYPE, PERMALINK, LINK } = constants
 
-import Errors from '../../errors'
-import { buildResourceStub, enumValue } from '@tradle/build-resource'
+import { enumValue } from '@tradle/build-resource'
 import AWS from 'aws-sdk'
 import dateformat from 'dateformat'
 import _ from 'lodash'
@@ -58,7 +55,6 @@ const DISPLAY_NAME = 'Ministry of Justice of the Czech Republic'
 const ASPECTS = 'Public Register'
 const BO_ASPECTS = 'Beneficial ownership'
 const GOVERNMENTAL = 'governmental'
-const COUNTRY = 'tradle.Country'
 const STATUS = 'tradle.Status'
 
 const CZECH_COUNTRY_ID = 'CZ'
@@ -189,7 +185,7 @@ export class CzechCheckAPI {
       let message: string
       this.logger.debug(`czechCheck check() found ${find.data.length} records`)
       if (name.toLowerCase() !== find.data[0].name.toLowerCase()) {
-        message = `Warning: Company name is not the exact match: ${name} vs. ${find.data.name}`
+        message = `Warning: Company name is not the exact match: ${name} vs. ${find.data[0].name}`
       }
       find.data[0].data = makeJson(find.data[0].data)
       status = { status: 'pass', message, rawData: find.data }
@@ -346,7 +342,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         req
       })
       if (!createCheck) return
-
+      let { notMatched } = createCheck
+      if (notMatched) 
+        if (!(await this.runCheck({ notMatched, resource: payload, req}))) return        
+      
       let { status, message, rawData } = await czechCheckAPI.lookup({
         check: map.registrationNumber,
         name: payload[map.companyName],
@@ -386,6 +385,36 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       }
     },
 
+    async runCheck({ req, notMatched, resource }) {
+      if (!notMatched) return
+      let { latestChecks, application } = req
+      if (!latestChecks) {
+        debugger
+        let stubs = application.checks.filter(check => check[TYPE] === CORPORATION_EXISTS)
+        if (!stubs.length) return true
+        latestChecks = await Promise.all(stubs.map(stub => this.bot.getResource(stub)))
+        const { models } = this.bot
+        latestChecks = latestChecks.filter(check => check.provider === PROVIDER  &&  getEnumValueId({model: models[STATUS], value: check.status}) === 'pass')
+        latestChecks.sort((a, b) => b._time)
+      }
+      let size = _.size(notMatched)
+      if (size > 2) return true
+      let notMatchedCp = _.pick(notMatched, ['registrationDate', 'companyName'])
+      if (_.size(notMatchedCp) !== size) return true
+
+      if ('registrationDate' in notMatched) {
+        let registrationDate = notMatched['registrationDate']
+        if (registrationDate) {
+          if (registrationDate !== resource['registrationDate'])
+            return true
+        }
+      }
+      if (notMatchedCp['companyName']) {
+        let currentCheck:any = latestChecks.find(check => check[TYPE] === CORPORATION_EXISTS  &&  check.provider === PROVIDER)
+        if (currentCheck  &&  
+          currentCheck.rawData[0].company.name !== resource.companyName) return true
+      }
+    },
     async validateForm({ req }) {
       const { user, application, payload } = req
       // debugger
