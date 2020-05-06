@@ -2,12 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.32](https://github.com/tradle/mycloud/compare/v3.0.1-rc.31...v3.0.1-rc.32) (2020-04-23)
+## [3.0.1-rc.37](https://github.com/tradle/mycloud/compare/v3.0.1-rc.36...v3.0.1-rc.37) (2020-05-05)
 
 
-### Bug Fixes
+### Features
 
-* application tree was dependant on another plugin ([b56e4f4](https://github.com/tradle/mycloud/commit/b56e4f4))
+* pairing devices ([2a78894](https://github.com/tradle/mycloud/commit/2a78894))
+* pairing devices ([3c6250f](https://github.com/tradle/mycloud/commit/3c6250f))
+* pairing devices ([b20fd64](https://github.com/tradle/mycloud/commit/b20fd64))
 
 
 

@@ -80,8 +80,8 @@ export type PublicInfo = {
   org: IOrganization
   style: any
   tour: any
-  currency: string
-  locale: string
+  currency?: string
+  locale?: string
 }
 
 const MINUTE = 3600000
