@@ -738,6 +738,7 @@ export const loadComponentsAndPlugins = ({
       'roarIntegration',
       'sme-auto-approve',
       'attestation',
+      'giinCheck',
       'vatCheck'
     ].forEach((name) => attachPlugin({ name }))
       ;[

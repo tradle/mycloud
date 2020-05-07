@@ -270,9 +270,9 @@ export const validateConf: ValidatePluginConf = async ({
       `property ${pluginConf.countryProperty} was not found in ${pluginConf.type}`
     )
   }
-  if (!model.properties[pluginConf.companyProperty]) {
+  if (!model.properties[pluginConf.vatProperty]) {
     throw new Errors.InvalidInput(
-      `property ${pluginConf.companyProperty} was not found in ${pluginConf.type}`
+      `property ${pluginConf.vatProperty} was not found in ${pluginConf.type}`
     )
   }
 }
