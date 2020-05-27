@@ -203,7 +203,12 @@ export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (components, plugi
         return
       logger.debug('idrndCheck called')
 
-      const serviceConf: ServiceConf = await documentChecker.getServiceConfig(bot.buckets.PrivateConf.id)
+      const serviceConf = {
+        apiKey: 'kE8ActpzZEGl20pLfB8qBsNjX/uhZbcdH6z8M4D4fr790dJiu4mVKg==',
+        apiUrl: 'http://bancoa-srvcs-400380190.us-east-1.elb.amazonaws.com',
+        path: 'idrnd-liveface'
+      }
+      //const serviceConf: ServiceConf = await documentChecker.getServiceConfig(bot.buckets.PrivateConf.id)
       if (!serviceConf) {
         logger.debug('idrndCheck no service config found')
         return
