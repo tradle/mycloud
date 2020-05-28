@@ -255,11 +255,12 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         !payload[giinConf.countryProperty] ||
         !payload[giinConf.giinProperty]) return
 
+      logger.debug('giinCheck checking if the corporation exists')
       let check: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, application, bot })
-      if (!check || !isPassedCheck(check)) return
-
-      let country = payload[giinConf.countryProperty]
-
+      if (!check || !isPassedCheck(check)) {
+        logger.debug('giinCheck exiting as a check corporation exists is not present')
+        return
+      }
       logger.debug('giinCheck before doesCheckNeedToBeCreated')
       let createCheck = await doesCheckNeedToBeCreated({
         bot,

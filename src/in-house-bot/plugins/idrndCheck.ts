@@ -114,14 +114,14 @@ export class IDLiveFaceCheckAPI {
       if (res.ok) {
         let json = await res.json()
         rawData = sanitize(json).sanitized
-        this.logger.debug('idrndCheck Liveness selfie check:', JSON.stringify(rawData, null, 2))
+        this.logger.debug('idrndCheck selfie liveness check:', JSON.stringify(rawData, null, 2))
       }
       else {
         this.logger.debug('idrndCheck error, status=' + res.status + ', text=' + res.statusText)
         throw Error('http status=' + res.status + ', ' + res.statusText)
       }
     } catch (err) {
-      this.logger.error('idrndCheck Liveness selfie check error', err)
+      this.logger.error('idrndCheck selfie liveness check error', err)
       debugger
       message = `Check was not completed for "${buildResource.title({
         models,
@@ -131,13 +131,15 @@ export class IDLiveFaceCheckAPI {
     }
 
     if (rawData.error_code) {
-      this.logger.error('idrndCheck selfie liveness check error, repeat', rawData.error_code)
+      this.logger.error(`idrndCheck selfie liveness check repeat: error_code=${rawData.error_code}`)
       // error happens
       return { status: 'repeat', rawData, message: this.getMessage(rawData.error_code) }
     }
-    else if (rawData.probability < 0.5)
+    else if (rawData.probability < 0.5) {
+      this.logger.error(`idrndCheck selfie liveness check fail: probability = ${rawData.probability}`)
       return { status: 'fail', rawData, message: 'possibility of fraud' }
-
+    }
+    this.logger.error(`idrndCheck selfie liveness check pass: probability = ${rawData.probability}`)
     return { status: 'pass', rawData, message: 'no fraud detected' }
   }
 
@@ -214,13 +216,13 @@ export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (components, plugi
         application,
         provider: PROVIDER,
         form: payload,
-        propertiesToCheck: ['scan'],
+        propertiesToCheck: ['selfie'],
         prop: 'form',
         req
       })
       if (!toCheck) {
         logger.debug(
-          `${PROVIDER}: check already exists for ${application.applicantName}`
+          `idrndCheck check already exists for ${application.applicantName}`
         )
         return
       }
