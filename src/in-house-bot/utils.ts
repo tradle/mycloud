@@ -643,10 +643,14 @@ export const getChangedProperties = async ({
   propertiesToCheck.forEach((p) => {
     let rValue = resource[p]
     let dbValue = dbRes[p]
-    if (!rValue && !dbValue) return
-    if (rValue === dbValue) return
+    if (!rValue  &&  !dbValue) return
+    if (!rValue  ||  !dbValue) {
+      notMatched[p] = dbValue
+      return
+    }
+    // if (rValue === dbValue) return
     if (!isCaseSensitive  && typeof rValue === 'string') {
-      if (dbValue.toLowerCase() === rValue.toLowerCase()) return 
+      if (dbValue.toLowerCase() === rValue.toLowerCase()) return
     }
     if (_.isEqual(dbValue, rValue)) return
     notMatched[p] = dbValue
