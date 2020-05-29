@@ -45,14 +45,6 @@ const REPEAT = 'REPEAT'
 const REQUEST_TIMEOUT = 10000
 const UTF8 = 'utf-8'
 
-const ERROR_CODES = [
-  'FACE_TOO_CLOSE',
-  'FACE_NOT_FOUND',
-  'FACE_TOO_SMALL',
-  'FACE_ANGLE_TOO_LARGE',
-  'TOO_MANY_FACES'
-]
-
 interface IDLiveFaceCheck {
   application: IPBApp
   status: any
@@ -78,14 +70,14 @@ export class IDLiveFaceCheckAPI {
     this.bot = bot
     this.applications = applications
     this.logger = logger
-    let locale = conf.locale ? conf.locale : 'en'
+    let locale = 'en'
     this.messageMap = messages[locale]
   }
 
   private getMessage = (code: string) => {
     if (this.messageMap[code])
-      return this.messageMap[code] + '. ' + this.messageMap[REPEAT]
-    return this.messageMap[REPEAT]
+      return code
+    return REPEAT
   }
   public selfieLiveness = async (form, application, serviceConf: ServiceConf) => {
     let rawData: any
@@ -203,12 +195,7 @@ export const createPlugin: CreatePlugin<IDLiveFaceCheckAPI> = (components, plugi
         return
       logger.debug('idrndCheck called')
 
-      const serviceConf = {
-        apiKey: 'kE8ActpzZEGl20pLfB8qBsNjX/uhZbcdH6z8M4D4fr790dJiu4mVKg==',
-        apiUrl: 'http://bancoa-srvcs-400380190.us-east-1.elb.amazonaws.com',
-        path: 'idrnd-liveface'
-      }
-      //const serviceConf: ServiceConf = await documentChecker.getServiceConfig(bot.buckets.PrivateConf.id)
+      const serviceConf: ServiceConf = await documentChecker.getServiceConfig(bot.buckets.PrivateConf.id)
       if (!serviceConf) {
         logger.debug('idrndCheck no service config found')
         return
