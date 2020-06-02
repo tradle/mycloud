@@ -1343,10 +1343,24 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
         try {
           const user = await this.users.createIfNotExists({ id: userId })
           let { _masterAuthor } = messages[0].object
-          let masterUser = _masterAuthor && (await this.users.get(_masterAuthor))
+          let masterUser
+          let masterIdentity
+          if (_masterAuthor) {
+            masterUser = await this.users.get(_masterAuthor)
+            masterIdentity = await this.addressBook.byPermalink(_masterAuthor)
+          }
+          else
+            masterIdentity = await this.addressBook.byPermalink(user.id)
+
+          let allUsers = masterUser  &&  [masterUser] || [user]
+          let importedFrom = masterIdentity.pubkeys.filter(pub => pub.importedFrom)
+          if (importedFrom.length) {
+            let moreUsers = await Promise.all(importedFrom.map(pub => this.users.get(pub.importedFrom)))            
+            allUsers.push(...moreUsers)
+          }
 
           const batch = messages.map((message) =>
-            toBotMessageEvent({ bot: this, user, masterUser, message })
+            toBotMessageEvent({ bot: this, user, masterUser, allUsers, message })
           )
           // logger.debug(`feeding ${messages.length} messages to business logic`)
           if (async) {
