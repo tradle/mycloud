@@ -359,7 +359,7 @@ export default class Identities implements IHasLogger {
       if (existing._link === link) {
         this.logger.debug(`mapping is already up to date for identity ${permalink}`)
       } else if (identity[PREVLINK] !== existing._link) {
-        if (identity[PREVLINK]  ||  !existing. pubkeys.find((pub) => pub.importedFrom === link)) {
+        if (identity[PREVLINK] || !existing.pubkeys.find((pub) => pub.importedFrom === link)) {
           this.logger.warn('identity mapping collision. Refusing to add contact:', identity)
           throw new Error(`refusing to add identity with link: "${link}"`)
         }
