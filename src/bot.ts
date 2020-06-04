@@ -128,6 +128,7 @@ import { MiddlewareContainer } from './middleware-container'
 import { hookUp as setupDefaultHooks } from './hooks'
 import { Resource, ResourceInput, IResourcePersister } from './resource'
 import networks from './networks'
+import { logger } from '@tradle/dynamodb/lib/defaults'
 
 const { addLinks } = crypto
 
@@ -1343,25 +1344,33 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
         try {
           const user = await this.users.createIfNotExists({ id: userId })
           let { _masterAuthor } = messages[0].object
-          let masterUser
           let masterIdentity
           let allUsers
+          let masterUser = _masterAuthor && (await this.users.get(_masterAuthor))          
+          let uid = _masterAuthor || user.id
           try {
-            if (_masterAuthor) {
-              masterUser = await this.users.get(_masterAuthor)
-              masterIdentity = await this.addressBook.byPermalink(_masterAuthor)
-            } else masterIdentity = await this.addressBook.byPermalink(user.id)
-
-            allUsers = (masterUser && [masterUser]) || [user]
-            let importedFrom = masterIdentity.pubkeys.filter((pub) => pub.importedFrom)
-            if (importedFrom.length) {
+            masterIdentity = await this.addressBook.byPermalink(uid)
+          } catch (err) {
+            // debugger
+            this.logger.debug(`Failed to get identity for ${uid}`)
+          }
+          if (_masterAuthor)
+          try {
+            allUsers = (masterUser && [masterUser, user]) || [user]
+            let importedFrom =
+              masterIdentity &&
+              masterIdentity.pubkeys.filter(
+                pub => pub.importedFrom && pub.importedFrom !== user.id
+              )
+            if (importedFrom && importedFrom.length) {
               let moreUsers = await Promise.all(
                 importedFrom.map((pub) => this.users.get(pub.importedFrom))
               )
               allUsers.push(...moreUsers)
             }
           } catch (err) {
-            debugger
+            // debugger
+            this.logger.debug(`Failed to get allUsers for master identity ${uid}`)
             if (!allUsers) allUsers = [user]
           }
           const batch = messages.map((message) =>
