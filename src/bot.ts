@@ -1354,24 +1354,25 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
             // debugger
             this.logger.debug(`Failed to get identity for ${uid}`)
           }
-          if (_masterAuthor)
-          try {
-            allUsers = (masterUser && [masterUser, user]) || [user]
-            let importedFrom =
-              masterIdentity &&
-              masterIdentity.pubkeys.filter(
-                pub => pub.importedFrom && pub.importedFrom !== user.id
-              )
-            if (importedFrom && importedFrom.length) {
-              let moreUsers = await Promise.all(
-                importedFrom.map((pub) => this.users.get(pub.importedFrom))
-              )
-              allUsers.push(...moreUsers)
+          allUsers = (masterUser && [masterUser, user]) || [user]
+          if (_masterAuthor) {
+            try {
+              let importedFrom =
+                masterIdentity &&
+                masterIdentity.pubkeys.filter(
+                  pub => pub.importedFrom && pub.importedFrom !== user.id
+                )
+              if (importedFrom && importedFrom.length) {
+                let moreUsers = await Promise.all(
+                  importedFrom.map((pub) => this.users.get(pub.importedFrom))
+                )
+                allUsers.push(...moreUsers)
+              }
+            } catch (err) {
+              // debugger
+              this.logger.debug(`Failed to get allUsers for master identity ${uid}`)
+              if (!allUsers) allUsers = [user]
             }
-          } catch (err) {
-            // debugger
-            this.logger.debug(`Failed to get allUsers for master identity ${uid}`)
-            if (!allUsers) allUsers = [user]
           }
           const batch = messages.map((message) =>
             toBotMessageEvent({ bot: this, user, masterUser, allUsers, message })
