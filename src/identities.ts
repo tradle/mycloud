@@ -367,6 +367,7 @@ export default class Identities implements IHasLogger {
           debugger
           const { link } = await this.getExistingIdentityMapping(identity)
           let r = await this.objects.get(link)
+          debugger
         }
         identity = existing
       }
