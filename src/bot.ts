@@ -1346,7 +1346,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
           let { _masterAuthor } = messages[0].object
           let masterIdentity
           let allUsers
-          let masterUser = _masterAuthor && (await this.users.get(_masterAuthor))          
+          let masterUser = _masterAuthor && (await this.users.get(_masterAuthor))
           let uid = _masterAuthor || user.id
           try {
             masterIdentity = await this.addressBook.byPermalink(uid)
@@ -1362,10 +1362,14 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
                 pub => pub.importedFrom && pub.importedFrom !== user.id
               )
             if (importedFrom && importedFrom.length) {
-              let moreUsers = await Promise.all(
+              let moreUsers = await utils.allSettled(
                 importedFrom.map((pub) => this.users.get(pub.importedFrom))
               )
-              allUsers.push(...moreUsers)
+              moreUsers.forEach(result => {
+                if (result.isFulfilled)
+                  allUsers.push(result.value)
+              })
+              // allUsers.push(...moreUsers)
             }
           } catch (err) {
             // debugger
