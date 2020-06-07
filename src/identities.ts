@@ -346,7 +346,6 @@ export default class Identities implements IHasLogger {
     }
 
     const { link, permalink } = addLinks(identity)
-    const ilink = link
     let existing
     try {
       // existing = await this.byPermalink(permalink)
