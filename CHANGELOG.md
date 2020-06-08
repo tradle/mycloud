@@ -2,7 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.39](https://github.com/tradle/mycloud/compare/v3.0.1-rc.38...v3.0.1-rc.39) (2020-05-08)
+## [3.0.1-rc.40](https://github.com/tradle/mycloud/compare/v3.0.1-rc.39...v3.0.1-rc.40) (2020-06-08)
+
+
+### Bug Fixes
+
+* pairing devices ([6b5d6c8](https://github.com/tradle/mycloud/commit/6b5d6c8))
+* props change comparison ([3d64a2f](https://github.com/tradle/mycloud/commit/3d64a2f))
+
+
+### Features
+
+* pairing devices ([4a88af9](https://github.com/tradle/mycloud/commit/4a88af9))
+* pairing devices ([f0cfd3f](https://github.com/tradle/mycloud/commit/f0cfd3f))
+* pairing devices ([253fafb](https://github.com/tradle/mycloud/commit/253fafb))
+* pairing devices ([975cbaf](https://github.com/tradle/mycloud/commit/975cbaf))
+* pairing devices ([2b6ef70](https://github.com/tradle/mycloud/commit/2b6ef70))
+* pairing devices ([9690447](https://github.com/tradle/mycloud/commit/9690447))
+* pairing devices ([1a410e5](https://github.com/tradle/mycloud/commit/1a410e5))
+* pairing devices ([0a24a76](https://github.com/tradle/mycloud/commit/0a24a76))
+* pairing user devices ([77fdfa7](https://github.com/tradle/mycloud/commit/77fdfa7))
 
 
 
