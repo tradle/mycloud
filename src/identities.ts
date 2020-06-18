@@ -177,7 +177,8 @@ export default class Identities implements IHasLogger {
     }
 
     try {
-      return await this.db.findOne(findOpts)
+      let { items } =  await this.db.find(findOpts)
+      return items[0]
     } catch (err) {
       rethrowNotFoundAsUnknownAuthor(err, `with pubKey ${pub}`)
     }
@@ -346,12 +347,14 @@ export default class Identities implements IHasLogger {
     }
 
     const { link, permalink } = addLinks(identity)
-    let existing
+    const ilink = link
+    let existing, mappedLink, mapping
     try {
       // existing = await this.byPermalink(permalink)
       // if (!existing) {
-      const { link } = await this.getExistingIdentityMapping(identity)
-      existing = await this.objects.get(link)
+      mapping = await this.getExistingIdentityMapping(identity)
+      mappedLink = mapping.link
+      existing = await this.objects.get(mappedLink)
       // }
     } catch (err) {} // tslint:disable-line no-empty
 
@@ -365,8 +368,8 @@ export default class Identities implements IHasLogger {
         }
         if (!identity[PREVLINK]) {
           debugger
-          const { link } = await this.getExistingIdentityMapping(identity)
-          let r = await this.objects.get(link)
+          const id = await this.getExistingIdentityMapping(identity)
+          let r = await this.objects.get(id.link)
           debugger
         }
         identity = existing
