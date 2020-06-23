@@ -171,6 +171,7 @@ export default class Identities implements IHasLogger {
     // get the PubKey that was the most recent known
     // at the "time"
     const findOpts = getPubKeyMappingQuery({ pub, time })
+
     if (Date.now() - time < constants.unitToMillis.minute) {
       this.logger.debug('getPubKeyMapping, using consistent read')
       findOpts.consistentRead = true
@@ -178,6 +179,7 @@ export default class Identities implements IHasLogger {
 
     try {
       let { items } =  await this.db.find(findOpts)
+      this.logger.debug(`getPubKeyMapping, query${'\n'}${JSON.stringify(findOpts, null, 2)}${'\n'}${JSON.stringify(items[0], null, 2)}`)
       return items[0]
     } catch (err) {
       rethrowNotFoundAsUnknownAuthor(err, `with pubKey ${pub}`)
