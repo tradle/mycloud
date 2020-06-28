@@ -121,7 +121,8 @@ export default class Identities implements IHasLogger {
       'getPubKey'
     )
 
-    this._cachePub = (keyObj) => getLatestCachified.set([keyObj.pub], normalizePub(keyObj))
+    // this._cachePub = (keyObj) => getLatestCachified.set([keyObj.pub], normalizePub(keyObj))
+    this._cachePub = () => {}
     this._uncachePub = (keyObj) => getLatestCachified.del([keyObj.pub])
 
     this.getLatestPubKeyMapping = getLatestCachified.call
@@ -134,13 +135,13 @@ export default class Identities implements IHasLogger {
       },
       'byPermalink'
     )
-    // this._cacheIdentity = () => {}
+    this._cacheIdentity = () => {}
 
-    this._cacheIdentity = (identity) => {
-      const { link, permalink } = getLinks(identity)
-      getIdentityCachified.set([permalink], identity)
-      getNormalizedPubKeys(identity).forEach((key) => this._cachePub(key))
-    }
+    // this._cacheIdentity = (identity) => {
+    //   const { link, permalink } = getLinks(identity)
+    //   getIdentityCachified.set([permalink], identity)
+    //   getNormalizedPubKeys(identity).forEach((key) => this._cachePub(key))
+    // }
 
     this._uncacheIdentity = (identity) => {
       const { link, permalink } = getLinks(identity)
@@ -355,6 +356,8 @@ export default class Identities implements IHasLogger {
       // existing = await this.byPermalink(permalink)
       // if (!existing) {
       mapping = await this.getExistingIdentityMapping(identity)
+      // if (mapping.importedFrom)
+      //   debugger
       mappedLink = mapping.link
       existing = await this.objects.get(mappedLink)
       // }
@@ -369,11 +372,10 @@ export default class Identities implements IHasLogger {
           throw new Error(`refusing to add identity with link: "${link}"`)
         }
         if (!identity[PREVLINK]) {
-          debugger
-          const id = await this.getExistingIdentityMapping(identity)
-          let r = await this.objects.get(id.link)
+          this.logger.warn('Check if master identity returned as an existing mapping: ', identity)
           debugger
         }
+        // should not happen
         identity = existing
       }
     }
