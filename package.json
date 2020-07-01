@@ -8,8 +8,8 @@
   "license": "MIT",
   "devDependencies": {
     "@tradle/aws-client": "^1.10.0",
-    "@tradle/validate-model": "^7.1.22",
     "@types/graphql": "^0.12.3",
+    "@tradle/validate-model": "^7.1.23",
     "@types/json-schema": "^6.0.0",
     "@types/koa": "^2.0.44",
     "@types/lodash": "https://registry.npmjs.org/@types/lodash/-/lodash-4.14.91.tgz",
@@ -231,7 +231,7 @@
     "koa-body": "^2.5.0",
     "koa-compose": "^3.2.1",
     "koa-compress": "^2.0.0",
-    "koa-graphql": "github:mvayngrib/koa-graphql#7609b5d",
+    "koa-graphql": "git+https://github.com/mvayngrib/koa-graphql.git#mv/dist1",
     "koa-router": "^7.3.0",
     "lambda-ghostscript": "git+https://github.com/sina-masnadi/lambda-ghostscript.git",
     "lexicographic-semver": "^1.0.1",

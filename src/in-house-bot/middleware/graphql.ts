@@ -5,6 +5,7 @@ import { parse as parseQuery } from 'graphql/language/parser'
 import { bodyParser } from '../../middleware/body-parser'
 import { createHandler as createGraphqlHandler } from '../../middleware/graphql'
 import { createHandler as createGraphqlAuthHandler } from '../../middleware/graphql-auth'
+import { TYPE } from '@tradle/constants'
 import {
   IPBLambdaHttp as Lambda,
   MiddlewareHttp as Middleware,
@@ -62,7 +63,7 @@ export const keepModelsFresh = (lambda: Lambda) => {
 
 export const createAuth = (lambda: Lambda) => {
   const isGuestAllowed = ({ ctx, user, query }) => {
-    return /*lambda.isLocal ||*/ ctx.components.conf.bot.graphqlAuth === false
+    return lambda.isLocal || ctx.components.conf.bot.graphqlAuth === false
   }
 
   return createGraphqlAuthHandler(lambda, {
@@ -84,7 +85,7 @@ export const createAuth = (lambda: Lambda) => {
       const listType = get(parsed, 'definitions[0].selectionSet.selections[0].name.value')
       if (listType === 'rl_tradle_PubKey') return true
       if (listType !== 'rl_tradle_Identity') return false
-      
+
       let args = get(parsed, 'definitions[0].selectionSet.selections[0].arguments')
       let arg = args.find(a => a.name.value === 'filter')
       if (!arg) return false
@@ -97,7 +98,7 @@ export const createAuth = (lambda: Lambda) => {
         else if (name.value === '_link')
           link = value.value
       })
-      if (!link  &&  !permalink) return false    
+      if (!link  &&  !permalink) return false
       // NEED MORE - the whole user
       if (link) return true
       ///
@@ -123,6 +124,36 @@ export const createMiddleware = (lambda: Lambda): Middleware => {
     bodyParser({ jsonLimit: '10mb' }),
     createAuth(lambda),
     keepModelsFresh(lambda),
-    createGraphqlHandler(lambda)
+    createGraphqlHandler(lambda),
+    async (ctx) => {
+      // debugger
+      const { models } = ctx.components.bot
+      let { data } = ctx.response.body
+      const { user, masterUser, employeeManager } = ctx
+      let exclude
+      let userRoles = (masterUser || user).roles
+      if (userRoles.length  &&  userRoles.find(role => role.id.endsWith('_employee')))
+      // if (employeeManager.isEmployee({user, masterUser}))
+        exclude = 'clientUse'
+      else
+        exclude = 'internalUse'
+      for (let t in data) {
+        let result = data[t]
+        let { objects, edges } = result 
+        if (!objects) {
+          if (edges) objects = edges.map(edge => edge.node)
+          else objects = [result]
+        }
+        objects.forEach(obj => {
+          let props = models[obj[TYPE]].properties
+          for (let p in obj) {
+            if (props[p]  &&  props[p][exclude]) {
+              delete obj[p]
+              // debugger
+            }
+          } 
+        })
+      }      
+    }
   ])
 }

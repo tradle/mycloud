@@ -180,7 +180,7 @@ export default class Identities implements IHasLogger {
 
     try {
       let { items } =  await this.db.find(findOpts)
-      this.logger.debug(`getPubKeyMapping, query${'\n'}${JSON.stringify(findOpts, null, 2)}${'\n'}${JSON.stringify(items[0], null, 2)}`)
+      // this.logger.debug(`getPubKeyMapping, query${'\n'}${JSON.stringify(findOpts, null, 2)}${'\n'}${JSON.stringify(items[0], null, 2)}`)
       return items[0]
     } catch (err) {
       rethrowNotFoundAsUnknownAuthor(err, `with pubKey ${pub}`)

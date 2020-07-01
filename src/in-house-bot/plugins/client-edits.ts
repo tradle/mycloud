@@ -90,11 +90,14 @@ class ClientEditsAPI {
       if (!prop || prop.displayAs) continue
       let val = prefill[p]
       if (!val) continue
+      let isClientUse = prop.clientUse
+      let entered = isClientUse && 'entered ***' || payload[p]
+      let prefilled = isClientUse && 'prefilled: ***' || val
       if (!payload[p]) {
         hasChanges = true
         changes[prop.title] = {
-          prefilled: val,
-          entered: payload[p],
+          prefilled,
+          entered,
           message: `No value entered for ${prop.title}`
         }
         continue
@@ -107,8 +110,8 @@ class ClientEditsAPI {
         if (distance) {
           hasChanges = true
           changes[prop.title || p] = {
-            prefilled: val,
-            entered: payload[p],
+            prefilled,
+            entered,
             distance
           }
         }
@@ -184,7 +187,15 @@ class ClientEditsAPI {
     } else if (payload[TYPE] === PHOTO_ID && payload.scanJson)
       ({ prefill } = await this.createDataLineageModification({ req }))
     else {
-      isInitialSubmission = true
+      let props = this.bot.models[payload[TYPE]].properties
+      let hasScanner
+      for (let p in props) {
+        if (props[p].scanner) {
+          hasScanner = true
+          break
+        }
+      }
+      isInitialSubmission = !hasScanner
       prefill = {}
     }
     if (isInitialSubmission) prevResource = prefill
@@ -196,15 +207,16 @@ class ClientEditsAPI {
       let removed: any = {}
       for (let p in props) {
         if (props[p].displayAs || p.charAt(0) === '_') continue
+        let isClientUse = props[p].clientUse
         if (payload[p]) {
           if (!prevResource[p]) {
-            extend(added, { [p]: payload[p] })
+            extend(added, { [p]: isClientUse && 'new: ***' || payload[p] })
             continue
           } else if (!isEqual(payload[p], prevResource[p])) {
             extend(changed, {
               [p]: {
-                new: payload[p],
-                old: prevResource[p]
+                new: isClientUse && 'new: ***' || payload[p],
+                old: isClientUse && 'old: ***' || prevResource[p]
               }
             })
           }
