@@ -2,17 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.44](https://github.com/tradle/mycloud/compare/v3.0.1-rc.43...v3.0.1-rc.44) (2020-07-01)
+## [3.0.1-rc.45](https://github.com/tradle/mycloud/compare/v3.0.1-rc.44...v3.0.1-rc.45) (2020-07-02)
 
 
 ### Bug Fixes
 
-* data lineage should not reviel private data ([0c273a2](https://github.com/tradle/mycloud/commit/0c273a2))
-
-
-### Features
-
-* data privacy ([011689e](https://github.com/tradle/mycloud/commit/011689e))
+* data privacy ([567b077](https://github.com/tradle/mycloud/commit/567b077))
 
 
 
