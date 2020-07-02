@@ -2,17 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.42](https://github.com/tradle/mycloud/compare/v3.0.1-rc.41...v3.0.1-rc.42) (2020-06-24)
+## [3.0.1-rc.44](https://github.com/tradle/mycloud/compare/v3.0.1-rc.43...v3.0.1-rc.44) (2020-07-01)
 
 
 ### Bug Fixes
 
-* update deps when package-lock.json changed ([4a942fe](https://github.com/tradle/mycloud/commit/4a942fe))
+* data lineage should not reviel private data ([0c273a2](https://github.com/tradle/mycloud/commit/0c273a2))
 
 
 ### Features
 
-* pairing devices ([486f83d](https://github.com/tradle/mycloud/commit/486f83d))
+* data privacy ([011689e](https://github.com/tradle/mycloud/commit/011689e))
 
 
 
