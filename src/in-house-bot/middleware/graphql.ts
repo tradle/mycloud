@@ -130,6 +130,10 @@ export const createMiddleware = (lambda: Lambda): Middleware => {
       const { models } = ctx.components.bot
       let { data } = ctx.response.body
       const { user, masterUser, employeeManager } = ctx
+      if (!user && !masterUser) {
+        // debugger
+        return
+      }
       let exclude
       let userRoles = (masterUser || user).roles
       if (userRoles.length  &&  userRoles.find(role => role.id.endsWith('_employee')))
@@ -145,7 +149,12 @@ export const createMiddleware = (lambda: Lambda): Middleware => {
           else objects = [result]
         }
         objects.forEach(obj => {
-          let props = models[obj[TYPE]].properties
+          let type = obj[TYPE]
+          if (!type) {
+            debugger
+            return
+          }
+          let props = models[type].properties
           for (let p in obj) {
             if (props[p]  &&  props[p][exclude]) {
               delete obj[p]
