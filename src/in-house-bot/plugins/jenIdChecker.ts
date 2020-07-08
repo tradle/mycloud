@@ -466,6 +466,8 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
       // debugger
       let status: any = await documentChecker.handleData(form, application)
 
+      await documentChecker.createCheck({ application, status, form, req })
+
       if (status.status === 'pass') {
         let anydata = false
         let personal = status.rawData.header.standardData
@@ -553,7 +555,7 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
           }
         }
       }
-      else if (conf.requestCorrectionFromClient && status.repeat) {
+      else if (payload.uploaded && status.repeat) {
         const payloadClone = _.cloneDeep(payload)
         payloadClone[PERMALINK] = payloadClone._permalink
         payloadClone[LINK] = payloadClone._link
@@ -580,7 +582,7 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
         }
       }
 
-      await documentChecker.createCheck({ application, status, form, req })
+      // await documentChecker.createCheck({ application, status, form, req })
       if (status.status === 'pass') {
         await documentChecker.createVerification({
           application,
