@@ -19,7 +19,8 @@ export const REGIONS = [
   'eu-west-1',
   'ap-south-1',
   'ap-southeast-2',
-  'eu-central-1'
+  'eu-central-1',
+  'me-south-1'
 ]
 
 const toArray = val => (val ? [].concat(val) : [])
