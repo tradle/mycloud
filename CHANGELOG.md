@@ -2,12 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.45](https://github.com/tradle/mycloud/compare/v3.0.1-rc.44...v3.0.1-rc.45) (2020-07-02)
+## [3.0.1-rc.46](https://github.com/tradle/mycloud/compare/v3.0.1-rc.45...v3.0.1-rc.46) (2020-07-08)
 
 
 ### Bug Fixes
 
-* data privacy ([567b077](https://github.com/tradle/mycloud/commit/567b077))
+* create check if failed ([5c868aa](https://github.com/tradle/mycloud/commit/5c868aa))
+
+
+### Features
+
+* add region to aws regions enum ([93e562c](https://github.com/tradle/mycloud/commit/93e562c))
 
 
 
