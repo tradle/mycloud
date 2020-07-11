@@ -11,7 +11,6 @@ const REGIONS_WITH_SMS = [
   'ap-south-1',
   'ap-southeast-1',
   'ap-southeast-2',
-  'us-gov-west-1',
   'eu-central-1'
 ]
 
