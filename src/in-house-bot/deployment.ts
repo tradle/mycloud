@@ -1962,7 +1962,7 @@ ${this.genUsageInstructions(links)}`
       local: env.IS_LOCAL,
       iotEndpoint: env.IOT_ENDPOINT
     })
-
+    this.logger.debug(`bucket class instance for region: ${region}`)
     const s3Client = new S3Client({
       client: new AWS.S3(config)
     })
