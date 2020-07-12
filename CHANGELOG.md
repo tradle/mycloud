@@ -2,12 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.51](https://github.com/tradle/mycloud/compare/v3.0.1-rc.50...v3.0.1-rc.51) (2020-07-12)
-
-
-### Features
-
-* new AWS regions ([b345efa](https://github.com/tradle/mycloud/commit/b345efa))
+## [3.0.1-rc.52](https://github.com/tradle/mycloud/compare/v3.0.1-rc.51...v3.0.1-rc.52) (2020-07-12)
 
 
 
