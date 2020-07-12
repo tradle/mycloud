@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "3.0.1-rc.47",
+  "version": "3.0.1-rc.48",
   "main": "index.js",
   "private": true,
   "repository": "https://github.com/tradle/mycloud",
@@ -17,8 +17,8 @@
     "@types/node": "^10.17.9",
     "@types/sinon": "^4.1.2",
     "@types/superagent": "^3.5.7",
-    "aws-sdk-mock": "^1.7.0",
     "aws-sdk": "^2.631.0",
+    "aws-sdk-mock": "^1.7.0",
     "bindall": "^2.0.1",
     "copy-dynamodb-table": "^2.0.4",
     "dedupe-deps": "^1.1.1",
