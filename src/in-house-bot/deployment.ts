@@ -1957,14 +1957,14 @@ ${this.genUsageInstructions(links)}`
   private _bucket = (name: string, region: string) => {
     // const { bot } = this
     const { env } = this.bot
+    this.logger.debug(`bucket class instance for region: ${region}`)
     const config = createConfig({
       region,
       local: env.IS_LOCAL,
       iotEndpoint: env.IOT_ENDPOINT
     })
-    this.logger.debug(`bucket class instance for region: ${region}`)
     const s3Client = new S3Client({
-      client: new AWS.S3(config)
+      client: new AWS.S3({...config, region})
     })
     return wrapBucket({
       bucket: name,
