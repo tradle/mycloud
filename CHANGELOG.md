@@ -2,15 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.47](https://github.com/tradle/mycloud/compare/v3.0.1-rc.46...v3.0.1-rc.47) (2020-07-12)
+## [3.0.1-rc.48](https://github.com/tradle/mycloud/compare/v3.0.1-rc.47...v3.0.1-rc.48) (2020-07-12)
+
+
+### Bug Fixes
+
+* build ([cf30120](https://github.com/tradle/mycloud/commit/cf30120))
 
 
 ### Features
 
-* added AWS region ([05de4cf](https://github.com/tradle/mycloud/commit/05de4cf))
-* feat: added all available AWS regions ([234a86c](https://github.com/tradle/mycloud/commit/234a86c))
-* more AWS regions added ([e06c5bf](https://github.com/tradle/mycloud/commit/e06c5bf))
-* more AWS regions added ([26c8a32](https://github.com/tradle/mycloud/commit/26c8a32))
+* new AWS regions were added ([a06d640](https://github.com/tradle/mycloud/commit/a06d640))
+* upgrade packages to support new AWS regions ([40cca1e](https://github.com/tradle/mycloud/commit/40cca1e))
 
 
 
