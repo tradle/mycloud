@@ -6,11 +6,12 @@ const E164_REGEX = /^\+?(\d+)$/
 const REGIONS_WITH_SMS = [
   'us-east-1',
   'us-west-2',
-  'us-west-2',
   'eu-west-1',
   'ap-northeast-1',
+  'ap-south-1',
   'ap-southeast-1',
   'ap-southeast-2',
+  'eu-central-1'
 ]
 
 export interface Country {
