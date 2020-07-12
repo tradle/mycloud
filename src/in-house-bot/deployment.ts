@@ -1236,7 +1236,8 @@ ${this.genUsageInstructions(links)}`
   }) => {
     let keys: string[] = Deployment.getS3DependencyKeys(template)
 
-    const source = this.deploymentBucket
+    // const source = this.deploymentBucket
+    const source = this._bucket(this.deploymentBucket.id, region)
     if (bucket === source.id) {
       // TODO:
       // make this more restrictive?
