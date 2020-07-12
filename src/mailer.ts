@@ -20,7 +20,6 @@ export const REGIONS = [
   'eu-west-2',
   'eu-west-3',
   'eu-east-2',
-  'af-south-1',
   'ap-south-1',
   'ap-southeast-2',
   'eu-central-1',
@@ -33,7 +32,6 @@ export const REGIONS = [
   'ca-central-1',
   'cn-north-1',
   'cn-northwest-1',
-  'eu-south-1',
   'eu-north-1',
   'sa-east-1',
   ]
