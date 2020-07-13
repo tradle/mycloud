@@ -154,7 +154,7 @@
     "@tradle/aws-common-utils": "^1.0.1-alpha.17",
     "@tradle/aws-iam-client": "^1.0.1-alpha.17",
     "@tradle/aws-lambda-client": "^1.0.1-alpha.17",
-    "@tradle/aws-s3-client": "^1.0.1",
+    "@tradle/aws-s3-client": "^1.0.2",
     "@tradle/aws-sns-client": "^1.0.1-alpha.17",
     "@tradle/bitcoin-adapter": "github:tradle/bitcoin-adapter",
     "@tradle/biz-plugins": "github:tradle/biz-plugins",
