@@ -59,6 +59,9 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (payload[TYPE] !== APPLICATION) return
       if (!payload.draftCompleted) return
 
+      let productMap = conf[payload.requestFor]
+      if (!productMap) return
+
       let applicationWithForms = await bot.getResource(payload, { backlinks: ['forms'] })
       debugger
       let { forms } = applicationWithForms
@@ -67,19 +70,25 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         .map(submission => submission.submission)
         .filter(form => !exclude.includes(form[TYPE]))
 
+      if (!forms.find(form => !productMap[form[TYPE]])) return
+
       forms = await Promise.all(forms.map(form => bot.getResource(form)))
       let items = []
       let models = bot.models
       let keepProperties = ['_t']
       forms = _.uniqBy(forms, '_permalink')
 
-      let emailAddressForms = []
+      let emailAddress
 
       forms.sort((a, b) => a._time - b._time)
       forms.forEach(form => {
         let type = form[TYPE]
         if (exclude.includes(type)) return
-        if (type === LEGAL_ENTITY) emailAddressForms.push(form)
+        let emailProp = productMap[type]
+        if (emailProp  &&  !emailAddress) {
+          debugger
+          emailAddress = form[emailProp]
+        }
         let properties = models[type].properties
         let item: any = {}
         items.push(item)
@@ -91,10 +100,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           } else item[p] = form[p]
         }
       })
+      if (!emailAddress) return
       debugger
-      emailAddressForms.sort((a, b) => b._time - a._time)
-      let emailAddressForm = emailAddressForms.find(r => r.companyEmail)
-      if (!emailAddressForm) return
       const requestFor = payload.requestFor
       let bundle = await bot
         .draft({
@@ -107,7 +114,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         .signAndSave()
 
       await sendConfirmationEmail({
-        emailAddress: emailAddressForm.companyEmail,
+        emailAddress,
         senderEmail,
         payload,
         bot,
