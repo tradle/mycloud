@@ -2,12 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.54](https://github.com/tradle/mycloud/compare/v3.0.1-rc.53...v3.0.1-rc.54) (2020-07-13)
+## [3.0.1-rc.55](https://github.com/tradle/mycloud/compare/v3.0.1-rc.54...v3.0.1-rc.55) (2020-07-20)
+
+
+### Bug Fixes
+
+* white glove project ([cf43995](https://github.com/tradle/mycloud/commit/cf43995))
 
 
 ### Features
 
-* new AWS regions added - AWS does not support mapping from global to regional endpoints for new regions after Mar 2020 ([886f0d2](https://github.com/tradle/mycloud/commit/886f0d2))
+* optional pairing ([0613312](https://github.com/tradle/mycloud/commit/0613312))
 
 
 
