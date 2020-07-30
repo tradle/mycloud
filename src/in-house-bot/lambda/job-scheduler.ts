@@ -77,11 +77,11 @@ const COMMON_JOBS: Job[] = [
     function: DEFAULT_JOB_RUNNER_FUNCTION,
     period: 20 * MINUTE,
   },
-  {
-    name: 'roarFeedback',
-    function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: 1 * MINUTE
-  },
+  // {
+  //   name: 'roarFeedback',
+  //   function: DEFAULT_JOB_RUNNER_FUNCTION,
+  //   period: 1 * MINUTE
+  // },
   {
     name: 'pendingChecksChaser',
     function: DEFAULT_JOB_RUNNER_FUNCTION,

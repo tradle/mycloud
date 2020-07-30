@@ -128,6 +128,7 @@ import { MiddlewareContainer } from './middleware-container'
 import { hookUp as setupDefaultHooks } from './hooks'
 import { Resource, ResourceInput, IResourcePersister } from './resource'
 import networks from './networks'
+import { logger } from '@tradle/dynamodb/lib/defaults'
 
 const { addLinks } = crypto
 
@@ -1342,11 +1343,60 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
         await this.inboundMessageLocker.lock(userId)
         try {
           const user = await this.users.createIfNotExists({ id: userId })
-          let { _masterAuthor } = messages[0].object
-          let masterUser = _masterAuthor && (await this.users.get(_masterAuthor))
+          let { object } = messages[0]
+          let { _masterAuthor, _author } = object
+          let masterIdentity
+          let allUsers
 
+          let masterUser
+          if (_masterAuthor)
+            masterUser = await this.users.get(_masterAuthor)
+          else if (_author !== userId) {
+            try {
+              let aid = await this.addressBook.byPermalink(_author)
+              let hasMe = aid.pubkeys.find(p => p.importedFrom === userId)
+              if (hasMe) {
+                _masterAuthor = _author
+                masterIdentity = aid
+                masterUser = await this.users.get(_author)
+              }
+            } catch (err) {
+              debugger
+            }
+          }
+
+          let uid = _masterAuthor || user.id
+          try {
+            if (!masterIdentity)
+              masterIdentity = await this.addressBook.byPermalink(uid)
+          } catch (err) {
+            // debugger
+            this.logger.debug(`Failed to get identity for ${uid}`)
+          }
+          allUsers = (masterUser && [masterUser, user]) || [user]
+          try {
+            let importedFrom =
+              masterIdentity &&
+              masterIdentity.pubkeys.filter(
+                pub => pub.importedFrom && pub.importedFrom !== user.id
+              )
+            if (importedFrom && importedFrom.length) {
+              let moreUsers = await utils.allSettled(
+                importedFrom.map((pub) => this.users.get(pub.importedFrom))
+              )
+              moreUsers.forEach(result => {
+                if (result.isFulfilled)
+                  allUsers.push(result.value)
+              })
+              // allUsers.push(...moreUsers)
+            }
+          } catch (err) {
+            // debugger
+            this.logger.debug(`Failed to get allUsers for master identity ${uid}`)
+            if (!allUsers) allUsers = [user]
+          }
           const batch = messages.map((message) =>
-            toBotMessageEvent({ bot: this, user, masterUser, message })
+            toBotMessageEvent({ bot: this, user, masterUser, allUsers, message })
           )
           // logger.debug(`feeding ${messages.length} messages to business logic`)
           if (async) {

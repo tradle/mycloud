@@ -5,6 +5,8 @@ import AWS from 'aws-sdk'
 import { FindOpts, Filter } from '@tradle/dynamodb'
 import buildResource from '@tradle/build-resource'
 import { wrapBucket, Bucket } from '@tradle/aws-s3-client'
+
+import { S3Client } from '@tradle/aws-s3-client'
 import {
   genSetDeliveryPolicyParams,
   genCrossAccountPublishPermission
@@ -64,6 +66,7 @@ import {
 } from './utils'
 
 import { getLogAlertsTopicName } from './log-processor'
+import { createConfig } from '../aws/config'
 
 const { toSortableTag } = utils
 
@@ -379,7 +382,7 @@ export class Deployment {
       configuration,
       bucket
     })
-    const { templateUrl } = await this._saveTemplateAndCode({ template, parentTemplate, bucket })
+    const { templateUrl } = await this._saveTemplateAndCode({ template, parentTemplate, bucket, region })
 
     const stage = template.Parameters.Stage.Default
     this.logger.debug('generated cloudformation template for child deployment')
@@ -507,7 +510,8 @@ export class Deployment {
     const { templateUrl, code } = await this._saveTemplateAndCode({
       parentTemplate,
       template,
-      bucket
+      bucket,
+      region
     })
 
     let loggingTopic
@@ -1166,15 +1170,17 @@ ${this.genUsageInstructions(links)}`
 
   public savePublicTemplate = async ({
     template,
-    bucket
+    bucket,
+    region
   }: {
     template: CFTemplate
     bucket: string
+    region: string
   }) => {
     const { commit } = template.Resources.Initialize.Properties
     const key = `templates/template-${commit}-${Date.now()}-${randomStringWithLength(10)}.json`
-    await this._bucket(bucket).putJSON(key, template, { acl: 'public-read' })
-    const url = this.bot.s3Utils.getUrlForKey({ bucket, key })
+    await this._bucket(bucket, region).putJSON(key, template, { acl: 'public-read' })
+    const url = this.bot.s3Utils.getUrlForKey({ bucket, key, region })
     this.logger.silly('saved template', { bucket, key, url })
     return url
   }
@@ -1221,14 +1227,17 @@ ${this.genUsageInstructions(links)}`
 
   public copyChildTemplateDependencies = async ({
     template,
-    bucket
+    bucket,
+    region
   }: {
     template: CFTemplate
-    bucket: string
+    bucket: string,
+    region: string
   }) => {
     let keys: string[] = Deployment.getS3DependencyKeys(template)
 
-    const source = this.deploymentBucket
+    // const source = this.deploymentBucket
+    const source = this._bucket(this.deploymentBucket.id, region)
     if (bucket === source.id) {
       // TODO:
       // make this more restrictive?
@@ -1236,7 +1245,7 @@ ${this.genUsageInstructions(links)}`
       return
     }
 
-    const target = this._bucket(bucket)
+    const target = this._bucket(bucket, region)
     const exists = await Promise.all(keys.map((key) => target.exists(key)))
     keys = keys.filter((key, i) => !exists[i])
 
@@ -1257,16 +1266,18 @@ ${this.genUsageInstructions(links)}`
   private _saveTemplateAndCode = async ({
     parentTemplate,
     template,
-    bucket
+    bucket,
+    region
   }: {
     parentTemplate: MyCloudUpdateTemplate
     template: CFTemplate
     bucket: string
+    region: string
   }): Promise<{ url: string; code: CodeLocation }> => {
     this.logger.debug('saving template and lambda code', { bucket })
     const [templateUrl, code] = await Promise.all([
-      this.savePublicTemplate({ bucket, template }),
-      this.copyChildTemplateDependencies({ bucket, template })
+      this.savePublicTemplate({ bucket, template, region }),
+      this.copyChildTemplateDependencies({ bucket, template, region })
     ])
 
     return { templateUrl, code }
@@ -1944,11 +1955,21 @@ ${this.genUsageInstructions(links)}`
     return this.env.REGION
   }
 
-  private _bucket = (name: string) => {
-    const { bot } = this
+  private _bucket = (name: string, region: string) => {
+    // const { bot } = this
+    const { env } = this.bot
+    this.logger.debug(`bucket class instance for region: ${region}`)
+    const config = createConfig({
+      region,
+      local: env.IS_LOCAL,
+      iotEndpoint: env.IOT_ENDPOINT
+    })
+    const s3Client = new S3Client({
+      client: new AWS.S3({...config, region})
+    })
     return wrapBucket({
       bucket: name,
-      client: bot.s3Utils
+      client: s3Client // bot.s3Utils
     })
   }
 }

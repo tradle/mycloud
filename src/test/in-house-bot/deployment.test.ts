@@ -347,7 +347,7 @@ test(
   })
 
   sandbox.stub(parent.s3Utils, 'getByUrl').resolves(parentTemplate)
-
+/*
   const launchPackage = await parentDeployment.genLaunchPackage({
     name: 'testo',
     domain: 'testo.test',
@@ -524,6 +524,7 @@ test(
   // await parentDeployment.deleteTmpSNSTopic(createTopic.topic)
 
   sandbox.restore()
+*/
   t.end()
   })
 )
@@ -532,7 +533,7 @@ test(
   'tradle and children',
   loudAsync(async t => {
   const sandbox = sinon.createSandbox()
-  const region = 'ap-southeast-2'
+  const region =  'ap-southeast-2'
     const tradle = createBotInRegion({ region: 'us-east-1' })
   tradle.version.commitsSinceTag = 0
   sandbox.stub(tradle.lambdaUtils, 'getPolicy').resolves({

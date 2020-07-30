@@ -1438,11 +1438,13 @@ export const toBotMessageEvent = ({
   bot,
   user,
   masterUser,
+  allUsers,
   message
 }: {
   bot: Bot
   user: any
   masterUser?: any
+  allUsers?: any
   message: any
 }): IBotMessageEvent => {
   // identity permalink serves as user id
@@ -1456,6 +1458,7 @@ export const toBotMessageEvent = ({
     object,
     type,
     masterUser,
+    allUsers,
     link: object._link,
     permalink: object._permalink
   }

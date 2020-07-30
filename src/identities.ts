@@ -121,7 +121,8 @@ export default class Identities implements IHasLogger {
       'getPubKey'
     )
 
-    this._cachePub = (keyObj) => getLatestCachified.set([keyObj.pub], normalizePub(keyObj))
+    // this._cachePub = (keyObj) => getLatestCachified.set([keyObj.pub], normalizePub(keyObj))
+    this._cachePub = () => {}
     this._uncachePub = (keyObj) => getLatestCachified.del([keyObj.pub])
 
     this.getLatestPubKeyMapping = getLatestCachified.call
@@ -134,13 +135,13 @@ export default class Identities implements IHasLogger {
       },
       'byPermalink'
     )
-    // this._cacheIdentity = () => {}
+    this._cacheIdentity = () => {}
 
-    this._cacheIdentity = (identity) => {
-      const { link, permalink } = getLinks(identity)
-      getIdentityCachified.set([permalink], identity)
-      getNormalizedPubKeys(identity).forEach((key) => this._cachePub(key))
-    }
+    // this._cacheIdentity = (identity) => {
+    //   const { link, permalink } = getLinks(identity)
+    //   getIdentityCachified.set([permalink], identity)
+    //   getNormalizedPubKeys(identity).forEach((key) => this._cachePub(key))
+    // }
 
     this._uncacheIdentity = (identity) => {
       const { link, permalink } = getLinks(identity)
@@ -171,13 +172,16 @@ export default class Identities implements IHasLogger {
     // get the PubKey that was the most recent known
     // at the "time"
     const findOpts = getPubKeyMappingQuery({ pub, time })
+
     if (Date.now() - time < constants.unitToMillis.minute) {
       this.logger.debug('getPubKeyMapping, using consistent read')
       findOpts.consistentRead = true
     }
 
     try {
-      return await this.db.findOne(findOpts)
+      let { items } =  await this.db.find(findOpts)
+      // this.logger.debug(`getPubKeyMapping, query${'\n'}${JSON.stringify(findOpts, null, 2)}${'\n'}${JSON.stringify(items[0], null, 2)}`)
+      return items[0]
     } catch (err) {
       rethrowNotFoundAsUnknownAuthor(err, `with pubKey ${pub}`)
     }
@@ -346,12 +350,16 @@ export default class Identities implements IHasLogger {
     }
 
     const { link, permalink } = addLinks(identity)
-    let existing
+    const ilink = link
+    let existing, mappedLink, mapping
     try {
       // existing = await this.byPermalink(permalink)
       // if (!existing) {
-      const { link } = await this.getExistingIdentityMapping(identity)
-      existing = await this.objects.get(link)
+      mapping = await this.getExistingIdentityMapping(identity)
+      // if (mapping.importedFrom)
+      //   debugger
+      mappedLink = mapping.link
+      existing = await this.objects.get(mappedLink)
       // }
     } catch (err) {} // tslint:disable-line no-empty
 
@@ -359,8 +367,16 @@ export default class Identities implements IHasLogger {
       if (existing._link === link) {
         this.logger.debug(`mapping is already up to date for identity ${permalink}`)
       } else if (identity[PREVLINK] !== existing._link) {
-        this.logger.warn('identity mapping collision. Refusing to add contact:', identity)
-        throw new Error(`refusing to add identity with link: "${link}"`)
+        if (identity[PREVLINK] || !existing.pubkeys.find((pub) => pub.importedFrom === link)) {
+          this.logger.warn('identity mapping collision. Refusing to add contact:', identity)
+          throw new Error(`refusing to add identity with link: "${link}"`)
+        }
+        if (!identity[PREVLINK]) {
+          this.logger.warn('Check if master identity returned as an existing mapping: ', identity)
+          debugger
+        }
+        // should not happen
+        identity = existing
       }
     }
 

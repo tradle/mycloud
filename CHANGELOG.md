@@ -2,7 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.39](https://github.com/tradle/mycloud/compare/v3.0.1-rc.38...v3.0.1-rc.39) (2020-05-08)
+## [3.0.1-rc.55](https://github.com/tradle/mycloud/compare/v3.0.1-rc.54...v3.0.1-rc.55) (2020-07-20)
+
+
+### Bug Fixes
+
+* white glove project ([cf43995](https://github.com/tradle/mycloud/commit/cf43995))
+
+
+### Features
+
+* optional pairing ([0613312](https://github.com/tradle/mycloud/commit/0613312))
 
 
 
