@@ -20,6 +20,7 @@ import {
 
 import {
   getLatestForms,
+  doesCheckNeedToBeCreated,
   // doesCheckExist,
   getChecks,
   hasPropertiesChanged,
@@ -146,82 +147,6 @@ export class RankOneCheckAPI {
     await Promise.all([this.bot.resolveEmbeds(selfie), this.bot.resolveEmbeds(photoID)])
     return { selfie, photoID }
   }
-  public getSelfieAndPhotoID1 = async (
-    application: IPBApp,
-    req: IPBReq,
-    payload: ITradleObject
-  ) => {
-    const stubs = getLatestForms(application)
-    const photoIDStub = stubs.find(({ type }) => type === PHOTO_ID)
-    const selfieStub = stubs.find(({ type }) => type === SELFIE)
-    if (!(photoIDStub && selfieStub)) {
-      // not enough info
-      return
-    }
-    // if (await doesCheckExist({bot: this.bot, type: FACIAL_RECOGNITION, eq: {selfie: selfieStub.link, photoID: photoIDStub.link}, application, provider: PROVIDER}))
-    //   return
-    this.logger.debug('Face recognition both selfie and photoId ready')
-
-    // const [photoID, selfie] = await Promise.all([
-    //     photoIDStub,
-    //     selfieStub
-    //   ].map(stub => this.bot.getResource(stub, { resolveEmbeds: true })))
-
-    const [photoID, selfie] = await Promise.all(
-      [photoIDStub, selfieStub].map(stub => this.bot.getResource(stub))
-    )
-
-    let selfieLink = selfie._link
-    let photoIdLink = photoID._link
-
-    let items
-    if (req.checks) {
-      items = req.checks.filter(r => r.provider === PROVIDER)
-      items.sort((a, b) => a.time - b.time)
-    } else {
-      items = await getChecks({
-        bot: this.bot,
-        type: FACIAL_RECOGNITION,
-        application,
-        provider: PROVIDER
-      })
-    }
-
-    if (items.length) {
-      let checks = items.filter(
-        r => r.selfie._link === selfieLink || r.photoID._link === photoIdLink
-      )
-      if (checks.length && checks[0].status.id !== 'tradle.Status_error') {
-        let check = checks[0]
-        // debugger
-        if (check.selfie._link === selfieLink && check.photoID._link === photoIdLink) {
-          this.logger.debug(
-            `Rankone: check already exists for ${photoID.firstName} ${photoID.lastName} ${photoID.documentType.title}`
-          )
-          return
-        }
-        // debugger
-        // Check what changed photoID or Selfie.
-        // If it was Selfie then create a new check since Selfi is not editable
-        if (check.selfie._link === selfieLink) {
-          let changed = await hasPropertiesChanged({
-            resource: photoID,
-            bot: this.bot,
-            propertiesToCheck: ['scan'],
-            req
-          })
-          if (!changed) {
-            this.logger.debug(
-              `Rankone: nothing to check the 'scan' didn't change ${photoID.firstName} ${photoID.lastName} ${photoID.documentType.title}`
-            )
-            return
-          }
-        }
-      }
-    }
-    await Promise.all([this.bot.resolveEmbeds(selfie), this.bot.resolveEmbeds(photoID)])
-    return { selfie, photoID }
-  }
 
   public matchSelfieAndPhotoID = async ({
     selfie,
@@ -239,7 +164,8 @@ export class RankOneCheckAPI {
     const { apiKey, apiUrl, threshold } = this.conf
 
     const form = new FormData()
-    const photoIdBuf = DataURI.decode(photoID.scan.url)
+    let photoIdImage = photoID.rfidFace  &&  photoID.rfidFace.url || photoID.scan.url
+    const photoIdBuf = DataURI.decode(photoIdImage)
     const selfieBuf = DataURI.decode(selfie.selfie.url)
 
     this.appendFileBuf({
@@ -285,6 +211,34 @@ export class RankOneCheckAPI {
     // else if (rawData.similarity < 0 && rawData.code) status = 'error'
     else status = 'fail'
     return { status, rawData }
+  }
+  public matchRfidFaceAndPhotoID = async (payload, application, req) => {
+    let createCheck = await doesCheckNeedToBeCreated({
+      bot: this.bot,
+      type: FACIAL_RECOGNITION,
+      application,
+      provider: PROVIDER,
+      form: payload,
+      propertiesToCheck: ['scan'],
+      prop: 'form',
+      req
+    })
+    if (!createCheck) return
+    let selfie = { [TYPE]: SELFIE, selfie: payload.rfidFace }
+    const { status, rawData, error } = await this.matchSelfieAndPhotoID({
+      selfie,
+      photoID: payload,
+      application
+    })
+    await this.createCheck({
+      status,
+      selfie,
+      photoID: payload,
+      rawData,
+      error,
+      application,
+      req
+    })
   }
   public appendFileBuf = ({ form, filename, content, contentType }) =>
     form.append(filename, content, { filename, contentType })
@@ -378,7 +332,11 @@ export const createPlugin: CreatePlugin<RankOneCheckAPI> = (components, pluginOp
       if (!isPhotoID && !isSelfie) return
 
       const result = await rankOne.getSelfieAndPhotoID(application, req, payload)
-      if (!result) return
+      if (!result) {
+        if (!isPhotoID  ||  !payload.rfidFace) return
+        rankOne.matchRfidFaceAndPhotoID(payload, application, req)
+        return
+      }
       const { selfie, photoID } = result
       const { status, rawData, error } = await rankOne.matchSelfieAndPhotoID({
         selfie,
@@ -457,3 +415,82 @@ export const validateConf: ValidatePluginConf = async ({ conf }) => {
 //       status = 'error'
 //     return { checkStatus: status, data, err }
 //   }
+/*
+  public getSelfieAndPhotoID1 = async (
+    application: IPBApp,
+    req: IPBReq,
+    payload: ITradleObject
+  ) => {
+    const stubs = getLatestForms(application)
+    const photoIDStub = stubs.find(({ type }) => type === PHOTO_ID)
+    const selfieStub = stubs.find(({ type }) => type === SELFIE)
+    if (!(photoIDStub && selfieStub)) {
+      // not enough info
+      return
+    }
+    // if (await doesCheckExist({bot: this.bot, type: FACIAL_RECOGNITION, eq: {selfie: selfieStub.link, photoID: photoIDStub.link}, application, provider: PROVIDER}))
+    //   return
+    this.logger.debug('Face recognition both selfie and photoId ready')
+
+    // const [photoID, selfie] = await Promise.all([
+    //     photoIDStub,
+    //     selfieStub
+    //   ].map(stub => this.bot.getResource(stub, { resolveEmbeds: true })))
+
+    const [photoID, selfie] = await Promise.all(
+      [photoIDStub, selfieStub].map(stub => this.bot.getResource(stub))
+    )
+
+    let selfieLink = selfie._link
+    let photoIdLink = photoID._link
+
+    let items
+    if (req.checks) {
+      items = req.checks.filter(r => r.provider === PROVIDER)
+      items.sort((a, b) => a.time - b.time)
+    } else {
+      items = await getChecks({
+        bot: this.bot,
+        type: FACIAL_RECOGNITION,
+        application,
+        provider: PROVIDER
+      })
+    }
+
+    if (items.length) {
+      let checks = items.filter(
+        r => r.selfie._link === selfieLink || r.photoID._link === photoIdLink
+      )
+      if (checks.length && checks[0].status.id !== 'tradle.Status_error') {
+        let check = checks[0]
+        // debugger
+        if (check.selfie._link === selfieLink && check.photoID._link === photoIdLink) {
+          this.logger.debug(
+            `Rankone: check already exists for ${photoID.firstName} ${photoID.lastName} ${photoID.documentType.title}`
+          )
+          return
+        }
+        // debugger
+        // Check what changed photoID or Selfie.
+        // If it was Selfie then create a new check since Selfi is not editable
+        if (check.selfie._link === selfieLink) {
+          let changed = await hasPropertiesChanged({
+            resource: photoID,
+            bot: this.bot,
+            propertiesToCheck: ['scan'],
+            req
+          })
+          if (!changed) {
+            this.logger.debug(
+              `Rankone: nothing to check the 'scan' didn't change ${photoID.firstName} ${photoID.lastName} ${photoID.documentType.title}`
+            )
+            return
+          }
+        }
+      }
+    }
+    await Promise.all([this.bot.resolveEmbeds(selfie), this.bot.resolveEmbeds(photoID)])
+    return { selfie, photoID }
+  }
+
+ */
