@@ -90,7 +90,7 @@ module.exports = {
     'no-alert': 'error',
     'no-array-constructor': 'error',
     'no-await-in-loop': 'warn',
-    'no-bitwise': 'error',
+    'no-bitwise': 'warn',
     'no-caller': 'error',
     'no-case-declarations': 'warn',
     'no-catch-shadow': 'warn',
