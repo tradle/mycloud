@@ -151,7 +151,7 @@ export const createMiddleware = (lambda: Lambda): Middleware => {
         objects.forEach(obj => {
           let type = obj[TYPE]
           if (!type) {
-            debugger
+            // debugger
             return
           }
           let props = models[type].properties

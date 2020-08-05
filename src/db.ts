@@ -176,7 +176,7 @@ export = function createDB({ modelStore, objects, clients, dbUtils, messages, lo
 
     if (search.opType === 'query') {
       if (!search.sortedByDB) {
-        debugger
+        // debugger
         logger.error('will soon forbid expensive query', summarizeSearch(search))
       }
 
