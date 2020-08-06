@@ -1180,6 +1180,11 @@ ${this.genUsageInstructions(links)}`
     const { commit } = template.Resources.Initialize.Properties
     const key = `templates/template-${commit}-${Date.now()}-${randomStringWithLength(10)}.json`
     await this._bucket(bucket, region).putJSON(key, template, { acl: 'public-read' })
+
+    // HACK
+    if (region !== 'me-south-1')
+      region = null
+    //
     const url = this.bot.s3Utils.getUrlForKey({ bucket, key, region })
     this.logger.silly('saved template', { bucket, key, url })
     return url
