@@ -350,6 +350,7 @@ export class Conf {
     const currency = _.get(bot, 'defaultCurrency') || 'USD'
     const locale = _.get(bot, 'defaultLocale')
     const optionalPairing = _.get(bot, 'optionalPairing')
+    debugger
     return {
       sandbox: bot.sandbox,
       bot: {
