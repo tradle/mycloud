@@ -108,7 +108,6 @@ export class ImportCzechData {
     await this.deleteAllInNext()
     await this.dropAndCreateNextTable()
     await this.copyFromNext()
-    await this.createTable()
     this.logger.debug("ImportCzech finished")
   }
 
@@ -162,29 +161,6 @@ export class ImportCzechData {
     return new Promise((resolve, reject) => {
       stream.on('finish', resolve).on('error', reject)
     })
-  }
-
-  private createTable = async () => {
-    this.logger.debug('importCzech createTable() called')
-    let createTab = `CREATE EXTERNAL TABLE IF NOT EXISTS czech_data (
-         ico string, 
-         name string, 
-         data string, 
-         ceasedate string, 
-         recorddate string)
-      CLUSTERED BY (ico) 
-      INTO ${BUCKET_COUNT} BUCKETS
-      ROW FORMAT SERDE 
-        'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe' 
-      STORED AS INPUTFORMAT 
-        'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat' 
-      OUTPUTFORMAT 
-        'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
-      LOCATION
-        's3://${this.outputLocation}/${CZ_COMPANIES_PREFIX}'
-      TBLPROPERTIES ('has_encrypted_data'='false')`
-
-    await this.executeDDL(createTab, 2000)
   }
 
   private createOriginTable = async () => {
