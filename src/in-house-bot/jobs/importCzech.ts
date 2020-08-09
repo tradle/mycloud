@@ -17,10 +17,10 @@ import { enumValue } from '@tradle/build-resource'
 
 const CZ_COMPANIES_PREFIX = 'refdata/cz/companies/'
 const CZ_PREFIX_TEMP = 'temp/refdata/cz/companies_origin/'
-const CZ_PREFIX_ORC_TEMP = 'temp/refdata/cz/companies_orc/'
+const CZ_PREFIX_ORC_TEMP = 'temp/refdata/cz/companies_parquet/'
 const TEMP = '/tmp/' // use lambda temp dir
 const TIME_LIMIT = 11 * 60 * 1000
-const BUCKET_COUNT = 4
+const BUCKET_COUNT = 128
 
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
@@ -108,7 +108,6 @@ export class ImportCzechData {
     await this.deleteAllInNext()
     await this.dropAndCreateNextTable()
     await this.copyFromNext()
-    await this.createTable()
     this.logger.debug("ImportCzech finished")
   }
 
@@ -164,29 +163,6 @@ export class ImportCzechData {
     })
   }
 
-  private createTable = async () => {
-    this.logger.debug('importCzech createTable() called')
-    let createTab = `CREATE EXTERNAL TABLE IF NOT EXISTS czech_data (
-         ico string, 
-         name string, 
-         data string, 
-         ceasedate string, 
-         recorddate string)
-      CLUSTERED BY ( ico) 
-      INTO ${BUCKET_COUNT} BUCKETS
-      ROW FORMAT SERDE 
-        'org.apache.hadoop.hive.ql.io.orc.OrcSerde' 
-      STORED AS INPUTFORMAT 
-        'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat' 
-      OUTPUTFORMAT 
-        'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'
-      LOCATION
-      's3://${this.outputLocation}/${CZ_COMPANIES_PREFIX}'
-      TBLPROPERTIES ('has_encrypted_data'='false')`
-
-    await this.executeDDL(createTab, 2000)
-  }
-
   private createOriginTable = async () => {
     this.logger.debug('importCzech createOriginTable() called')
     let createTab = `CREATE EXTERNAL TABLE IF NOT EXISTS czech_data_origin (
@@ -220,7 +196,7 @@ export class ImportCzechData {
 
     const create = `CREATE TABLE czech_data_origin_bucketed 
                     WITH (
-                    format = 'ORC', 
+                    format = 'PARQUET', 
                     external_location = 's3://${this.outputLocation}/${CZ_PREFIX_ORC_TEMP}', 
                     bucketed_by = ARRAY['ico'], 
                     bucket_count = ${BUCKET_COUNT})
@@ -349,4 +325,5 @@ export class ImportCzechData {
       return undefined
     }
   }
+
 }
