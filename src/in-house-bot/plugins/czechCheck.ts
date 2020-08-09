@@ -9,9 +9,7 @@ import {
 } from '../utils'
 
 import {
-  convertRecords,
-  sleep,
-  AthenaHelper
+  convertRecords
 } from '../athena-utils'
 
 import {
@@ -59,6 +57,9 @@ const STATUS = 'tradle.Status'
 
 const CZECH_COUNTRY_ID = 'CZ'
 
+const CZ_COMPANIES_PREFIX = 'refdata/cz/companies/'
+const BUCKET_COUNT = 128
+
 const defaultPropMap = {
   companyName: 'companyName',
   registrationDate: 'registrationDate',
@@ -66,7 +67,7 @@ const defaultPropMap = {
   country: 'country'
 }
 
-const QUERY = "select ico, name, recorddate, data from czech_data where ico = '%s'"
+const QUERY = "select * from s3object s where s.ico = '%s'"
 
 
 interface IPscCheck {
@@ -81,18 +82,19 @@ interface IPscCheck {
 export class CzechCheckAPI {
   private bot: Bot
   private conf: any
+  private outputLocation: string
+
+  private s3: AWS.S3
   private applications: Applications
   private logger: Logger
-  private athenaHelper: AthenaHelper
-  private athena: AWS.Athena
 
   constructor({ bot, conf, applications, logger }) {
     this.bot = bot
     this.conf = conf
     this.applications = applications
     this.logger = logger
-    this.athena = new AWS.Athena()
-    this.athenaHelper = new AthenaHelper(bot, logger, this.athena, 'czechCheck')
+    this.s3 = new AWS.S3()
+    this.outputLocation = this.bot.buckets.PrivateConf.id //BUCKET //
   }
 
   private getLinkToDataSource = async () => {
@@ -111,39 +113,12 @@ export class CzechCheckAPI {
     }
   }
 
-  public queryAthena = async (sql: string) => {
+  public queryS3 = async (formCompanyNumber: string) => {
     let id: string
-    this.logger.debug(`czechCheck queryAthena() called with sql ${sql}`)
-
+    const sql = util.format(QUERY, formCompanyNumber)
+    const partition = this.partition(formCompanyNumber, BUCKET_COUNT)
     try {
-      id = await this.athenaHelper.getExecutionId(sql)
-      this.logger.debug('czechCheck athena execution id', id)
-    } catch (err) {
-      this.logger.error('czechCheck athena error', err)
-      return { status: false, error: err, data: null }
-    }
-
-    await sleep(2000)
-    let timePassed = 2000
-    while (true) {
-      let result = false
-      try {
-        result = await this.athenaHelper.checkStatus(id)
-      } catch (err) {
-        this.logger.error('czechCheck athena error', err)
-        return { status: false, error: err, data: null }
-      }
-      if (result) break
-
-      if (timePassed > 30000) {
-        this.logger.debug('czechCheck athena pending result')
-        return { status: false, error: 'pending result', data: { id } }
-      }
-      await sleep(POLL_INTERVAL)
-      timePassed += POLL_INTERVAL
-    }
-    try {
-      let list: any[] = await this.athenaHelper.getResults(id)
+      let list: [] = await this.select(sql, partition)
       this.logger.debug(`czechCheck athena query result contains ${list.length} rows`)
       return { status: true, error: null, data: list }
     } catch (err) {
@@ -159,22 +134,13 @@ export class CzechCheckAPI {
     this.logger.debug(`czechCheck check() called with number ${formCompanyNumber}`)
     let sql = util.format(QUERY, formCompanyNumber)
 
-    let find = await this.queryAthena(sql)
+    let find = await this.queryS3(sql)
 
     if (!find.status) {
-      if (find.data) {
-        status = {
-          status: 'pending',
-          message: find.error,
-          rawData: [find.data]
-        }
-      }
-      else {
-        status = {
-          status: 'error',
-          message: (typeof find.error === 'string' && find.error) || find.error.message,
-          rawData: typeof find.error === 'object' && find.error
-        }
+      status = {
+        status: 'error',
+        message: (typeof find.error === 'string' && find.error) || find.error.message,
+        rawData: typeof find.error === 'object' && find.error
       }
     } else if (find.status && find.data.length === 0) {
       status = {
@@ -271,10 +237,7 @@ export class CzechCheckAPI {
 
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
-    if (status.status === 'pending') {
-      resource.pendingInfo = rawData
-    }
-    else if (rawData && Array.isArray(rawData)) {
+    if (rawData && Array.isArray(rawData)) {
       convertRecords(rawData)
       resource.rawData = sanitize(rawData).sanitized
       if (this.conf.trace)
@@ -284,6 +247,60 @@ export class CzechCheckAPI {
     this.logger.debug(`${PROVIDER} Creating czechCheck`)
     await this.applications.createCheck(resource, req)
     this.logger.debug(`${PROVIDER} Created czechCheck`)
+  }
+
+  private async select(sql: string, partition: string): Promise<[]> {
+    let output: AWS.S3.SelectObjectContentOutput
+      = await this.s3.selectObjectContent({
+        Bucket: this.outputLocation,
+        Key: 'refdata/cz/companies/bucket-' + partition,
+        ExpressionType: 'SQL',
+        Expression: sql,
+        InputSerialization: {
+          Parquet: {}
+        },
+        OutputSerialization: {
+          JSON: {
+            RecordDelimiter: '\n'
+          }
+        }
+      }).promise()
+
+    let res: [] = await new Promise((resolve, reject) => {
+      let rec: any = []
+      // @ts-ignore
+      output.Payload.on('data', event => {
+        if (event.Records) {
+          // THIS IS OUR RESULT
+          let buffer = event.Records.Payload;
+          const out = buffer.toString()
+          const records = out.split('\n')
+          for (let i in records) {
+            rec.push(JSON.parse(records[i]))
+          }
+        }
+        else if (event.End) {
+          return resolve(rec)
+        }
+      })
+    })
+    return res
+  }
+
+  private partition(s: string, buckets: number): string {
+    let h: number = 0
+    const l = s.length
+    let i = 0
+    if (l > 0)
+      while (i < l)
+        // tslint:disable-next-line: no-bitwise
+        h = (h << 5) - h + s.charCodeAt(i++) | 0
+    let n = h % buckets
+    if (n < 0) n = buckets + n
+    const t = '00000'
+    const ns = String(n)
+    const part = t.substring(0, t.length - ns.length) + ns
+    return part
   }
 }
 
@@ -343,9 +360,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       })
       if (!createCheck) return
       let { notMatched } = createCheck
-      if (notMatched) 
-        if (!(await this.runCheck({ notMatched, resource: payload, req}))) return        
-      
+      if (notMatched)
+        if (!(await this.runCheck({ notMatched, resource: payload, req }))) return
+
       let { status, message, rawData } = await czechCheckAPI.lookup({
         check: map.registrationNumber,
         name: payload[map.companyName],
@@ -394,7 +411,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         if (!stubs.length) return true
         latestChecks = await Promise.all(stubs.map(stub => this.bot.getResource(stub)))
         const { models } = this.bot
-        latestChecks = latestChecks.filter(check => check.provider === PROVIDER  &&  getEnumValueId({model: models[STATUS], value: check.status}) === 'pass')
+        latestChecks = latestChecks.filter(check => check.provider === PROVIDER && getEnumValueId({ model: models[STATUS], value: check.status }) === 'pass')
         latestChecks.sort((a, b) => b._time)
       }
       let size = _.size(notMatched)
@@ -410,8 +427,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         }
       }
       if (notMatchedCp['companyName']) {
-        let currentCheck:any = latestChecks.find(check => check[TYPE] === CORPORATION_EXISTS  &&  check.provider === PROVIDER)
-        if (currentCheck  &&  
+        let currentCheck: any = latestChecks.find(check => check[TYPE] === CORPORATION_EXISTS && check.provider === PROVIDER)
+        if (currentCheck &&
           currentCheck.rawData[0].company.name !== resource.companyName) return true
       }
     },
