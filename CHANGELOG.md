@@ -2,12 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.56](https://github.com/tradle/mycloud/compare/v3.0.1-rc.55...v3.0.1-rc.56) (2020-07-21)
+## [3.0.1-rc.57](https://github.com/tradle/mycloud/compare/v3.0.1-rc.56...v3.0.1-rc.57) (2020-08-09)
 
 
 ### Features
 
-* add conf for this plugin ([802d819](https://github.com/tradle/mycloud/commit/802d819))
+* package upgrade ([78dbd60](https://github.com/tradle/mycloud/commit/78dbd60))
+* performance and fixes ([1134c42](https://github.com/tradle/mycloud/commit/1134c42))
+* RFID chip reading let's more precisely match the rfid face to photo ID; rfid face to selfie ([11f7e1e](https://github.com/tradle/mycloud/commit/11f7e1e))
 
 
 
