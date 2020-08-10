@@ -250,6 +250,7 @@ export class CzechCheckAPI {
   }
 
   private async select(sql: string, partition: string): Promise<[]> {
+    this.logger.debug(`czechCheck select for sql=${sql}, partition=${partition}`)
     let output: AWS.S3.SelectObjectContentOutput
       = await this.s3.selectObjectContent({
         Bucket: this.outputLocation,
@@ -274,6 +275,7 @@ export class CzechCheckAPI {
           // THIS IS OUR RESULT
           let buffer = event.Records.Payload;
           const out = buffer.toString()
+          this.logger.debug(`czechCheck select output=${out}`)
           const records = out.split('\n')
           for (let i in records) {
             rec.push(JSON.parse(records[i]))
