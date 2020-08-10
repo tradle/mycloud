@@ -67,9 +67,6 @@ const defaultPropMap = {
   country: 'country'
 }
 
-const QUERY = "select * from s3object s where s.ico = '%s'"
-
-
 interface IPscCheck {
   application: IPBApp
   status: any
@@ -115,14 +112,14 @@ export class CzechCheckAPI {
 
   public queryS3 = async (formCompanyNumber: string) => {
     let id: string
-    const sql = util.format(QUERY, formCompanyNumber)
+    const sql = `select * from s3object s where s.ico = '${formCompanyNumber}'`
     const partition = this.partition(formCompanyNumber, BUCKET_COUNT)
     try {
       let list: [] = await this.select(sql, partition)
-      this.logger.debug(`czechCheck athena query result contains ${list.length} rows`)
+      this.logger.debug(`czechCheck s3 query result contains ${list.length} rows`)
       return { status: true, error: null, data: list }
     } catch (err) {
-      this.logger.error('czechCheck athena error', err)
+      this.logger.error('czechCheck s3 query error', err)
       return { status: false, error: err, data: null }
     }
   }
@@ -131,10 +128,9 @@ export class CzechCheckAPI {
     let status: any
     let formCompanyNumber = form[check]
 
-    this.logger.debug(`czechCheck check() called with number ${formCompanyNumber}`)
-    let sql = util.format(QUERY, formCompanyNumber)
-
-    let find = await this.queryS3(sql)
+    this.logger.debug(`czechCheck lookup() called with number ${formCompanyNumber}`)
+   
+    let find = await this.queryS3(formCompanyNumber)
 
     if (!find.status) {
       status = {
