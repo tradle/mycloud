@@ -82,7 +82,8 @@ export type PublicInfo = {
   tour: any
   currency?: string
   locale?: string
-  optionalPairing?: boolean
+  optionalPairing?: boolean,
+  allowedMimeTypes?:string[]
 }
 
 const MINUTE = 3600000
@@ -350,6 +351,7 @@ export class Conf {
     const currency = _.get(bot, 'defaultCurrency') || 'USD'
     const locale = _.get(bot, 'defaultLocale')
     const optionalPairing = _.get(bot, 'optionalPairing')
+    const allowedMimeTypes = _.get(bot, 'allowedMimeTypes')
     debugger
     return {
       sandbox: bot.sandbox,
@@ -365,6 +367,7 @@ export class Conf {
       org: buildResource.omitVirtual(org),
       style,
       optionalPairing,
+      allowedMimeTypes,
       currency,
       locale,
       tour
