@@ -8,7 +8,7 @@
   "license": "MIT",
   "devDependencies": {
     "@tradle/aws-client": "^1.10.0",
-    "@tradle/validate-model": "^7.1.23",
+    "@tradle/validate-model": "^7.1.24",
     "@types/graphql": "^0.12.3",
     "@types/json-schema": "^6.0.0",
     "@types/koa": "^2.0.44",
