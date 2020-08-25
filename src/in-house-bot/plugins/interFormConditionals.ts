@@ -95,7 +95,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           } catch (err) {
             if (err.message.indexOf('Cannot read property') === -1)
               logger.debug(`interFormConditionals: please check formula ${val} for ${formId}`, err)
-            // debugger
           }
         })
         if (!hasAction) retForms.push(formId)
@@ -158,7 +157,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
               `interFormConditionals: please check formula ${formula} for ${payload[TYPE]}`,
               err
             )
-          // debugger
         }
         let onCreate = conf.onCreate && conf.onCreate[payload[TYPE]]
         if (!onCreate) return
@@ -354,7 +352,6 @@ function normalizeEnumForPrefill({ form, model, models }) {
       if (models[ref].subClassOf !== ENUM) continue
       let val = form[p]
       if (typeof val === 'object') continue
-      debugger
       let evalue = models[ref].enum.find(e => e.id === val)
       if (evalue) {
         form[p] = {
