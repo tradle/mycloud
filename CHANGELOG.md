@@ -2,13 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.59](https://github.com/tradle/mycloud/compare/v3.0.1-rc.58...v3.0.1-rc.59) (2020-08-23)
+## [3.0.1-rc.60](https://github.com/tradle/mycloud/compare/v3.0.1-rc.59...v3.0.1-rc.60) (2020-08-25)
 
 
 ### Features
 
-* limit allowed mime types ([a7c0a92](https://github.com/tradle/mycloud/commit/a7c0a92))
-* limit allowed mime types ([cebaee8](https://github.com/tradle/mycloud/commit/cebaee8))
+* setting constant enums not just the once from other forms in prefill in FormRequest like country='US' ([dc7e8a9](https://github.com/tradle/mycloud/commit/dc7e8a9))
 
 
 
