@@ -1,7 +1,6 @@
 import cloneDeep from 'lodash/cloneDeep'
 import size from 'lodash/size'
 import extend from 'lodash/extend'
-import omit from 'lodash/omit'
 
 import { CreatePlugin, IPBReq, IPluginLifecycleMethods, ValidatePluginConf } from '../types'
 import { TYPE } from '@tradle/constants'
@@ -16,7 +15,6 @@ const FORM_REQUEST = 'tradle.FormRequest'
 const APPLICATION = 'tradle.Application'
 const ENUM = 'tradle.Enum'
 const CHECK = 'tradle.Check'
-const CHECK_OVERRIDE = 'tradle.CheckOverride'
 const APPLICATION_APPROVAL = 'tradle.ApplicationApproval'
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
