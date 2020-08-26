@@ -83,6 +83,7 @@ export type PublicInfo = {
   currency?: string
   locale?: string
   optionalPairing?: boolean,
+  requireDeviceLocalAuth?: boolean,
   allowedMimeTypes?:string[]
 }
 
@@ -352,6 +353,7 @@ export class Conf {
     const locale = _.get(bot, 'defaultLocale')
     const optionalPairing = _.get(bot, 'optionalPairing')
     const allowedMimeTypes = _.get(bot, 'allowedMimeTypes')
+    const requireDeviceLocalAuth = _.get(bot, 'requireDeviceLocalAuth')
     debugger
     return {
       sandbox: bot.sandbox,
@@ -368,6 +370,7 @@ export class Conf {
       style,
       optionalPairing,
       allowedMimeTypes,
+      requireDeviceLocalAuth,
       currency,
       locale,
       tour
