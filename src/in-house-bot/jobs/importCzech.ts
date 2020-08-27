@@ -1,6 +1,10 @@
 import fetch from 'node-fetch'
 import AWS from 'aws-sdk'
 import fs from 'fs-extra'
+const csv = require('csv')
+import csvWriter from 'csv-write-stream'
+import zlib from 'zlib'
+import stream from 'stream'
 
 import {
   Bot,
@@ -136,13 +140,11 @@ export class ImportCzechData {
 
     const singleUrl = `https://dataor.justice.cz/api/file/${file}`
     let get = await fetch(singleUrl, { timeout: 5000 })
-
-    //await this.s3downloadhttp(`public/cz/companies/2020/${file}`, localfile)
-
-    let fout = fs.createWriteStream(localfile)
-    let promise = this.writeStreamToPromise(fout)
-    get.body.pipe(fout)
-    await promise
+    const unzip = zlib.createGunzip()
+  	const input = get.body.pipe(unzip) 
+    let writeHandler = this.localWriteHandler(localfile)
+    // cleansing new lines inside of csv fields to allow select from s3
+    await this.tranform(input, writeHandler)
 
     let rstream: fs.ReadStream = fs.createReadStream(localfile)
 
@@ -155,12 +157,6 @@ export class ImportCzechData {
     let res = await s3.upload(contentToPost).promise()
     this.logger.debug(`importCzech: uploaded ${file}`)
     fs.unlinkSync(localfile)
-  }
-
-  private writeStreamToPromise = (stream: fs.WriteStream) => {
-    return new Promise((resolve, reject) => {
-      stream.on('finish', resolve).on('error', reject)
-    })
   }
 
   private createOriginTable = async () => {
@@ -326,4 +322,61 @@ export class ImportCzechData {
     }
   }
 
+  private tranform = async (readStream, writeHandler) => {
+    const writer = csvWriter()
+    const gzip = zlib.createGzip()
+    writer.pipe(gzip).pipe(writeHandler.writeStream)
+
+    await new Promise((resolve, reject) => {
+        readStream.pipe(csv.parse({ columns: true, relax_column_count: true, escape: '"', quote: '"' }))
+            .pipe(this.toWriter(writer))
+            .on('error', (err) => {
+                this.logger.error('error:', err)
+                reject(err)
+            })
+            .on('finish', () => {
+                writer.end()
+                resolve()
+            })
+    })
+    await writeHandler.written
+  }
+
+  private localWriteHandler = (localfile: string) => {
+    const writeStream = fs.createWriteStream(localfile)
+    return {
+        writeStream,
+        written: this.writeStreamToPromise(writeStream)
+    }
+  }
+  private writeStreamToPromise = (stream: fs.WriteStream) => {
+    return new Promise((resolve, reject) => {
+      stream.on('finish', resolve).on('error', reject)
+    })
+  }
+
+  private toWriter = (writer) =>
+    new stream.Writable({
+        objectMode: true,
+        highWaterMark: 16,
+        write: async (data, encoding, callback) => {
+            const cleanData = await this.cleanRecord(data)
+            const keepGoing = writer.write(cleanData)
+            if (!keepGoing) {
+                await new Promise((resolve) => { writer.once('drain', resolve) })
+            }
+            callback()
+        }
+    })
+
+  private cleanRecord = async (data) => {
+    const rec = {}
+    for (const fieldname of Object.keys(data)) {
+        const value = data[fieldname]
+        let cleaned = value.replace(/(\r\n|\n|\r)/gm, ' ')
+        // set record field
+        rec[fieldname] = cleaned
+    }
+    return rec
+  }
 }
