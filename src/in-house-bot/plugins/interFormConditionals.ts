@@ -1,7 +1,6 @@
 import cloneDeep from 'lodash/cloneDeep'
 import size from 'lodash/size'
 import extend from 'lodash/extend'
-import omit from 'lodash/omit'
 
 import { CreatePlugin, IPBReq, IPluginLifecycleMethods, ValidatePluginConf } from '../types'
 import { TYPE } from '@tradle/constants'
@@ -16,7 +15,6 @@ const FORM_REQUEST = 'tradle.FormRequest'
 const APPLICATION = 'tradle.Application'
 const ENUM = 'tradle.Enum'
 const CHECK = 'tradle.Check'
-const CHECK_OVERRIDE = 'tradle.CheckOverride'
 const APPLICATION_APPROVAL = 'tradle.ApplicationApproval'
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
@@ -97,7 +95,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           } catch (err) {
             if (err.message.indexOf('Cannot read property') === -1)
               logger.debug(`interFormConditionals: please check formula ${val} for ${formId}`, err)
-            // debugger
           }
         })
         if (!hasAction) retForms.push(formId)
@@ -160,7 +157,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
               `interFormConditionals: please check formula ${formula} for ${payload[TYPE]}`,
               err
             )
-          // debugger
         }
         let onCreate = conf.onCreate && conf.onCreate[payload[TYPE]]
         if (!onCreate) return
@@ -264,6 +260,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         model,
         logger
       })
+
       let prefill = {}
       allFormulas.forEach(async val => {
         let [propName, formula] = val
@@ -276,6 +273,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       })
       prefill = sanitize(prefill).sanitized
       if (!size(prefill)) return
+      normalizeEnumForPrefill({ form: prefill, model: bot.models[ftype], models: bot.models })
       if (!formRequest.prefill) {
         formRequest.prefill = {
           [TYPE]: ftype
@@ -344,6 +342,43 @@ async function getAllToExecute({ bot, application, settings, model, logger }) {
   }
 
   return { allForms, allFormulas, forms }
+}
+function normalizeEnumForPrefill({ form, model, models }) {
+  let props = model.properties
+  for (let p in form) {
+    if (!props[p]) continue
+    let { ref } = props[p]
+    if (ref) {
+      if (models[ref].subClassOf !== ENUM) continue
+      let val = form[p]
+      if (typeof val === 'object') continue
+      let evalue = models[ref].enum.find(e => e.id === val)
+      if (evalue) {
+        form[p] = {
+          id: `${ref}_${evalue.id}`,
+          title: evalue.title
+        }
+      }      
+      continue
+    }
+    if (!props[p].items || !props[p].items.ref) continue
+
+    ref = props[p].items.ref
+    if (models[ref].subClassOf !== ENUM) continue
+
+    form[p] = form[p].map(val => {
+      if (typeof val === 'object') return val
+      debugger
+      let evalue = models[ref].enum.find(e => e.id === val)
+      if (evalue) {
+        return {
+          id: `${ref}_${evalue.id}`,
+          title: evalue.title
+        }
+      }      
+      return val
+    })
+  }
 }
 
 function normalizeEnums({ forms, models }) {
