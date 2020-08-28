@@ -279,7 +279,13 @@ export class CzechCheckAPI {
           this.logger.debug(`czechCheck select output=${out}`)
           const records = out.split('\n')
           for (let i in records) {
-            rec.push(JSON.parse(records[i]))
+            const single = records[i]
+            this.logger.debug('czechCheck single', single)
+            try {
+              rec.push(JSON.parse(single))
+            } catch (err) {
+              this.logger.error('czechCheck single parse error', err)
+            }
           }
         }
         else if (event.End) {
