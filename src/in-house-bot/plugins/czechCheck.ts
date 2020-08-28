@@ -279,7 +279,7 @@ export class CzechCheckAPI {
           this.logger.debug(`czechCheck select output=${out}`)
           const records = out.split('\n')
           for (let i in records) {
-            const single = records[i]
+            const single = records[i].replace(/(\\")/gm, '"').replace('\\n', '')
             this.logger.debug('czechCheck single', single)
             try {
               rec.push(JSON.parse(single))
