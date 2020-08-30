@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "3.0.1-rc.60",
+  "version": "3.0.1-rc.62",
   "main": "index.js",
   "private": true,
   "repository": "https://github.com/tradle/mycloud",
@@ -199,7 +199,9 @@
     "cleanco": "^1.0.2",
     "clone": "^2.1.1",
     "co": "^4.6.0",
+    "csv": "^5.3.2",
     "csv-parser": "^2.3.2",
+    "csv-write-stream": "^2.0.0",
     "data-uri-to-file": "^0.1.8",
     "datauri": "^1.0.5",
     "dateformat": "^3.0.3",

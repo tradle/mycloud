@@ -149,7 +149,12 @@ export class CzechCheckAPI {
       if (name.toLowerCase() !== find.data[0].name.toLowerCase()) {
         message = `Warning: Company name is not the exact match: ${name} vs. ${find.data[0].name}`
       }
-      find.data[0].data = makeJson(find.data[0].data)
+      try {
+        find.data[0].data = this.makeJson(find.data[0].data)
+      } catch (err) {
+        this.logger.error('makeJson error', err)
+        throw new Error(err)
+      }
       status = { status: 'pass', message, rawData: find.data }
     }
     return status
@@ -274,7 +279,13 @@ export class CzechCheckAPI {
           this.logger.debug(`czechCheck select output=${out}`)
           const records = out.split('\n')
           for (let i in records) {
-            rec.push(JSON.parse(records[i]))
+            const single = records[i].replace(/(\\")/gm, '"').replace('\\n', '')
+            this.logger.debug('czechCheck single', single)
+            try {
+              rec.push(JSON.parse(single))
+            } catch (err) {
+              this.logger.error('czechCheck single parse error', err)
+            }
           }
         }
         else if (event.End) {
@@ -299,6 +310,76 @@ export class CzechCheckAPI {
     const ns = String(n)
     const part = t.substring(0, t.length - ns.length) + ns
     return part
+  }
+
+  private makeJson(str: string) {
+    this.logger.debug('makeJson input: ', str)
+    let arr: string[] = Array.from(str)
+    return this.buildArr(arr, 0).v
+  }
+  
+  private buildArr(arr: string[], start: number) {
+    let objs = []
+    let idx = start + 1
+    while (arr[idx] === '{' && idx < arr.length) {
+      let obj = this.build(arr, idx + 1)
+      idx = obj.i
+      objs.push(obj.v)
+      if (idx >= arr.length - 1)
+        break;
+      if (arr[idx + 1] === ',' && arr[idx + 2] === ' ') {
+        idx += 3
+      }
+      else if (arr[idx + 1] === ']') {
+        idx++
+        break;
+      }
+    }
+    return { v: objs, i: idx }
+  }
+  
+  private build(arr: string[], idx: number) {
+    let name = ''
+    let obj = {}
+    for (; idx < arr.length; idx++) {
+      if (arr[idx] === '=') {
+        if (arr[idx + 1] === '{') {
+          let ret = this.build(arr, idx + 2)
+          obj[name] = ret.v
+          idx = ret.i
+          name = ''
+        } else if (arr[idx + 1] === '[') {
+          let ret = this.buildArr(arr, idx + 1)
+          obj[name] = ret.v
+          name = ''
+          idx = ret.i
+        } else {
+          let ret = this.buildString(arr, idx + 1)
+          obj[name] = ret.v
+          name = ''
+          idx = ret.i
+        }
+      } else if (arr[idx] === '}') {
+        return { v: obj, i: idx }
+      } else if (arr[idx] === ';') {
+        name = ''
+      } else if (arr[idx] !== ']') {
+        name += arr[idx]
+      }
+    }
+    return { v: obj, i: idx }
+  }
+  
+  private buildString(arr: string[], idx: number) {
+    let val = ''
+    while (idx < arr.length) {
+      if (arr[idx] === ';') {
+        return { v: val, i: idx }
+      } else if (arr[idx] === '}') {
+        return { v: val, i: idx - 1 }
+      }
+      val += arr[idx++]
+    }
   }
 }
 
@@ -752,73 +833,4 @@ function pscLikeBORawData(find: any[]): any[] {
     list.push(pscLike)
   }
   return list
-}
-
-function makeJson(str: string) {
-  let arr: string[] = Array.from(str)
-  return buildArr(arr, 0).v
-}
-
-function buildArr(arr: string[], start: number) {
-  let objs = []
-  let idx = start + 1
-  while (arr[idx] === '{' && idx < arr.length) {
-    let obj = build(arr, idx + 1)
-    idx = obj.i
-    objs.push(obj.v)
-    if (idx >= arr.length - 1)
-      break;
-    if (arr[idx + 1] === ',' && arr[idx + 2] === ' ') {
-      idx += 3
-    }
-    else if (arr[idx + 1] === ']') {
-      idx++
-      break;
-    }
-  }
-  return { v: objs, i: idx }
-}
-
-function build(arr: string[], idx: number) {
-  let name = ''
-  let obj = {}
-  for (; idx < arr.length; idx++) {
-    if (arr[idx] === '=') {
-      if (arr[idx + 1] === '{') {
-        let ret = build(arr, idx + 2)
-        obj[name] = ret.v
-        idx = ret.i
-        name = ''
-      } else if (arr[idx + 1] === '[') {
-        let ret = buildArr(arr, idx + 1)
-        obj[name] = ret.v
-        name = ''
-        idx = ret.i
-      } else {
-        let ret = buildString(arr, idx + 1)
-        obj[name] = ret.v
-        name = ''
-        idx = ret.i
-      }
-    } else if (arr[idx] === '}') {
-      return { v: obj, i: idx }
-    } else if (arr[idx] === ';') {
-      name = ''
-    } else if (arr[idx] !== ']') {
-      name += arr[idx]
-    }
-  }
-  return { v: obj, i: idx }
-}
-
-function buildString(arr: string[], idx: number) {
-  let val = ''
-  while (idx < arr.length) {
-    if (arr[idx] === ';') {
-      return { v: val, i: idx }
-    } else if (arr[idx] === '}') {
-      return { v: val, i: idx - 1 }
-    }
-    val += arr[idx++]
-  }
 }
