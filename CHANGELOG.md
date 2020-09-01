@@ -2,7 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.62](https://github.com/tradle/mycloud/compare/v3.0.1-rc.61...v3.0.1-rc.62) (2020-08-25)
+## [3.0.1-rc.63](https://github.com/tradle/mycloud/compare/v3.0.1-rc.62...v3.0.1-rc.63) (2020-09-01)
+
+
+### Bug Fixes
+
+* temporary change to fix the mycloud upgrade ([9963189](https://github.com/tradle/mycloud/commit/9963189))
+
+
+### Features
+
+* require device authentication - touchID configuration property added ([8c9a66f](https://github.com/tradle/mycloud/commit/8c9a66f))
 
 
 
