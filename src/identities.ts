@@ -613,9 +613,9 @@ const getPubKeyMappingQuery = ({ pub, time }): DBFindOpts => ({
     NULL: {
       importedFrom: true
     },
-    // LT: {
-    //   _time: time
-    // }
+    LT: {
+      _time: time
+    }
   },
   orderBy: ORDER_BY_RECENT_FIRST
 })
