@@ -665,8 +665,9 @@ export const loadComponentsAndPlugins = ({
 
           await Promise.each(defaultHandlers, (handler) => handler(input))
         },
-        willCreateApplication: async ({ user, application }) => {
-          if (employeeManager.isEmployee({ user })) {
+        willCreateApplication: async ({ req, user, application }) => {
+          let masterUser = req && req.masterUser
+          if (employeeManager.isEmployee({ user, masterUser })) {
             application.draft = true
           }
         }
