@@ -47,6 +47,7 @@ interface IOpenCorporatesConf {
   products: any
   propertyMap: any
   companiesHouseApiKey: string
+  apiToken: string
 }
 const defaultPropMap = {
   companyName: 'companyName',
@@ -104,9 +105,9 @@ class OpenCorporatesAPI {
 
     if (registrationNumber) registrationNumber = registrationNumber.toUpperCase()
     let companies: Array<any>, rawData
-
+    const { companiesHouseApiKey, apiToken } = this.conf
     // debugger
-    if (this.conf.companiesHouseApiKey && hasAllInfo && country.id.split('_')[1] === 'GB') {
+    if (companiesHouseApiKey && hasAllInfo && country.id.split('_')[1] === 'GB') {
       // use company house api or data lake
       url = 'https://api.companieshouse.gov.uk/company/' + registrationNumber
       // use api
@@ -140,7 +141,9 @@ class OpenCorporatesAPI {
         } else url = `${BASE_URL}companies/${cc.toLowerCase()}/${registrationNumber}`
       }
       if (!url)
-        url = `${BASE_URL}companies/search?q=${companyName.replace(/\s/g, '+')}&inactive=false`
+        url = `${BASE_URL}companies/search?q=${companyName.replace(/\s/g, '+')}&inactive=false&api_token=${apiToken}`
+      else        
+        url += `?api_token=${apiToken}`
       // let json = test
       let json
       try {
@@ -514,7 +517,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
 
       // debugger
       let ptype = payload[TYPE]
-      let { products, propertyMap } = conf
+      let { products, propertyMap, apiToken } = conf
+
       let productId = application.requestFor
       if (!products || !products[productId] || !products[productId].includes(ptype)) {
         logger.debug('not running check as form is missing "country"')
@@ -555,6 +559,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         conf.companiesHouseApiKey && resource.country && resource.country.id.split('_')[1] === 'GB'
 
       let provider = (useCompaniesHouse && COMPANIES_HOUSE) || OPEN_CORPORATES
+
       // going with company house
       let createCheck = await doesCheckNeedToBeCreated({
         bot,
@@ -567,6 +572,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         req
       })
       if (!createCheck) return
+
+      if (provider === OPEN_CORPORATES  &&  !apiToken) {
+        logger.error('No api_token provided')
+        return
+      }
 
       let r: {
         rawData: object
