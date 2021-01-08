@@ -2,17 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.63](https://github.com/tradle/mycloud/compare/v3.0.1-rc.62...v3.0.1-rc.63) (2020-09-01)
+## [3.0.1-rc.64](https://github.com/tradle/mycloud/compare/v3.0.1-rc.63...v3.0.1-rc.64) (2021-01-08)
 
 
 ### Bug Fixes
 
-* temporary change to fix the mycloud upgrade ([9963189](https://github.com/tradle/mycloud/commit/9963189))
-
-
-### Features
-
-* require device authentication - touchID configuration property added ([8c9a66f](https://github.com/tradle/mycloud/commit/8c9a66f))
+* api_token required for opencorporates requests now ([e095b3f](https://github.com/tradle/mycloud/commit/e095b3f))
+* rollback of the previous return ([1b4db44](https://github.com/tradle/mycloud/commit/1b4db44))
+* white glove stopped working for paired employees ([b748e1a](https://github.com/tradle/mycloud/commit/b748e1a))
 
 
 
