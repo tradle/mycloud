@@ -147,6 +147,7 @@ export interface IPBUser extends IUser {
 
 export interface IPBReq {
   user: IPBUser
+  masterUser?: IPBUser
   message: ITradleMessage
   payload: ITradleObject
   // alias for "payload"
@@ -161,6 +162,7 @@ export interface IPBReq {
   checks?: ITradleCheck[]
   latestChecks?: ITradleCheck[]
   previousPayloadVersion?: ITradleObject
+  // providerConfiguration?: any
 }
 
 export type VerifiedItem = {
