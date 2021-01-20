@@ -730,6 +730,7 @@ export const loadComponentsAndPlugins = ({
       // needs to move
       'specialApproval',
       'riskScore',
+      'creditRisk',
       'applicationSignoff',
       'boSimulator',
       'pitchbookCheck',
