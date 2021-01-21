@@ -2,12 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.66](https://github.com/tradle/mycloud/compare/v3.0.1-rc.65...v3.0.1-rc.66) (2021-01-20)
-
-
-### Features
-
-* company financials ([e02adbe](https://github.com/tradle/mycloud/commit/e02adbe))
+## [3.0.1-rc.67](https://github.com/tradle/mycloud/compare/v3.0.1-rc.66...v3.0.1-rc.67) (2021-01-21)
 
 
 
