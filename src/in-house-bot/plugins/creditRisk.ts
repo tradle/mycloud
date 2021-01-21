@@ -196,7 +196,6 @@ class CreditRiskAPI {
 
     // debugger
     return checkR.toJSON()
-
   }
 }
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
@@ -218,80 +217,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 export const validateConf: ValidatePluginConf = async ({ bot, pluginConf }) => {
   const { models } = bot
   debugger
-  const { altmanScoresModel, factor } = pluginConf
-  // if (!factor)
-  //   throw new Error(`missing 'factor' property`) 
+  const { altmanScoresModel } = pluginConf
   if (!altmanScoresModel)
     throw new Error(`missing 'altmanScoresModel' property`) 
   if (!models[altmanScoresModel])
     throw new Error(`missing model: ${altmanScoresModel}`) 
 }
-
-/*
-  "properties": {
-    "cash": {
-      "type": "object",
-      "ref": "tradle.Money"
-    },
-    "cashEquivalents": {
-      "type": "object",
-      "ref": "tradle.Money"
-    },
-    "inventory": {
-      "type": "object",
-      "ref": "tradle.Money"
-    },
-    "investments": {
-      "type": "object",
-      "ref": "tradle.Money"
-    },
-    "accountsReceivable": {
-      "type": "object",
-      "ref": "tradle.Money"
-    },
-    "depreciation": {
-      "type": "object",
-      "ref": "tradle.Money"
-    },
-    "amortization": {
-      "type": "object",
-      "ref": "tradle.Money"
-    },
-    "retainedEarnings": {
-      "type": "object",
-      "ref": "tradle.Money"
-    },
-    "currentEarnings": {
-      "type": "object",
-      "ref": "tradle.Money"
-    },
-    "capitalExpenditure": {
-      "type": "object",
-      "ref": "tradle.Money"
-    },
-    "currentLiabilities": {
-      "type": "object",
-      "ref": "tradle.Money"
-    },
-    "longTermLiabilities": {
-      "type": "object",
-      "ref": "tradle.Money"
-    },
-    "shareholderEquity": {
-      "type": "object",
-      "ref": "tradle.Money"
-    },
-    "interest": {
-      "type": "object",
-      "ref": "tradle.Money"
-    },
-    "incomeTax": {
-      "type": "object",
-      "ref": "tradle.Money"
-    },
-    "revenue": {
-      "type": "object",
-      "ref": "tradle.Money"
-    },
-  }
- */
