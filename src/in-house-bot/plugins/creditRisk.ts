@@ -154,7 +154,7 @@ class CreditRiskAPI {
     if (!rating)
       rating = ratings.enum[ratings.enum.length - 1] 
     extend(fc, {
-      zScore: rating.zScore,
+      zScoreRating: rating.zScore,
       pd: rating.pd
     })
     await this.createCheck(fc, req)  
