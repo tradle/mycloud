@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.69](https://github.com/tradle/mycloud/compare/v3.0.1-rc.68...v3.0.1-rc.69) (2021-01-23)
+## [3.0.1-rc.70](https://github.com/tradle/mycloud/compare/v3.0.1-rc.69...v3.0.1-rc.70) (2021-01-23)
 
 
 ### Features
 
-* more company financial params added ([db3799b](https://github.com/tradle/mycloud/commit/db3799b))
+* rounding numbers ([6b9e963](https://github.com/tradle/mycloud/commit/6b9e963))
 
 
 
