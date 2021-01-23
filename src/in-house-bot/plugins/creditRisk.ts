@@ -52,7 +52,7 @@ class CreditRiskAPI {
       revenue
     } = payload
     debugger
-    if (!cash || 
+    if (!cash ||
         // !cashEquivalents ||
         !capitalExpenditure ||
         !currentEarnings ||
@@ -80,7 +80,7 @@ class CreditRiskAPI {
       }, req)
       return
     }
-    const {  
+    const {
       factor=0,
     } = this.conf
     let ratings = this.bot.models[ALTMAN_SCORES]
@@ -89,7 +89,7 @@ class CreditRiskAPI {
         resultDetails: 'Insufficient data to perform calculations'
       }, req)
       return
-    }      
+    }
     const currency = cash.currency
     let fc:any = {
       [TYPE]: COMPANY_FINANCIALS_CHECK,
@@ -110,7 +110,7 @@ class CreditRiskAPI {
         currency
       },
     }
-    
+
     let e = altman.enum.find(e => e.id === 'X1')
     let AltmanZX1 = e.value
     e = altman.enum.find(e => e.id === 'X2');
@@ -140,31 +140,31 @@ class CreditRiskAPI {
         value: fc.ebitda.value - capitalExpenditure.value,
         currency
       },
-      x1: (fc.workingCapital.value / fc.assets.value) * AltmanZX1,
-      x2: (retainedEarnings.value / fc.assets.value) * AltmanZX2,
-      x3: (fc.ebit.value / fc.assets.value) * AltmanZX3,
-      x4: (shareholderEquity.value / fc.liabilities.value) * AltmanZX4,
-      x5: (revenue  && (revenue.value / fc.assets.value) * AltmanZX5) || 0
+      x1: Math.round((fc.workingCapital.value / fc.assets.value) * AltmanZX1 * 100)/100,
+      x2: Math.round((retainedEarnings.value / fc.assets.value) * AltmanZX2 * 100)/100,
+      x3: Math.round((fc.ebit.value / fc.assets.value) * AltmanZX3 * 100)/100,
+      x4: Math.round((shareholderEquity.value / fc.liabilities.value) * AltmanZX4 * 100)/100,
+      x5: Math.round((revenue  && (revenue.value / fc.assets.value) * AltmanZX5) * 100)/100 || 0
     })
     extend(fc, {
-      zScore: fc.x1 + fc.x2 + fc.x3 + fc.x4 + fc.x5 + factor  
+      zScore: fc.x1 + fc.x2 + fc.x3 + fc.x4 + fc.x5 + factor
     })
     ratings.enum.sort((a, b) => a.zScore > b.zScore)
     let rating = ratings.enum.find(r => r.zScore > fc.zScore)
     if (!rating)
-      rating = ratings.enum[ratings.enum.length - 1] 
+      rating = ratings.enum[ratings.enum.length - 1]
     extend(fc, {
       zScoreRating: rating.zScore,
       pd: rating.pd
     })
-    await this.createCheck(fc, req)  
+    await this.createCheck(fc, req)
   }
   async createCheck(check, req) {
     const { payload, application } = req
     let status
     let zScores = this.bot.models[Z_SCORES]
-    let low = zScores.enum.find(e => e.id === 'low') 
-    let high = zScores.enum.find(e => e.id === 'high') 
+    let low = zScores.enum.find(e => e.id === 'low')
+    let high = zScores.enum.find(e => e.id === 'high')
 
     if (check.resultDetails)
       status = 'error'
@@ -180,7 +180,7 @@ class CreditRiskAPI {
       check.resultDetails =	high.title
       status = 'fail'
     }
-    
+
     extend (check, {
       [TYPE]: COMPANY_FINANCIALS_CHECK,
       form: payload,
@@ -219,7 +219,7 @@ export const validateConf: ValidatePluginConf = async ({ bot, pluginConf }) => {
   debugger
   const { altmanScoresModel } = pluginConf
   if (!altmanScoresModel)
-    throw new Error(`missing 'altmanScoresModel' property`) 
+    throw new Error(`missing 'altmanScoresModel' property`)
   if (!models[altmanScoresModel])
-    throw new Error(`missing model: ${altmanScoresModel}`) 
+    throw new Error(`missing model: ${altmanScoresModel}`)
 }
