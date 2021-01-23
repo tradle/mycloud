@@ -127,15 +127,15 @@ class CreditRiskAPI {
         value: fc.ebit.value + depreciation.value,
         currency
       },
-      acidTest: (fc.currentAssets.value - inventory.value) / currentLiabilities.value,
-      liquidityIndex: fc.currentAssets.value / currentLiabilities.value,
+      acidTest: Math.round(((fc.currentAssets.value - inventory.value) / currentLiabilities.value) * 100)/100,
+      liquidityIndex: Math.round((fc.currentAssets.value / currentLiabilities.value) * 100)/100,
       workingCapital: {
         value: fc.currentAssets.value - currentLiabilities.value,
         currency
       },
     })
     extend(fc, {
-      prawc: fc.workingCapital.value / fc.ebitda.value,
+      prawc: Math.round((fc.workingCapital.value / fc.ebitda.value) * 100)/100,
       freeCashFlow: {
         value: fc.ebitda.value - capitalExpenditure.value,
         currency
