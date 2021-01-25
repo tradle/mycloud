@@ -2,12 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.70](https://github.com/tradle/mycloud/compare/v3.0.1-rc.69...v3.0.1-rc.70) (2021-01-23)
+## [3.0.1-rc.71](https://github.com/tradle/mycloud/compare/v3.0.1-rc.70...v3.0.1-rc.71) (2021-01-25)
 
 
 ### Features
 
-* rounding numbers ([6b9e963](https://github.com/tradle/mycloud/commit/6b9e963))
+* models upgrade ([0198405](https://github.com/tradle/mycloud/commit/0198405))
+* numberFormat annotation added for viewing numbers ([9d75bf5](https://github.com/tradle/mycloud/commit/9d75bf5))
 
 
 
