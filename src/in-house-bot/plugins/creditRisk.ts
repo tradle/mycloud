@@ -127,24 +127,24 @@ class CreditRiskAPI {
         value: fc.ebit.value + depreciation.value,
         currency
       },
-      acidTest: Math.round(((fc.currentAssets.value - inventory.value) / currentLiabilities.value) * 100)/100,
-      liquidityIndex: Math.round((fc.currentAssets.value / currentLiabilities.value) * 100)/100,
+      acidTest: (fc.currentAssets.value - inventory.value) / currentLiabilities.value,
+      liquidityIndex: fc.currentAssets.value / currentLiabilities.value,
       workingCapital: {
         value: fc.currentAssets.value - currentLiabilities.value,
         currency
       },
     })
     extend(fc, {
-      prawc: Math.round((fc.workingCapital.value / fc.ebitda.value) * 100)/100,
+      prawc: fc.workingCapital.value / fc.ebitda.value,
       freeCashFlow: {
         value: fc.ebitda.value - capitalExpenditure.value,
         currency
       },
-      x1: Math.round((fc.workingCapital.value / fc.assets.value) * AltmanZX1 * 100)/100,
-      x2: Math.round((retainedEarnings.value / fc.assets.value) * AltmanZX2 * 100)/100,
-      x3: Math.round((fc.ebit.value / fc.assets.value) * AltmanZX3 * 100)/100,
-      x4: Math.round((shareholderEquity.value / fc.liabilities.value) * AltmanZX4 * 100)/100,
-      x5: Math.round((revenue  && (revenue.value / fc.assets.value) * AltmanZX5) * 100)/100 || 0
+      x1: (fc.workingCapital.value / fc.assets.value) * AltmanZX1,
+      x2: (retainedEarnings.value / fc.assets.value) * AltmanZX2,
+      x3: (fc.ebit.value / fc.assets.value) * AltmanZX3,
+      x4: (shareholderEquity.value / fc.liabilities.value) * AltmanZX4,
+      x5: (revenue  && (revenue.value / fc.assets.value)) * AltmanZX5 || 0
     })
     extend(fc, {
       zScore: fc.x1 + fc.x2 + fc.x3 + fc.x4 + fc.x5 + factor
@@ -153,9 +153,11 @@ class CreditRiskAPI {
     let rating = ratings.enum.find(r => r.zScore > fc.zScore)
     if (!rating)
       rating = ratings.enum[ratings.enum.length - 1]
+
+    // round them after all the calculations
     extend(fc, {
       zScoreRating: rating.zScore,
-      pd: rating.pd
+      pd: rating.pd,
     })
     await this.createCheck(fc, req)
   }
