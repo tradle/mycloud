@@ -52,7 +52,7 @@ export class SmeVerifier {
     this.logger = logger
   }
 
-  public checkCPs = async application => {
+  public async checkCPs (application: IPBApp, childProduct?:string) {
     let aApp,
       checkIfAllFormsSubmitted = true
     if (application.parent) {
@@ -133,12 +133,12 @@ export class SmeVerifier {
       this.logger.debug('Child applications were not approved yet. Nothing further to check')
       return
     }
-    let childProductId = makeMyProductModelID(this.conf.child)
+    let childProductId = childProduct || makeMyProductModelID(results[0].requestFor)
 
     const products = results.filter(
       r => r.products && r.products.filter(rr => rr.submission[TYPE] === childProductId)
     )
-    if (!aApp.chileApps || aApp.childApps.length < items.length)
+    if (!aApp.childApps || aApp.childApps.length < items.length)
       aApp.childApps = items.map(a => buildResourceStub({ resource: a, models: this.bot.models }))
     if (!products.length || products.length < cp.length) {
       this.logger.debug('Not all child applications were approved yet. Nothing further to check')
@@ -422,7 +422,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         logger.debug(
           'New child application was approved. Check if parent application can be auto-approved'
         )
-        await smeVerifierAPI.checkCPs(application)
+        await smeVerifierAPI.checkCPs(application, childProduct)
       }
     },
     // check if auto-approve ifvapplication Legal entity product was submitted
