@@ -162,7 +162,7 @@ export interface IPBReq {
   checks?: ITradleCheck[]
   latestChecks?: ITradleCheck[]
   previousPayloadVersion?: ITradleObject
-  // providerConfiguration?: any
+  providerConfiguration?: any
 }
 
 export type VerifiedItem = {
