@@ -27,6 +27,8 @@ import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
+const MONTHS = {ENERO: '01',FEBRERO: '02',MARZO: '03',ABRIL: '04',MAYO: '05',JUNIO: '06',
+                JULIO: '07', AGOSTO: '08',SEPTIEMBRE: '09',OCTUBRE: '10',NOVIEMBRE: '11',DICIEMBRE: '12'}
 const GOVERNMENTAL = 'governmental'
 const FORM_TYPE = 'com.leaseforu.ApplicantMedicalCertification'
 const DOCTOR_NAME = 'medicalSpecialistName'
@@ -78,27 +80,29 @@ export class DoctorCheckAPI {
             Accept: 'application/json'
         }
     })
+    
     const result = await res.json()
-	  if (res.ok) {
-      if (result.lista) {
-        this.logger.debug(JSON.stringify(result, null, 2))
-        for (const entry of result.lista.datos) {
-          if (entry.ncert === certificate) {
-            return {status: 'pass', rawData: entry}
-          }  
-        }
-        return {status: 'fail', message: 'incorrecto certificado'}
-      } else {
-        this.logger.debug(result.mensaje)
-        return {status: 'fail', message: 'desconocido nombre'}
-      }  
-    } else {
-        this.logger.error('error: JSON.stringify(result)')
-        return {status: 'fail', message: JSON.stringify(result)}
+	  if (!res.ok) {
+      this.logger.error('error: JSON.stringify(result)')
+      return {status: 'fail', message: JSON.stringify(result)}
     }
 
+    if (result.lista) {
+      this.logger.debug(JSON.stringify(result, null, 2))
+      for (const entry of result.lista.datos) {
+        if (entry.ncert === certificate) {
+          if (this.isValid(entry.VALIDO))
+            return {status: 'pass', rawData: entry}
+          else
+            return {status: 'fail', message: 'certificado es expirado', rawData: entry}  
+        }
+      }   
+      return {status: 'fail', message: 'incorrecto certificado'}
+    } else {
+      this.logger.debug(result.mensaje)
+      return {status: 'fail', message: 'desconocido nombre'}
+    }  
   } 
-  
   public createCheck = async ({ application, status, form, req }: ICredencialsCheck) => {
     let resource: any = {
       [TYPE]: DOCUMENT_CHECKER_CHECK,
@@ -118,86 +122,14 @@ export class DoctorCheckAPI {
     this.logger.debug(`Created ${PROVIDER} check for ${ASPECTS}`)
   }
 
-  public send1 = async () => {
-    const formData = new FormData()
-    formData.append('accion', '2')
-    formData.append('idconsejo', '0')
-
-    const res = await fetch('https://conacem.mx/conacem/controlcertificados/modulos/cosulta_web/app/consejos.php', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            Accept: 'application/json'
-        }
-    })
-
-    const result = await res.json()
-    if (res.ok) {
-        this.logger.debug(JSON.stringify(result.lista.datos, null, 2))
-    } else {
-        this.logger.debug('error: JSON.stringify(result)')
-    }
+  private isValid(validity: string) {
+     const parts = validity.split(' ')
+     if (parts.length != 11)
+       return false
+     const till = parts[10] + '-' + MONTHS[parts[8]] + '-' + parts[6]
+     if (Date.now() > Date.parse(till)) return false
+     return true 
   }
-
-  public send2 = async (name: string, certificate: string) => {
-    const formData = new FormData()
-    // formData.append('idespe', '350')
-    formData.append('nombre', name)
-
-    const res = await fetch('https://conacem.mx/conacem/controlcertificados/modulos/cosulta_web/app/listado.php', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            Accept: 'application/json'
-        }
-    })
-    const result = await res.json()
-	  if (res.ok) {
-        this.logger.debug(JSON.stringify(result.lista.datos, null, 2))
-
-    } else {
-        this.logger.debug('error: JSON.stringify(result)')
-    }
-
-    /*
-	  {
-  "error": 0,
-  "nregistros": 2,
-  "paginaact": 1,
-  "totpag": 1,
-  "mensaje": "El query se ejecuto correctamente",
-  "lista": {
-    "datos": [
-      {
-        "idregistro": "118447",
-        "titulo": "Dra.",
-        "medico": "Adriana Arteaga García",
-        "fcert": "31 DE JANUARY DE 2017 A 31 DE JANUARY DE 2022",
-        "frecert": "2022-01-31",
-        "ncert": "109 - CP",
-        "consejo": "CERTIFICACIÓN EN ANESTESIOLOGÍA",
-        "espe": "CUIDADOS PALIATIVOS",
-        "vigente": "No vigente",
-        "VALIDO": "31 DE ENERO DE 2017 A 31 DE ENERO DE 2022"
-      },
-      {
-        "idregistro": "59965",
-        "titulo": "Dra.",
-        "medico": "Adriana Arteaga García",
-        "fcert": "28 DE FEBRUARY DE 2016 A 28 DE FEBRUARY DE 2021",
-        "frecert": "2021-02-28",
-        "ncert": "183",
-        "consejo": "CERTIFICACIÓN EN ANESTESIOLOGÍA",
-        "espe": "ALGOLOGÍA",
-        "vigente": "No vigente",
-        "VALIDO": "28 DE FEBRERO DE 2016 A 28 DE FEBRERO DE 2021"
-      }
-    ]
-  }
-}
-	*/
-  }
-
 }  
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
@@ -236,7 +168,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         payloadClone[PERMALINK] = payloadClone._permalink
         payloadClone[LINK] = payloadClone._link
         payloadClone[SPECIALITY] = status.rawData.espe
-        payloadClone[VALIDITY] = status.rawData.fcert
+        payloadClone[VALIDITY] = status.rawData.VALIDO
 
         let formError: any = {
           req,
@@ -246,7 +178,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
         formError.details = {
           prefill: payloadClone,
-          message: 'Por favor, verifica'
+          message: 'Verifica'
         }
 
         try {
@@ -260,4 +192,86 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   return {
     plugin
   }
-}  
+} 
+
+
+const send1 = async () => {
+  const formData = new FormData()
+  formData.append('accion', '2')
+  formData.append('idconsejo', '0')
+
+  const res = await fetch('https://conacem.mx/conacem/controlcertificados/modulos/cosulta_web/app/consejos.php', {
+      method: 'POST',
+      body: formData,
+      headers: {
+          Accept: 'application/json'
+      }
+  })
+
+  const result = await res.json()
+  if (res.ok) {
+      this.logger.debug(JSON.stringify(result.lista.datos, null, 2))
+  } else {
+      this.logger.debug('error: JSON.stringify(result)')
+  }
+}
+
+const send2 = async (name: string, certificate: string) => {
+  const formData = new FormData()
+  // formData.append('idespe', '350')
+  formData.append('nombre', name)
+
+  const res = await fetch('https://conacem.mx/conacem/controlcertificados/modulos/cosulta_web/app/listado.php', {
+      method: 'POST',
+      body: formData,
+      headers: {
+          Accept: 'application/json'
+      }
+  })
+  const result = await res.json()
+  if (res.ok) {
+      this.logger.debug(JSON.stringify(result.lista.datos, null, 2))
+
+  } else {
+      this.logger.debug('error: JSON.stringify(result)')
+  }
+
+  /*
+  {
+"error": 0,
+"nregistros": 2,
+"paginaact": 1,
+"totpag": 1,
+"mensaje": "El query se ejecuto correctamente",
+"lista": {
+  "datos": [
+    {
+      "idregistro": "118447",
+      "titulo": "Dra.",
+      "medico": "Adriana Arteaga García",
+      "fcert": "31 DE JANUARY DE 2017 A 31 DE JANUARY DE 2022",
+      "frecert": "2022-01-31",
+      "ncert": "109 - CP",
+      "consejo": "CERTIFICACIÓN EN ANESTESIOLOGÍA",
+      "espe": "CUIDADOS PALIATIVOS",
+      "vigente": "No vigente",
+      "VALIDO": "31 DE ENERO DE 2017 A 31 DE ENERO DE 2022"
+    },
+    {
+      "idregistro": "59965",
+      "titulo": "Dra.",
+      "medico": "Adriana Arteaga García",
+      "fcert": "28 DE FEBRUARY DE 2016 A 28 DE FEBRUARY DE 2021",
+      "frecert": "2021-02-28",
+      "ncert": "183",
+      "consejo": "CERTIFICACIÓN EN ANESTESIOLOGÍA",
+      "espe": "ALGOLOGÍA",
+      "vigente": "No vigente",
+      "VALIDO": "28 DE FEBRERO DE 2016 A 28 DE FEBRERO DE 2021"
+    }
+  ]
+}
+}
+*/
+}
+
