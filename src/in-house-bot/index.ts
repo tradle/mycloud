@@ -701,6 +701,7 @@ export const loadComponentsAndPlugins = ({
       'smart-prefill',
       'lens',
       'required-forms',
+      'doctorCheck',
       'czechCheck',
       'openCorporates',
       'complyAdvantage',
