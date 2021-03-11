@@ -13,7 +13,8 @@ const exclude = [
   'tradle.FormRequest',
   'tradle.FormError',
   'tradle.ApplicationSubmitted',
-  'tradle.Verification'
+  'tradle.Verification',
+  'tradle.NextFormRequest'
 ]
 const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
   template: 'action',
@@ -70,7 +71,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         .map(submission => submission.submission)
         .filter(form => !exclude.includes(form[TYPE]))
 
-      if (!forms.find(form => !productMap[form[TYPE]])) return
+      let f = forms.find(form => productMap[form[TYPE]])  
+      if (!f) return
 
       forms = await Promise.all(forms.map(form => bot.getResource(form)))
       let items = []
