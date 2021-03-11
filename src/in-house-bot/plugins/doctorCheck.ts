@@ -183,6 +183,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
         try {
           await applications.requestEdit(formError)
+          return {
+            message: 'no request edit',
+            exit: true
+          }
         } catch (err) {
           debugger
         }
