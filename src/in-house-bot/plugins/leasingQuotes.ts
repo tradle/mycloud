@@ -104,7 +104,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         let deliveryTermPercentage = qc[dtID]
         let depositFactor = 0
         let lowDepositFactor
-        if (depositPercentage > lowDeposit)
+        if (depositPercentage > lowDeposit * 100)
           lowDepositFactor = 0
         else
           lowDepositFactor = lowDepositPercent
@@ -114,8 +114,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
         let insurance = fundedInsurance.value
         let initialPayment = depositPercentage === 0 && monthlyPayment + insurance || depositValue.value / (1 + vatRate)
-        let initialPaymentVat = (initialPayment + commissionFee) * vatRate
-        let commissionFeeQc = commissionFee * priceMx.value
+        let commissionFeeCalculated = commissionFee * priceMx.value
+        let initialPaymentVat = (initialPayment + commissionFeeCalculated) * vatRate
         let currency = netPriceMx.currency
         let vatQc =  mathRound((monthlyPayment + insurance) * vatRate)
         let qd:any = {
@@ -125,8 +125,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           // depositFactor:
           lowDepositFactor: depositPercentage > lowDeposit && 0 || lowDepositPercent,
           term,
-          commissionFee: commissionFeeQc  &&  {
-            value: mathRound(commissionFeeQc),
+          commissionFee: commissionFeeCalculated  &&  {
+            value: mathRound(commissionFeeCalculated),
             currency
           },
           initialPayment: initialPayment && {
@@ -139,7 +139,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           },
           totalPercentage,
           totalInitialPayment: initialPayment && {
-            value: mathRound(commissionFeeQc + initialPayment + initialPaymentVat),
+            value: mathRound(commissionFeeCalculated + initialPayment + initialPaymentVat),
             currency
           },
           monthlyPayment: monthlyPayment  &&  {
@@ -171,16 +171,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         type: QUATATION_DETAIL,
         terms: quotationDetails
       }
-      // allFormulas.forEach(async val => {
-      //   let [propName, formula] = val
-      //   try {
-      //     let value = new Function('forms', 'application', `return ${formula}`)(forms, application)
-      //     prefill[propName] = value
-      //   } catch (err) {
-      //     debugger
-      //   }
-      // })
-      // prefill = sanitize(prefill).sanitized
       if (!size(prefill)) return
       if (!formRequest.prefill) {
         formRequest.prefill = {
@@ -307,211 +297,3 @@ function RATE (periods, payment, present, future?:number, type?:number, guess?:n
   return rate;
 };
 
-/*
-const TERMS = [
-  {
-    term: {
-      id: 'io.lenka.Term_t1'
-    },
-    commissionFee: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 20000
-    },
-    initialPayment: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 86206.90
-    },
-    initialPaymentVat: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 16993.10            
-    },
-    totalInitialPayment: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 123200                          
-    },
-    monthlyPayment: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 58867.34                          
-    },
-    insurance: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 829.74                          
-    },
-    vat: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 9551.53                          
-    },
-    totalPayment: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 69248.61                          
-    },
-    purchaseOption: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 300000                          
-    }
-  },
-  {
-    term: {
-      id: 'io.lenka.Term_t2'
-    },
-    commissionFee: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 20000
-    },
-    initialPayment: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 86206.90
-    },
-    initialPaymentVat: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 16993.10            
-    },
-    totalInitialPayment: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 123200                          
-    },
-    monthlyPayment: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 45210.92                          
-    },
-    insurance: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 829.74                          
-    },
-    vat: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 7366.51                          
-    },
-    totalPayment: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 53407.17                          
-    },
-    purchaseOption: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 250000                          
-    }
-  },
-  {
-    term: {
-      id: 'io.lenka.Term_t3'
-    },
-    commissionFee: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 20000
-    },
-    initialPayment: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 86206.90
-    },
-    initialPaymentVat: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 16993.10            
-    },
-    totalInitialPayment: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 123200                          
-    },
-    monthlyPayment: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 38218.39                          
-    },
-    insurance: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 829.74                          
-    },
-    vat: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 6247.70                          
-    },
-    totalPayment: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 45295.83                          
-    },
-    purchaseOption: {
-      currency: {
-        id: "tradle.Currency_USD",
-        title: "US dollar" 
-      },
-      value: 200000                          
-    }
-  },
-]
-*/
