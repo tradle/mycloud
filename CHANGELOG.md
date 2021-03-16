@@ -2,12 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.74](https://github.com/tradle/mycloud/compare/v3.0.1-rc.73...v3.0.1-rc.74) (2021-03-11)
+## [3.0.1-rc.75](https://github.com/tradle/mycloud/compare/v3.0.1-rc.74...v3.0.1-rc.75) (2021-03-14)
 
 
 ### Bug Fixes
 
-* models upgrade ([f6edae3](https://github.com/tradle/mycloud/commit/f6edae3))
+* next form request for the next form shows up together with prefilled request for the current form ([749c07d](https://github.com/tradle/mycloud/commit/749c07d))
+* some not needed limitations on number of forms ([4d514ff](https://github.com/tradle/mycloud/commit/4d514ff))
+
+
+### Features
+
+* leasing quotation ([60a7e9f](https://github.com/tradle/mycloud/commit/60a7e9f))
 
 
 
