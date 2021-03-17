@@ -2,23 +2,249 @@ import cloneDeep from 'lodash/cloneDeep'
 import size from 'lodash/size'
 import extend from 'lodash/extend'
 
-import { CreatePlugin, IPBReq, IPluginLifecycleMethods, ValidatePluginConf } from '../types'
+import { 
+  CreatePlugin, 
+  IPBReq, 
+  Bot,
+  Logger,
+  Applications,
+  IPluginLifecycleMethods, 
+  ValidatePluginConf } from '../types'
 import { TYPE } from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
 import { getLatestForms } from '../utils'
-import { isSubClassOf } from '../utils'
+import { AnyLengthString } from 'aws-sdk/clients/comprehend'
 // @ts-ignore
-const { parseStub, sanitize } = validateResource.utils
+const { sanitize } = validateResource.utils
+const QUOTATION = 'quotation'
+const AMORTIZATION = 'amortization'
+interface AmortizationItem {
+  period: number,
+  principal: {
+    value: number,
+    currency: string
+  },
+  payment: {
+    value: number,
+    currency: string
+  },
+  interest: {
+    value: number,
+    currency: string
+  },
+  principalPayment?: {
+    value: number,
+    currency: string
+  }
+}
+class LeasingQuotesAPI {
+  private bot: Bot
+  private logger: Logger
+  private applications: Applications
+  private conf: any
+  constructor({ bot, conf, applications, logger }) {
+    this.bot = bot
+    this.applications = applications
+    this.logger = logger
+    this.conf = conf
+  }
+  public async quotationPerTerm(application, formRequest) {
+    const stubs = getLatestForms(application)
+    let qiStub = stubs.find(({ type }) => type.endsWith('QuotationInformation'))
+    if (!qiStub) return
+    const quotationInfo = await this.bot.getResource(qiStub)
+    let { 
+      factor, 
+      netPrice,
+      assetName,
+      quotationConfiguration,
+      exchangeRate,
+      depositPercentage,
+      deliveryTime,
+      netPriceMx,
+      vat,
+      priceMx,
+      depositValue,
+      annualInsurance,
+      fundedInsurance
+    } = quotationInfo
+    
+    if (factor || !netPrice || !assetName || !quotationConfiguration || !exchangeRate || !depositPercentage || !deliveryTime || 
+        !netPriceMx || !vat || !priceMx || !depositValue || !annualInsurance || !fundedInsurance)  
+      return {}
+      
+    let configuration = await this.bot.getResource(quotationConfiguration)
+    if (!configuration) return
+    let configurationItems = configuration.items
+    // let { quotationConfiguration } = conf
+    // if (!quotationConfiguration) {
+      // try {
+      //   let qc = await bot.db.findOne({
+      //     filter: {
+      //       EQ: {
+      //         [TYPE]: QUOTATION_CONFIGURATION,
+      //         configuration: quotationConfiguration
+      //       }
+      //     }
+      //   })
+      //   configurationItems = qc.items
+      // } catch (err) {
+      //   return
+      // }
+    // }
 
-const PRODUCT_REQUEST = 'tradle.ProductRequest'
-const FORM_REQUEST = 'tradle.FormRequest'
-const APPLICATION = 'tradle.Application'
-const ENUM = 'tradle.Enum'
-const CHECK = 'tradle.Check'
-const QUATATION_DETAIL = 'com.leaseforu.QuoteDetail'
-const QUOTATION_CONFIGURATION = 'com.leaseforu.QuotationConfiguration'
+    let quotationDetails = []
+    let defaultQC = configurationItems[0]
+    let ftype = formRequest.form
+    configurationItems.forEach(quotConf => {
+      let qc = cloneDeep(defaultQC)
+      for (let p in quotConf)
+        qc[p] = quotConf[p]
+      let {
+        term,
+        // dt1,
+        // dt2,
+        // dt3,
+        // dt4,
+        residualValue,
+        vatRate,
+        commissionFee,
+        factorVPdelVR,
+        minIRR,
+        lowDeposit,
+        lowDepositPercent
+      } = qc
+      let termVal = term.title.split(' ')[0]
+      let factorPercentage = mathRound(factor / 100 / 12 * termVal, 4)
 
+      let dtID = deliveryTime.id.split('_')[1] 
+      let deliveryTermPercentage = qc[dtID]
+      let depositFactor = 0
+      let lowDepositFactor
+      if (depositPercentage > lowDeposit * 100)
+        lowDepositFactor = 0
+      else
+        lowDepositFactor = lowDepositPercent
+      let totalPercentage = mathRound(1 + factorPercentage + deliveryTermPercentage + depositFactor + lowDepositFactor, 4)
+
+      let monthlyPayment = (priceMx.value - depositValue.value - (residualValue * priceMx.value/100)/(1 + factorVPdelVR))/(1 + vatRate) * totalPercentage/termVal
+
+      let insurance = fundedInsurance.value
+      let initialPayment = depositPercentage === 0 && monthlyPayment + insurance || depositValue.value / (1 + vatRate)
+      let commissionFeeCalculated = commissionFee * priceMx.value
+      let initialPaymentVat = (initialPayment + commissionFeeCalculated) * vatRate
+      let currency = netPriceMx.currency
+      let vatQc =  mathRound((monthlyPayment + insurance) * vatRate)
+      let qd:any = {
+        [TYPE]: ftype,
+        factorPercentage,
+        deliveryTermPercentage,
+        // depositFactor:
+        lowDepositFactor: depositPercentage > lowDeposit && 0 || lowDepositPercent,
+        term,
+        commissionFee: commissionFeeCalculated  &&  {
+          value: mathRound(commissionFeeCalculated),
+          currency
+        },
+        initialPayment: initialPayment && {
+          value: mathRound(initialPayment),
+          currency
+        },
+        initialPaymentVat: initialPaymentVat && {
+          value: mathRound(initialPaymentVat),
+          currency
+        },
+        totalPercentage,
+        totalInitialPayment: initialPayment && {
+          value: mathRound(commissionFeeCalculated + initialPayment + initialPaymentVat),
+          currency
+        },
+        monthlyPayment: monthlyPayment  &&  {
+          value: mathRound(monthlyPayment),
+          currency
+        },
+        monthlyInsurance: fundedInsurance,
+        vat: monthlyPayment && {
+          value: vatQc,
+          currency
+        }, 
+        totalPayment: monthlyPayment && {
+          value: mathRound(monthlyPayment + insurance + vatQc),
+          currency
+        },
+        purchaseOptionPrice: priceMx && {
+          value: mathRound(priceMx.value * residualValue/100),
+          currency
+        }
+      }
+      qd.leseeImplicitRate = RATE(termVal, monthlyPayment, -netPriceMx.value) * 12 // * 100
+
+      qd = sanitize(qd).sanitized
+      quotationDetails.push(qd)
+    })
+    return {
+      type: ftype,
+      terms: quotationDetails
+    }
+  }
+  public async amortizationPerMonth(application, formRequest) {
+    const stubs = getLatestForms(application)
+    let qiStub = stubs.find(({ type }) => type.endsWith('QuotationInformation'))
+    if (!qiStub) return
+    let qdStub = stubs.find(({ type }) => type.endsWith('QuotationDetails'))
+    if (!qdStub) return
+    const quotationInfo = await this.bot.getResource(qiStub)
+    const {
+      netPriceMx
+    } = quotationInfo
+    const quotationDetail = await this.bot.getResource(qdStub)
+
+    const {
+      leseeImplicitRate,
+      monthlyPayment,
+      term
+    } = quotationDetail
+    if (!leseeImplicitRate || !term || !monthlyPayment)
+      return {}
+      
+    let termVal = term.title.split(' ')[0]
+    let payment = monthlyPayment.value
+    let ftype = formRequest.form
+    let itemType = ftype + 'Item'
+    let {value: principal, currency } = netPriceMx
+    let items = []
+    for (let i=0; i<termVal; i++) {
+      let item:AmortizationItem = {
+        [TYPE]: itemType,
+        period: i + 1,
+        principal: {
+          value: mathRound(principal),
+          currency
+        },
+        payment: { 
+          value: payment,
+          currency
+        },
+        interest: {
+          value: mathRound(principal * leseeImplicitRate / 12),        
+          currency
+        }
+      }
+      item.principalPayment = {
+        value: mathRound(payment - item.interest.value),
+        currency
+      }
+      items.push(item)
+      principal -= item.principalPayment.value
+    }
+    return {
+      [TYPE]: ftype,
+      items
+    }
+  }
+}
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
+  const leasingQuotes = new LeasingQuotesAPI({ bot, conf, applications, logger })
   const plugin: IPluginLifecycleMethods = {
     async willRequestForm({ application, formRequest }) {
       if (!application) return
@@ -30,147 +256,18 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!productConf) return
 
       let ftype = formRequest.form
-      let pConf = productConf[ftype] 
-      if (!pConf) return
+      let action = productConf[ftype] 
+      if (!action) return
 
       let model = bot.models[ftype]
       if (!model) return
 
-      const stubs = getLatestForms(application)
-      let qiStub = stubs.find(({ type }) => type.endsWith('QuotationInformation'))
-      if (!qiStub) return
-      const quotationInfo = await bot.getResource(qiStub)
-      let { 
-        factor, 
-        netPrice,
-        assetName,
-        quotationConfiguration,
-        exchangeRate,
-        depositPercentage,
-        deliveryTime,
-        netPriceMx,
-        vat,
-        priceMx,
-        depositValue,
-        annualInsurance,
-        fundedInsurance 
-      } = quotationInfo
-
-      let configuration = await bot.getResource(quotationConfiguration)
-      if (!configuration) return
-      let configurationItems = configuration.items
-      // let { quotationConfiguration } = conf
-      // if (!quotationConfiguration) {
-        // try {
-        //   let qc = await bot.db.findOne({
-        //     filter: {
-        //       EQ: {
-        //         [TYPE]: QUOTATION_CONFIGURATION,
-        //         configuration: quotationConfiguration
-        //       }
-        //     }
-        //   })
-        //   configurationItems = qc.items
-        // } catch (err) {
-        //   return
-        // }
-      // }
-
-      let quotationDetails = []
-      let defaultQC = configurationItems[0]
-
-      configurationItems.forEach(quotConf => {
-        let qc = cloneDeep(defaultQC)
-        for (let p in quotConf)
-          qc[p] = quotConf[p]
-        let {
-          term,
-          // dt1,
-          // dt2,
-          // dt3,
-          // dt4,
-          residualValue,
-          vatRate,
-          commissionFee,
-          factorVPdelVR,
-          minIRR,
-          lowDeposit,
-          lowDepositPercent
-        } = qc
-        let termVal = term.title.split(' ')[0]
-        let factorPercentage = mathRound(factor / 100 / 12 * termVal, 4)
-
-        let dtID = deliveryTime.id.split('_')[1] 
-        let deliveryTermPercentage = qc[dtID]
-        let depositFactor = 0
-        let lowDepositFactor
-        if (depositPercentage > lowDeposit * 100)
-          lowDepositFactor = 0
-        else
-          lowDepositFactor = lowDepositPercent
-        let totalPercentage = mathRound(1 + factorPercentage + deliveryTermPercentage + depositFactor + lowDepositFactor, 4)
-
-        let monthlyPayment = (priceMx.value - depositValue.value - (residualValue * priceMx.value/100)/(1 + factorVPdelVR))/(1 + vatRate) * totalPercentage/termVal
-
-        let insurance = fundedInsurance.value
-        let initialPayment = depositPercentage === 0 && monthlyPayment + insurance || depositValue.value / (1 + vatRate)
-        let commissionFeeCalculated = commissionFee * priceMx.value
-        let initialPaymentVat = (initialPayment + commissionFeeCalculated) * vatRate
-        let currency = netPriceMx.currency
-        let vatQc =  mathRound((monthlyPayment + insurance) * vatRate)
-        let qd:any = {
-          [TYPE]: ftype,
-          factorPercentage: factor / 100 / 12 * termVal,
-          deliveryTermPercentage,
-          // depositFactor:
-          lowDepositFactor: depositPercentage > lowDeposit && 0 || lowDepositPercent,
-          term,
-          commissionFee: commissionFeeCalculated  &&  {
-            value: mathRound(commissionFeeCalculated),
-            currency
-          },
-          initialPayment: initialPayment && {
-            value: mathRound(initialPayment),
-            currency
-          },
-          initialPaymentVat: initialPaymentVat && {
-            value: mathRound(initialPaymentVat),
-            currency
-          },
-          totalPercentage,
-          totalInitialPayment: initialPayment && {
-            value: mathRound(commissionFeeCalculated + initialPayment + initialPaymentVat),
-            currency
-          },
-          monthlyPayment: monthlyPayment  &&  {
-            value: mathRound(monthlyPayment),
-            currency
-          },
-          monthlyInsurance: fundedInsurance,
-          vat: monthlyPayment && {
-            value: vatQc,
-            currency
-          }, 
-          totalPayment: monthlyPayment && {
-            value: mathRound(monthlyPayment + insurance + vatQc),
-            currency
-          },
-          purchaseOptionPrice: priceMx && {
-            value: mathRound(priceMx.value * residualValue/100),
-            currency
-          }
-        }
-        qd.leseeImplicitRate = RATE(termVal, monthlyPayment, -netPriceMx.value) * 12 * 100
-
-        qd = sanitize(qd).sanitized
-        quotationDetails.push(qd)
-      })
-      debugger
-
-      let prefill = {
-        type: QUATATION_DETAIL,
-        terms: quotationDetails
-      }
+      let prefill = {}
+      if (action === QUOTATION) 
+        prefill = await leasingQuotes.quotationPerTerm(application, formRequest)      
+      else if (action === AMORTIZATION) 
+        prefill = await leasingQuotes.amortizationPerMonth(application, formRequest)
+      
       if (!size(prefill)) return
       if (!formRequest.prefill) {
         formRequest.prefill = {
@@ -201,59 +298,6 @@ function mathRound(val: number, digits?:number) {
  * @usage RATE($periods, $payment, $present, $future, $type, $guess)
  */
 
-var rate = function(nper, pmt, pv, fv, type, guess) {
-  // Sets default values for missing parameters
-  fv = typeof fv !== 'undefined' ? fv : 0;
-  type = typeof type !== 'undefined' ? type : 0;
-  guess = typeof guess !== 'undefined' ? guess : 0.1;
-
-  // Sets the limits for possible guesses to any
-  // number between 0% and 100%
-  var lowLimit = 0;
-  var highLimit = 1;
-
-  // Defines a tolerance of up to +/- 0.00005% of pmt, to accept
-  // the solution as valid.
-  var tolerance = Math.abs(0.00000005 * pmt);
-
-  // Tries at most 40 times to find a solution within the tolerance.
-  for (var i = 0; i < 40; i++) {
-     // Resets the balance to the original pv.
-     var balance = pv;
-
-     // Calculates the balance at the end of the loan, based
-     // on loan conditions.
-     for (var j = 0; j < nper; j++ ) {
-         if (type == 0) {
-             // Interests applied before payment
-             balance = balance * (1 + guess) + pmt;
-         } else {
-             // Payments applied before insterests
-             balance = (balance + pmt) * (1 + guess);
-         }
-     }
-
-     // Returns the guess if balance is within tolerance.  If not, adjusts
-     // the limits and starts with a new guess.
-     if (Math.abs(balance + fv) < tolerance) {
-         return guess;
-     } else if (balance + fv > 0) {
-         // Sets a new highLimit knowing that
-         // the current guess was too big.
-         highLimit = guess;
-     } else  {
-         // Sets a new lowLimit knowing that
-         // the current guess was too small.
-         lowLimit = guess;
-     }
-
-     // Calculates the new guess.
-     guess = (highLimit + lowLimit) / 2;
- }
-
- // Returns null if no acceptable result was found after 40 tries.
- return null;
-};
 function RATE (periods, payment, present, future?:number, type?:number, guess?:number) {
   guess = (guess === undefined) ? 0.01 : guess;
   future = (future === undefined) ? 0 : future;
