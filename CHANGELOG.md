@@ -2,18 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.76](https://github.com/tradle/mycloud/compare/v3.0.1-rc.75...v3.0.1-rc.76) (2021-03-18)
+## [3.0.1-rc.77](https://github.com/tradle/mycloud/compare/v3.0.1-rc.76...v3.0.1-rc.77) (2021-03-18)
 
 
 ### Bug Fixes
 
-* calculations ([0c7d3d3](https://github.com/tradle/mycloud/commit/0c7d3d3))
-
-
-### Features
-
-* leasing quotation and amortization ([d793593](https://github.com/tradle/mycloud/commit/d793593))
-* new prop annotations added ([6dc2775](https://github.com/tradle/mycloud/commit/6dc2775))
+* typo and more logging ([fa81708](https://github.com/tradle/mycloud/commit/fa81708))
 
 
 
