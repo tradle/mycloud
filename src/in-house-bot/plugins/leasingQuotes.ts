@@ -69,9 +69,11 @@ class LeasingQuotesAPI {
       fundedInsurance
     } = quotationInfo
     
-    if (factor || !netPrice || !assetName || !quotationConfiguration || !exchangeRate || !depositPercentage || !deliveryTime || 
-        !netPriceMx || !vat || !priceMx || !depositValue || !annualInsurance || !fundedInsurance)  
+    if (!factor || !netPrice || !assetName || !quotationConfiguration || !exchangeRate || !depositPercentage || !deliveryTime || 
+        !netPriceMx || !vat || !priceMx || !depositValue || !annualInsurance || !fundedInsurance) {
+      this.logger.debug('quotation: Some numbers are missing')
       return {}
+    }
       
     let configuration = await this.bot.getResource(quotationConfiguration)
     if (!configuration) return
@@ -204,9 +206,10 @@ class LeasingQuotesAPI {
       monthlyPayment,
       term
     } = quotationDetail
-    if (!leseeImplicitRate || !term || !monthlyPayment)
+    if (!leseeImplicitRate || !term || !monthlyPayment) {
+      this.logger.debug('amortization: Some numbers are missing')
       return {}
-      
+    }  
     let termVal = term.title.split(' ')[0]
     let payment = monthlyPayment.value
     let ftype = formRequest.form
