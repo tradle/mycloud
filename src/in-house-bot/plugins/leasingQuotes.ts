@@ -69,8 +69,8 @@ class LeasingQuotesAPI {
       fundedInsurance
     } = quotationInfo
     
-    if (!factor || !netPrice || !assetName || !quotationConfiguration || !exchangeRate || !depositPercentage || !deliveryTime || 
-        !netPriceMx || !vat || !priceMx || !depositValue || !annualInsurance || !fundedInsurance) {
+    if (!factor || !netPrice || !quotationConfiguration || !exchangeRate || !depositPercentage || !deliveryTime || 
+        !netPriceMx || !priceMx || !depositValue || !fundedInsurance) {
       this.logger.debug('quotation: Some numbers are missing')
       return {}
     }
@@ -242,6 +242,7 @@ class LeasingQuotesAPI {
     }
     return {
       [TYPE]: ftype,
+      term,
       items
     }
   }
