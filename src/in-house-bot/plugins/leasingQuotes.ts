@@ -179,8 +179,6 @@ class LeasingQuotesAPI {
           currency
         }
       }
-      qd.leseeImplicitRate = RATE(termVal, monthlyPayment, -netPriceMx.value) * 12 // * 100
-
       qd = sanitize(qd).sanitized
       quotationDetails.push(qd)
     })
@@ -202,16 +200,18 @@ class LeasingQuotesAPI {
     const quotationDetail = await this.bot.getResource(qdStub)
 
     const {
-      leseeImplicitRate,
       monthlyPayment,
       term
     } = quotationDetail
-    if (!leseeImplicitRate || !term || !monthlyPayment) {
+    if (!netPriceMx || !term || !monthlyPayment) {
       this.logger.debug('amortization: Some numbers are missing')
       return {}
     }  
     let termVal = term.title.split(' ')[0]
     let payment = monthlyPayment.value
+
+    let leseeImplicitRate = RATE(termVal, monthlyPayment, -netPriceMx.value) * 12 // * 100
+
     let ftype = formRequest.form
     let itemType = ftype + 'Item'
     let {value: principal, currency } = netPriceMx
