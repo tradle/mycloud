@@ -2,12 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.77](https://github.com/tradle/mycloud/compare/v3.0.1-rc.76...v3.0.1-rc.77) (2021-03-18)
+## [3.0.1-rc.78](https://github.com/tradle/mycloud/compare/v3.0.1-rc.77...v3.0.1-rc.78) (2021-03-21)
 
 
 ### Bug Fixes
 
-* typo and more logging ([fa81708](https://github.com/tradle/mycloud/commit/fa81708))
+* calculations ([e9e6d42](https://github.com/tradle/mycloud/commit/e9e6d42))
+* check for required for calculation props ([d51b311](https://github.com/tradle/mycloud/commit/d51b311))
 
 
 
