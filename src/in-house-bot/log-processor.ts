@@ -8,6 +8,7 @@ import isEmpty from 'lodash/isEmpty'
 import Errors from '../errors'
 import { StackUtils } from '../aws/stack-utils'
 import { TRADLE } from './constants'
+import { LOG_ALERTS_PROCESSOR_LAMBDA_NAME } from './deployment'
 import { sha256 } from '../crypto'
 import {
   Bot,
@@ -324,10 +325,12 @@ export const fromLambda = ({
     })
   }
 
+  const logAlertProcessorName = bot.env.getStackResourceName(LOG_ALERTS_PROCESSOR_LAMBDA_NAME)
+
   return new LogProcessor({
     // avoid infinite loop that would result from processing
     // this lambda's own log events
-    ignoreGroups: [lambda.name],
+    ignoreGroups: [lambda.name, logAlertProcessorName],
     store,
     sendAlert,
     logger,
