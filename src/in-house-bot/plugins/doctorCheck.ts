@@ -30,7 +30,7 @@ const { sanitize } = validateResource.utils
 const MONTHS = {ENERO: '01',FEBRERO: '02',MARZO: '03',ABRIL: '04',MAYO: '05',JUNIO: '06',
                 JULIO: '07', AGOSTO: '08',SEPTIEMBRE: '09',OCTUBRE: '10',NOVIEMBRE: '11',DICIEMBRE: '12'}
 const GOVERNMENTAL = 'governmental'
-const FORM_TYPE = 'com.leaseforu.ApplicantMedicalCertification'
+const FORM_TYPE =  'com.leaseforu.ApplicantMedicalCertification'
 const DOCTOR_NAME = 'medicalSpecialistName'
 const CERTIFICATE = 'medicalCertificateNumber'
 const SPECIALITY = 'medicalSpeciality'
@@ -68,7 +68,11 @@ export class DoctorCheckAPI {
     const certificate = form[CERTIFICATE]
     
     const name = form[DOCTOR_NAME].trim()
-    const use = name.split(' ').filter((a: string) => a).join(' ')
+    const tokens = name.split(' ').filter((a: string) => a)
+    if (tokens.length < 3 || tokens[0].length < 3 || tokens[1].length < 3 || tokens[2].length < 3) {
+      return {status: 'repeat', message: 'Por favor, brinda total nombre'}
+    }
+    const use = tokens.join(' ')
 
     const formData = new FormData() 
     formData.append('nombre', use)
@@ -88,21 +92,34 @@ export class DoctorCheckAPI {
     }
 
     if (result.lista) {
-      this.logger.debug(JSON.stringify(result, null, 2))
-      for (const entry of result.lista.datos) {
-        if (entry.ncert === certificate) {
-          if (this.isValid(entry.VALIDO))
-            return {status: 'pass', rawData: entry}
-          else
-            return {status: 'fail', message: 'certificado es expirado', rawData: entry}  
+      // this.logger.debug(JSON.stringify(result, null, 2))
+      if (certificate) {
+        for (const entry of result.lista.datos) {
+          if (entry.ncert === certificate) {
+            return result(entry)
+          }
         }
-      }   
-      return {status: 'fail', message: 'incorrecto certificado'}
+        return {status: 'fail', message: 'incorrecto certificado'}
+      } else if (result.lista.datos.length > 1) {
+        return {status: 'repeat', message: 'se encuentra más que una entrada, brinda certificado'}  
+      } else {  
+        for (const entry of result.lista.datos) {
+          return result(entry)
+        }
+      }  
     } else {
       this.logger.debug(result.mensaje)
       return {status: 'fail', message: 'desconocido nombre'}
     }  
-  } 
+  }
+  
+  private result(entry: any) {
+    if (this.isValid(entry.VALIDO))
+      return {status: 'pass', rawData: entry}
+    else
+      return {status: 'fail', message: 'certificado es expirado', rawData: entry}  
+  }
+
   public createCheck = async ({ application, status, form, req }: ICredencialsCheck) => {
     let resource: any = {
       [TYPE]: DOCUMENT_CHECKER_CHECK,
@@ -138,12 +155,12 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
  
   const plugin: IPluginLifecycleMethods = {
     validateForm: async ({ req }) => {
-      logger.debug('doctorCheck called onmessage')
+      logger.debug('doctorCheck called validateForm')
       // debugger
       if (req.skipChecks) return
       const { user, application, payload } = req
       if (!application) return
-      if (FORM_TYPE !== payload[TYPE] || !payload[DOCTOR_NAME] || !payload[CERTIFICATE]) return
+      if (FORM_TYPE !== payload[TYPE] || !payload[DOCTOR_NAME]) return
       
       let toCheck = await doesCheckNeedToBeCreated({
         bot,
@@ -151,24 +168,53 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         application,
         provider: PROVIDER,
         form: payload,
-        propertiesToCheck: [DOCTOR_NAME, CERTIFICATE],
+        propertiesToCheck: [DOCTOR_NAME],
         prop: 'form',
         req
       })
       if (!toCheck) {
         return
       }
-
+      logger.debug('doctorCheck lookup validateForm') 
       let status: any = await doctorCheckAPI.lookup(payload, application, req)
-
-      await doctorCheckAPI.createCheck({ application, status, form: payload, req })
-
-      if (status.status === 'pass') {
+      
+      if (status.status !== 'repeat')
+        await doctorCheckAPI.createCheck({ application, status, form: payload, req })
+      
+      if (status.status === 'repeat') {
         const payloadClone = _.cloneDeep(payload)
         payloadClone[PERMALINK] = payloadClone._permalink
         payloadClone[LINK] = payloadClone._link
+
+        // debugger
+        let formError: any = {
+          req,
+          user,
+          application
+        }
+
+        formError.details = {
+          prefill: payloadClone,
+          message: status.message
+        }
+
+        try {
+          await applications.requestEdit(formError)
+          return {
+            message: 'no request edit',
+            exit: true
+          }
+        } catch (err) {
+          debugger
+        }
+      } else if (status.status === 'pass') {
+        const payloadClone = _.cloneDeep(payload)
+        payloadClone[PERMALINK] = payloadClone._permalink
+        payloadClone[LINK] = payloadClone._link
+
         payloadClone[SPECIALITY] = status.rawData.espe
         payloadClone[VALIDITY] = status.rawData.VALIDO
+        if (!payload[CERTIFICATE]) payloadClone[CERTIFICATE] = status.rawData.ncert
 
         let formError: any = {
           req,
