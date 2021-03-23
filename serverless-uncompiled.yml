@@ -1193,10 +1193,12 @@ functions:
 
   logProcessor:
     handler: lib/in-house-bot/lambda/log-processor.handler
+    reservedConcurrency: 1
     # events added in compile phase
 
   logAlertProcessor:
     handler: lib/in-house-bot/lambda/log-alert-processor.handler
+    reservedConcurrency: 1
     # events added at runtime
 
   # shortToLongUrlMapping:
