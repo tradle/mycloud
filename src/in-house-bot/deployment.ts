@@ -153,8 +153,8 @@ const LOGGING_TOPIC_DELIVERY_POLICY = _.merge(UPDATE_STACK_TOPIC_DELIVERY_POLICY
 })
 
 const ON_CHILD_STACK_STATUS_CHANGED_LAMBDA_NAME = 'onChildStackStatusChanged'
-const LOG_PROCESSOR_LAMBDA_NAME = 'logProcessor'
-const LOG_ALERTS_PROCESSOR_LAMBDA_NAME = 'logAlertProcessor'
+export const LOG_PROCESSOR_LAMBDA_NAME = 'logProcessor'
+export const LOG_ALERTS_PROCESSOR_LAMBDA_NAME = 'logAlertProcessor'
 const createMappingsForUpdate = (adminEmail?: string) => ({
   org: utils.pickNonNull({
     init: {
