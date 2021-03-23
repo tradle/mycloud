@@ -12,7 +12,7 @@ lambda.use(async (ctx) => {
     processor = fromLambda({ lambda, components })
     bot.hook(bot.events.topics.logging.logs, async (ctx, next) => {
       ctx.event = await processor.parseLogEvent(ctx.event)
-      await processor.handleLogEvent(ctx.event)
+      // await processor.handleLogEvent(ctx.event)
     })
   }
 

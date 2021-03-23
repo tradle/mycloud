@@ -2,18 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.72](https://github.com/tradle/mycloud/compare/v3.0.1-rc.71...v3.0.1-rc.72) (2021-02-09)
+## [3.0.1-rc.79](https://github.com/tradle/mycloud/compare/v3.0.1-rc.78...v3.0.1-rc.79) (2021-03-22)
 
 
 ### Bug Fixes
 
-* changes in configuration format ([1246a04](https://github.com/tradle/mycloud/commit/1246a04))
-
-
-### Features
-
-* new annotations to models props ([404b941](https://github.com/tradle/mycloud/commit/404b941))
-* save provider configuration on request if present ([bc3a892](https://github.com/tradle/mycloud/commit/bc3a892))
+* temporarily disable logging ([9295fc5](https://github.com/tradle/mycloud/commit/9295fc5))
 
 
 
