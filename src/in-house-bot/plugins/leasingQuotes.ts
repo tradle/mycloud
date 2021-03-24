@@ -4,16 +4,15 @@ import extend from 'lodash/extend'
 
 import { 
   CreatePlugin, 
-  IPBReq, 
   Bot,
   Logger,
   Applications,
   IPluginLifecycleMethods, 
-  ValidatePluginConf } from '../types'
+  ValidatePluginConf 
+} from '../types'
 import { TYPE } from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
 import { getLatestForms } from '../utils'
-import { AnyLengthString } from 'aws-sdk/clients/comprehend'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 const QUOTATION = 'quotation'
