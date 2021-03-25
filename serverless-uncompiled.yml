@@ -1198,7 +1198,7 @@ functions:
 
   logAlertProcessor:
     handler: lib/in-house-bot/lambda/log-alert-processor.handler
-    reservedConcurrency: 1
+    reservedConcurrency: 2
     # events added at runtime
 
   # shortToLongUrlMapping:
