@@ -2,12 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.79](https://github.com/tradle/mycloud/compare/v3.0.1-rc.78...v3.0.1-rc.79) (2021-03-22)
+## [3.0.1-rc.80](https://github.com/tradle/mycloud/compare/v3.0.1-rc.79...v3.0.1-rc.80) (2021-03-25)
 
 
 ### Bug Fixes
 
-* temporarily disable logging ([9295fc5](https://github.com/tradle/mycloud/commit/9295fc5))
+* do not allow recurrent alerts ([9ab3404](https://github.com/tradle/mycloud/commit/9ab3404))
+* do not allow recurrent alerts ([6721743](https://github.com/tradle/mycloud/commit/6721743))
+
+
+### Features
+
+* added reservedConcurrency ([d5b2787](https://github.com/tradle/mycloud/commit/d5b2787))
+* set reservedConcurrency ([9572f9a](https://github.com/tradle/mycloud/commit/9572f9a))
+* validate-model upgrade ([8e31348](https://github.com/tradle/mycloud/commit/8e31348))
 
 
 
