@@ -30,7 +30,7 @@ const { sanitize } = validateResource.utils
 const MONTHS = {ENERO: '01',FEBRERO: '02',MARZO: '03',ABRIL: '04',MAYO: '05',JUNIO: '06',
                 JULIO: '07', AGOSTO: '08',SEPTIEMBRE: '09',OCTUBRE: '10',NOVIEMBRE: '11',DICIEMBRE: '12'}
 const GOVERNMENTAL = 'governmental'
-const FORM_TYPE =  'com.leaseforu.ApplicantMedicalCertification'
+const FORM_TYPE =  'com.svb.ApplicantMedicalCertification' // 'com.leaseforu.ApplicantMedicalCertification'
 const DOCTOR_NAME = 'medicalSpecialistName'
 const CERTIFICATE = 'medicalCertificateNumber'
 const SPECIALITY = 'medicalSpeciality'
@@ -96,15 +96,22 @@ export class DoctorCheckAPI {
       if (certificate) {
         for (const entry of result.lista.datos) {
           if (entry.ncert === certificate) {
-            return result(entry)
+            return this.match(entry)
           }
         }
-        return {status: 'fail', message: 'incorrecto certificado'}
+        if (result.lista.datos.length === 1) {
+          const errors = []
+          errors.push({ name: CERTIFICATE, error: 'es su entrada?' })
+          const message = `Certificado fue incorrecto, revisa datos`
+          return {status: 'fail', message, rawData: result.lista.datos[0], errors}
+        } else {
+          return {status: 'repeat', message: 'se encuentra más que una entrada, nada para su certificado'} 
+        }
       } else if (result.lista.datos.length > 1) {
         return {status: 'repeat', message: 'se encuentra más que una entrada, brinda certificado'}  
       } else {  
         for (const entry of result.lista.datos) {
-          return result(entry)
+          return this.match(entry)
         }
       }  
     } else {
@@ -113,7 +120,7 @@ export class DoctorCheckAPI {
     }  
   }
   
-  private result(entry: any) {
+  private match(entry: any) {
     if (this.isValid(entry.VALIDO))
       return {status: 'pass', rawData: entry}
     else
@@ -168,7 +175,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         application,
         provider: PROVIDER,
         form: payload,
-        propertiesToCheck: [DOCTOR_NAME],
+        propertiesToCheck: [DOCTOR_NAME, CERTIFICATE],
         prop: 'form',
         req
       })
@@ -207,6 +214,37 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         } catch (err) {
           debugger
         }
+      } else if (status.status === 'fail' && status.errors) {
+        const payloadClone = _.cloneDeep(payload)
+        payloadClone[PERMALINK] = payloadClone._permalink
+        payloadClone[LINK] = payloadClone._link
+
+        payloadClone[SPECIALITY] = status.rawData.espe
+        payloadClone[VALIDITY] = status.rawData.VALIDO
+        if (!payload[CERTIFICATE]) payloadClone[CERTIFICATE] = status.rawData.ncert
+
+        // debugger
+        let formError: any = {
+          req,
+          user,
+          application
+        }
+
+        formError.details = {
+          prefill: payloadClone,
+          message: status.message
+        }
+        const errors = status.errors
+        _.extend(formError.details, { errors })
+        try {
+          await applications.requestEdit(formError)
+          return {
+            message: 'no request edit',
+            exit: true
+          }
+        } catch (err) {
+          debugger
+        } 
       } else if (status.status === 'pass') {
         const payloadClone = _.cloneDeep(payload)
         payloadClone[PERMALINK] = payloadClone._permalink
