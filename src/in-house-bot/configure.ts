@@ -298,6 +298,8 @@ export class Conf {
       key: PRIVATE_CONF_BUCKET.myModelsPack
     })
 
+    await this.bot.signAndSave(modelsPack)
+
     await this.modelsPack.putIfDifferent(modelsPack)
   }
 
