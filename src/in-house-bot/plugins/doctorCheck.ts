@@ -96,15 +96,22 @@ export class DoctorCheckAPI {
       if (certificate) {
         for (const entry of result.lista.datos) {
           if (entry.ncert === certificate) {
-            return result(entry)
+            return this.match(entry)
           }
         }
-        return {status: 'fail', message: 'incorrecto certificado'}
+        if (result.lista.datos.length > 1) {
+          return {status: 'repeat', message: 'se encuentra más que una entrada, brinda certificado'} 
+        }
+        else {
+          const errors = [{ name: CERTIFICATE, error: 'Es su entrada?' }]
+          const message = `Por favor, revisa/correcta`
+          return {status: 'fail', message, errors, rawData: result.lista.datos[0]}
+        }
       } else if (result.lista.datos.length > 1) {
         return {status: 'repeat', message: 'se encuentra más que una entrada, brinda certificado'}  
       } else {  
         for (const entry of result.lista.datos) {
-          return result(entry)
+          return this.match(entry)
         }
       }  
     } else {
@@ -113,7 +120,7 @@ export class DoctorCheckAPI {
     }  
   }
   
-  private result(entry: any) {
+  private match(entry: any) {
     if (this.isValid(entry.VALIDO))
       return {status: 'pass', rawData: entry}
     else
@@ -168,7 +175,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         application,
         provider: PROVIDER,
         form: payload,
-        propertiesToCheck: [DOCTOR_NAME],
+        propertiesToCheck: [DOCTOR_NAME, CERTIFICATE],
         prop: 'form',
         req
       })
@@ -207,7 +214,42 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         } catch (err) {
           debugger
         }
+      } else if (status.status === 'fail' && status.errors) {
+        const payloadClone = _.cloneDeep(payload)
+        payloadClone[PERMALINK] = payloadClone._permalink
+        payloadClone[LINK] = payloadClone._link
+        
+        payloadClone[SPECIALITY] = status.rawData.espe
+        payloadClone[VALIDITY] = status.rawData.VALIDO
+        
+        // debugger
+        let formError: any = {
+          req,
+          user,
+          application
+        }
+
+        formError.details = {
+          prefill: payloadClone,
+          message: status.message
+        }
+        const errors = status.errors
+        _.extend(formError.details, { errors })
+
+        try {
+          await applications.requestEdit(formError)
+          return {
+            message: 'no request edit',
+            exit: true
+          }
+        } catch (err) {
+          debugger
+        }
       } else if (status.status === 'pass') {
+        if (payload[SPECIALITY] === status.rawData.espe &&
+            payload[VALIDITY] === status.rawData.VALIDO) {
+          return
+        }
         const payloadClone = _.cloneDeep(payload)
         payloadClone[PERMALINK] = payloadClone._permalink
         payloadClone[LINK] = payloadClone._link
