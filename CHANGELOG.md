@@ -2,7 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.81](https://github.com/tradle/mycloud/compare/v3.0.1-rc.80...v3.0.1-rc.81) (2021-03-25)
+## [3.0.1-rc.82](https://github.com/tradle/mycloud/compare/v3.0.1-rc.81...v3.0.1-rc.82) (2021-03-29)
+
+
+### Bug Fixes
+
+* save modelsPack when deploying ([256241a](https://github.com/tradle/mycloud/commit/256241a))
 
 
 
