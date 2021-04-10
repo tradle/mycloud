@@ -34,6 +34,7 @@ interface IBuroCheckConf {
   username: string
   password: string
   authorization: string
+  path: string
   trace?: boolean
 }
 
@@ -123,7 +124,7 @@ export class BuroCheckAPI {
     const options = {
       hostname: 'lablz.com',
       port: 443,
-      path: '/',
+      path: this.conf.path,
       method: 'POST',
       rejectUnauthorized: false,
       headers: {
@@ -329,5 +330,8 @@ export const validateConf: ValidatePluginConf = async ({
   }
   if (!pluginConf.password || typeof pluginConf.password != 'string') {
     throw new Errors.InvalidInput(`property 'password' is not set`)
+  }
+  if (!pluginConf.path || typeof pluginConf.path != 'string') {
+    throw new Errors.InvalidInput(`property 'path' is not set`)
   }
 }
