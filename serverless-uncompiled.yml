@@ -1345,7 +1345,7 @@ resources:
     LogsTTL:
       Type: Number
       Description: days before logs are deleted from Amazon Glacier
-      Default: 1
+      Default: 10
 
     EncryptBuckets:
       Type: String
