@@ -256,6 +256,7 @@
     "pify": "^2.3.0",
     "promise-locker": "^1.0.0",
     "random-name": "^0.1.2",
+    "randomstring": "^1.1.5",
     "remap-keys": "^1.0.4",
     "segfault-handler": "^1.0.1",
     "serverless-http": "github:mvayngrib/serverless-http",
