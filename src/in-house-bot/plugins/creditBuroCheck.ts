@@ -1,7 +1,7 @@
 import xml2js from 'xml2js-parser'
 import nunjucks from 'nunjucks'
 import https from 'https'
-import cryptoRandomString from 'crypto-random-string'
+import randomString from 'randomstring'
 
 import {
   Bot,
@@ -115,7 +115,7 @@ export class BuroCheckAPI {
     const input = {
       username: this.conf.username,
       password: this.conf.password, 
-      reference: cryptoRandomString(25),
+      reference: randomString.generate({length: 25, charset: 'hex' }),  
       params
     }
 
