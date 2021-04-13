@@ -299,6 +299,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         params['rfc'] = info['rfc']? info['rfc'] : ''
       }
 
+      if (params['state']) {
+        params['state'] = params['state'].id.split('_')[1]
+      }
+
       logger.debug(`creditBuroCheck called for type ${payload[TYPE]}`)
      
       let r = await buroCheckAPI.lookup({
