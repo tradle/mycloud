@@ -2,12 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.82](https://github.com/tradle/mycloud/compare/v3.0.1-rc.81...v3.0.1-rc.82) (2021-03-29)
+## [3.0.1-rc.83](https://github.com/tradle/mycloud/compare/v3.0.1-rc.82...v3.0.1-rc.83) (2021-04-12)
 
 
-### Bug Fixes
+### Features
 
-* save modelsPack when deploying ([256241a](https://github.com/tradle/mycloud/commit/256241a))
+* increase the number of days to keep logs in glacier ([213a6a3](https://github.com/tradle/mycloud/commit/213a6a3))
+* new models ([bb92f02](https://github.com/tradle/mycloud/commit/bb92f02))
 
 
 
