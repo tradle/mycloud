@@ -143,12 +143,20 @@ export class BuroCheckAPI {
       if (this.conf.trace)
         this.logger.debug(JSON.stringify(jsonObj, null, 2))
       const rawData: any = jsonObj["soapenv:Envelope"]["soapenv:Body"]["ns2:consultaXMLResponse"].return.Personas.Persona
-      if (rawData.Error) {   
-        status = {
-          status: 'fail',
-          rawData,
-          message: 'no match found'
-        }
+      if (rawData.Error) {
+        if (rawData.Error.UR.PasswordOClaveErronea || 
+            rawData.Error.UR.ErrorSistemaBuroCredito)
+          status = {
+            status: 'error',
+            rawData,
+            message: 'username or password error'
+          }
+        else   
+          status = {
+            status: 'fail',
+            rawData,
+            message: 'no match found'
+          }
       } else {
         status = {
           status: 'pass',
@@ -242,7 +250,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         let changed = await hasPropertiesChanged({
             resource: payload,
             bot: this.bot,
-            propertiesToCheck: ['paternalName', 'maternalName', 'firstName', 'rfc'],
+            propertiesToCheck: ['paternalName', 'maternalName', 'firstName', 'secondName', 'rfc'],
             req
         })
         if (!changed) {
@@ -266,6 +274,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         params['paternalName'] = payload['paternalName']? payload['paternalName'] : ''
         params['maternalName'] = payload['maternalName']? payload['maternalName'] : ''
         params['firstName'] = payload['firstName']? payload['firstName'] : ''
+        params['secondName'] = payload['secondName']? payload['secondName'] : ''
         params['rfc'] = payload['rfc']? payload['rfc'] : ''
       }
       else if (APPLICANT_ADDR_TYPE == payload[TYPE]) {
@@ -296,6 +305,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         params['paternalName'] = info['paternalName']? info['paternalName'] : ''
         params['maternalName'] = info['maternalName']? info['maternalName'] : ''
         params['firstName'] = info['firstName']? info['firstName'] : ''
+        params['secondName'] = info['secondName']? info['secondName'] : ''
         params['rfc'] = info['rfc']? info['rfc'] : ''
       }
 
