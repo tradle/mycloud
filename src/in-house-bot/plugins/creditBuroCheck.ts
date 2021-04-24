@@ -120,7 +120,9 @@ export class BuroCheckAPI {
     }
 
     const data = nunjucks.renderString(TEMPLATE, input)
-
+    if (this.conf.trace)
+      this.logger.debug(data)
+    
     const options = {
       hostname: 'lablz.com',
       port: 443,
