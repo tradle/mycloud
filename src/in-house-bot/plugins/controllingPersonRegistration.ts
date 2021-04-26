@@ -655,7 +655,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         return
       }
       if (ptype === REUSE_CHECK_OVERRIDE && application.notifications) {
-        cp.reachOut({ payload, application, rules })
+        await cp.reachOut({ payload, application, rules })
         return
       }
       if (ptype === CE_NOTIFICATION) {
