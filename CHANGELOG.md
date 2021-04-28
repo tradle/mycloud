@@ -2,12 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.85](https://github.com/tradle/mycloud/compare/v3.0.1-rc.84...v3.0.1-rc.85) (2021-04-26)
+## [3.0.1-rc.86](https://github.com/tradle/mycloud/compare/v3.0.1-rc.85...v3.0.1-rc.86) (2021-04-28)
 
 
 ### Bug Fixes
 
-* typo ([86cf120](https://github.com/tradle/mycloud/commit/86cf120))
+* minor fix ([574ead2](https://github.com/tradle/mycloud/commit/574ead2))
+
+
+### Features
+
+* make it more generic ([7d62f0b](https://github.com/tradle/mycloud/commit/7d62f0b))
+* new plugin ([f8c6625](https://github.com/tradle/mycloud/commit/f8c6625))
 
 
 
