@@ -251,7 +251,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (APPLICANT_INFO_TYPE == payload[TYPE]) {
         let changed = await hasPropertiesChanged({
             resource: payload,
-            bot: this.bot,
+            bot,
             propertiesToCheck: ['paternalName', 'maternalName', 'firstName', 'secondName', 'rfc'],
             req
         })
@@ -282,7 +282,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       else if (APPLICANT_ADDR_TYPE == payload[TYPE]) {
         let changed = await hasPropertiesChanged({
             resource: payload,
-            bot: this.bot,
+            bot,
             propertiesToCheck: ['street', 'number', 'neighborhood', 'city', 'state', 'zip'],
             req
         })
