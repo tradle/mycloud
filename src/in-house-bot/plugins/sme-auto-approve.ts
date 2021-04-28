@@ -210,6 +210,8 @@ export class TreeBuilder {
     let { top, parent, associatedResource } = application
 
     let topApp = await this.bot.getLatestResource(top)
+    if (!topApp.tree) return
+ 
     // debugger
     let node
     let nodes
