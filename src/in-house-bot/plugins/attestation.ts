@@ -128,7 +128,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       let { models } = bot
       forms = forms.filter(f => !exclude.includes(f.submission[TYPE])  &&
                            f.submission[TYPE] !== associatedResource[TYPE] &&
-                           isSubClassOf(FORM, models[f[TYPE]], models))
+                           isSubClassOf(FORM, models[f.submission[TYPE]], models))
       const { properties } = bot.models[associatedResource[TYPE]]
       // HACK for CO
       if (properties.isSeniorManager) {
