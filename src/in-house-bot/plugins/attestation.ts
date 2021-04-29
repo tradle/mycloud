@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { TYPE } from '@tradle/constants'
+import { TYPE, TYPES } from '@tradle/constants'
 import { title as getDisplayName } from '@tradle/build-resource'
 import {
   CreatePlugin,
@@ -11,6 +11,9 @@ import {
   Logger,
   Bot
 } from '../types'
+import { isSubClassOf } from '../utils'
+
+const { FORM } = TYPES
 
 const ATTESTATION = 'tradle.Attestation'
 const ATTESTATION_ITEM = 'tradle.AttestationItem'
@@ -27,6 +30,7 @@ const exclude = [
   'tradle.NextFormRequest',
   'tradle.Verification',
   'tradle.TermsAndConditions',
+  'tradle.ApplicationSubmitted',
   'tradle.FormError'
 ]
 
@@ -121,11 +125,18 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         parent = await bot.getResource(parent, { backlinks: ['forms', 'notifications'] })
       debugger
       let { forms } = parent
-      forms = forms.filter(f => !exclude.includes(f.submission[TYPE]))
-      associatedResource = await bot.getLatestResource(associatedResource)
-      if (!associatedResource.isSeniorManager) return
+      let { models } = bot
+      forms = forms.filter(f => !exclude.includes(f.submission[TYPE])  &&
+                           f.submission[TYPE] !== associatedResource[TYPE] &&
+                           isSubClassOf(FORM, models[f.submission[TYPE]], models))
+      const { properties } = bot.models[associatedResource[TYPE]]
+      // HACK for CO
+      if (properties.isSeniorManager) {
+        associatedResource = await bot.getLatestResource(associatedResource)
+        if (!associatedResource.isSeniorManager) return
+      }
 
-      forms.sort((a, b) => b._time - a._time)
+      // forms.sort((a, b) => b._time - a._time)
       forms = forms.map(f => f.submission)
       forms = _.uniqBy(forms, '_permalink')
 

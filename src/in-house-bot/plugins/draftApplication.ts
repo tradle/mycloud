@@ -4,6 +4,7 @@ import { TYPE } from '@tradle/constants'
 import { sendConfirmationEmail } from '../email-utils'
 
 export const name = 'draftApplication'
+
 const APPLICATION = 'tradle.Application'
 const PRODUCT_BUNDLE = 'tradle.ProductBundle'
 const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
@@ -67,6 +68,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       debugger
       let { forms } = applicationWithForms
       if (!forms.length) return
+      let models = bot.models
       forms = forms
         .map(submission => submission.submission)
         .filter(form => !exclude.includes(form[TYPE]))
@@ -76,7 +78,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       forms = await Promise.all(forms.map(form => bot.getResource(form)))
       let items = []
-      let models = bot.models
       let keepProperties = ['_t']
       forms = _.uniqBy(forms, '_permalink')
 
