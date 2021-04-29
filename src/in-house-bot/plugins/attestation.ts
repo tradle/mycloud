@@ -126,8 +126,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       debugger
       let { forms } = parent
       let { models } = bot
-      forms = forms.filter(f => !exclude.includes(f.submission[TYPE])  &&  
-                           f.submission[TYPE] !== associatedResource[TYPE] && 
+      forms = forms.filter(f => !exclude.includes(f.submission[TYPE])  &&
+                           f.submission[TYPE] !== associatedResource[TYPE] &&
                            !isSubClassOf(FORM, models[f[TYPE]], models))
       const { properties } = bot.models[associatedResource[TYPE]]
       // HACK for CO
@@ -136,7 +136,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         if (!associatedResource.isSeniorManager) return
       }
 
-      forms.sort((a, b) => b._time - a._time)
+      // forms.sort((a, b) => b._time - a._time)
       forms = forms.map(f => f.submission)
       forms = _.uniqBy(forms, '_permalink')
 
