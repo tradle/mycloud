@@ -18,6 +18,8 @@ import {
 
 import Errors from '../../errors'
 import validateResource from '@tradle/validate-resource'
+import { buildResourceStub } from '@tradle/build-resource'
+
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
@@ -48,6 +50,19 @@ interface IBuroCheck {
 const CREDIT_CHECK = 'tradle.CreditReportIndividualCheck'
 const APPLICANT_INFO_TYPE = 'com.leaseforu.ApplicantInformation'
 const APPLICANT_ADDR_TYPE = 'com.leaseforu.ApplicantAddress'
+
+const CB_SUBJECT = "com.leaseforu.CreditBureauIndividualSubject"
+const CB_ADDRESS = "com.leaseforu.CreditBureauIndividualAddresses"
+const CB_ACCOUNT = "com.leaseforu.CreditBureauIndividualAccounts"
+const CB_EMPLOYMENT = "com.leaseforu.CreditBureauIndividualEmployment"
+const CB_INQUIRY  = "com.leaseforu.CreditBureauIndividualInquiries"
+const CB_REPORT = "com.leaseforu.CreditBureauIndividualSummaryReport"
+const CB_SCORE = "com.leaseforu.CreditBureauIndividualCreditScore"
+const CB_HAWKALERT = "com.leaseforu.CreditBureauIndividualHawkAlertData"
+const CB_VALIDATION = "com.leaseforu.CreditBureauIndividualHawkAlertValidation"
+
+const SUBJECT = 'subject'
+
 
 const PROVIDER = 'ConsultaBCC'
 const ASPECTS = 'Credit validity'
@@ -129,6 +144,7 @@ export class BuroCheckAPI {
       path: this.conf.path,
       method: 'POST',
       rejectUnauthorized: false,
+      timeout: 6000,
       headers: {
         Authorization: this.conf.authorization,
         'Content-Type': 'text/xml; charset=UTF-8',
@@ -191,12 +207,116 @@ export class BuroCheckAPI {
     if (status.message) resource.resultDetails = status.message
     if (status.rawData) {
       resource.rawData = sanitize(status.rawData).sanitized
+      if (status.status === 'pass')
+        resource.creditReport = await this.buildSubjectInfo(resource.rawData)
     }
 
     this.logger.debug(`${PROVIDER} creating CreditReportIndividualCheck`)
     await this.applications.createCheck(resource, req)
     this.logger.debug(`${PROVIDER} created CreditReportIndividualCheck`)
   }
+
+  buildSubjectInfo = async (rawData: any): Promise<any> => {
+    const name = rawData.Nombre
+    const subject = this.createResources(name, CB_SUBJECT)[0]
+    const savedSubject = await this.saveResource(CB_SUBJECT, subject)
+    const topStub = buildResourceStub({ resource: savedSubject.resource })
+    
+    const promises = []
+    const addresses: any[] = rawData.Domicilios.Domicilio
+    const addrs: any[] = this.createResources(addresses, CB_ADDRESS)
+    for (const obj of addrs) {
+      obj[SUBJECT] = topStub
+      promises.push(this.saveResource(CB_ADDRESS, obj))
+    }
+ 
+    const accounts: any[] = rawData.Cuentas.Cuenta
+    const accs: any[] = this.createResources(accounts, CB_ACCOUNT)
+    for (const obj of accs) {
+      obj[SUBJECT] = topStub
+      promises.push(this.saveResource(CB_ACCOUNT, obj))
+    }
+  
+    const employments: any[] = rawData.Empleos.Empleo
+    const empl = this.createResources(employments, CB_EMPLOYMENT)
+    for (const obj of empl) {
+      obj[SUBJECT] = topStub
+      promises.push(this.saveResource(CB_EMPLOYMENT, obj))
+    }
+        
+    const inquires: any[] = rawData.ConsultasEfectuadas.ConsultaEfectuada
+    const inqrs: any[] = this.createResources(inquires, CB_INQUIRY)
+    for (const obj of inqrs) {
+      obj[SUBJECT] = topStub
+      promises.push(this.saveResource(CB_INQUIRY, obj))
+    }
+        
+    const report: any = rawData.ResumenReporte.ResumenReporte 
+    const rep = this.createResources(report, CB_REPORT)
+    for (const obj of rep) {
+      obj[SUBJECT] = topStub
+      promises.push(this.saveResource(CB_REPORT, obj))
+    }
+    
+    const alertBD: any = rawData.HawkAlertBD.HawkAlertBD
+    const alsBD: any[] = this.createResources(alertBD, CB_HAWKALERT)
+    for (const obj of alsBD) {
+      obj[SUBJECT] = topStub
+      promises.push(this.saveResource(CB_HAWKALERT, obj))
+    }
+    
+    const alerts: any = rawData.HawkAlertConsulta.HawkAlertC
+    const alsC = this.createResources(alerts, CB_VALIDATION)
+    for (const obj of alsC) {
+      obj[SUBJECT] = topStub
+      promises.push(this.saveResource(CB_VALIDATION, obj))
+    }
+
+    if (rawData.ScoreBuroCredito && typeof rawData.ScoreBuroCredito === 'object') {
+      const scores: any  = rawData.ScoreBuroCredito.ScoreBC
+      const scs: any[] = this.createResources(scores, CB_SCORE)
+      for (const obj of scs) {
+        obj[SUBJECT] = topStub
+        promises.push(this.saveResource(CB_SCORE, obj))
+      }
+    }
+
+    await Promise.all(promises)
+    
+    return savedSubject.resource
+  }
+
+  createResources = (something: any, fromType: string) : any[] => {
+    const resources = []
+    if (!something || typeof something === 'string') return
+
+    let props = this.bot.models[fromType].properties;
+    
+    if (something instanceof Array) {
+      for (const from of something) {
+        resources.push(this.createResource(from, fromType, props))
+      } 
+    } else {
+      resources.push(this.createResource(something, fromType, props))
+    }
+    return resources
+  }
+
+  createResource = (from: any, fromType: string, props: any[]) : any => {
+    const resource = {}
+    for (let p in props) {
+      const value = from[props[p].description]
+      if (value) resource[p] = value
+    }
+    return resource
+  } 
+  saveResource = (resourceType: string, resource: any) => {
+    return this.bot
+      .draft({ type: resourceType })
+      .set(resource)
+      .signAndSave()
+  }
+
   httpRequest = (params: any, postData: string) => {
     return new Promise<string>(function (resolve, reject) {
       let req = https.request(params, function (res) {
@@ -231,6 +351,7 @@ export class BuroCheckAPI {
       req.end();
     })
   }
+  
 }  
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
@@ -251,7 +372,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (APPLICANT_INFO_TYPE == payload[TYPE]) {
         let changed = await hasPropertiesChanged({
             resource: payload,
-            bot: this.bot,
+            bot,
             propertiesToCheck: ['paternalName', 'maternalName', 'firstName', 'secondName', 'rfc'],
             req
         })
@@ -282,7 +403,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       else if (APPLICANT_ADDR_TYPE == payload[TYPE]) {
         let changed = await hasPropertiesChanged({
             resource: payload,
-            bot: this.bot,
+            bot,
             propertiesToCheck: ['street', 'number', 'neighborhood', 'city', 'state', 'zip'],
             req
         })
