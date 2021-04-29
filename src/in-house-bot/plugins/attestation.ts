@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { TYPE } from '@tradle/constants'
+import { TYPE, TYPES } from '@tradle/constants'
 import { title as getDisplayName } from '@tradle/build-resource'
 import {
   CreatePlugin,
@@ -11,6 +11,9 @@ import {
   Logger,
   Bot
 } from '../types'
+import { isSubClassOf } from '../utils'
+
+const { FORM } = TYPES
 
 const ATTESTATION = 'tradle.Attestation'
 const ATTESTATION_ITEM = 'tradle.AttestationItem'
@@ -122,7 +125,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         parent = await bot.getResource(parent, { backlinks: ['forms', 'notifications'] })
       debugger
       let { forms } = parent
-      forms = forms.filter(f => !exclude.includes(f.submission[TYPE])  &&  f.submission[TYPE] !== associatedResource[TYPE])
+      let { models } = bot
+      forms = forms.filter(f => !exclude.includes(f.submission[TYPE])  &&  
+                           f.submission[TYPE] !== associatedResource[TYPE] && 
+                           !isSubClassOf(FORM, models[f[TYPE]], models))
       const { properties } = bot.models[associatedResource[TYPE]]
       // HACK for CO
       if (properties.isSeniorManager) {
