@@ -17,6 +17,7 @@ import Errors from '../../errors'
 import { TYPE } from '../../constants'
 // import { useRealSES } from '../../aws/config'
 
+import { title as getDisplayName } from '@tradle/build-resource'
 import { hasPropertiesChanged, getEnumValueId } from '../utils'
 import { appLinks } from '../../app-links'
 // import { SMSBasedVerifier } from '../sms-based-verifier'
@@ -355,7 +356,14 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       //   return
       // }
       let pConf = products[productId][ptype]
-      if (!pConf ||  !pConf.onboardingApplication) return
+      
+      if (!pConf ||  !pConf.onboardingApplication) {
+        // HACK
+        if (!application.applicantName  &&  ptype.endsWith('ApplicantInformation')) 
+          application.applicantName = getDisplayName({ models, model: models[payload[TYPE]], resource: payload })
+        
+        return
+      }
       let emailAddress = pConf.emailAddress || 'emailAddress'
       if (!payload[emailAddress]) {
         logger.error(`controlling person: no email address and no phone provided`)
