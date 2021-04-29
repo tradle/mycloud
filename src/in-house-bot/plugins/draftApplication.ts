@@ -1,9 +1,12 @@
 import _ from 'lodash'
 import { Bot, Logger, CreatePlugin, IPluginLifecycleMethods } from '../types'
-import { TYPE } from '@tradle/constants'
+import { TYPE, TYPES } from '@tradle/constants'
 import { sendConfirmationEmail } from '../email-utils'
+import { isSubClassOf } from '../utils'
 
 export const name = 'draftApplication'
+
+const { FORM } = TYPES
 const APPLICATION = 'tradle.Application'
 const PRODUCT_BUNDLE = 'tradle.ProductBundle'
 const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
@@ -67,16 +70,16 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       debugger
       let { forms } = applicationWithForms
       if (!forms.length) return
+      let models = bot.models
       forms = forms
         .map(submission => submission.submission)
-        .filter(form => !exclude.includes(form[TYPE]))
+        .filter(form => !exclude.includes(form[TYPE])  &&  !isSubClassOf(FORM, models[form[TYPE]], models))
 
       let f = forms.find(form => productMap[form[TYPE]])  
       if (!f) return
 
       forms = await Promise.all(forms.map(form => bot.getResource(form)))
       let items = []
-      let models = bot.models
       let keepProperties = ['_t']
       forms = _.uniqBy(forms, '_permalink')
 
