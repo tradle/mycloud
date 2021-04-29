@@ -2,14 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.90](https://github.com/tradle/mycloud/compare/v3.0.1-rc.89...v3.0.1-rc.90) (2021-04-29)
+## [3.0.1-rc.91](https://github.com/tradle/mycloud/compare/v3.0.1-rc.90...v3.0.1-rc.91) (2021-04-29)
 
 
 ### Bug Fixes
 
-* filter out non forms from bundle ([e45b271](https://github.com/tradle/mycloud/commit/e45b271))
-* filter out non forms from bundle ([4d2682e](https://github.com/tradle/mycloud/commit/4d2682e))
-* filter out non forms from bundle ([2c0c65a](https://github.com/tradle/mycloud/commit/2c0c65a))
+* filtering forms bug ([4a273ec](https://github.com/tradle/mycloud/commit/4a273ec))
 
 
 
