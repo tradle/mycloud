@@ -28,6 +28,7 @@ const exclude = [
   'tradle.ProductRequest',
   FORM_REQUEST,
   'tradle.NextFormRequest',
+  'tradle.AssignRelationshipManager',
   'tradle.Verification',
   'tradle.TermsAndConditions',
   'tradle.ApplicationSubmitted',
