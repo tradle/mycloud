@@ -154,6 +154,13 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
       return await list(listOpts)
     }
 
+    if (backlink.target[propertyName]) {
+      let promises = backlink.target[propertyName].map(r => db.get(r))
+      return {
+        items: await Promise.all(promises)
+      }
+    }
+      
     const container = await backlinks.getBacklinks({
       type: backlink.target[TYPE],
       permalink: backlink.target._permalink,

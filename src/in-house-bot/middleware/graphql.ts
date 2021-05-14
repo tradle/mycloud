@@ -136,7 +136,7 @@ export const createMiddleware = (lambda: Lambda): Middleware => {
       }
       let exclude
       let userRoles = (masterUser || user).roles
-      if (userRoles.length  &&  userRoles.find(role => role.id.endsWith('_employee')))
+      if (userRoles  &&  userRoles.length  &&  userRoles.find(role => role.id.endsWith('_employee')))
       // if (employeeManager.isEmployee({user, masterUser}))
         exclude = 'clientUse'
       else
