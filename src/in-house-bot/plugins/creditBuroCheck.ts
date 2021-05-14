@@ -47,6 +47,7 @@ interface IBuroCheck {
   req: IPBReq
 }
 
+const SUMMARY = 'com.leaseforu.CreditBureauIndividualCreditSummary'
 const CREDIT_CHECK = 'tradle.CreditReportIndividualCheck'
 const APPLICANT_INFO_TYPE = 'com.leaseforu.ApplicantInformation'
 const APPLICANT_ADDR_TYPE = 'com.leaseforu.ApplicantAddress'
@@ -236,6 +237,9 @@ export class BuroCheckAPI {
       obj[SUBJECT] = topStub
       promises.push(this.saveResource(CB_ACCOUNT, obj))
     }
+    const sum: any = this.createSummary(accs)
+    sum[SUBJECT] = topStub
+    promises.push(this.saveResource(SUMMARY, sum))
   
     const employments: any[] = rawData.Empleos.Empleo
     const empl = this.createResources(employments, CB_EMPLOYMENT)
@@ -310,6 +314,52 @@ export class BuroCheckAPI {
     }
     return resource
   } 
+
+  createSummary = (accounts: any[]): any => {
+    const sum = {
+      openAccounts: 0,
+      openLimit: 0,
+      openMaximum: 0,
+      openBalance : 0,
+      openPayable: 0,
+      closedAccounts: 0,
+      closedLimit: 0,
+      closedMaximum: 0,
+      closedBalance: 0,
+      closedPayable: 0
+    }
+    for (let acc of accounts) {
+      if (!acc.accountClosingDate) {
+        sum.openAccounts += 1
+        sum.openLimit += acc.creditLimit? parseInt(acc.creditLimit): 0
+        sum.openMaximum += acc.maximumCredit? parseInt(acc.maximumCredit) : 0
+        sum.openPayable += acc.amountPayable? parseInt(acc.amountPayable): 0
+     
+        if (acc.currentBalance) {
+          const val = parseInt(acc.currentBalance.substring(0, acc.currentBalance.length-1))
+          if (acc.currentBalance.endsWith('+')) 
+            sum.openBalance += val
+          else
+            sum.openBalance -= val  
+        }  
+      } else {
+        sum.closedAccounts += 1
+        sum.closedLimit += acc.creditLimit? parseInt(acc.creditLimit): 0
+        sum.closedMaximum += acc.maximumCredit? parseInt(acc.maximumCredit): 0
+        sum.closedPayable += acc.amountPayable? parseInt(acc.amountPayable): 0
+
+        if (acc.currentBalance) {
+          const val = parseInt(acc.currentBalance.substring(0, acc.currentBalance.length-1))
+          if (acc.currentBalance.endsWith('+')) 
+            sum.closedBalance += val
+          else
+            sum.closedBalance -= val  
+        }  
+      }
+    }
+    return sum
+  }
+
   saveResource = (resourceType: string, resource: any) => {
     return this.bot
       .draft({ type: resourceType })
