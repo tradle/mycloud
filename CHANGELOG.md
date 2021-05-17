@@ -2,19 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.92](https://github.com/tradle/mycloud/compare/v3.0.1-rc.91...v3.0.1-rc.92) (2021-05-16)
-
-
-### Bug Fixes
-
-* not all forms needs to be reviewed ([7ede868](https://github.com/tradle/mycloud/commit/7ede868))
-* user roles typo fix ([c49c8cc](https://github.com/tradle/mycloud/commit/c49c8cc))
-
-
-### Features
-
-* models upgrade ([d28db3f](https://github.com/tradle/mycloud/commit/d28db3f))
-* resolvers for special type of backlinks that were saved as inlined ([c31b675](https://github.com/tradle/mycloud/commit/c31b675))
+## [3.0.1-rc.93](https://github.com/tradle/mycloud/compare/v3.0.1-rc.92...v3.0.1-rc.93) (2021-05-17)
 
 
 
