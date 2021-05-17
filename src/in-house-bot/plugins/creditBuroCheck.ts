@@ -309,6 +309,7 @@ export class BuroCheckAPI {
   createResource = (from: any, fromType: string, props: any[]) : any => {
     const resource = {}
     for (let p in props) {
+      if (props[p].type === 'array') continue // skip backlink
       const value = from[props[p].description]
       if (value) resource[p] = value
     }
