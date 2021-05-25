@@ -729,6 +729,7 @@ export const loadComponentsAndPlugins = ({
       'interFormConditionals',
       'regulatorRegistration',
       'pscCheck',
+      'creditScoreReport',
       // needs to move
       'specialApproval',
       'riskScore',
