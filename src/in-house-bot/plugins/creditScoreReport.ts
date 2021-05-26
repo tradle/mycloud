@@ -7,6 +7,7 @@ import {
   IPluginLifecycleMethods,
   ValidatePluginConf,
   ITradleObject,
+  IWillJudgeAppArg,
   ITradleCheck,
   IPBApp,
   Applications,
@@ -107,13 +108,15 @@ export class ScoringReport {
     let { creditBureauScore, accountsPoints, checkStatusPoints } = await this.scoreFromCheck({ item: application, creditReport, check })
     const specialityCouncil = checkStatusPoints
 
-    let itemsScore = []
-    if (items)  {
+    // let itemsScore = []
+    let cosignerCreditBureauScore = 0
+    if (items) {
       items = await Promise.all(items.map(item => this.bot.getResource(item, {backlinks: ['checks']})))
-      for (let i=0; i<items.length; i++) {
-        let endorserScores = await this.scoreFromCheck({ item: items[i], isEndorser: true})
-        itemsScore.push(endorserScores)
-      }
+      // for (let i=0; i<items.length; i++) {
+      let cosignerScores = await this.scoreFromCheck({ item: items[0], isEndorser: true})
+      cosignerCreditBureauScore = cosignerScores.creditBureauScore
+        // itemsScore.push(cosignerScores)
+      // }
     }
     let qi = map[QUOTATION_INFORMATION]
     let qd = map[QUOTATION_DETAILS]
@@ -161,6 +164,7 @@ export class ScoringReport {
       relocationTime,
       assetType,
       leaseType,
+      cosignerCreditBureauScore,
       accounts: accountsPoints,
       totalScore: characterScore + paymentScore + assetScore,
       check
@@ -197,8 +201,6 @@ export class ScoringReport {
     if (check.status.id !== `${CHECK_STATUS}_pass`)
       return { checkStatusPoints: 0 }
 
-    let crAccounts = creditReport.accounts
-    if (!crAccounts  ||  !crAccounts.length) return
     let creditBureauScore = 0
     if (creditReport.creditScore && creditReport.creditScore.length) {
       let crCreditScore:any = await this.bot.getResource(creditReport.creditScore[0])
@@ -206,6 +208,10 @@ export class ScoringReport {
       let ecbScore = crCreditScore.scoreValue
       creditBureauScore = await this.calcScore(ecbScore, cbScoreMap)
     }
+    if (isEndorser)
+      return { creditBureauScore }
+    let crAccounts = creditReport.accounts
+    if (!crAccounts  ||  !crAccounts.length) return
     let accountsPoints =  await this.calcAccounts(crAccounts)
 
     return { creditBureauScore, accountsPoints, checkStatusPoints: 3 }
@@ -331,12 +337,22 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const { requestFor } = application
 
       if (!products                     ||
-          !products[requestFor]         ||
           !creditBuroScoreForApplicant  ||
           !creditBuroScoreForEndorser   ||
           !capacityToPay) return
 
-      let { forms:formList, resultForm } = products[requestFor]
+      let type = requestFor
+
+      // Check if it's the child application that is completed
+      // let app
+      // if (!products[type]) {
+      //   if (application.parentApplication) {
+      //     app = bot.getResource(application.parentApplication)
+      //     type = app.requestFor
+      //     if (!products[type]) return
+      //   }
+      // }
+      let { forms:formList, resultForm } = products[type]
       if (!formList  ||  !resultForm) return
 
       let checks = application.checks
@@ -376,7 +392,67 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       let reportResources = await Promise.all(stubs.map(s => bot.getResource(s)))
       await scoringReport.exec({ reportForms, resultForm, items, check, application })
-    }
+    },
+    // async didApproveApplication(opts: IWillJudgeAppArg, certificate: ITradleObject) {
+    //   let { application, user, req } = opts
+
+    //   if (!application || !req) return
+
+    //   if (!application.parentApplication) return
+
+    //   const { products, creditBuroScoreForApplicant, creditBuroScoreForEndorser, capacityToPay } = conf
+
+    //   if (!products                     ||
+    //       !creditBuroScoreForApplicant  ||
+    //       !creditBuroScoreForEndorser   ||
+    //       !capacityToPay) return
+
+    //   const app = bot.getResource(application.parentApplication, {backlinks: ['forms', 'checks']})
+    //   if (!products[app.requestFor]) return
+    //   let requestFor = app.requestFor
+
+    //   let { forms:formList, resultForm } = products.requestFor
+    //   if (!formList  ||  !resultForm) return
+
+    //   let params = this.getResourcesForScoring(application, formList)
+
+    //   await scoringReport.exec({ ...params, resultForm })
+    // },
+  //   async getResourcesForScoring(application) {
+  //     let checks = application.checks
+  //     if (!checks) return
+
+  //     let cChecks:any = checks.filter(check => check[TYPE] === CREDS_CHECK)
+  //     if (!cChecks) return
+
+  //     cChecks = await Promise.all(cChecks.map(c => bot.getResource(c)))
+  //     cChecks.sort((a, b) => b._time - a._time)
+
+  //     let forms = application.forms
+  //     if (!forms)
+  //       forms = application.submissions.filter(
+  //         s => bot.models[s.submission[TYPE]].subClassOf === 'tradle.Form'
+  //       )
+
+  //     let stubs:any = forms && forms.filter(form => formList.indexOf(form.submission[TYPE]) !== -1)
+  //     if (!stubs.length) return
+
+  //     stubs = stubs.map(s => s.submission)
+
+  //     let check = await bot.getResource(cChecks[0])
+  //     if (check.status.id !== `${CHECK_STATUS}_pass`) return
+
+  //     let reportForms = await Promise.all(stubs.map(s => bot.getResource(s)))
+
+  //     let items = application.items
+  //     if (!items) {
+  //       items = await scoringReport.getItems(application)
+  //       // if (!items) return
+  //     }
+
+  //     let reportResources = await Promise.all(stubs.map(s => bot.getResource(s)))
+  //     return { reportForms, items, check, application }
+  //   }
   }
 
   return { plugin }
@@ -390,16 +466,16 @@ export const validateConf: ValidatePluginConf = async ({
   conf: any
   pluginConf: any
 }) => {
-  if (!pluginConf) throw new Error(`there is no configuration for the plugin`)
+  if (!pluginConf) throw new Error(`there is no configuration`)
   const { products, creditBuroScoreForApplicant, creditBuroScoreForEndorser, capacityToPay, accountsScore } = pluginConf
-  if (!products) throw new Error(`there is no 'products' for the plugin`)
-  const { models } = bot.models
+  if (!products) throw new Error(`there is no 'products'`)
+  const { models } = bot
   for (let p in products) {
     if (!models[p])  throw new Error(`there is no model ${p}`)
-    const { forms, resultForm } = products
-    if (!forms)  throw new Error(`there is no 'forms' in 'products' in configuration for the plugin`)
-    // if (!resources)   new Error(`there is no 'resources' in 'products' in configuration for the plugin`)
-    if (!resultForm)  throw new Error(`there is no 'resultForm' in 'products' configuration for the plugin`)
+    const { forms, resultForm } = products[p]
+    if (!forms)  throw new Error(`there is no 'forms' for product ${p} in configuration`)
+    // if (!resources)   new Error(`there is no 'resources' in 'products' in configuration`)
+    if (!resultForm)  throw new Error(`there is no 'resultForm' in 'products' configuration`)
     let noModels = []
     forms.forEach(f => {
       if (!models[f]) noModels.push(f)
