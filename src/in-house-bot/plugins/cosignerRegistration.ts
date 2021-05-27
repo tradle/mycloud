@@ -26,7 +26,7 @@ import { appLinks } from '../../app-links'
 const SHORT_TO_LONG_URL_MAPPING = 'tradle.ShortToLongUrlMapping'
 const NEXT_FORM_REQUEST = 'tradle.NextFormRequest'
 const NOTIFICATION = 'tradle.Notification'
-
+const APPLICANT_INFORMATION = 'ApplicantInformation'
 const NOTIFICATION_PROVIDER = 'Tradle'
 
 const unitCoefMap = {
@@ -39,7 +39,7 @@ const DEAR_CUSTOMER = 'Dear Customer'
 const DEFAULT_SMS_GATEWAY = 'sns'
 type SMSGatewayName = 'sns'
 
-const GUARANTOR_MESSAGE = 'Endorser onboarding'
+const COSIGNER_MESSAGE = 'Cosigner onboarding'
 
 const DEFAULT_MESSAGE = 'Click below to complete your onboarding'
 
@@ -63,7 +63,7 @@ const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
   ],
   signature: '-{{orgName}} Team'
 }
-interface IEndorserRegistrationConf {
+interface ICosignerRegistrationConf {
   senderEmail?: string
   products: {
     [product: string]: []
@@ -135,11 +135,11 @@ interface ConfirmationEmailTemplateData {
   message?: string
 }
 
-class EndorserRegistrationAPI {
+class CosignerRegistrationAPI {
   private bot: Bot
   private logger: Logger
   private org: any
-  private conf: IEndorserRegistrationConf
+  private conf: ICosignerRegistrationConf
   private applications: Applications
   private senderEmail: string
   constructor({ bot, org, conf, logger, applications, senderEmail }) {
@@ -189,12 +189,12 @@ class EndorserRegistrationAPI {
         from: this.senderEmail, //this.conf.senderEmail,
         to: [email],
         format: 'html',
-        subject: `${GUARANTOR_MESSAGE} - ${resource.name || ''}`,
+        subject: `${COSIGNER_MESSAGE} - ${resource.name || ''}`,
         body
       })
     } catch (err) {
       Errors.rethrow(err, 'developer')
-      this.logger.error('failed to email guarantor', err)
+      this.logger.error('failed to email cosigner', err)
     }
   }
   public async sendLinkViaSMS({ resource, application, smsBasedVerifier }) {
@@ -240,7 +240,7 @@ class EndorserRegistrationAPI {
     })
   }
   public async checkRules({ application, forms, rules }) {
-    let notifyArr = await this.getGuarantors({ application, forms })
+    let notifyArr = await this.getCosigners({ application, forms })
     await this.doNotify({ notifyArr, rules, application })
   }
   public async reachOut({ payload, application, rules }) {
@@ -299,17 +299,17 @@ class EndorserRegistrationAPI {
       )
     )
   }
-  public getGuarantorsStubs(application, forms) {
+  public getCosignersStubs(application, forms) {
     let formIds = Object.keys(forms)
     let enStubs = application.forms.filter(stub => formIds.indexOf(stub.submission[TYPE]) !== -1)
     if (!enStubs.length) return
     enStubs = enStubs.map(stub => stub.submission).sort((a, b) => (b.time = a.time))
     return uniqBy(enStubs, '_permalink')
   }
-  public async getGuarantors({ application, stubs, forms }: { application: IPBApp; stubs?: any, forms: any }) {
-    if (!stubs) stubs = this.getGuarantorsStubs(application, forms)
-    let allEndorsers = await Promise.all(stubs.map(stub => this.bot.getResource(stub)))
-    return allEndorsers.filter((cp: any) => !cp.inactive)
+  public async getCosigners({ application, stubs, forms }: { application: IPBApp; stubs?: any, forms: any }) {
+    if (!stubs) stubs = this.getCosignersStubs(application, forms)
+    let allCosigners = await Promise.all(stubs.map(stub => this.bot.getResource(stub)))
+    return allCosigners.filter((cp: any) => !cp.inactive)
   }
   public getNotify({ rules, application }) {
     return DEFAULT_MAX_NOTIFY
@@ -323,7 +323,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
   const { org } = orgConf
   const botConf = orgConf.bot
   const senderEmail = conf.senderEmail || botConf.senderEmail
-  const endorserAPI = new EndorserRegistrationAPI({
+  const cosignerAPI = new CosignerRegistrationAPI({
     bot,
     conf,
     org,
@@ -348,20 +348,20 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (rules && ptype === NEXT_FORM_REQUEST) {
         let ftype = payload.after
         if (products[productId][ftype])
-          await endorserAPI.checkRules({ application, forms: products[productId], rules })
+          await cosignerAPI.checkRules({ application, forms: products[productId], rules })
         return
       }
       // if (ptype === REUSE_CHECK_OVERRIDE && application.notifications) {
-      //   await endorserAPI.reachOut({ payload, application, rules })
+      //   await cosignerAPI.reachOut({ payload, application, rules })
       //   return
       // }
       let pConf = products[productId][ptype]
-      
+
       if (!pConf ||  !pConf.onboardingApplication) {
         // HACK
-        if (!application.applicantName  &&  ptype.endsWith('ApplicantInformation')) 
+        if (!application.applicantName  &&  ptype.endsWith(APPLICANT_INFORMATION))
           application.applicantName = getDisplayName({ models, model: models[payload[TYPE]], resource: payload })
-        
+
         return
       }
       let emailAddress = pConf.emailAddress || 'emailAddress'
@@ -380,10 +380,10 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       )
         return
 
-      logger.debug('endorser registration: processing started') // for ${payload.emailAddress}`)
+      logger.debug('Cosigner registration: processing started') // for ${payload.emailAddress}`)
       // if (payload.emailAddress) {
       if (!rules)
-        await endorserAPI.sendConfirmationEmail({ resource: payload, application })
+        await cosignerAPI.sendConfirmationEmail({ resource: payload, application })
     }
   }
   return {

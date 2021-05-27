@@ -730,6 +730,7 @@ export const loadComponentsAndPlugins = ({
       'interFormConditionals',
       'regulatorRegistration',
       'pscCheck',
+      'creditScoreReport',
       // needs to move
       'specialApproval',
       'riskScore',
@@ -799,7 +800,7 @@ export const loadComponentsAndPlugins = ({
     attachPlugin({ name: 'email-based-verification', componentName: 'emailBasedVerifier' })
     attachPlugin({ name: 'verify-phone-number', componentName: 'smsBasedVerifier' })
     attachPlugin({ name: 'controllingPersonRegistration', componentName: 'smsBasedVerifier' })
-    attachPlugin({ name: 'guarantorRegistration', componentName: 'smsBasedVerifier' })
+    attachPlugin({ name: 'cosignerRegistration', componentName: 'smsBasedVerifier' })
   }
   attachPlugin({ name: 'conditional-auto-approve' })
   attachPlugin({ name: 'application-reports', requiresConf: false })

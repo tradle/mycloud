@@ -59,7 +59,6 @@ const ORDER_BY_TIMESTAMP_DESC = {
 const PROVIDER = 'https://catalog.data.gov'
 const ASPECTS = 'registration with %s'
 const DEFAULT_REGULATOR = 'FINRA'
-// const FORM_ID = 'io.lenka.BSAPI102a'
 
 interface IRegulatorRegistrationAthenaConf {
   type: string
