@@ -703,6 +703,7 @@ export const loadComponentsAndPlugins = ({
       'required-forms',
       'doctorCheck',
       'creditBuroCheck',
+      'creditBuroLegalEntityCheck',
       'czechCheck',
       'openCorporates',
       'complyAdvantage',
