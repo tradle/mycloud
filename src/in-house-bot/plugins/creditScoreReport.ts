@@ -7,14 +7,12 @@ import {
   IPluginLifecycleMethods,
   ValidatePluginConf,
   ITradleObject,
-  IWillJudgeAppArg,
-  ITradleCheck,
-  IPBApp,
   Applications,
-  ResourceStub,
   Logger
 } from '../types'
-import { getEnumValueId, parseEnumValue } from '../../utils'
+import { getEnumValueId } from '../../utils'
+import { getLatestCheck, isPassedCheck } from '../utils'
+import validateResource from '@tradle/validate-resource'
 
 const CASH_FLOW = 'PersonalCashflow'
 const QUOTATION_INFORMATION = 'QuotationInformation'
@@ -102,7 +100,7 @@ export class ScoringReport {
       yearsAtResidence = val.score
     }
     const capacityToPayConf = this.conf.capacityToPay
-    const debtFactor = map[CASH_FLOW].debtFactor
+    const debtFactor = map[CASH_FLOW] && map[CASH_FLOW].debtFactor
     const capacityToPay = debtFactor && this.calcScore(debtFactor, capacityToPayConf) || 0
 
     let { creditBureauScore, accountsPoints, checkStatusPoints } = await this.scoreFromCheck({ item: application, creditReport, check })
@@ -110,7 +108,7 @@ export class ScoringReport {
 
     // let itemsScore = []
     let cosignerCreditBureauScore = 0
-    if (items) {
+    if (items  &&  items.length) {
       items = await Promise.all(items.map(item => this.bot.getResource(item, {backlinks: ['checks']})))
       // for (let i=0; i<items.length; i++) {
       let cosignerScores = await this.scoreFromCheck({ item: items[0], isEndorser: true})
@@ -120,7 +118,7 @@ export class ScoringReport {
     }
     let qi = map[QUOTATION_INFORMATION]
     let qd = map[QUOTATION_DETAILS]
-    let usefulLife = 0, secondaryMarket = 0, relocationTime = 0, assetType = 0, leaseType = 0
+    let usefulLife = 0, secondaryMarket = 0, relocation = 0, assetType = 0, leaseType = 0
     if (qi.asset) {
       const asset = await this.bot.getResource(qi.asset)
       // const { usefulLife, secondaryMarket, relocationTime, assetType, leaseType } = asset
@@ -128,7 +126,7 @@ export class ScoringReport {
       let val = this.getEnumValue(asset, 'usefulLife')
       if (val) {
         // let term = this.getEnumValue(qd, 'term', qd.term)
-        let term = parseInt(qd.term.title.split(' ')[0])
+        let term = parseInt(qd.term.title.split(' ')[0]) / 12
         if (val.years > term)
           usefulLife = 7
         else if (val.years === term)
@@ -141,7 +139,7 @@ export class ScoringReport {
       if (val) secondaryMarket = val.score
 
       val = this.getEnumValue(asset, 'relocationTime')
-      if (val) relocationTime = val.score
+      if (val) relocation = val.score
 
       val = this.getEnumValue(asset, 'assetType')
       if (val) assetType = val.score
@@ -151,7 +149,7 @@ export class ScoringReport {
     }
     const characterScore = creditBureauScore + existingCustomer + yearsAtWork + yearsAtResidence
     const paymentScore = capacityToPay
-    const assetScore = usefulLife + secondaryMarket + relocationTime + assetType + leaseType
+    const assetScore = usefulLife + secondaryMarket + relocation + assetType + leaseType
     let props = {
       creditBureauScore,
       existingCustomer,
@@ -161,13 +159,13 @@ export class ScoringReport {
       capacityToPay,
       usefulLife,
       secondaryMarket,
-      relocationTime,
+      relocation,
       assetType,
       leaseType,
       cosignerCreditBureauScore,
       accounts: accountsPoints,
       totalScore: characterScore + paymentScore + assetScore,
-      check
+      // check
     }
     return await this.bot.draft({ type: resultForm }).set(props).signAndSave()
   }
@@ -198,7 +196,7 @@ export class ScoringReport {
       creditReport = check.creditReport  &&  await this.bot.getResource(check.creditReport)
       if (!creditReport) return
     }
-    if (check.status.id !== `${CHECK_STATUS}_pass`)
+    if (!isPassedCheck(check))
       return { checkStatusPoints: 0 }
 
     let creditBureauScore = 0
@@ -302,7 +300,7 @@ export class ScoringReport {
       filter: {
         EQ: {
           [TYPE]: PRODUCT_REQUEST,
-          parentApplication: aApp._permalink
+          parent: aApp._permalink
         }
       }
     })
@@ -341,18 +339,28 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           !creditBuroScoreForEndorser   ||
           !capacityToPay) return
 
-      let type = requestFor
-
+      const { models } = bot
       // Check if it's the child application that is completed
-      // let app
-      // if (!products[type]) {
-      //   if (application.parentApplication) {
-      //     app = bot.getResource(application.parentApplication)
-      //     type = app.requestFor
-      //     if (!products[type]) return
-      //   }
+      // if (!products[requestFor]) {
+      //   if (!application.parent  ||  !application.checks) return
+      //   let icheck: any = await getLatestCheck({
+      //     type: CREDS_CHECK,
+      //     req,
+      //     application,
+      //     bot
+      //   })
+      //   if (!icheck) return
+      //   let app = await bot.getResource(application.parent)
+      //   const type = app.requestFor
+      //   if (!products[type]) return
+      //   if (!app.creditScore) return
+
+      //   let creditScore = await bot.getResource(app.creditScore)
+      //   let cosignerCreditBureauScore = isPassedCheck(icheck) ? 3 : 0
+      //   await bot.versionAndSave({...creditScore, cosignerCreditBureauScore })
+      //   return
       // }
-      let { forms:formList, resultForm } = products[type]
+      let { forms:formList, resultForm } = products[requestFor]
       if (!formList  ||  !resultForm) return
 
       let checks = application.checks
@@ -364,6 +372,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       cChecks = await Promise.all(cChecks.map(c => bot.getResource(c)))
       cChecks.sort((a, b) => b._time - a._time)
 
+      let check = await bot.getResource(cChecks[0])
+      if (getEnumValueId({ model: models[CHECK_STATUS], value: check.status}) !== 'pass') return
+
       let forms = application.forms
       if (!forms)
         forms = application.submissions.filter(
@@ -374,13 +385,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!stubs.length) return
 
       stubs = stubs.map(s => s.submission)
-
-      // stubs = _.uniqBy(stubs, '_permalink')
-
-      // if (stubs.length !== formList.length) return
-
-      let check = await bot.getResource(cChecks[0])
-      if (check.status.id !== `${CHECK_STATUS}_pass`) return
 
       let reportForms = await Promise.all(stubs.map(s => bot.getResource(s)))
 
