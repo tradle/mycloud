@@ -64,6 +64,19 @@ const CB_VALIDATION = "com.leaseforu.CreditBureauIndividualHawkAlertValidation"
 
 const SUBJECT = 'subject'
 
+const STREET = 'street'
+const NEIGHBORHOOD = 'neighborhood'
+const NUMBER = 'number'
+const CITY = 'city'
+const STATE = 'state'
+const ZIP = 'zip'
+const NAME = 'name'
+const RFC = 'rfc'
+
+const PATERNAL_NAME = 'paternalName'
+const MATERNAL_NAME ='maternalName'
+const FIRST_NAME = 'firstName'
+const SECOND_NAME = 'secondName'
 
 const PROVIDER = 'ConsultaBCC'
 const ASPECTS = 'Credit validity'
@@ -126,7 +139,7 @@ export class BuroCheckAPI {
     this.logger = logger
   }
 
-  lookup = async ({ form, params, application, req, user }) => {
+  public lookup = async ({ form, params, application, req, user }) => {
    
     const input = {
       username: this.conf.username,
@@ -192,7 +205,7 @@ export class BuroCheckAPI {
 
     await this.createCheck({ application, status, form, req })
   }
-  createCheck = async ({ application, status, form, req }: IBuroCheck) => {
+  private createCheck = async ({ application, status, form, req }: IBuroCheck) => {
     // debugger
     let resource: any = {
       [TYPE]: CREDIT_CHECK,
@@ -217,7 +230,7 @@ export class BuroCheckAPI {
     this.logger.debug(`${PROVIDER} created CreditReportIndividualCheck`)
   }
 
-  buildSubjectInfo = async (rawData: any): Promise<any> => {
+  private buildSubjectInfo = async (rawData: any): Promise<any> => {
     const name = rawData.Nombre
     const subject = this.createResources(name, CB_SUBJECT)[0]
     const savedSubject = await this.saveResource(CB_SUBJECT, subject)
@@ -290,7 +303,7 @@ export class BuroCheckAPI {
     return savedSubject.resource
   }
 
-  createResources = (something: any, fromType: string) : any[] => {
+  private createResources = (something: any, fromType: string) : any[] => {
     const resources = []
     if (!something || typeof something === 'string') return
 
@@ -306,17 +319,42 @@ export class BuroCheckAPI {
     return resources
   }
 
-  createResource = (from: any, fromType: string, props: any[]) : any => {
+  private createResource = (from: any, fromType: string, props: any[]) : any => {
     const resource = {}
     for (let p in props) {
       if (props[p].type === 'array') continue // skip backlink
       const value = from[props[p].description]
-      if (value) resource[p] = value
+      if (!value) continue
+      
+      if (props[p].type === 'object') {
+        resource[p] = { value: this.convertToNumber(value), currency: 'MXN' }
+      }
+      else if (props[p].type === 'number') {
+        resource[p] = Number(value)
+      }
+      else if (props[p].type === 'date') {
+        if (value.length === 8)
+          resource[p] = Date.parse(value.substring(4) + '-' + value.substring(2,4) + '-' + value.substring(0,2))
+        else if (value.length === 6)
+          resource[p] = Date.parse(value.substring(0,4) + '-' + value.substring(4) + '-01')
+      }
+      else resource[p] = value
     }
     return resource
+  }
+  
+  private convertToNumber = (value: string) : number => {
+    let val = parseInt(value, 10)
+    // can have format like 2345+ or 123- or 234 
+    if (isNaN(val)) {
+      const sign = value.charAt(value.length-1)
+      val = parseInt(value.substring(0, value.length-1), 10)
+      if (sign === '-') val = -val
+    }  
+    return val    
   } 
 
-  createSummary = (accounts: any[]): any => {
+  private createSummary = (accounts: any[]): any => {
     const sum = {
       openAccounts: 0,
       openLimit: 0,
@@ -332,56 +370,42 @@ export class BuroCheckAPI {
     for (let acc of accounts) {
       if (!acc.accountClosingDate) {
         sum.openAccounts += 1
-        sum.openLimit += acc.creditLimit? parseInt(acc.creditLimit): 0
-        sum.openMaximum += acc.maximumCredit? parseInt(acc.maximumCredit) : 0
-        sum.openPayable += acc.amountPayable? parseInt(acc.amountPayable): 0
-     
-        if (acc.currentBalance) {
-          const val = parseInt(acc.currentBalance.substring(0, acc.currentBalance.length-1))
-          if (acc.currentBalance.endsWith('+')) 
-            sum.openBalance += val
-          else
-            sum.openBalance -= val  
-        }  
+        sum.openLimit += acc.creditLimit? acc.creditLimit.value: 0
+        sum.openMaximum += acc.maximumCredit? acc.maximumCredit.value : 0
+        sum.openPayable += acc.amountPayable? acc.amountPayable.value: 0
+        sum.openBalance += acc.currentBalance? acc.currentBalance.value: 0
       } else {
         sum.closedAccounts += 1
-        sum.closedLimit += acc.creditLimit? parseInt(acc.creditLimit): 0
-        sum.closedMaximum += acc.maximumCredit? parseInt(acc.maximumCredit): 0
-        sum.closedPayable += acc.amountPayable? parseInt(acc.amountPayable): 0
-
-        if (acc.currentBalance) {
-          const val = parseInt(acc.currentBalance.substring(0, acc.currentBalance.length-1))
-          if (acc.currentBalance.endsWith('+')) 
-            sum.closedBalance += val
-          else
-            sum.closedBalance -= val  
-        }  
+        sum.closedLimit += acc.creditLimit? acc.creditLimit.value: 0
+        sum.closedMaximum += acc.maximumCredit? acc.maximumCredit.value: 0
+        sum.closedPayable += acc.amountPayable? acc.amountPayable.value: 0
+        sum.closedBalance += acc.closedBalance? acc.closedBalance.value: 0
       }
     }
     return sum
   }
 
-  saveResource = (resourceType: string, resource: any) => {
+  private saveResource = (resourceType: string, resource: any) => {
     return this.bot
       .draft({ type: resourceType })
       .set(resource)
       .signAndSave()
   }
 
-  httpRequest = (params: any, postData: string) => {
-    return new Promise<string>(function (resolve, reject) {
-      let req = https.request(params, function (res) {
+  private httpRequest = (params: any, postData: string) => {
+    return new Promise<string>((resolve, reject) => {
+      let req = https.request(params, (res) => {
         // reject on bad status
         if (res.statusCode < 200 || res.statusCode >= 300) {
           return reject(new Error('statusCode=' + res.statusCode));
         }
         // cumulate data
         let body = []
-        res.on('data', function (chunk) {
+        res.on('data', (chunk) => {
           body.push(chunk);
         })
         // resolve on end
-        res.on('end', function () {
+        res.on('end', () => {
           try {
             let xml = Buffer.concat(body).toString('utf-8');
             resolve(xml);
@@ -391,7 +415,7 @@ export class BuroCheckAPI {
         })
       })
       // reject on request error
-      req.on('error', function (err) {
+      req.on('error', (err) => {
         // This is not a "Second reject", just a different sort of failure
         reject(err);
       })
@@ -420,11 +444,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       
       const params = {}
 
-      if (APPLICANT_INFO_TYPE == payload[TYPE]) {
+      if (APPLICANT_INFO_TYPE === payload[TYPE]) {
         let changed = await hasPropertiesChanged({
             resource: payload,
             bot,
-            propertiesToCheck: ['paternalName', 'maternalName', 'firstName', 'secondName', 'rfc'],
+            propertiesToCheck: [PATERNAL_NAME, MATERNAL_NAME, FIRST_NAME, SECOND_NAME, RFC],
             req
         })
         if (!changed) {
@@ -438,24 +462,24 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         }
         const addr = await bot.getResource(stub);
 
-        params['street'] = addr['street']? addr['street'] : ''
-        params['number'] = addr['number']? addr['number'] : ''
-        params['neighborhood'] = addr['neighborhood']? addr['neighborhood'] : ''
-        params['city'] = addr['city']? addr['city'] : ''
-        params['state'] = addr['state']? addr['state'] : ''
-        params['zip'] = addr['zip']? addr['zip'] : ''
+        params[STREET] = addr.street? addr.street : ''
+        params[NUMBER] = addr.number? addr.number : ''
+        params[NEIGHBORHOOD] = addr.neighborhood? addr.neighborhood : ''
+        params[CITY] = addr.city? addr.city : ''
+        params[STATE].state = addr.state? addr.state : ''
+        params[ZIP] = addr.zip? addr.zip : ''
         
-        params['paternalName'] = payload['paternalName']? payload['paternalName'] : ''
-        params['maternalName'] = payload['maternalName']? payload['maternalName'] : ''
-        params['firstName'] = payload['firstName']? payload['firstName'] : ''
-        params['secondName'] = payload['secondName']? payload['secondName'] : ''
-        params['rfc'] = payload['rfc']? payload['rfc'] : ''
+        params[PATERNAL_NAME] = payload.paternalName? payload.paternalName : ''
+        params[MATERNAL_NAME] = payload.maternalName? payload.maternalName : ''
+        params[FIRST_NAME] = payload.firstName? payload.firstName : ''
+        params[SECOND_NAME] = payload.secondName? payload.secondName : ''
+        params[RFC] = payload.rfc? payload.rfc : ''
       }
-      else if (APPLICANT_ADDR_TYPE == payload[TYPE]) {
+      else if (APPLICANT_ADDR_TYPE === payload[TYPE]) {
         let changed = await hasPropertiesChanged({
             resource: payload,
             bot,
-            propertiesToCheck: ['street', 'number', 'neighborhood', 'city', 'state', 'zip'],
+            propertiesToCheck: [STREET, NUMBER, NEIGHBORHOOD, CITY, STATE, ZIP],
             req
         })
         if (!changed) {
@@ -469,22 +493,22 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         }
         const info = await bot.getResource(stub);
         
-        params['street'] = payload['street']? payload['street'] : ''
-        params['number'] = payload['number']? payload['number'] : ''
-        params['neighborhood'] = payload['neighborhood']? payload['neighborhood'] : ''
-        params['city'] = payload['city']? payload['city'] : ''
-        params['state'] = payload['state']? payload['state'] : ''
-        params['zip'] = payload['zip']? payload['zip'] : ''
+        params[STREET] = payload.street? payload.street : ''
+        params[NUMBER] = payload.number? payload.number : ''
+        params[NEIGHBORHOOD] = payload.neighborhood? payload.neighborhood : ''
+        params[CITY] = payload.city? payload.city : ''
+        params[STATE] = payload.state? payload.state : ''
+        params[ZIP] = payload.zip? payload.zip : ''
         
-        params['paternalName'] = info['paternalName']? info['paternalName'] : ''
-        params['maternalName'] = info['maternalName']? info['maternalName'] : ''
-        params['firstName'] = info['firstName']? info['firstName'] : ''
-        params['secondName'] = info['secondName']? info['secondName'] : ''
-        params['rfc'] = info['rfc']? info['rfc'] : ''
+        params[PATERNAL_NAME] = info.paternalName? info.paternalName : ''
+        params[MATERNAL_NAME] = info.maternalName? info.maternalName : ''
+        params[FIRST_NAME] = info.firstName? info.firstName : ''
+        params[SECOND_NAME] = info.secondName? info.secondName : ''
+        params[RFC] = info.rfc? info.rfc : ''
       }
 
-      if (params['state']) {
-        params['state'] = params['state'].id.split('_')[1]
+      if (params[STATE]) {
+        params[STATE] = params[STATE].id.split('_')[1]
       }
 
       logger.debug(`creditBuroCheck called for type ${payload[TYPE]}`)
@@ -510,16 +534,16 @@ export const validateConf: ValidatePluginConf = async ({
   conf: IConfComponents
   pluginConf: IBuroCheckConf
 }) => {
-  if (!pluginConf.authorization || typeof pluginConf.authorization != 'string') {
+  if (!pluginConf.authorization || typeof pluginConf.authorization !== 'string') {
     throw new Errors.InvalidInput(`property 'authorization' is not set`)
   }
-  if (!pluginConf.username || typeof pluginConf.username != 'string') {
+  if (!pluginConf.username || typeof pluginConf.username !== 'string') {
     throw new Errors.InvalidInput(`property 'username' is not set`)
   }
-  if (!pluginConf.password || typeof pluginConf.password != 'string') {
+  if (!pluginConf.password || typeof pluginConf.password !== 'string') {
     throw new Errors.InvalidInput(`property 'password' is not set`)
   }
-  if (!pluginConf.path || typeof pluginConf.path != 'string') {
+  if (!pluginConf.path || typeof pluginConf.path !== 'string') {
     throw new Errors.InvalidInput(`property 'path' is not set`)
   }
 }
