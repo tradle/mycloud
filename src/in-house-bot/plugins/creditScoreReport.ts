@@ -391,7 +391,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         // if (!items) return
       }
 
-      let reportResources = await Promise.all(stubs.map(s => bot.getResource(s)))
       let creditScore = await scoringReport.exec({ reportForms, resultForm, items, check, application })
       if (creditScore)
         application.creditScore = creditScore
