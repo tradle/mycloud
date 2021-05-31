@@ -78,6 +78,8 @@ const MATERNAL_NAME ='maternalName'
 const FIRST_NAME = 'firstName'
 const SECOND_NAME = 'secondName'
 
+const APPLICANT = 'applicant'
+
 const PROVIDER = 'ConsultaBCC'
 const ASPECTS = 'Credit validity'
 
@@ -95,8 +97,8 @@ const TEMPLATE = `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/so
           <ProductoRequerido>001</ProductoRequerido>
           <ClavePais>MX</ClavePais>
           <IdentificadorBuro>0000</IdentificadorBuro>
-          <ClaveUsuario>{{username}}</ClaveUsuario> <!-- LS79591003 -->
-          <Password>{{password}}</Password> <!-- 79D3BA8E -->
+          <ClaveUsuario>{{username}}</ClaveUsuario>
+          <Password>{{password}}</Password>
           <TipoConsulta>I</TipoConsulta>
           <TipoContrato>CC</TipoContrato>
           <ClaveUnidadMonetaria>MX</ClaveUnidadMonetaria>
@@ -445,6 +447,14 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const params = {}
 
       if (APPLICANT_INFO_TYPE === payload[TYPE]) {
+        const applicantType =  payload[APPLICANT]
+        if (!applicantType)
+          return
+        const applicantTypeId = applicantType.id.split('_')[1]
+        // handle only individual 
+        if (applicantTypeId === 'company' || applicantTypeId === 'medical')
+          return
+          
         let changed = await hasPropertiesChanged({
             resource: payload,
             bot,
@@ -482,16 +492,21 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
             propertiesToCheck: [STREET, NUMBER, NEIGHBORHOOD, CITY, STATE, ZIP],
             req
         })
-        if (!changed) {
+        if (!changed)
           return
-        }
         // check info
         const stubs = getLatestForms(application);
         const stub = stubs.find(({ type }) => type === APPLICANT_INFO_TYPE);
-        if (!stub) {
-            return;
-        }
+        if (!stub)
+          return
         const info = await bot.getResource(stub);
+        const applicantType =  info[APPLICANT]
+        if (!applicantType)
+          return
+        const applicantTypeId = applicantType.id.split('_')[1]
+        // handle only individual 
+        if (applicantTypeId === 'company' || applicantTypeId === 'medical')
+          return
         
         params[STREET] = payload.street? payload.street : ''
         params[NUMBER] = payload.number? payload.number : ''

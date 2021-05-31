@@ -61,10 +61,10 @@ const CB_GENERAL = "com.leaseforu.CreditBureauLegalEntityGeneralData"
 const CB_SCORE = "com.leaseforu.CreditBureauLegalEntityScore"
 const CB_HAWKALERT = "com.leaseforu.CreditBureauLegalEntityHawkHC"
 const CB_HISTORY = "com.leaseforu.CreditBureauLegalEntityHistory"
-
 const CB_DECLARATION  = "com.leaseforu.CreditBureauLegalEntityDeclaration"
 const CB_CREDIT = "com.leaseforu.CreditBureauLegalEntityCommercialCredit"
 const CB_RATE = 'com.leaseforu.CreditBureauLegalEntityRate'
+
 const CB_SHAREHOLDERS = 'com.leaseforu.CreditBureauLegalEntityShareholders'
 const SUMMARY = 'com.leaseforu.CreditBureauLegalEntityCreditSummary'
 
@@ -237,7 +237,25 @@ export class BuroCheckAPI {
       obj[SUBJECT] = topStub
       promises.push(this.saveResource(CB_HAWKALERT, obj))
     }
-   
+
+    const declar: any[] = this.createResources(rawData.declarativa, CB_DECLARATION)
+    for (const obj of declar) {
+      obj[SUBJECT] = topStub
+      promises.push(this.saveResource(CB_DECLARATION, obj))
+    }
+
+    const credit: any[] = this.createResources(rawData.creditoComercial, CB_CREDIT)
+    for (const obj of credit) {
+      obj[SUBJECT] = topStub
+      promises.push(this.saveResource(CB_CREDIT, obj))
+    }
+
+    const rate: any[] = this.createResources(rawData.califica, CB_RATE)
+    for (const obj of rate) {
+      obj[SUBJECT] = topStub
+      promises.push(this.saveResource(CB_RATE, obj))
+    }
+
     await Promise.all(promises)
     
     return savedSubject.resource
