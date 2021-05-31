@@ -106,16 +106,13 @@ export class ScoringReport {
     let { creditBureauScore, accountsPoints, checkStatusPoints } = await this.scoreFromCheck({ item: application, creditReport, check })
     const specialityCouncil = checkStatusPoints
 
-    // let itemsScore = []
     let cosignerCreditBureauScore = 0
-    if (items  &&  items.length) {
-      items = await Promise.all(items.map(item => this.bot.getResource(item, {backlinks: ['checks']})))
-      // for (let i=0; i<items.length; i++) {
-      let cosignerScores = await this.scoreFromCheck({ item: items[0], isEndorser: true})
-      cosignerCreditBureauScore = cosignerScores.creditBureauScore
-        // itemsScore.push(cosignerScores)
-      // }
-    }
+    // if (items  &&  items.length) {
+    //   items = await Promise.all(items.map(item => this.bot.getResource(item, {backlinks: ['checks']})))
+    //   // for (let i=0; i<items.length; i++) {
+    //   let cosignerScores = await this.scoreFromCheck({ item: items[0], isEndorser: true})
+    //   cosignerCreditBureauScore = cosignerScores.creditBureauScore
+    // }
     let qi = map[QUOTATION_INFORMATION]
     let qd = map[QUOTATION_DETAILS]
     let usefulLife = 0, secondaryMarket = 0, relocation = 0, assetType = 0, leaseType = 0
@@ -395,7 +392,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       }
 
       let reportResources = await Promise.all(stubs.map(s => bot.getResource(s)))
-      await scoringReport.exec({ reportForms, resultForm, items, check, application })
+      let creditScore = await scoringReport.exec({ reportForms, resultForm, items, check, application })
+      if (creditScore)
+        application.creditScore = creditScore
     },
     // async didApproveApplication(opts: IWillJudgeAppArg, certificate: ITradleObject) {
     //   let { application, user, req } = opts
