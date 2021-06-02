@@ -263,7 +263,7 @@ export class BuroCheckAPI {
 
   private createResources = (something: any, fromType: string) : any[] => {
     const resources = []
-    if (!something || typeof something === 'string') return
+    if (!something || typeof something === 'string') return resources
 
     let props = this.bot.models[fromType].properties;
     
@@ -365,39 +365,74 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const { user, application, payload } = req
       if (!application) return
 
-      if (CONSENT_TYPE !== payload[TYPE])
-        return
-      
       const params = {}
+      if (CONSENT_TYPE === payload[TYPE]) {
+        const stubs = getLatestForms(application);
+        const stub = stubs.find(({ type }) => type === LEGAL_ENTITY_TYPE);
+        if (!stub) {
+          return;
+        }
+        const legal = await bot.getResource(stub);
 
-      const stubs = getLatestForms(application);
-      const stub = stubs.find(({ type }) => type === LEGAL_ENTITY_TYPE);
-      if (!stub) {
-        return;
-      }
-      const legal = await bot.getResource(stub);
-
-      params[STREET] = legal.streetAddress? legal.streetAddress : ''
-      params[CITY] = legal.city? legal.city : ''
-      params[STATE] = legal.region? legal.region : ''
-      params[ZIP] = legal.postalCode? legal.postalCode : ''
+        params[STREET] = legal.streetAddress? legal.streetAddress : ''
+        params[CITY] = legal.city? legal.city : ''
+        params[STATE] = legal.region? legal.region : ''
+        params[ZIP] = legal.postalCode? legal.postalCode : ''
         
-      params[NAME] = legal.companyName? legal.companyName : ''
-      params[RFC] = legal.taxIdNumber? legal.taxIdNumber : ''
+        params[NAME] = legal.companyName? legal.companyName : ''
+        params[RFC] = legal.taxIdNumber? legal.taxIdNumber : ''
       
-      if (params[STATE]) {
-        params[STATE] = params[STATE].id.split('_')[1]
-      }
+        if (params[STATE]) {
+          params[STATE] = params[STATE].id.split('_')[1]
+        }
 
-      logger.debug(`creditBuroLegalEntityCheck called for type ${payload[TYPE]}`)
+        logger.debug(`creditBuroLegalEntityCheck called for type ${payload[TYPE]}`)
      
-      let r = await buroCheckAPI.lookup({
-        form: payload,
-        params,
-        application,
-        req,
-        user
-      })
+        let r = await buroCheckAPI.lookup({
+          form: payload,
+          params,
+          application,
+          req,
+          user
+        })
+      } else if (LEGAL_ENTITY_TYPE === payload[TYPE]) {
+        let changed = await hasPropertiesChanged({
+          resource: payload,
+          bot,
+          propertiesToCheck: ['companyName', 'taxIdNumber', 'streetAddress', 'city', 'region', 'postalCode'],
+          req
+        })
+        if (!changed) {
+          return
+        }
+        const stubs = getLatestForms(application);
+        const stub = stubs.find(({ type }) => type === CONSENT_TYPE);
+        if (!stub) {
+          return;
+        }
+        
+        params[STREET] = payload.streetAddress? payload.streetAddress : ''
+        params[CITY] = payload.city? payload.city : ''
+        params[STATE] = payload.region? payload.region : ''
+        params[ZIP] = payload.postalCode? payload.postalCode : ''
+        
+        params[NAME] = payload.companyName? payload.companyName : ''
+        params[RFC] = payload.taxIdNumber? payload.taxIdNumber : ''
+      
+        if (params[STATE]) {
+          params[STATE] = params[STATE].id.split('_')[1]
+        }
+
+        logger.debug(`creditBuroLegalEntityCheck called for type ${payload[TYPE]}`)
+     
+        let r = await buroCheckAPI.lookup({
+          form: payload,
+          params,
+          application,
+          req,
+          user
+        })
+      }
     }
   }
   return { plugin }

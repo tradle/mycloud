@@ -256,39 +256,49 @@ export class BuroCheckAPI {
     sum[SUBJECT] = topStub
     promises.push(this.saveResource(SUMMARY, sum))
   
-    const employments: any[] = rawData.Empleos.Empleo
-    const empl = this.createResources(employments, CB_EMPLOYMENT)
-    for (const obj of empl) {
-      obj[SUBJECT] = topStub
-      promises.push(this.saveResource(CB_EMPLOYMENT, obj))
+    if (rawData.Empleos) {
+      const employments: any[] = rawData.Empleos.Empleo
+      const empl = this.createResources(employments, CB_EMPLOYMENT)
+      for (const obj of empl) {
+        obj[SUBJECT] = topStub
+        promises.push(this.saveResource(CB_EMPLOYMENT, obj))
+      }
     }
-        
-    const inquires: any[] = rawData.ConsultasEfectuadas.ConsultaEfectuada
-    const inqrs: any[] = this.createResources(inquires, CB_INQUIRY)
-    for (const obj of inqrs) {
-      obj[SUBJECT] = topStub
-      promises.push(this.saveResource(CB_INQUIRY, obj))
-    }
-        
-    const report: any = rawData.ResumenReporte.ResumenReporte 
-    const rep = this.createResources(report, CB_REPORT)
-    for (const obj of rep) {
-      obj[SUBJECT] = topStub
-      promises.push(this.saveResource(CB_REPORT, obj))
+      
+    if (rawData.ConsultasEfectuadas) {
+      const inquires: any[] = rawData.ConsultasEfectuadas.ConsultaEfectuada
+      const inqrs: any[] = this.createResources(inquires, CB_INQUIRY)
+      for (const obj of inqrs) {
+        obj[SUBJECT] = topStub
+        promises.push(this.saveResource(CB_INQUIRY, obj))
+      }
     }
     
-    const alertBD: any = rawData.HawkAlertBD.HawkAlertBD
-    const alsBD: any[] = this.createResources(alertBD, CB_HAWKALERT)
-    for (const obj of alsBD) {
-      obj[SUBJECT] = topStub
-      promises.push(this.saveResource(CB_HAWKALERT, obj))
+    if (rawData.ResumenReporte) {
+      const report: any = rawData.ResumenReporte.ResumenReporte 
+      const rep = this.createResources(report, CB_REPORT)
+      for (const obj of rep) {
+        obj[SUBJECT] = topStub
+        promises.push(this.saveResource(CB_REPORT, obj))
+      }
     }
     
-    const alerts: any = rawData.HawkAlertConsulta.HawkAlertC
-    const alsC = this.createResources(alerts, CB_VALIDATION)
-    for (const obj of alsC) {
-      obj[SUBJECT] = topStub
-      promises.push(this.saveResource(CB_VALIDATION, obj))
+    if (rawData.HawkAlertBD) {
+      const alertBD: any = rawData.HawkAlertBD.HawkAlertBD
+      const alsBD: any[] = this.createResources(alertBD, CB_HAWKALERT)
+      for (const obj of alsBD) {
+        obj[SUBJECT] = topStub
+        promises.push(this.saveResource(CB_HAWKALERT, obj))
+      }
+    }
+    
+    if (rawData.HawkAlertConsulta) {
+      const alerts: any = rawData.HawkAlertConsulta.HawkAlertC
+      const alsC = this.createResources(alerts, CB_VALIDATION)
+      for (const obj of alsC) {
+        obj[SUBJECT] = topStub
+        promises.push(this.saveResource(CB_VALIDATION, obj))
+      }
     }
 
     if (rawData.ScoreBuroCredito && typeof rawData.ScoreBuroCredito === 'object') {
@@ -307,7 +317,7 @@ export class BuroCheckAPI {
 
   private createResources = (something: any, fromType: string) : any[] => {
     const resources = []
-    if (!something || typeof something === 'string') return
+    if (!something || typeof something === 'string') return resources
 
     let props = this.bot.models[fromType].properties;
     
