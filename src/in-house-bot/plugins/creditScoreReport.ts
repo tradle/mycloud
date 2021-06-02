@@ -221,8 +221,14 @@ export class ScoringReport {
         let v = acc[sumProps[i]]
         if (!v)
           v = 0
-        else  if (typeof v === 'string')
-          v = parseInt(v)
+        else  if (typeof v === 'string') {
+          try {
+            v = parseInt(v)
+          } catch (err) {
+            this.logger.debug('Not a number', err)
+            return
+          }
+        }
         sum += v
       })
       return {accountClosingDate: acc.accountClosingDate, sum }
