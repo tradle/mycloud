@@ -228,9 +228,9 @@ export class BuroCheckAPI {
     }
 
     this.logger.debug(`${PROVIDER} creating CreditReportIndividualCheck`)
-    await this.applications.createCheck(resource, req)
+    const checkWrapper = await this.applications.createCheck(resource, req)
     this.logger.debug(`${PROVIDER} created CreditReportIndividualCheck`)
-  }
+  }  
 
   private buildSubjectInfo = async (rawData: any): Promise<any> => {
     const name = rawData.Nombre
@@ -309,9 +309,12 @@ export class BuroCheckAPI {
         promises.push(this.saveResource(CB_SCORE, obj))
       }
     }
-
-    await Promise.all(promises)
     
+    try {
+      await Promise.all(promises)
+    } catch (err) {
+      this.logger.error(err)
+    }
     return savedSubject.resource
   }
 
@@ -342,13 +345,16 @@ export class BuroCheckAPI {
         resource[p] = { value: this.convertToNumber(value), currency: 'MXN' }
       }
       else if (props[p].type === 'number') {
-        resource[p] = Number(value)
+        resource[p] = this.convertToNumber(value)
       }
       else if (props[p].type === 'date') {
         if (value.length === 8)
           resource[p] = Date.parse(value.substring(4) + '-' + value.substring(2,4) + '-' + value.substring(0,2))
         else if (value.length === 6)
           resource[p] = Date.parse(value.substring(0,4) + '-' + value.substring(4) + '-01')
+        if (isNaN(resource[p])) {
+          debugger
+        }  
       }
       else resource[p] = value
     }

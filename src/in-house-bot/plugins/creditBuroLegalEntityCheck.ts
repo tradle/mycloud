@@ -12,7 +12,8 @@ import {
   ITradleObject,
   IPBApp,
   IPBReq,
-  Logger
+  Logger,
+  Objects
 } from '../types'
 
 import Errors from '../../errors'
@@ -49,20 +50,20 @@ interface IBuroCheck {
 const PROVIDER = 'ConsultaBCC'
 const ASPECTS = 'Credit validity'
 
-const CREDIT_CHECK = 'tradle.CreditReportIndividualCheck'
+const CREDIT_CHECK = 'tradle.CreditReportLegalEntityCheck'
 const LEGAL_ENTITY_TYPE = 'tradle.legal.LegalEntity'
 const CONSENT_TYPE = 'com.leaseforu.ApplicantConsent'
 
-const CB_SUBJECT = "com.leaseforu.CreditBureauLegalEntitySubject"
+const CB_SUBJECT = 'com.leaseforu.CreditBureauLegalEntitySubject'
 
-const CB_HEADING = "com.leaseforu.CreditBureauLegalEntityHeading"
-const CB_ACCOUNT = "com.leaseforu.CreditBureauLegalEntityAccounts"
-const CB_GENERAL = "com.leaseforu.CreditBureauLegalEntityGeneralData"
-const CB_SCORE = "com.leaseforu.CreditBureauLegalEntityScore"
-const CB_HAWKALERT = "com.leaseforu.CreditBureauLegalEntityHawkHC"
-const CB_HISTORY = "com.leaseforu.CreditBureauLegalEntityHistory"
-const CB_DECLARATION  = "com.leaseforu.CreditBureauLegalEntityDeclaration"
-const CB_CREDIT = "com.leaseforu.CreditBureauLegalEntityCommercialCredit"
+const CB_HEADING = 'com.leaseforu.CreditBureauLegalEntityHeading'
+const CB_ACCOUNT = 'com.leaseforu.CreditBureauLegalEntityAccounts'
+const CB_GENERAL = 'com.leaseforu.CreditBureauLegalEntityGeneralData'
+const CB_SCORE = 'com.leaseforu.CreditBureauLegalEntityScore'
+const CB_HAWKALERT = 'com.leaseforu.CreditBureauLegalEntityHawkHC'
+const CB_HISTORY = 'com.leaseforu.CreditBureauLegalEntityHistory'
+const CB_DECLARATION  = 'com.leaseforu.CreditBureauLegalEntityDeclaration'
+const CB_CREDIT = 'com.leaseforu.CreditBureauLegalEntityCommercialCredit'
 const CB_RATE = 'com.leaseforu.CreditBureauLegalEntityRate'
 
 const CB_SHAREHOLDERS = 'com.leaseforu.CreditBureauLegalEntityShareholders'
@@ -256,8 +257,11 @@ export class BuroCheckAPI {
       promises.push(this.saveResource(CB_RATE, obj))
     }
 
-    await Promise.all(promises)
-    
+    try {
+      await Promise.all(promises)
+    } catch(err) {
+      this.logger.error(err)   
+    }
     return savedSubject.resource
   }
 
@@ -288,7 +292,7 @@ export class BuroCheckAPI {
         resource[p] = { value: this.convertToNumber(value), currency: 'MXN' }
       }
       else if (props[p].type === 'number') {
-        resource[p] = Number(value)
+        resource[p] = this.convertToNumber(value)
       }
       else if (props[p].type === 'date') {
         if (value.length === 8)
@@ -386,6 +390,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           params[STATE] = params[STATE].id.split('_')[1]
         }
 
+        if (!checkValues(params))
+          return
+
         logger.debug(`creditBuroLegalEntityCheck called for type ${payload[TYPE]}`)
      
         let r = await buroCheckAPI.lookup({
@@ -423,6 +430,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           params[STATE] = params[STATE].id.split('_')[1]
         }
 
+        if (!checkValues(params))
+          return
+
         logger.debug(`creditBuroLegalEntityCheck called for type ${payload[TYPE]}`)
      
         let r = await buroCheckAPI.lookup({
@@ -459,4 +469,13 @@ export const validateConf: ValidatePluginConf = async ({
   if (!pluginConf.path || typeof pluginConf.path !== 'string') {
     throw new Errors.InvalidInput(`property 'path' is not set`)
   }
+}
+
+const checkValues = (obj: any): boolean => {
+  for (const key of Object.keys(obj)) {
+    if (!obj[key]) {
+      return false  // empty value
+    }
+  }
+  return true
 }
