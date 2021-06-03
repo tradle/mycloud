@@ -337,6 +337,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           !capacityToPay) return
 
       const { models } = bot
+      if (!products[requestFor]) return
       // Check if it's the child application that is completed
       // if (!products[requestFor]) {
       //   if (!application.parent  ||  !application.checks) return
