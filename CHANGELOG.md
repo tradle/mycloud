@@ -2,21 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.95](https://github.com/tradle/mycloud/compare/v3.0.1-rc.94...v3.0.1-rc.95) (2021-05-31)
+## [3.0.1-rc.97](https://github.com/tradle/mycloud/compare/v3.0.1-rc.96...v3.0.1-rc.97) (2021-06-03)
 
 
 ### Bug Fixes
 
-* credit scoring based on CB data ([4d0a63c](https://github.com/tradle/mycloud/commit/4d0a63c))
-
-
-### Features
-
-* credit scoring ([2d9b6ae](https://github.com/tradle/mycloud/commit/2d9b6ae))
-* credit scoring ([a66c5f9](https://github.com/tradle/mycloud/commit/a66c5f9))
-* credit scoring based on CB data ([b991d3e](https://github.com/tradle/mycloud/commit/b991d3e))
-* models upgrade ([d60098e](https://github.com/tradle/mycloud/commit/d60098e))
-* models upgrade - credit scoring ([21e708c](https://github.com/tradle/mycloud/commit/21e708c))
+* don't run if no configuration for the product ([50aae58](https://github.com/tradle/mycloud/commit/50aae58))
 
 
 
