@@ -10,6 +10,8 @@ import {
   Applications,
   Logger
 } from '../types'
+import { buildResourceStub } from '@tradle/build-resource'
+
 import { getEnumValueId } from '../../utils'
 import { getLatestCheck, isPassedCheck } from '../utils'
 import validateResource from '@tradle/validate-resource'
@@ -27,7 +29,6 @@ const CREDS_CHECK_OVERRIDE = 'tradle.CredentialsCheckOverride'
 
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const APPLICATION = 'tradle.Application'
-const CHECK_STATUS = 'tradle.Status'
 
 // const REPORT_PROPS = {
 //   CreditBureauIndividualCreditScore: ['scoreValue'],
@@ -109,7 +110,7 @@ export class ScoringReport {
     let { creditBureauScore, accountsPoints } = await this.scoreFromCheck({ item: application, creditReport, check })
 
     let specialityCouncil = 0
-    if (this.credencialsCheckPass(application))
+    if (await this.credencialsCheckPass(application))
       specialityCouncil = 3
 
     let cosignerCreditBureauScore = 0
@@ -122,7 +123,7 @@ export class ScoringReport {
     let qi = map[QUOTATION_INFORMATION]
     let qd = map[QUOTATION_DETAILS]
     let usefulLife = 0, secondaryMarket = 0, relocation = 0, assetType = 0, leaseType = 0
-    if (qi.asset) {
+    if (qi && qi.asset) {
       const asset = await this.bot.getResource(qi.asset)
       // const { usefulLife, secondaryMarket, relocationTime, assetType, leaseType } = asset
 
@@ -177,21 +178,21 @@ export class ScoringReport {
     const { models } = this.bot
     let credsChecks = checks.find(check => check[TYPE] === CREDS_CHECK)
     let credsCheckPass
-    if (!credsChecks)
+    if (!credsChecks || !credsChecks.length)
       return
     let cChecks:any = await Promise.all(credsChecks.map(c => this.bot.getResource(c)))
     cChecks.sort((a, b) => b._time - a._time)
     let credsCheck = await this.bot.getResource(credsChecks[0])
     if (!checkOverrides) {
-      if (getEnumValueId({ model: models[CHECK_STATUS], value: credsCheck.status}) === 'pass') return true
+      if (isPassedCheck({status: credsCheck.status})) return true
       return false
     }
     let credsCheckOverride = cChecks.find(co => co[TYPE] === CREDS_CHECK_OVERRIDE)
     if (credsCheckOverride) {
-      if (getEnumValueId({ model: models[CHECK_STATUS], value: credsCheckOverride.status}) === 'pass') return true
+      if (isPassedCheck({status: credsCheckOverride.status})) return true
       else return false
     }
-    if (getEnumValueId({ model: models[CHECK_STATUS], value: credsCheck.status}) === 'pass') return true
+    if (isPassedCheck({status: credsCheck.status})) return true
     else return false
   }
   private getEnumValue(resource, prop) {
@@ -403,7 +404,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       let check = await bot.getResource(cChecks[0])
 
-      if (getEnumValueId({ model: models[CHECK_STATUS], value: check.status}) !== 'pass') return
+      if (!isPassedCheck({status: check.status})) return
 
       let forms = application.forms
       if (!forms)
@@ -425,8 +426,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       }
 
       let creditScore = await scoringReport.exec({ reportForms, resultForm, items, check, application })
-      if (creditScore)
-        application.creditScore = creditScore
+      if (creditScore) {
+        let cr = creditScore.resource
+        application.creditScore = buildResourceStub({ resource: cr, models })
+      }
     },
     // async didApproveApplication(opts: IWillJudgeAppArg, certificate: ITradleObject) {
     //   let { application, user, req } = opts
