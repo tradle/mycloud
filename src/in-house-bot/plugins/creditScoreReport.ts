@@ -21,7 +21,10 @@ const APPLICANT_INFORMATION = 'ApplicantInformation'
 const APPLICANT_ADDRESS = 'ApplicantAddress'
 const APPLICANT_MED_PROFESSION = 'ApplicantMedicalProfession'
 
-const CREDS_CHECK = 'tradle.CreditReportIndividualCheck'
+const CREDIT_REPORT_CHECK = 'tradle.CreditReportIndividualCheck'
+const CREDS_CHECK = 'tradle.CredentialsCheck'
+const CREDS_CHECK_OVERRIDE = 'tradle.CredentialsCheckOverride'
+
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const APPLICATION = 'tradle.Application'
 const CHECK_STATUS = 'tradle.Status'
@@ -103,8 +106,11 @@ export class ScoringReport {
     const debtFactor = map[CASH_FLOW] && map[CASH_FLOW].debtFactor
     const capacityToPay = debtFactor && this.calcScore(debtFactor, capacityToPayConf) || 0
 
-    let { creditBureauScore, accountsPoints, checkStatusPoints } = await this.scoreFromCheck({ item: application, creditReport, check })
-    const specialityCouncil = checkStatusPoints
+    let { creditBureauScore, accountsPoints } = await this.scoreFromCheck({ item: application, creditReport, check })
+
+    let specialityCouncil = 0
+    if (this.credencialsCheckPass(application))
+      specialityCouncil = 3
 
     let cosignerCreditBureauScore = 0
     // if (items  &&  items.length) {
@@ -166,6 +172,28 @@ export class ScoringReport {
     }
     return await this.bot.draft({ type: resultForm }).set(props).signAndSave()
   }
+  private async credencialsCheckPass(application) {
+    const { checks, checkOverrides } = application
+    const { models } = this.bot
+    let credsChecks = checks.find(check => check[TYPE] === CREDS_CHECK)
+    let credsCheckPass
+    if (!credsChecks)
+      return
+    let cChecks:any = await Promise.all(credsChecks.map(c => this.bot.getResource(c)))
+    cChecks.sort((a, b) => b._time - a._time)
+    let credsCheck = await this.bot.getResource(credsChecks[0])
+    if (!checkOverrides) {
+      if (getEnumValueId({ model: models[CHECK_STATUS], value: credsCheck.status}) === 'pass') return true
+      return false
+    }
+    let credsCheckOverride = cChecks.find(co => co[TYPE] === CREDS_CHECK_OVERRIDE)
+    if (credsCheckOverride) {
+      if (getEnumValueId({ model: models[CHECK_STATUS], value: credsCheckOverride.status}) === 'pass') return true
+      else return false
+    }
+    if (getEnumValueId({ model: models[CHECK_STATUS], value: credsCheck.status}) === 'pass') return true
+    else return false
+  }
   private getEnumValue(resource, prop) {
     const evalue = resource[prop]
     if (!evalue) return
@@ -184,7 +212,7 @@ export class ScoringReport {
     if (item.status !== 'approved'  &&  item.status !== 'completed') return
     if (!check) {
       const { checks } = item
-      let cChecks:any = checks.filter(check => check[TYPE] === CREDS_CHECK)
+      let cChecks:any = checks.filter(check => check[TYPE] === CREDIT_REPORT_CHECK)
       if (!cChecks) return
 
       cChecks = await Promise.all(cChecks.map(c => this.bot.getResource(c)))
@@ -193,8 +221,6 @@ export class ScoringReport {
       creditReport = check.creditReport  &&  await this.bot.getResource(check.creditReport)
       if (!creditReport) return
     }
-    if (!isPassedCheck(check))
-      return { checkStatusPoints: 0 }
 
     let creditBureauScore = 0
     if (creditReport.creditScore && creditReport.creditScore.length) {
@@ -209,7 +235,7 @@ export class ScoringReport {
     if (!crAccounts  ||  !crAccounts.length) return
     let accountsPoints =  await this.calcAccounts(crAccounts)
 
-    return { creditBureauScore, accountsPoints, checkStatusPoints: 3 }
+    return { creditBureauScore, accountsPoints }
   }
   private async calcAccounts(crAccounts) {
     let accounts:any = await Promise.all(crAccounts.map(a => this.bot.getResource(a)))
@@ -335,7 +361,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!application) return
       debugger
       const { products, creditBuroScoreForApplicant, creditBuroScoreForEndorser, capacityToPay } = conf
-      const { requestFor } = application
+      const { requestFor, checks } = application
 
       if (!products                     ||
           !creditBuroScoreForApplicant  ||
@@ -348,7 +374,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       // if (!products[requestFor]) {
       //   if (!application.parent  ||  !application.checks) return
       //   let icheck: any = await getLatestCheck({
-      //     type: CREDS_CHECK,
+      //     type: CREDIT_REPORT_CHECK,
       //     req,
       //     application,
       //     bot
@@ -367,16 +393,16 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let { forms:formList, resultForm } = products[requestFor]
       if (!formList  ||  !resultForm) return
 
-      let checks = application.checks
       if (!checks) return
 
-      let cChecks:any = checks.filter(check => check[TYPE] === CREDS_CHECK)
-      if (!cChecks) return
+      let cChecks:any = checks.filter(check => check[TYPE] === CREDIT_REPORT_CHECK)
+      if (!cChecks.length) return
 
       cChecks = await Promise.all(cChecks.map(c => bot.getResource(c)))
       cChecks.sort((a, b) => b._time - a._time)
 
       let check = await bot.getResource(cChecks[0])
+
       if (getEnumValueId({ model: models[CHECK_STATUS], value: check.status}) !== 'pass') return
 
       let forms = application.forms
