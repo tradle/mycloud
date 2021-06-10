@@ -81,15 +81,21 @@ export class DoctorCheckAPI {
     const agent = new https.Agent({
       rejectUnauthorized: false
     })
-
-    const res = await fetch('https://conacem.mx/conacem/controlcertificados/modulos/cosulta_web/app/listado.php', {
+    
+    let res
+    try {
+      res = await fetch('https://conacem.mx/conacem/controlcertificados/modulos/cosulta_web/app/listado.php', {
         method: 'POST',
         body: formData,
         headers: {
             Accept: 'application/json'
         },
         agent
-    })
+      })
+    } catch (err) {
+      this.logger.error(err)
+      return {status: 'error', message: err.message}
+    }
 
     const result = await res.json()
 	  if (!res.ok) {
