@@ -492,7 +492,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         params[NUMBER] = addr.number? addr.number : ''
         params[NEIGHBORHOOD] = addr.neighborhood? addr.neighborhood : ''
         params[CITY] = addr.city? addr.city : ''
-        params[STATE].state = addr.state? addr.state : ''
+        params[STATE] = addr.state? addr.state : ''
         params[ZIP] = addr.zip? addr.zip : ''
         
         params[PATERNAL_NAME] = payload.paternalName? payload.paternalName : ''
