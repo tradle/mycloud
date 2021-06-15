@@ -1,4 +1,9 @@
 import uniqBy from 'lodash/uniqBy'
+import { title as getDisplayName } from '@tradle/build-resource'
+
+import validateResource from '@tradle/validate-resource'
+// @ts-ignore
+const { sanitize } = validateResource.utils
 
 import {
   Bot,
@@ -12,14 +17,14 @@ import {
   ITradleObject,
   ValidatePluginConfOpts
 } from '../types'
+
 import * as Templates from '../templates'
 import Errors from '../../errors'
 import { TYPE } from '../../constants'
 // import { useRealSES } from '../../aws/config'
-
-import { title as getDisplayName } from '@tradle/build-resource'
 import { hasPropertiesChanged, getEnumValueId } from '../utils'
 import { appLinks } from '../../app-links'
+
 // import { SMSBasedVerifier } from '../sms-based-verifier'
 // import { compare } from '@tradle/dynamodb/lib/utils'
 
@@ -384,7 +389,43 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       // if (payload.emailAddress) {
       if (!rules)
         await cosignerAPI.sendConfirmationEmail({ resource: payload, application })
-    }
+    },
+    // async willRequestForm({ application, formRequest }) {
+    //   const { associatedResource, parent } = application
+    //   if (!associatedResource) return
+    //   const { form } = formRequest
+
+    //   const { products } = conf
+    //   if (products) return
+    //   const { requestFor } = application
+    //   let parentApplication
+    //   let found
+    //   for (let p in products) {
+    //     let product = products[p]
+    //     for (let pp in product) {
+    //       if (products[pp].onboardingApplication !== requestFor) continue
+    //       // Add 'form' in configuration
+    //       if (products[pp].form !== form) continue
+    //       if (!parentApplication)
+    //         parentApplication = await bot.getResource(parent)
+    //       if (parentApplication[TYPE] !== p) continue
+    //       found = true
+    //       break
+    //     }
+    //     if (found) break
+    //   }
+      
+    //   if (!found) return
+    //   const cosigner = await bot.getResource(associatedResource)
+    //   const { paternalName, maternalName, firstName, secondName, email } = cosigner
+    //   let prefill = {
+    //     paternalName, maternalName, firstName, secondName, email
+    //   }
+
+    //   if (!formRequest.prefill) formRequest.prefill = { [TYPE]: form }
+    //   formRequest.prefill = sanitize({...formRequest.prefill, ...prefill}).sanitized
+    //   formRequest.message = `Please review and correct the data below`    
+    // }
   }
   return {
     plugin
