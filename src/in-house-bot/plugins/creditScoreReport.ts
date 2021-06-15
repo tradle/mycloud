@@ -12,8 +12,7 @@ import {
 import { buildResourceStub } from '@tradle/build-resource'
 
 import { getEnumValueId } from '../../utils'
-import { getLatestCheck, isPassedCheck } from '../utils'
-import validateResource from '@tradle/validate-resource'
+import { isPassedCheck } from '../utils'
 
 const CASH_FLOW = 'PersonalCashflow'
 const QUOTATION_INFORMATION = 'QuotationInformation'
@@ -22,7 +21,7 @@ const APPLICANT_INFORMATION = 'ApplicantInformation'
 const APPLICANT_ADDRESS = 'ApplicantAddress'
 const APPLICANT_MED_PROFESSION = 'ApplicantMedicalProfession'
 const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
-const CP = 'tradle.legal.LegalEntityControllingPerson'
+// const CP = 'tradle.legal.LegalEntityControllingPerson'
 
 const COMPANY_FINANCIALS = 'CompanyFinancialDetails'
 
@@ -45,7 +44,7 @@ const ONE_YEAR_MILLIS = 60 * 60 * 24 * 365 * 1000
 //     ['timeAtResidence', 'score']
 //   ],
 //   CreditBureauIndividualAccounts: ['totalMop2', 'totalMop3', 'totalMop4', 'totalMop5', 'accountClosingDate'],
-//   PersonalCashflow: ['debtFactor'],
+//   PersonalCashflow: ['extraEquipmentFactor'],
 //   QuotationInformation: [
 //     ['asset', 'usefulLife', 'years'],
 //     ['secondaryMarket', 'score'],
@@ -88,9 +87,16 @@ export class ScoringReport {
     //   const cbScoreForApplicant = this.conf.creditBuroScoreForApplicant
     //   creditBureauScore = this.calcScore(cbScore, cbScoreForApplicant)
     // }
-
+    const { models } = this.bot
     let val = this.getEnumValue(applicantInformation, 'existingCustomerRating')
+
     let existingCustomer = val &&  val.score || 0
+    let scoreDetails: any = []
+    scoreDetails.push({
+      form: buildResourceStub({ resource: applicantInformation, models }),
+      property: 'existingCustomer',
+      score: existingCustomer
+    })
 
     let yearsAtWork = 0
     const applicantMedicalProfession = map[APPLICANT_MED_PROFESSION]
@@ -98,6 +104,11 @@ export class ScoringReport {
       if (applicantMedicalProfession.yearsAtWork) {
         val = this.getEnumValue(applicantMedicalProfession, 'yearsAtWork')
         yearsAtWork = val.score
+        scoreDetails.push({
+          form: buildResourceStub({ resource: applicantInformation, models }),
+          property: 'yearsAtWork',
+          score: yearsAtWork
+        })
       }
     }
     const applicantAddress = map[APPLICANT_ADDRESS]
@@ -105,10 +116,15 @@ export class ScoringReport {
     if (applicantAddress.yearsAtResidence) {
       val = this.getEnumValue(applicantAddress, 'yearsAtResidence')
       yearsAtResidence = val.score
+      scoreDetails.push({
+        form: buildResourceStub({ resource: applicantAddress, models }),
+        property: 'yearsAtResidence',
+        score: yearsAtWork
+      })
     }
     const capacityToPayConf = this.conf.capacityToPay
-    const debtFactor = map[CASH_FLOW] && map[CASH_FLOW].debtFactor
-    const capacityToPay = debtFactor && this.calcScore(debtFactor, capacityToPayConf) || 0
+    const extraEquipmentFactor = map[CASH_FLOW] && map[CASH_FLOW].extraEquipmentFactor
+    let capacityToPay = extraEquipmentFactor && this.calcScore(extraEquipmentFactor, capacityToPayConf) || 0
 
     let { creditBureauScore, accountsPoints } = await this.scoreFromCheckIndividual({ item: application, creditReport, check })
 
@@ -125,9 +141,8 @@ export class ScoringReport {
     // }
     const {usefulLife, secondaryMarket, relocation, assetType, leaseType} = await this.getCommonScores(map)
     const characterScore = creditBureauScore + existingCustomer + yearsAtWork + yearsAtResidence
-    const paymentScore = capacityToPay
     const assetScore = usefulLife + secondaryMarket + relocation + assetType + leaseType
-    let props = {
+    let props:any = {
       creditBureauScore,
       existingCustomer,
       specialityCouncil,
@@ -141,9 +156,27 @@ export class ScoringReport {
       leaseType,
       cosignerCreditBureauScore,
       accounts: accountsPoints,
-      totalScore: characterScore + paymentScore + assetScore,
       // check
     }
+    let { formula } = capacityToPayConf
+    if (!formula) 
+      props.capacityToPay = capacityToPay
+    else {  
+      let props1 = {...map[CASH_FLOW], capacityToPay}    
+
+      let keys = Object.keys(props1)
+      let values = Object.values(props1)
+      try {
+        let newCapacityToPay = new Function(...keys, `return ${formula}`)(...values)
+        if (newCapacityToPay)
+          props.capacityToPay = newCapacityToPay
+      } catch (err) {
+        props.capacityToPay = capacityToPay
+        debugger
+      }
+    }
+    props.totalScore = characterScore + capacityToPay + assetScore
+
     return await this.bot.draft({ type: resultForm }).set(props).signAndSave()
   }
   public async execForCompany({ applicantInformation, reportForms, resultForm, items, check, application }) {
@@ -400,6 +433,10 @@ export class ScoringReport {
       if (range.length === 2) {
         if (value > parseInt(range[0].replace(/[^\w\s]/gi, ''))  &&  value <= parseInt(range[1].replace(/[^\w\s]/gi, '')))
           return scoreConf[p]
+      }
+      else {
+        let isNumber = /^[0-9]$/.test(p.charAt(0))
+        if (!isNumber) continue
       }
     }
     return 0
