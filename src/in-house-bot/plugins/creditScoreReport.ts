@@ -187,44 +187,51 @@ export class ScoringReport {
     let { creditReport } = check
     if (!creditReport) return
 
-    creditReport = await this.bot.getResource(creditReport, {backlinks: ['accounts', 'creditScore' ]})
-
-    let history = creditReport.history && await this.bot.getResource(creditReport.history)
-    
+    creditReport = await this.bot.getResource(creditReport, {backlinks: ['generalData', 'accounts', 'history', 'commercialCredit' ]})
+    let { generalData } = creditReport
+    generalData = generalData  &&  await this.bot.getResource(generalData[0])
+    let financialRating = generalData  &&  generalData.financialRating
     let ratingInBureau = 0
-    if (history && history.ratingInBureau) {
-      let s = history.ratingInBureau.slice(-2)
+    if (financialRating) {
+      let s = financialRating.slice(-2)
       if (s === 'A1' || s === 'B2' || s === 'NC' || s === 'EX')
         ratingInBureau = 2
     }
     else
       ratingInBureau = 2
+
+      // let history = creditReport.history && await Promise.all(creditReport.history.map(r => this.bot.getResource(r)))
+    
+    // if (history && history.ratingInBureau) {
+    //   let s = history.ratingInBureau.slice(-2)
+    //   if (s === 'A1' || s === 'B2' || s === 'NC' || s === 'EX')
+    //     ratingInBureau = 2
+    // }
+    // else
+      // ratingInBureau = 2
     let commercialCredit = creditReport.commercialCredit
     let worstMopThisYear = 0
     if (commercialCredit) {
-      commercialCredit = this.bot.getResource(commercialCredit.commercialCredit)
-      if (commercialCredit.history) {
-        if (worstMopThisYear < 3)
-          worstMopThisYear = 2
-        else if (worstMopThisYear === 3)
-          worstMopThisYear = 1
-      }
+      commercialCredit = await Promise.all(commercialCredit.map(r => this.bot.getResource(r)))
+      // if (commercialCredit.history) {
+      //   if (worstMopThisYear < 3)
+      //     worstMopThisYear = 2
+      //   else if (worstMopThisYear === 3)
+      //     worstMopThisYear = 1
+      // }
       // <3 = 2, 3=1, >3=0
     }
     let legalEntity = map[LEGAL_ENTITY]
     let yearsInOperation = 0
-    if (legalEntity) {
-      let regDate = legalEntity.registrationDate
-      let yearsinoperation = regDate / ONE_YEAR_MILLIS
-      // if (yearsinoperation )
-      // ...
-    }
+    if (legalEntity  &&  legalEntity.registrationDate / ONE_YEAR_MILLIS )
+        yearsInOperation = 1
+    
     let financialDetails = map[COMPANY_FINANCIALS]
     let profitable = 0
     if (financialDetails) 
       profitable = financialDetails.netProfitP  ? 2 : 0
     
-      const {usefulLife, secondaryMarket, relocation} = await this.getCommonScores(map)
+    const {usefulLife, secondaryMarket, relocation} = await this.getCommonScores(map)
     // const characterScore = creditBureauScore + existingCustomer + yearsAtWork + yearsAtResidence
     // const paymentScore = capacityToPay
     // const assetScore = usefulLife + secondaryMarket + relocation + assetType + leaseType
@@ -476,7 +483,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let { application } = req
 
       if (!application) return
-      debugger
+      // debugger
       const { products, creditBuroScoreForApplicant, creditBuroScoreForEndorser, capacityToPay } = conf
       const { requestFor, checks } = application
 
@@ -507,9 +514,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       //   await bot.versionAndSave({...creditScore, cosignerCreditBureauScore })
       //   return
       // }
-      let { forms:formList, resultForm } = products[requestFor]
-      if (!formList  ||  !resultForm) return
-
+      let { formsIndividual, formsCompany, reportIndividual, reportCompany } = products[requestFor]
+       
       if (!checks) return
       
       let { forms } = application
@@ -518,17 +524,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           s => bot.models[s.submission[TYPE]].subClassOf === 'tradle.Form'
         )
 
-      let stubs:any = forms && forms.filter(form => formList.indexOf(form.submission[TYPE]) !== -1)
-      if (!stubs.length) return
+      let applicantInformationSubmission = forms.find(form => form.submission[TYPE].endsWith(`.${APPLICANT_INFORMATION}`))
+      if (!applicantInformationSubmission) return
 
-      stubs = stubs.map(s => s.submission)
-
-      let applicantInformationStubIdx = stubs.findIndex(stub => stub[TYPE].endsWith(`.${APPLICANT_INFORMATION}`))
-      if (applicantInformationStubIdx === -1) return
-
-      const applicantInformation = await bot.getResource(stubs[applicantInformationStubIdx])
-      stubs.splice(applicantInformationStubIdx, 1)
-
+      let applicantInformationStub = applicantInformationSubmission.submission
+      const applicantInformation = await bot.getResource(applicantInformationStub)
       const { applicant } = applicantInformation
       let isCompany 
       if (applicant) {
@@ -539,6 +539,20 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         })
         isCompany = val === 'company' 
       }
+
+      let formList = isCompany  ? formsCompany :  formsIndividual
+      if (!formList) return
+
+      let resultForm = isCompany ? reportCompany : reportIndividual
+      if (!resultForm) return
+        
+      let stubs:any = forms && forms.filter(form => formList.indexOf(form.submission[TYPE]) !== -1)
+      if (!stubs.length) return
+
+      stubs = stubs.map(s => s.submission)
+      let applicantInformationStubIdx = stubs.find(form => form[TYPE].endsWith(`.${APPLICANT_INFORMATION}`))
+
+      stubs.splice(applicantInformationStubIdx, 1)
 
       let checkType = isCompany ? CREDS_COMPANY_CHECK : CREDIT_REPORT_CHECK
       let cChecks:any = checks.filter(check => check[TYPE] === checkType)
@@ -648,15 +662,23 @@ export const validateConf: ValidatePluginConf = async ({
   const { models } = bot
   for (let p in products) {
     if (!models[p])  throw new Error(`there is no model ${p}`)
-    const { forms, resultForm } = products[p]
-    if (!forms)  throw new Error(`there is no 'forms' for product ${p} in configuration`)
+    const { formsIndividual, formsCompany, reportCompany, reportIndividual } = products[p]
+    if (!formsCompany && !formsIndividual)  throw new Error(`there is no 'forms' for product ${p} in configuration`)
     // if (!resources)   new Error(`there is no 'resources' in 'products' in configuration`)
-    if (!resultForm)  throw new Error(`there is no 'resultForm' in 'products' configuration`)
+    if (!reportCompany  &&  !reportIndividual)  throw new Error(`there is no 'reportCompany' or 'reportIndividual' in 'products' configuration`)
     let noModels = []
-    forms.forEach(f => {
-      if (!models[f]) noModels.push(f)
-    })
-    if (!models[resultForm]) noModels.push(resultForm)
+    if (formsCompany) {
+      formsCompany.forEach(f => {
+        if (!models[f]) noModels.push(f)
+      })
+    }
+    if (formsIndividual) {
+      formsIndividual.forEach(f => {
+        if (!models[f]) noModels.push(f)
+      })
+    }
+    if (reportIndividual && !models[reportIndividual]) noModels.push(reportIndividual)
+    if (reportCompany && !models[reportCompany]) noModels.push(reportCompany)
     if (noModels.length) throw new Error(`There is no models ${noModels}`)
     const { high, average, low } = accountsScore
     if (!high || !average || !low) throw new Error(`accountsScore should have: high, average and low integer values`);
