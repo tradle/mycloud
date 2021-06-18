@@ -1,4 +1,3 @@
-import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
 import {
   Bot,
@@ -13,8 +12,7 @@ import {
 import { buildResourceStub } from '@tradle/build-resource'
 
 import { getEnumValueId } from '../../utils'
-import { getLatestCheck, isPassedCheck } from '../utils'
-import validateResource from '@tradle/validate-resource'
+import { isPassedCheck } from '../utils'
 
 const CASH_FLOW = 'PersonalCashflow'
 const QUOTATION_INFORMATION = 'QuotationInformation'
@@ -22,14 +20,19 @@ const QUOTATION_DETAILS = 'QuotationDetails'
 const APPLICANT_INFORMATION = 'ApplicantInformation'
 const APPLICANT_ADDRESS = 'ApplicantAddress'
 const APPLICANT_MED_PROFESSION = 'ApplicantMedicalProfession'
+const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
+// const CP = 'tradle.legal.LegalEntityControllingPerson'
+
+const COMPANY_FINANCIALS = 'CompanyFinancialDetails'
 
 const CREDIT_REPORT_CHECK = 'tradle.CreditReportIndividualCheck'
 const CREDS_CHECK = 'tradle.CredentialsCheck'
 const CREDS_CHECK_OVERRIDE = 'tradle.CredentialsCheckOverride'
 
+const CREDS_COMPANY_CHECK = 'tradle.CreditReportLegalEntityCheck'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const APPLICATION = 'tradle.Application'
-
+const ONE_YEAR_MILLIS = 60 * 60 * 24 * 365 * 1000
 // const REPORT_PROPS = {
 //   CreditBureauIndividualCreditScore: ['scoreValue'],
 //   ApplicantInformation: [ ['existingCustomerRating', 'score']] ,
@@ -41,7 +44,7 @@ const APPLICATION = 'tradle.Application'
 //     ['timeAtResidence', 'score']
 //   ],
 //   CreditBureauIndividualAccounts: ['totalMop2', 'totalMop3', 'totalMop4', 'totalMop5', 'accountClosingDate'],
-//   PersonalCashflow: ['debtFactor'],
+//   PersonalCashflow: ['extraEquipmentFactor'],
 //   QuotationInformation: [
 //     ['asset', 'usefulLife', 'years'],
 //     ['secondaryMarket', 'score'],
@@ -67,7 +70,7 @@ export class ScoringReport {
     this.applications = applications
     this.logger = logger
   }
-  public async exec({ reportForms, resultForm, items, check, application }) {
+  public async execForIndividual({ applicantInformation, reportForms, resultForm, items, check, application }) {
     let map = {}
     reportForms.forEach(f => {
       map[f[TYPE].split('.').slice(-1)[0]] = f
@@ -84,10 +87,16 @@ export class ScoringReport {
     //   const cbScoreForApplicant = this.conf.creditBuroScoreForApplicant
     //   creditBureauScore = this.calcScore(cbScore, cbScoreForApplicant)
     // }
-    const applicantInformation = map[APPLICANT_INFORMATION]
-
+    const { models } = this.bot
     let val = this.getEnumValue(applicantInformation, 'existingCustomerRating')
+
     let existingCustomer = val &&  val.score || 0
+    let scoreDetails: any = []
+    scoreDetails.push({
+      form: buildResourceStub({ resource: applicantInformation, models }),
+      property: 'existingCustomer',
+      score: existingCustomer
+    })
 
     let yearsAtWork = 0
     const applicantMedicalProfession = map[APPLICANT_MED_PROFESSION]
@@ -95,6 +104,11 @@ export class ScoringReport {
       if (applicantMedicalProfession.yearsAtWork) {
         val = this.getEnumValue(applicantMedicalProfession, 'yearsAtWork')
         yearsAtWork = val.score
+        scoreDetails.push({
+          form: buildResourceStub({ resource: applicantInformation, models }),
+          property: 'yearsAtWork',
+          score: yearsAtWork
+        })
       }
     }
     const applicantAddress = map[APPLICANT_ADDRESS]
@@ -102,12 +116,17 @@ export class ScoringReport {
     if (applicantAddress.yearsAtResidence) {
       val = this.getEnumValue(applicantAddress, 'yearsAtResidence')
       yearsAtResidence = val.score
+      scoreDetails.push({
+        form: buildResourceStub({ resource: applicantAddress, models }),
+        property: 'yearsAtResidence',
+        score: yearsAtWork
+      })
     }
     const capacityToPayConf = this.conf.capacityToPay
-    const debtFactor = map[CASH_FLOW] && map[CASH_FLOW].debtFactor
-    const capacityToPay = debtFactor && this.calcScore(debtFactor, capacityToPayConf) || 0
+    const extraEquipmentFactor = map[CASH_FLOW] && map[CASH_FLOW].extraEquipmentFactor
+    let capacityToPay = extraEquipmentFactor && this.calcScore(extraEquipmentFactor, capacityToPayConf) || 0
 
-    let { creditBureauScore, accountsPoints } = await this.scoreFromCheck({ item: application, creditReport, check })
+    let { creditBureauScore, accountsPoints } = await this.scoreFromCheckIndividual({ item: application, creditReport, check })
 
     let specialityCouncil = 0
     if (await this.credencialsCheckPass(application))
@@ -117,9 +136,123 @@ export class ScoringReport {
     // if (items  &&  items.length) {
     //   items = await Promise.all(items.map(item => this.bot.getResource(item, {backlinks: ['checks']})))
     //   // for (let i=0; i<items.length; i++) {
-    //   let cosignerScores = await this.scoreFromCheck({ item: items[0], isEndorser: true})
+    //   let cosignerScores = await this.scoreFromCheckIndividual({ item: items[0], isEndorser: true})
     //   cosignerCreditBureauScore = cosignerScores.creditBureauScore
     // }
+    const {usefulLife, secondaryMarket, relocation, assetType, leaseType} = await this.getCommonScores(map)
+    const characterScore = creditBureauScore + existingCustomer + yearsAtWork + yearsAtResidence
+    const assetScore = usefulLife + secondaryMarket + relocation + assetType + leaseType
+    let props:any = {
+      creditBureauScore,
+      existingCustomer,
+      specialityCouncil,
+      yearsAtWork,
+      yearsAtResidence,
+      capacityToPay,
+      usefulLife,
+      secondaryMarket,
+      relocation,
+      assetType,
+      leaseType,
+      cosignerCreditBureauScore,
+      accounts: accountsPoints,
+      // check
+    }
+    let { formula } = capacityToPayConf
+    if (!formula) 
+      props.capacityToPay = capacityToPay
+    else {  
+      let props1 = {...map[CASH_FLOW], capacityToPay}    
+
+      let keys = Object.keys(props1)
+      let values = Object.values(props1)
+      try {
+        let newCapacityToPay = new Function(...keys, `return ${formula}`)(...values)
+        if (newCapacityToPay)
+          props.capacityToPay = newCapacityToPay
+      } catch (err) {
+        props.capacityToPay = capacityToPay
+        debugger
+      }
+    }
+    props.totalScore = characterScore + capacityToPay + assetScore
+
+    return await this.bot.draft({ type: resultForm }).set(props).signAndSave()
+  }
+  public async execForCompany({ applicantInformation, reportForms, resultForm, items, check, application }) {
+    let map = {}
+    reportForms.forEach(f => {
+      map[f[TYPE].split('.').slice(-1)[0]] = f
+    })
+    let { creditReport } = check
+    if (!creditReport) return
+
+    creditReport = await this.bot.getResource(creditReport, {backlinks: ['generalData', 'accounts', 'history', 'commercialCredit' ]})
+    let { generalData } = creditReport
+    generalData = generalData  &&  await this.bot.getResource(generalData[0])
+    let financialRating = generalData  &&  generalData.financialRating
+    let ratingInBureau = 0
+    if (financialRating) {
+      let s = financialRating.slice(-2)
+      if (s === 'A1' || s === 'B2' || s === 'NC' || s === 'EX')
+        ratingInBureau = 2
+    }
+    else
+      ratingInBureau = 2
+
+      // let history = creditReport.history && await Promise.all(creditReport.history.map(r => this.bot.getResource(r)))
+    
+    // if (history && history.ratingInBureau) {
+    //   let s = history.ratingInBureau.slice(-2)
+    //   if (s === 'A1' || s === 'B2' || s === 'NC' || s === 'EX')
+    //     ratingInBureau = 2
+    // }
+    // else
+      // ratingInBureau = 2
+    let commercialCredit = creditReport.commercialCredit
+    let worstMopThisYear = 0
+    if (commercialCredit) {
+      commercialCredit = await Promise.all(commercialCredit.map(r => this.bot.getResource(r)))
+      // if (commercialCredit.history) {
+      //   if (worstMopThisYear < 3)
+      //     worstMopThisYear = 2
+      //   else if (worstMopThisYear === 3)
+      //     worstMopThisYear = 1
+      // }
+      // <3 = 2, 3=1, >3=0
+    }
+    let legalEntity = map[LEGAL_ENTITY]
+    let yearsInOperation = 0
+    if (legalEntity  &&  legalEntity.registrationDate / ONE_YEAR_MILLIS )
+        yearsInOperation = 1
+    
+    let financialDetails = map[COMPANY_FINANCIALS]
+    let profitable = 0
+    if (financialDetails) 
+      profitable = financialDetails.netProfitP  ? 2 : 0
+    
+    const {usefulLife, secondaryMarket, relocation} = await this.getCommonScores(map)
+    // const characterScore = creditBureauScore + existingCustomer + yearsAtWork + yearsAtResidence
+    // const paymentScore = capacityToPay
+    // const assetScore = usefulLife + secondaryMarket + relocation + assetType + leaseType
+    let props = {
+      ratingInBureau,
+      worstMopThisYear,
+      profitable,
+      yearsInOperation,
+      usefulLife,
+      secondaryMarket,
+      relocation,
+      // assetType,
+      // leaseType,
+      // cosignerCreditBureauScore,
+      // accounts: accountsPoints,
+      // totalScore: characterScore + paymentScore + assetScore,
+    }
+    return await this.bot.draft({ type: resultForm }).set(props).signAndSave()
+  }
+
+  private async getCommonScores(map) {
     let qi = map[QUOTATION_INFORMATION]
     let qd = map[QUOTATION_DETAILS]
     let usefulLife = 0, secondaryMarket = 0, relocation = 0, assetType = 0, leaseType = 0
@@ -151,27 +284,13 @@ export class ScoringReport {
       val = this.getEnumValue(asset, 'leaseType')
       if (val) leaseType = val.score
     }
-    const characterScore = creditBureauScore + existingCustomer + yearsAtWork + yearsAtResidence
-    const paymentScore = capacityToPay
-    const assetScore = usefulLife + secondaryMarket + relocation + assetType + leaseType
-    let props = {
-      creditBureauScore,
-      existingCustomer,
-      specialityCouncil,
-      yearsAtWork,
-      yearsAtResidence,
-      capacityToPay,
+    return {
       usefulLife,
       secondaryMarket,
       relocation,
       assetType,
-      leaseType,
-      cosignerCreditBureauScore,
-      accounts: accountsPoints,
-      totalScore: characterScore + paymentScore + assetScore,
-      // check
+      leaseType
     }
-    return await this.bot.draft({ type: resultForm }).set(props).signAndSave()
   }
   private async credencialsCheckPass(application) {
     const { checks, checkOverrides } = application
@@ -207,7 +326,7 @@ export class ScoringReport {
     })
     return pm.enum.find(e => e.id === eValueId)
   }
-  private async scoreFromCheck({item, isEndorser, check, creditReport}:{item:any, isEndorser?: boolean, check?:any, creditReport?:any}) {
+  private async scoreFromCheckIndividual({item, isEndorser, check, creditReport}:{item:any, isEndorser?: boolean, check?:any, creditReport?:any}) {
     const { creditBuroScoreForEndorser, creditBuroScoreForApplicant } = this.conf
     const cbScoreMap = isEndorser ? creditBuroScoreForEndorser : creditBuroScoreForApplicant
     if (item.status !== 'approved'  &&  item.status !== 'completed') return
@@ -322,6 +441,10 @@ export class ScoringReport {
         if (value > parseInt(range[0].replace(/[^\w\s]/gi, ''))  &&  value <= parseInt(range[1].replace(/[^\w\s]/gi, '')))
           return scoreConf[p]
       }
+      else {
+        let isNumber = /^[0-9]$/.test(p.charAt(0))
+        if (!isNumber) continue
+      }
     }
     return 0
   }
@@ -360,7 +483,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let { application } = req
 
       if (!application) return
-      debugger
+      // debugger
       const { products, creditBuroScoreForApplicant, creditBuroScoreForEndorser, capacityToPay } = conf
       const { requestFor, checks } = application
 
@@ -391,31 +514,55 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       //   await bot.versionAndSave({...creditScore, cosignerCreditBureauScore })
       //   return
       // }
-      let { forms:formList, resultForm } = products[requestFor]
-      if (!formList  ||  !resultForm) return
-
+      let { formsIndividual, formsCompany, reportIndividual, reportCompany } = products[requestFor]
+       
       if (!checks) return
-
-      let cChecks:any = checks.filter(check => check[TYPE] === CREDIT_REPORT_CHECK)
-      if (!cChecks.length) return
-
-      cChecks = await Promise.all(cChecks.map(c => bot.getResource(c)))
-      cChecks.sort((a, b) => b._time - a._time)
-
-      let check = await bot.getResource(cChecks[0])
-
-      if (!isPassedCheck({status: check.status})) return
-
-      let forms = application.forms
+      
+      let { forms } = application
       if (!forms)
         forms = application.submissions.filter(
           s => bot.models[s.submission[TYPE]].subClassOf === 'tradle.Form'
         )
 
+      let applicantInformationSubmission = forms.find(form => form.submission[TYPE].endsWith(`.${APPLICANT_INFORMATION}`))
+      if (!applicantInformationSubmission) return
+
+      let applicantInformationStub = applicantInformationSubmission.submission
+      const applicantInformation = await bot.getResource(applicantInformationStub)
+      const { applicant } = applicantInformation
+      let isCompany 
+      if (applicant) {
+        const ref = models[applicantInformation[TYPE]].properties.applicant.ref
+        let val = getEnumValueId({
+          model: models[ref],
+          value: applicant
+        })
+        isCompany = val === 'company' 
+      }
+
+      let formList = isCompany  ? formsCompany :  formsIndividual
+      if (!formList) return
+
+      let resultForm = isCompany ? reportCompany : reportIndividual
+      if (!resultForm) return
+        
       let stubs:any = forms && forms.filter(form => formList.indexOf(form.submission[TYPE]) !== -1)
       if (!stubs.length) return
 
       stubs = stubs.map(s => s.submission)
+      let applicantInformationStubIdx = stubs.find(form => form[TYPE].endsWith(`.${APPLICANT_INFORMATION}`))
+
+      stubs.splice(applicantInformationStubIdx, 1)
+
+      let checkType = isCompany ? CREDS_COMPANY_CHECK : CREDIT_REPORT_CHECK
+      let cChecks:any = checks.filter(check => check[TYPE] === checkType)
+      if (!cChecks.length) return
+      cChecks = await Promise.all(cChecks.map(c => bot.getResource(c)))
+      cChecks.sort((a, b) => b._time - a._time)
+      
+      let check = await bot.getResource(cChecks[0])
+
+      if (!isPassedCheck({status: check.status})) return
 
       let reportForms = await Promise.all(stubs.map(s => bot.getResource(s)))
 
@@ -425,7 +572,12 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         // if (!items) return
       }
 
-      let creditScore = await scoringReport.exec({ reportForms, resultForm, items, check, application })
+      let creditScore
+      if (isCompany)
+        creditScore = await scoringReport.execForCompany({applicantInformation, reportForms, resultForm, items, check, application })
+      else
+        creditScore = await scoringReport.execForIndividual({applicantInformation, reportForms, resultForm, items, check, application })
+
       if (creditScore) {
         let cr = creditScore.resource
         application.creditScore = buildResourceStub({ resource: cr, models })
@@ -510,15 +662,23 @@ export const validateConf: ValidatePluginConf = async ({
   const { models } = bot
   for (let p in products) {
     if (!models[p])  throw new Error(`there is no model ${p}`)
-    const { forms, resultForm } = products[p]
-    if (!forms)  throw new Error(`there is no 'forms' for product ${p} in configuration`)
+    const { formsIndividual, formsCompany, reportCompany, reportIndividual } = products[p]
+    if (!formsCompany && !formsIndividual)  throw new Error(`there is no 'forms' for product ${p} in configuration`)
     // if (!resources)   new Error(`there is no 'resources' in 'products' in configuration`)
-    if (!resultForm)  throw new Error(`there is no 'resultForm' in 'products' configuration`)
+    if (!reportCompany  &&  !reportIndividual)  throw new Error(`there is no 'reportCompany' or 'reportIndividual' in 'products' configuration`)
     let noModels = []
-    forms.forEach(f => {
-      if (!models[f]) noModels.push(f)
-    })
-    if (!models[resultForm]) noModels.push(resultForm)
+    if (formsCompany) {
+      formsCompany.forEach(f => {
+        if (!models[f]) noModels.push(f)
+      })
+    }
+    if (formsIndividual) {
+      formsIndividual.forEach(f => {
+        if (!models[f]) noModels.push(f)
+      })
+    }
+    if (reportIndividual && !models[reportIndividual]) noModels.push(reportIndividual)
+    if (reportCompany && !models[reportCompany]) noModels.push(reportCompany)
     if (noModels.length) throw new Error(`There is no models ${noModels}`)
     const { high, average, low } = accountsScore
     if (!high || !average || !low) throw new Error(`accountsScore should have: high, average and low integer values`);
