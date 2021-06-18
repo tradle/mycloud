@@ -47,8 +47,10 @@ interface IBuroCheck {
   req: IPBReq
 }
 
-const SUMMARY = 'com.leaseforu.CreditBureauIndividualCreditSummary'
+const  CASHFLOW = 'com.leaseforu.PersonalCashflow'
+
 const CREDIT_CHECK = 'tradle.CreditReportIndividualCheck'
+const SUMMARY = 'com.leaseforu.CreditBureauIndividualCreditSummary'
 const APPLICANT_INFO_TYPE = 'com.leaseforu.ApplicantInformation'
 const APPLICANT_ADDR_TYPE = 'com.leaseforu.ApplicantAddress'
 
@@ -551,8 +553,40 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         req,
         user
       })
+    },
+    async willRequestForm({ application, formRequest }) {
+      let { form } = formRequest
+      if (form !== CASHFLOW) return
+
+      // debugger
+      if (!application) return
+
+      let { checks } = application
+      if (!checks) return
+
+      let stubs = checks.filter(
+        (check) => check[TYPE] === CREDIT_CHECK 
+      )
+      if (!stubs.length) return
+      logger.debug('found ' + stubs.length + ' checks')
+      let result = await Promise.all(stubs.map((check) => bot.getResource(check)))
+      result.sort((a, b) => b._time - a._time)
+      
+      if(!result[0].creditReport)
+        return
+      const report = await bot.getResource(result[0].creditReport, {backlinks: ['creditSummary']})
+      const creditSummaryStub = report.creditSummary[0]
+      const creditSummary = await bot.getResource(creditSummaryStub)
+  
+      if (!formRequest.prefill) {
+        formRequest.prefill = {
+          [TYPE]: CASHFLOW,
+          expensesInBureau: { value: creditSummary.openPayable, currency: 'MXN' } 
+        }
+      }
+      else formRequest.prefill.expensesInBureau = { value: creditSummary.openPayable, currency: 'MXN' }  
     }
-  }
+  } 
   return { plugin }
 }
 
