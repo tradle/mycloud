@@ -10,6 +10,9 @@ import {
   Logger
 } from '../types'
 import { buildResourceStub } from '@tradle/build-resource'
+import validateResource from '@tradle/validate-resource'
+// @ts-ignore
+const { sanitize } = validateResource.utils
 
 import { getEnumValueId } from '../../utils'
 import { isPassedCheck } from '../utils'
@@ -33,6 +36,10 @@ const CREDS_COMPANY_CHECK = 'tradle.CreditReportLegalEntityCheck'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const APPLICATION = 'tradle.Application'
 const ONE_YEAR_MILLIS = 60 * 60 * 24 * 365 * 1000
+const ASSET_GROUP = 'assetScore'
+const CHARACTER_GROUP = 'characterScore'
+const PAYMENT_GROUP = 'paymentScore'
+
 // const REPORT_PROPS = {
 //   CreditBureauIndividualCreditScore: ['scoreValue'],
 //   ApplicantInformation: [ ['existingCustomerRating', 'score']] ,
@@ -92,11 +99,7 @@ export class ScoringReport {
 
     let existingCustomer = val &&  val.score || 0
     let scoreDetails: any = []
-    scoreDetails.push({
-      form: buildResourceStub({ resource: applicantInformation, models }),
-      property: 'existingCustomer',
-      score: existingCustomer
-    })
+    this.addToScoreDetails({scoreDetails, form: applicantInformation, formProperty: 'existingCustomerRating', property: 'existingCustomer', score: existingCustomer, group: CHARACTER_GROUP});
 
     let yearsAtWork = 0
     const applicantMedicalProfession = map[APPLICANT_MED_PROFESSION]
@@ -104,11 +107,7 @@ export class ScoringReport {
       if (applicantMedicalProfession.yearsAtWork) {
         val = this.getEnumValue(applicantMedicalProfession, 'yearsAtWork')
         yearsAtWork = val.score
-        scoreDetails.push({
-          form: buildResourceStub({ resource: applicantInformation, models }),
-          property: 'yearsAtWork',
-          score: yearsAtWork
-        })
+        this.addToScoreDetails({scoreDetails, form: applicantMedicalProfession, formProperty: 'yearsAtWork', property: 'yearsAtWork', score: yearsAtWork, group: CHARACTER_GROUP});
       }
     }
     const applicantAddress = map[APPLICANT_ADDRESS]
@@ -116,21 +115,21 @@ export class ScoringReport {
     if (applicantAddress.yearsAtResidence) {
       val = this.getEnumValue(applicantAddress, 'yearsAtResidence')
       yearsAtResidence = val.score
-      scoreDetails.push({
-        form: buildResourceStub({ resource: applicantAddress, models }),
-        property: 'yearsAtResidence',
-        score: yearsAtWork
-      })
+      this.addToScoreDetails({scoreDetails, form: applicantAddress, formProperty: 'yearsAtResidence', property: 'yearsAtResidence', score: yearsAtResidence, group: CHARACTER_GROUP});
     }
     const capacityToPayConf = this.conf.capacityToPay
     const extraEquipmentFactor = map[CASH_FLOW] && map[CASH_FLOW].extraEquipmentFactor
     let capacityToPay = extraEquipmentFactor && this.calcScore(extraEquipmentFactor, capacityToPayConf) || 0
 
-    let { creditBureauScore, accountsPoints } = await this.scoreFromCheckIndividual({ item: application, creditReport, check })
+    let { creditBureauScore, accountsPoints, cbReport } = await this.scoreFromCheckIndividual({ item: application, creditReport, check })
+    this.addToScoreDetails({scoreDetails, form: cbReport && cbReport.creditScore, formProperty: 'scoreValue', property: 'creditBureauScore', score: creditBureauScore, group: CHARACTER_GROUP});
 
     let specialityCouncil = 0
-    if (await this.credencialsCheckPass(application))
+    let { cCheck, checkPassed } = await this.credentialsCheckPass(application)
+    if (checkPassed) {
       specialityCouncil = 3
+      this.addToScoreDetails({scoreDetails, form: cCheck, formProperty: 'status', property: 'specialityCouncil', score: specialityCouncil, group: CHARACTER_GROUP});
+    }
 
     let cosignerCreditBureauScore = 0
     // if (items  &&  items.length) {
@@ -139,15 +138,21 @@ export class ScoringReport {
     //   let cosignerScores = await this.scoreFromCheckIndividual({ item: items[0], isEndorser: true})
     //   cosignerCreditBureauScore = cosignerScores.creditBureauScore
     // }
-    const {usefulLife, secondaryMarket, relocation, assetType, leaseType} = await this.getCommonScores(map)
+    const {asset, usefulLife, secondaryMarket, relocation, assetType, leaseType} = await this.getCommonScores(map, scoreDetails)
     const characterScore = creditBureauScore + existingCustomer + yearsAtWork + yearsAtResidence
+    this.addToScoreDetails({scoreDetails, property: 'characterScore', score: characterScore, group: CHARACTER_GROUP, total: true});
+
     const assetScore = usefulLife + secondaryMarket + relocation + assetType + leaseType
+
+    this.addToScoreDetails({scoreDetails, form: asset, property: 'assetScore', score: assetScore, group: ASSET_GROUP, total: true});
+
     let props:any = {
       creditBureauScore,
       existingCustomer,
       specialityCouncil,
       yearsAtWork,
       yearsAtResidence,
+      characterScore,
       capacityToPay,
       usefulLife,
       secondaryMarket,
@@ -156,13 +161,14 @@ export class ScoringReport {
       leaseType,
       cosignerCreditBureauScore,
       accounts: accountsPoints,
+      assetScore,
       // check
     }
     let { formula } = capacityToPayConf
-    if (!formula) 
+    if (!formula)
       props.capacityToPay = capacityToPay
-    else {  
-      let props1 = {...map[CASH_FLOW], capacityToPay}    
+    else {
+      let props1 = {...map[CASH_FLOW], capacityToPay}
 
       let keys = Object.keys(props1)
       let values = Object.values(props1)
@@ -175,9 +181,18 @@ export class ScoringReport {
         debugger
       }
     }
-    props.totalScore = characterScore + capacityToPay + assetScore
 
-    return await this.bot.draft({ type: resultForm }).set(props).signAndSave()
+    if (capacityToPay) {
+      this.addToScoreDetails({scoreDetails, form: map[CASH_FLOW], formProperty: 'extraEquipmentFactor', property: 'capacityToPay', score: capacityToPay, group: PAYMENT_GROUP});
+      this.addToScoreDetails({scoreDetails, form: map[CASH_FLOW], formProperty: 'extraEquipmentFactor', property: 'paymentScore', score: capacityToPay, group: PAYMENT_GROUP, total: true});
+    }
+    props.paymentScore = capacityToPay
+
+    props.totalScore = characterScore + props.paymentScore + assetScore
+    this.addToScoreDetails({scoreDetails, property: 'totalScore', score: props.totalScore, total: true});
+  
+    let score = await this.bot.draft({ type: resultForm }).set(props).signAndSave()
+    return { score, scoreDetails }
   }
   public async execForCompany({ applicantInformation, reportForms, resultForm, items, check, application }) {
     let map = {}
@@ -186,7 +201,7 @@ export class ScoringReport {
     })
     let { creditReport } = check
     if (!creditReport) return
-
+    let scoreDetails: any = []
     creditReport = await this.bot.getResource(creditReport, {backlinks: ['generalData', 'accounts', 'history', 'commercialCredit' ]})
     let { generalData } = creditReport
     generalData = generalData  &&  await this.bot.getResource(generalData[0])
@@ -199,9 +214,10 @@ export class ScoringReport {
     }
     else
       ratingInBureau = 2
+    this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'financialRating', property: 'ratingInBureau', score: ratingInBureau});
 
-      // let history = creditReport.history && await Promise.all(creditReport.history.map(r => this.bot.getResource(r)))
-    
+    // let history = creditReport.accounts && await Promise.all(creditReport.accounts.map(r => r.history  &&  this.bot.getResource(r)))
+
     // if (history && history.ratingInBureau) {
     //   let s = history.ratingInBureau.slice(-2)
     //   if (s === 'A1' || s === 'B2' || s === 'NC' || s === 'EX')
@@ -225,16 +241,21 @@ export class ScoringReport {
     let yearsInOperation = 0
     if (legalEntity  &&  legalEntity.registrationDate / ONE_YEAR_MILLIS )
         yearsInOperation = 1
-    
+
+    this.addToScoreDetails({scoreDetails, form: legalEntity, formProperty: 'registrationDate', property: 'yearsInOperation', score: yearsInOperation, group: CHARACTER_GROUP});
+
     let financialDetails = map[COMPANY_FINANCIALS]
     let profitable = 0
-    if (financialDetails) 
+    if (financialDetails) {
       profitable = financialDetails.netProfitP  ? 2 : 0
-    
-    const {usefulLife, secondaryMarket, relocation} = await this.getCommonScores(map)
+      this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'profitable', formProperty: 'netProfitP', score: profitable, group: PAYMENT_GROUP});
+    }
+    const {asset, usefulLife, secondaryMarket, relocation, assetType, leaseType} = await this.getCommonScores(map, scoreDetails)
     // const characterScore = creditBureauScore + existingCustomer + yearsAtWork + yearsAtResidence
     // const paymentScore = capacityToPay
-    // const assetScore = usefulLife + secondaryMarket + relocation + assetType + leaseType
+    const assetScore = usefulLife + secondaryMarket + relocation + assetType + leaseType
+    this.addToScoreDetails({scoreDetails, form: asset, property: 'assetScore', score: assetScore, group: ASSET_GROUP, total: true});
+
     let props = {
       ratingInBureau,
       worstMopThisYear,
@@ -243,21 +264,23 @@ export class ScoringReport {
       usefulLife,
       secondaryMarket,
       relocation,
-      // assetType,
-      // leaseType,
+      assetScore,
+      assetType,
+      leaseType,
       // cosignerCreditBureauScore,
       // accounts: accountsPoints,
       // totalScore: characterScore + paymentScore + assetScore,
     }
-    return await this.bot.draft({ type: resultForm }).set(props).signAndSave()
+    let score = await this.bot.draft({ type: resultForm }).set(props).signAndSave()
+    return { score, scoreDetails }
   }
 
-  private async getCommonScores(map) {
+  private async getCommonScores(map, scoreDetails) {
     let qi = map[QUOTATION_INFORMATION]
     let qd = map[QUOTATION_DETAILS]
-    let usefulLife = 0, secondaryMarket = 0, relocation = 0, assetType = 0, leaseType = 0
+    let asset, usefulLife = 0, secondaryMarket = 0, relocation = 0, assetType = 0, leaseType = 0
     if (qi && qi.asset) {
-      const asset = await this.bot.getResource(qi.asset)
+      asset = await this.bot.getResource(qi.asset)
       // const { usefulLife, secondaryMarket, relocationTime, assetType, leaseType } = asset
 
       let val = this.getEnumValue(asset, 'usefulLife')
@@ -271,20 +294,33 @@ export class ScoringReport {
         else
           usefulLife = 0
       }
+      this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'usefulLife', property: 'usefulLife', score: usefulLife, group: ASSET_GROUP});
 
       val = this.getEnumValue(asset, 'secondaryMarket')
-      if (val) secondaryMarket = val.score
+      if (val) {
+        secondaryMarket = val.score
+      }
+      this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'secondaryMarket', property: 'secondaryMarket', score: secondaryMarket, group: ASSET_GROUP});
 
       val = this.getEnumValue(asset, 'relocationTime')
-      if (val) relocation = val.score
+      if (val) {
+        relocation = val.score
+      }
+      this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'relocation', property: 'relocation', score: relocation, group: ASSET_GROUP});
 
       val = this.getEnumValue(asset, 'assetType')
-      if (val) assetType = val.score
-
+      if (val) {
+        assetType = val.score
+      }
+      this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'assetType', property: 'assetType', score: assetType, group: ASSET_GROUP});
       val = this.getEnumValue(asset, 'leaseType')
-      if (val) leaseType = val.score
+      if (val) {
+        leaseType = val.score
+        this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'leaseType', property: 'leaseType', score: leaseType, group: ASSET_GROUP});
+      }
     }
     return {
+      asset,
       usefulLife,
       secondaryMarket,
       relocation,
@@ -292,27 +328,40 @@ export class ScoringReport {
       leaseType
     }
   }
-  private async credencialsCheckPass(application) {
+  private async credentialsCheckPass(application) {
     const { checks, checkOverrides } = application
-    const { models } = this.bot
     let credsChecks = checks.find(check => check[TYPE] === CREDS_CHECK)
-    let credsCheckPass
     if (!credsChecks || !credsChecks.length)
-      return
+      return {}
     let cChecks:any = await Promise.all(credsChecks.map(c => this.bot.getResource(c)))
     cChecks.sort((a, b) => b._time - a._time)
     let credsCheck = await this.bot.getResource(credsChecks[0])
-    if (!checkOverrides) {
-      if (isPassedCheck({status: credsCheck.status})) return true
-      return false
+    if (checkOverrides)  {
+      let credsCheckOverride = cChecks.find(co => co[TYPE] === CREDS_CHECK_OVERRIDE)
+      if (credsCheckOverride)
+        return { checkPassed: isPassedCheck({status: credsCheckOverride.status}), cCheck: credsCheckOverride }
     }
-    let credsCheckOverride = cChecks.find(co => co[TYPE] === CREDS_CHECK_OVERRIDE)
-    if (credsCheckOverride) {
-      if (isPassedCheck({status: credsCheckOverride.status})) return true
-      else return false
+    return { checkPassed: isPassedCheck({status: credsCheck.status}), cCheck: credsCheck }
+  }
+  private addToScoreDetails({scoreDetails, form, formProperty, property, score, group, total}:{
+    scoreDetails:any
+    form?: any
+    formProperty?: string
+    property: string
+    score: number
+    group?:string
+    total?: boolean
+  }) {
+    let detail:any = {
+      score,
+      property,
+      group,
+      total,
+      formProperty,
+      form: form &&  buildResourceStub({ resource: form, models: this.bot.models })
     }
-    if (isPassedCheck({status: credsCheck.status})) return true
-    else return false
+    detail = sanitize(detail).sanitized
+    scoreDetails.push(detail)  
   }
   private getEnumValue(resource, prop) {
     const evalue = resource[prop]
@@ -355,7 +404,7 @@ export class ScoringReport {
     if (!crAccounts  ||  !crAccounts.length) return
     let accountsPoints =  await this.calcAccounts(crAccounts)
 
-    return { creditBureauScore, accountsPoints }
+    return { creditBureauScore, accountsPoints, cbReport: creditReport }
   }
   private async calcAccounts(crAccounts) {
     let accounts:any = await Promise.all(crAccounts.map(a => this.bot.getResource(a)))
@@ -515,9 +564,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       //   return
       // }
       let { formsIndividual, formsCompany, reportIndividual, reportCompany } = products[requestFor]
-       
+
       if (!checks) return
-      
+
       let { forms } = application
       if (!forms)
         forms = application.submissions.filter(
@@ -530,14 +579,14 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let applicantInformationStub = applicantInformationSubmission.submission
       const applicantInformation = await bot.getResource(applicantInformationStub)
       const { applicant } = applicantInformation
-      let isCompany 
+      let isCompany
       if (applicant) {
         const ref = models[applicantInformation[TYPE]].properties.applicant.ref
         let val = getEnumValueId({
           model: models[ref],
           value: applicant
         })
-        isCompany = val === 'company' 
+        isCompany = val === 'company'
       }
 
       let formList = isCompany  ? formsCompany :  formsIndividual
@@ -545,12 +594,12 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       let resultForm = isCompany ? reportCompany : reportIndividual
       if (!resultForm) return
-        
+
       let stubs:any = forms && forms.filter(form => formList.indexOf(form.submission[TYPE]) !== -1)
       if (!stubs.length) return
 
       stubs = stubs.map(s => s.submission)
-      let applicantInformationStubIdx = stubs.find(form => form[TYPE].endsWith(`.${APPLICANT_INFORMATION}`))
+      let applicantInformationStubIdx = stubs.findIndex(form => form[TYPE].endsWith(`.${APPLICANT_INFORMATION}`))
 
       stubs.splice(applicantInformationStubIdx, 1)
 
@@ -559,7 +608,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!cChecks.length) return
       cChecks = await Promise.all(cChecks.map(c => bot.getResource(c)))
       cChecks.sort((a, b) => b._time - a._time)
-      
+
       let check = await bot.getResource(cChecks[0])
 
       if (!isPassedCheck({status: check.status})) return
@@ -572,15 +621,17 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         // if (!items) return
       }
 
-      let creditScore
+      let score, scoreDetails
       if (isCompany)
-        creditScore = await scoringReport.execForCompany({applicantInformation, reportForms, resultForm, items, check, application })
+        ({ score, scoreDetails } = await scoringReport.execForCompany({applicantInformation, reportForms, resultForm, items, check, application }))
       else
-        creditScore = await scoringReport.execForIndividual({applicantInformation, reportForms, resultForm, items, check, application })
+        ({ score, scoreDetails } =  await scoringReport.execForIndividual({applicantInformation, reportForms, resultForm, items, check, application }))
 
-      if (creditScore) {
-        let cr = creditScore.resource
+      if (score) {
+        let cr = score.resource
         application.creditScore = buildResourceStub({ resource: cr, models })
+        if (scoreDetails)
+          application.creditScoreDetails = scoreDetails
       }
     },
     // async didApproveApplication(opts: IWillJudgeAppArg, certificate: ITradleObject) {
