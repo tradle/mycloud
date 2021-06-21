@@ -2,12 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.97](https://github.com/tradle/mycloud/compare/v3.0.1-rc.96...v3.0.1-rc.97) (2021-06-03)
+## [3.0.1-rc.98](https://github.com/tradle/mycloud/compare/v3.0.1-rc.97...v3.0.1-rc.98) (2021-06-21)
 
 
 ### Bug Fixes
 
-* don't run if no configuration for the product ([50aae58](https://github.com/tradle/mycloud/commit/50aae58))
+* credit score project ([ec6240f](https://github.com/tradle/mycloud/commit/ec6240f))
+* one of the scoring parameters didn't calculate correctly ([168707a](https://github.com/tradle/mycloud/commit/168707a))
+* SSL connection for doctor creds failed ([01de3f0](https://github.com/tradle/mycloud/commit/01de3f0))
+* whitelist creditScoring for use of new Function ([6cd6cae](https://github.com/tradle/mycloud/commit/6cd6cae))
+
+
+### Features
+
+* credit score for applicant that is company ([f193afa](https://github.com/tradle/mycloud/commit/f193afa))
+* credit score project; score details ([f6eed65](https://github.com/tradle/mycloud/commit/f6eed65))
+* credit scoring ([9ef224c](https://github.com/tradle/mycloud/commit/9ef224c))
+* credit scoring for both company and individuals ([1df1e2c](https://github.com/tradle/mycloud/commit/1df1e2c))
+* prefill for cosigner ([60da1f0](https://github.com/tradle/mycloud/commit/60da1f0))
 
 
 
