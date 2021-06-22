@@ -23,7 +23,8 @@ const QUOTATION_DETAILS = 'QuotationDetails'
 const APPLICANT_INFORMATION = 'ApplicantInformation'
 const APPLICANT_ADDRESS = 'ApplicantAddress'
 const APPLICANT_MED_PROFESSION = 'ApplicantMedicalProfession'
-const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
+const LEGAL_ENTITY = 'LegalEntity'
+// const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 // const CP = 'tradle.legal.LegalEntityControllingPerson'
 
 const COMPANY_FINANCIALS = 'CompanyFinancialDetails'
@@ -197,13 +198,16 @@ export class ScoringReport {
   public async execForCompany({ applicantInformation, reportForms, resultForm, items, check, application }) {
     let map = {}
     reportForms.forEach(f => {
-      map[f[TYPE].split('.').slice(-1)[0]] = f
+      const type = f[TYPE].split('.').slice(-1)[0]
+      if (!map[type])
+        map[type] = []
+      map[type].push(f)
     })
     let { creditReport } = check
     if (!creditReport) return
     let scoreDetails: any = []
     creditReport = await this.bot.getResource(creditReport, {backlinks: ['generalData', 'accounts', 'history', 'commercialCredit' ]})
-    let { generalData } = creditReport
+    let { generalData, accounts } = creditReport
     generalData = generalData  &&  await this.bot.getResource(generalData[0])
     let financialRating = generalData  &&  generalData.financialRating
     let ratingInBureau = 0
@@ -214,70 +218,155 @@ export class ScoringReport {
     }
     else
       ratingInBureau = 2
-    this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'financialRating', property: 'ratingInBureau', score: ratingInBureau});
+    this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'financialRating', property: 'ratingInBureau', score: ratingInBureau, group: CHARACTER_GROUP});
 
-    // let history = creditReport.accounts && await Promise.all(creditReport.accounts.map(r => r.history  &&  this.bot.getResource(r)))
+    accounts = accounts && await Promise.all(accounts.map(r => this.bot.getResource(r)))
+    if (accounts) {
+      let score = 2
+      let goodAccounts = 0
+      for (let i=0; i<accounts.length; i++) {
+        let acc = accounts[i]
+        if (!acc.history  ||  acc.closedDate) continue
+        if (hasDigitsBigerThan(acc.history, 4)) 
+          score = 0
+        else if (acc.history.indexOf('4') !== -1)
+          score = score < 2 ? score : 1
+        else
+          goodAccounts++
+      }
+      this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'recentMonthsInArrears', score, group: CHARACTER_GROUP});
+      let percentageOfGoodAccounts = goodAccounts * 100/accounts.length
+      percentageOfGoodAccounts  = percentageOfGoodAccounts > 80 ? 2 : 0
+      this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'percentageOfGoodAccounts', score, group: CHARACTER_GROUP});
+    }
 
-    // if (history && history.ratingInBureau) {
-    //   let s = history.ratingInBureau.slice(-2)
-    //   if (s === 'A1' || s === 'B2' || s === 'NC' || s === 'EX')
-    //     ratingInBureau = 2
-    // }
-    // else
-      // ratingInBureau = 2
     let commercialCredit = creditReport.commercialCredit
     let worstMopThisYear = 0
     if (commercialCredit) {
       commercialCredit = await Promise.all(commercialCredit.map(r => this.bot.getResource(r)))
-      // if (commercialCredit.history) {
-      //   if (worstMopThisYear < 3)
-      //     worstMopThisYear = 2
-      //   else if (worstMopThisYear === 3)
-      //     worstMopThisYear = 1
-      // }
-      // <3 = 2, 3=1, >3=0
     }
     let legalEntity = map[LEGAL_ENTITY]
-    let yearsInOperation = 0
-    if (legalEntity  &&  legalEntity.registrationDate / ONE_YEAR_MILLIS )
+    if (legalEntity) legalEntity = legalEntity[0]
+    let yearsInOperation = 0, ownFacility = 0
+    if (legalEntity) {
+      if (legalEntity.registrationDate / ONE_YEAR_MILLIS )
         yearsInOperation = 1
-
+      if (legalEntity.ownsFacility) 
+        ownFacility = 1
+    }
     this.addToScoreDetails({scoreDetails, form: legalEntity, formProperty: 'registrationDate', property: 'yearsInOperation', score: yearsInOperation, group: CHARACTER_GROUP});
+    this.addToScoreDetails({scoreDetails, form: legalEntity, formProperty: 'ownFacility', property: 'ownFacility', score: ownFacility, group: CHARACTER_GROUP});
 
     let financialDetails = map[COMPANY_FINANCIALS]
-    let profitable = 0
-    if (financialDetails) {
-      profitable = financialDetails.netProfitP  ? 2 : 0
-      this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'profitable', formProperty: 'netProfitP', score: profitable, group: PAYMENT_GROUP});
-    }
+    const companyFinancials:any = this.calculateCompanyFinancials(financialDetails, scoreDetails)
     const {asset, usefulLife, secondaryMarket, relocation, assetType, leaseType} = await this.getCommonScores(map, scoreDetails)
     // const characterScore = creditBureauScore + existingCustomer + yearsAtWork + yearsAtResidence
     // const paymentScore = capacityToPay
     const assetScore = usefulLife + secondaryMarket + relocation + assetType + leaseType
     this.addToScoreDetails({scoreDetails, form: asset, property: 'assetScore', score: assetScore, group: ASSET_GROUP, total: true});
-
+    const characterScore = yearsInOperation + ownFacility + ratingInBureau
+    this.addToScoreDetails({scoreDetails, property: 'characterScore', score: characterScore, group: CHARACTER_GROUP, total: true});
+    let paymentScore = 0
+    for (let p in companyFinancials)
+      paymentScore += companyFinancials[p]
     let props = {
+      ...companyFinancials,
       ratingInBureau,
       worstMopThisYear,
-      profitable,
       yearsInOperation,
+      ownFacility,
       usefulLife,
       secondaryMarket,
       relocation,
       assetScore,
       assetType,
       leaseType,
+      characterScore,
+      paymentScore,
       // cosignerCreditBureauScore,
       // accounts: accountsPoints,
-      // totalScore: characterScore + paymentScore + assetScore,
+      totalScore: characterScore + companyFinancials.paymentScore + assetScore,
     }
+    this.addToScoreDetails({scoreDetails, property: 'totalScore', score: props.totalScore, total: true});
+
     let score = await this.bot.draft({ type: resultForm }).set(props).signAndSave()
     return { score, scoreDetails }
   }
+  calculateCompanyFinancials(financialDetails, scoreDetails) {
+    if (!financialDetails) 
+      return {}
 
+    let profitable = 0, liquidity = 0, leverage = 0, technicalBankrupcy = 0, workingCapitalRatio = 0, debtLevel = 0, returnOnEquity = 0, netProfit = 0, debtFactor = 0
+    financialDetails.forEach(fd => {
+      profitable += fd.netProfitP || 0
+      liquidity += fd.acidTest || 0 
+      leverage =+ fd.leverage || 0
+      technicalBankrupcy += fd.technicalBankrupcy || 0
+      workingCapitalRatio += fd.workingCapitalRatio || 0
+      debtLevel += fd.indebtedness || 0
+      returnOnEquity += fd.returnOnEquity || 0
+      netProfit += fd.netProfitP || 0
+      debtFactor += fd.extraEquipmentRatio || 0
+    })
+
+    const flen = financialDetails.length
+    profitable = profitable  ? 2 : 0
+    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'profitable', formProperty: 'netProfitP', score: profitable, group: PAYMENT_GROUP});
+
+    liquidity = (liquidity  &&  liquidity / flen) > 1 ? 2 : 0
+    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'liquidity', formProperty: 'acidTest', score: liquidity, group: PAYMENT_GROUP});
+
+    leverage = leverage && leverage / flen
+    if (leverage <= 60) leverage = 2
+    else if (leverage < 71) leverage = 1  
+    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'leverage', formProperty: 'leverage', score: leverage, group: PAYMENT_GROUP});
+    
+    technicalBankrupcy = (technicalBankrupcy / flen) < 33 ? 2 : 0
+    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'technicalBankrupcy', formProperty: 'technicalBankrupcy', score: technicalBankrupcy, group: PAYMENT_GROUP});
+    
+    workingCapitalRatio /= flen
+    if (workingCapitalRatio >= 2) workingCapitalRatio = 2
+    else if (workingCapitalRatio < 2  &&  workingCapitalRatio > 1) workingCapitalRatio = 1
+    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'workingCapitalRatio', formProperty: 'workingCapitalRatio', score: workingCapitalRatio, group: PAYMENT_GROUP});
+
+    debtLevel = (debtLevel / flen) < 50 ? 2 : 0
+    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'debtLevel', formProperty: 'indebtedness', score: debtLevel, group: PAYMENT_GROUP});
+    returnOnEquity = (returnOnEquity / flen) > 12 ? 2 : 1
+    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'returnOnEquity', formProperty: 'returnOnEquity', score: returnOnEquity, group: PAYMENT_GROUP});
+    
+    netProfit /= flen
+    if (netProfit > 10) netProfit = 2
+    if (netProfit < 10  &&  netProfit > 1) netProfit = 1
+    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'netProfit', formProperty: 'netProfitP', score: netProfit, group: PAYMENT_GROUP});
+
+    debtFactor /= flen
+    if (debtFactor <= 65) debtFactor = 19
+    else if (debtFactor > 54 && debtFactor <= 70) debtFactor = 16
+    else if (debtFactor > 70 && debtFactor <= 75) debtFactor = 12
+    else if (debtFactor > 75 && debtFactor <= 80) debtFactor = 8
+    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'debtFactor', formProperty: 'extraEquipmentRatio', score: debtFactor, group: PAYMENT_GROUP});
+
+    return {
+      profitable,
+      liquidity,
+      leverage,
+      technicalBankrupcy,       
+      workingCapitalRatio,
+      debtLevel,
+      returnOnEquity,
+      netProfit,
+      debtFactor,
+      paymentScore: profitable + liquidity + leverage + technicalBankrupcy + 
+                    workingCapitalRatio + debtLevel + returnOnEquity + netProfit + debtFactor
+    }
+  }
   private async getCommonScores(map, scoreDetails) {
     let qi = map[QUOTATION_INFORMATION]
+    if (qi  &&  Array.isArray(qi))
+      qi = qi[0]
     let qd = map[QUOTATION_DETAILS]
+    if (qd  &&  Array.isArray(qd))
+      qd = qd[0]
     let asset, usefulLife = 0, secondaryMarket = 0, relocation = 0, assetType = 0, leaseType = 0
     if (qi && qi.asset) {
       asset = await this.bot.getResource(qi.asset)
@@ -352,13 +441,22 @@ export class ScoringReport {
     group?:string
     total?: boolean
   }) {
+    let formStub
+    const { models } = this.bot
+    // could be multientry form like for CompanyFinancialDetails
+    if (form) {
+      if (Array.isArray(form)) 
+        formStub = form.map(f => buildResourceStub({resource: f, models }))
+      else
+        formStub =  buildResourceStub({ resource: form, models })
+    }
     let detail:any = {
       score,
       property,
       group,
       total,
       formProperty,
-      form: form &&  buildResourceStub({ resource: form, models: this.bot.models })
+      form: form && formStub
     }
     detail = sanitize(detail).sanitized
     scoreDetails.push(detail)  
@@ -428,8 +526,10 @@ export class ScoringReport {
       })
       return {accountClosingDate: acc.accountClosingDate, sum }
     })
-    let close = 0, open = 0
-    let goodOpen = 0, goodClose = 0, avgOpen = 0, avgClose = 0, badOpen = 0, badClose = 0
+    let close = 0, open = 0, 
+        goodOpen = 0, goodClose = 0, 
+        avgOpen = 0, avgClose = 0, 
+        badOpen = 0, badClose = 0
     accounts.forEach(account => {
       const {accountClosingDate, sum} = account
       if (accountClosingDate) {
@@ -735,4 +835,10 @@ export const validateConf: ValidatePluginConf = async ({
     if (!high || !average || !low) throw new Error(`accountsScore should have: high, average and low integer values`);
     if (high < average || high < low || average < low) throw new Error(`'high' should be the bigest score, 'average' bigger then 'low'`);
   }
+}
+function hasDigitsBigerThan(str, digit) {
+  for (let i=digit + 1; i<10; i++) {
+    if (str.indexOf('' + i) !== -1) return true 
+  } 
+  return false
 }
