@@ -18,6 +18,7 @@ import { getEnumValueId } from '../../utils'
 import { isPassedCheck } from '../utils'
 
 const CASH_FLOW = 'PersonalCashflow'
+const COMPANY_CASH_FLOW = 'CompanyCashflow'
 const QUOTATION_INFORMATION = 'QuotationInformation'
 const QUOTATION_DETAILS = 'QuotationDetails'
 const APPLICANT_INFORMATION = 'ApplicantInformation'
@@ -203,6 +204,7 @@ export class ScoringReport {
         map[type] = []
       map[type].push(f)
     })
+    let hasLeasingExperience = applicantInformation.leasingExperience && 2 || 0
     let { creditReport } = check
     if (!creditReport) return
     let scoreDetails: any = []
@@ -257,9 +259,10 @@ export class ScoringReport {
     if (legalEntity) legalEntity = legalEntity[0]
     let yearsInOperation = 0, ownFacility = 0
     if (legalEntity) {
-      if (legalEntity.registrationDate / ONE_YEAR_MILLIS )
+      if (legalEntity.registrationDate / ONE_YEAR_MILLIS > 2) 
         yearsInOperation = 1
-      if (legalEntity.ownsFacility) 
+      
+      if (legalEntity.ownFacility) 
         ownFacility = 1
     }
     this.addToScoreDetails({scoreDetails, form: legalEntity, formProperty: 'registrationDate', property: 'yearsInOperation', score: yearsInOperation, group: CHARACTER_GROUP});
@@ -268,6 +271,14 @@ export class ScoringReport {
     let financialDetails = map[COMPANY_FINANCIALS]
     const companyFinancials:any = this.calculateCompanyFinancials(financialDetails, scoreDetails)
 
+    let debtFactor = map[COMPANY_CASH_FLOW]  &&  map[COMPANY_CASH_FLOW][0].extraEquipmentRatio
+    if (!debtFactor) debtFactor = 0
+    if (debtFactor <= 65) debtFactor = 19
+    else if (debtFactor > 54 && debtFactor <= 70) debtFactor = 16
+    else if (debtFactor > 70 && debtFactor <= 75) debtFactor = 12
+    else if (debtFactor > 75 && debtFactor <= 80) debtFactor = 8
+    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'debtFactor', formProperty: 'extraEquipmentRatio', score: debtFactor, group: PAYMENT_GROUP});
+      
     const {asset, usefulLife, secondaryMarket, relocation, assetType, leaseType} = await this.getCommonScores(map, scoreDetails)
     // const characterScore = creditBureauScore + existingCustomer + yearsAtWork + yearsAtResidence
     // const paymentScore = capacityToPay
@@ -277,11 +288,13 @@ export class ScoringReport {
     this.addToScoreDetails({scoreDetails, form: asset, property: 'assetScore', score: assetScore, group: ASSET_GROUP, total: true, maxScores});
     const characterScore = yearsInOperation + ownFacility + ratingInBureau
     this.addToScoreDetails({scoreDetails, property: 'characterScore', score: characterScore, group: CHARACTER_GROUP, total: true, maxScores});
-    let paymentScore = 0
+    let paymentScore = debtFactor
     for (let p in companyFinancials)
       paymentScore += companyFinancials[p]
+    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'paymentScore', score: paymentScore, group: PAYMENT_GROUP, total: true, maxScores});
     let props = {
       ...companyFinancials,
+      debtFactor,
       ratingInBureau,
       worstMopThisYear,
       yearsInOperation,
@@ -317,12 +330,11 @@ export class ScoringReport {
       debtLevel += fd.indebtedness || 0
       returnOnEquity += fd.returnOnEquity || 0
       netProfit += fd.netProfitP || 0
-      debtFactor += fd.extraEquipmentRatio || 0
     })
 
     const flen = financialDetails.length
     profitable = profitable  ? 2 : 0
-    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'profitable', formProperty: 'netProfitP', score: profitable, group: PAYMENT_GROUP});
+    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'profitable', formProperty: 'netProfitP', score: profitable, group: CHARACTER_GROUP});
 
     liquidity = (liquidity  &&  liquidity / flen) > 1 ? 2 : 0
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'liquidity', formProperty: 'acidTest', score: liquidity, group: PAYMENT_GROUP});
@@ -330,6 +342,7 @@ export class ScoringReport {
     leverage = leverage && leverage / flen
     if (leverage <= 60) leverage = 2
     else if (leverage < 71) leverage = 1  
+    else leverage = 0
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'leverage', formProperty: 'leverage', score: leverage, group: PAYMENT_GROUP});
     
     technicalBankrupcy = (technicalBankrupcy / flen) < 33 ? 2 : 0
@@ -347,20 +360,13 @@ export class ScoringReport {
     
     netProfit /= flen
     if (netProfit > 10) netProfit = 2
-    if (netProfit < 10  &&  netProfit > 1) netProfit = 1
+    else if (netProfit < 10  &&  netProfit > 1) netProfit = 1
+    else netProfit = 0
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'netProfit', formProperty: 'netProfitP', score: netProfit, group: PAYMENT_GROUP});
-
-    debtFactor /= flen
-    if (debtFactor <= 65) debtFactor = 19
-    else if (debtFactor > 54 && debtFactor <= 70) debtFactor = 16
-    else if (debtFactor > 70 && debtFactor <= 75) debtFactor = 12
-    else if (debtFactor > 75 && debtFactor <= 80) debtFactor = 8
-    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'debtFactor', formProperty: 'extraEquipmentRatio', score: debtFactor, group: PAYMENT_GROUP});
 
     let paymentScore = profitable + liquidity + leverage + technicalBankrupcy + 
                       workingCapitalRatio + debtLevel + returnOnEquity + netProfit + debtFactor
     const { maxScores } = this.conf
-    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'paymentScore', score: paymentScore, group: PAYMENT_GROUP, total: true, maxScores});
     return {
       profitable,
       liquidity,
@@ -416,7 +422,7 @@ export class ScoringReport {
         assetType = val.score
       }
       this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'assetType', property: 'assetType', score: assetType, group: ASSET_GROUP});
-      val = this.getEnumValue(asset, 'leaseType')
+      val = this.getEnumValue(qi, 'leaseType')
       if (val) {
         leaseType = val.score
         this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'leaseType', property: 'leaseType', score: leaseType, group: ASSET_GROUP});
