@@ -139,13 +139,15 @@ export class ScoringReport {
     //   let cosignerScores = await this.scoreFromCheckIndividual({ item: items[0], isEndorser: true})
     //   cosignerCreditBureauScore = cosignerScores.creditBureauScore
     // }
+    let { maxScores } = this.conf
+    
     const {asset, usefulLife, secondaryMarket, relocation, assetType, leaseType} = await this.getCommonScores(map, scoreDetails)
     const characterScore = creditBureauScore + existingCustomer + yearsAtWork + yearsAtResidence
-    this.addToScoreDetails({scoreDetails, property: 'characterScore', score: characterScore, group: CHARACTER_GROUP, total: true});
+    this.addToScoreDetails({scoreDetails, property: 'characterScore', score: characterScore, group: CHARACTER_GROUP, total: true, maxScores});
 
     const assetScore = usefulLife + secondaryMarket + relocation + assetType + leaseType
 
-    this.addToScoreDetails({scoreDetails, form: asset, property: 'assetScore', score: assetScore, group: ASSET_GROUP, total: true});
+    this.addToScoreDetails({scoreDetails, form: asset, property: 'assetScore', score: assetScore, group: ASSET_GROUP, total: true, maxScores});
 
     let props:any = {
       creditBureauScore,
@@ -166,9 +168,7 @@ export class ScoringReport {
       // check
     }
     let { formula } = capacityToPayConf
-    if (!formula)
-      props.capacityToPay = capacityToPay
-    else {
+    if (formula) {
       let props1 = {...map[CASH_FLOW], capacityToPay}
 
       let keys = Object.keys(props1)
@@ -176,17 +176,17 @@ export class ScoringReport {
       try {
         let newCapacityToPay = new Function(...keys, `return ${formula}`)(...values)
         if (newCapacityToPay)
-          props.capacityToPay = newCapacityToPay
+          capacityToPay = newCapacityToPay
       } catch (err) {
-        props.capacityToPay = capacityToPay
         debugger
       }
     }
-
+    
     if (capacityToPay) {
       this.addToScoreDetails({scoreDetails, form: map[CASH_FLOW], formProperty: 'extraEquipmentFactor', property: 'capacityToPay', score: capacityToPay, group: PAYMENT_GROUP});
-      this.addToScoreDetails({scoreDetails, form: map[CASH_FLOW], formProperty: 'extraEquipmentFactor', property: 'paymentScore', score: capacityToPay, group: PAYMENT_GROUP, total: true});
+      this.addToScoreDetails({scoreDetails, form: map[CASH_FLOW], formProperty: 'extraEquipmentFactor', property: 'paymentScore', score: capacityToPay, group: PAYMENT_GROUP, total: true, maxScores});
     }
+    props.capacityToPay = capacityToPay
     props.paymentScore = capacityToPay
 
     props.totalScore = characterScore + props.paymentScore + assetScore
@@ -206,7 +206,7 @@ export class ScoringReport {
     let { creditReport } = check
     if (!creditReport) return
     let scoreDetails: any = []
-    creditReport = await this.bot.getResource(creditReport, {backlinks: ['generalData', 'accounts', 'history', 'commercialCredit' ]})
+    creditReport = await this.bot.getResource(creditReport, {backlinks: ['generalData', 'accounts', 'commercialCredit' ]})
     let { generalData, accounts } = creditReport
     generalData = generalData  &&  await this.bot.getResource(generalData[0])
     let financialRating = generalData  &&  generalData.financialRating
@@ -220,28 +220,36 @@ export class ScoringReport {
       ratingInBureau = 2
     this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'financialRating', property: 'ratingInBureau', score: ratingInBureau, group: CHARACTER_GROUP});
 
+    let worstMopThisYear = 0
     accounts = accounts && await Promise.all(accounts.map(r => this.bot.getResource(r)))
     if (accounts) {
       let score = 2
       let goodAccounts = 0
+      let score12 = 2
       for (let i=0; i<accounts.length; i++) {
         let acc = accounts[i]
-        if (!acc.history  ||  acc.closedDate) continue
-        if (hasDigitsBigerThan(acc.history, 4)) 
-          score = 0
-        else if (acc.history.indexOf('4') !== -1)
+        const { history, closedDate } = acc 
+        if (!history  ||  closedDate) continue
+        if (hasDigitsBigerThan(history, 4)) 
+          score = 0        
+        else if (history.indexOf('4') !== -1)
           score = score < 2 ? score : 1
         else
           goodAccounts++
+        let history12 = history.length > 12 ? history.slice(0, 12) : history
+        if (hasDigitsBigerThan(history12, 4))
+          score12 = 0
+        else if (history12.indexOf('4') !== -1)
+          score12 = score12 < 2 ? score12 : 1
       }
       this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'recentMonthsInArrears', score, group: CHARACTER_GROUP});
       let percentageOfGoodAccounts = goodAccounts * 100/accounts.length
       percentageOfGoodAccounts  = percentageOfGoodAccounts > 80 ? 2 : 0
       this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'percentageOfGoodAccounts', score, group: CHARACTER_GROUP});
+      this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'worstMopThisYear', score: score12, group: CHARACTER_GROUP});
     }
 
     let commercialCredit = creditReport.commercialCredit
-    let worstMopThisYear = 0
     if (commercialCredit) {
       commercialCredit = await Promise.all(commercialCredit.map(r => this.bot.getResource(r)))
     }
@@ -259,13 +267,16 @@ export class ScoringReport {
 
     let financialDetails = map[COMPANY_FINANCIALS]
     const companyFinancials:any = this.calculateCompanyFinancials(financialDetails, scoreDetails)
+
     const {asset, usefulLife, secondaryMarket, relocation, assetType, leaseType} = await this.getCommonScores(map, scoreDetails)
     // const characterScore = creditBureauScore + existingCustomer + yearsAtWork + yearsAtResidence
     // const paymentScore = capacityToPay
+    let { maxScores } = this.conf
+    
     const assetScore = usefulLife + secondaryMarket + relocation + assetType + leaseType
-    this.addToScoreDetails({scoreDetails, form: asset, property: 'assetScore', score: assetScore, group: ASSET_GROUP, total: true});
+    this.addToScoreDetails({scoreDetails, form: asset, property: 'assetScore', score: assetScore, group: ASSET_GROUP, total: true, maxScores});
     const characterScore = yearsInOperation + ownFacility + ratingInBureau
-    this.addToScoreDetails({scoreDetails, property: 'characterScore', score: characterScore, group: CHARACTER_GROUP, total: true});
+    this.addToScoreDetails({scoreDetails, property: 'characterScore', score: characterScore, group: CHARACTER_GROUP, total: true, maxScores});
     let paymentScore = 0
     for (let p in companyFinancials)
       paymentScore += companyFinancials[p]
@@ -346,6 +357,10 @@ export class ScoringReport {
     else if (debtFactor > 75 && debtFactor <= 80) debtFactor = 8
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'debtFactor', formProperty: 'extraEquipmentRatio', score: debtFactor, group: PAYMENT_GROUP});
 
+    let paymentScore = profitable + liquidity + leverage + technicalBankrupcy + 
+                      workingCapitalRatio + debtLevel + returnOnEquity + netProfit + debtFactor
+    const { maxScores } = this.conf
+    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'paymentScore', score: paymentScore, group: PAYMENT_GROUP, total: true, maxScores});
     return {
       profitable,
       liquidity,
@@ -356,8 +371,7 @@ export class ScoringReport {
       returnOnEquity,
       netProfit,
       debtFactor,
-      paymentScore: profitable + liquidity + leverage + technicalBankrupcy + 
-                    workingCapitalRatio + debtLevel + returnOnEquity + netProfit + debtFactor
+      paymentScore
     }
   }
   private async getCommonScores(map, scoreDetails) {
@@ -432,7 +446,7 @@ export class ScoringReport {
     }
     return { checkPassed: isPassedCheck({status: credsCheck.status}), cCheck: credsCheck }
   }
-  private addToScoreDetails({scoreDetails, form, formProperty, property, score, group, total}:{
+  private addToScoreDetails({scoreDetails, form, formProperty, property, score, group, total, maxScores}:{
     scoreDetails:any
     form?: any
     formProperty?: string
@@ -440,6 +454,7 @@ export class ScoringReport {
     score: number
     group?:string
     total?: boolean
+    maxScores?: any
   }) {
     let formStub
     const { models } = this.bot
@@ -456,7 +471,8 @@ export class ScoringReport {
       group,
       total,
       formProperty,
-      form: form && formStub
+      form: form && formStub,
+      max: total && maxScores && maxScores[property]
     }
     detail = sanitize(detail).sanitized
     scoreDetails.push(detail)  
