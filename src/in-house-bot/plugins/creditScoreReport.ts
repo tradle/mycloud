@@ -274,14 +274,13 @@ export class ScoringReport {
     let debtFactor = map[COMPANY_CASH_FLOW]  &&  map[COMPANY_CASH_FLOW][0].extraEquipmentRatio
     if (!debtFactor) debtFactor = 0
     if (debtFactor <= 65) debtFactor = 19
-    else if (debtFactor > 54 && debtFactor <= 70) debtFactor = 16
+    else if (debtFactor > 65 && debtFactor <= 70) debtFactor = 16
     else if (debtFactor > 70 && debtFactor <= 75) debtFactor = 12
     else if (debtFactor > 75 && debtFactor <= 80) debtFactor = 8
-    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'debtFactor', formProperty: 'extraEquipmentRatio', score: debtFactor, group: PAYMENT_GROUP});
+
+    this.addToScoreDetails({scoreDetails, form: map[COMPANY_CASH_FLOW], property: 'debtFactor', formProperty: 'extraEquipmentRatio', score: debtFactor, group: PAYMENT_GROUP});
       
     const {asset, usefulLife, secondaryMarket, relocation, assetType, leaseType} = await this.getCommonScores(map, scoreDetails)
-    // const characterScore = creditBureauScore + existingCustomer + yearsAtWork + yearsAtResidence
-    // const paymentScore = capacityToPay
     let { maxScores } = this.conf
     
     const assetScore = usefulLife + secondaryMarket + relocation + assetType + leaseType
@@ -309,7 +308,7 @@ export class ScoringReport {
       paymentScore,
       // cosignerCreditBureauScore,
       // accounts: accountsPoints,
-      totalScore: characterScore + companyFinancials.paymentScore + assetScore,
+      totalScore: characterScore + paymentScore + assetScore,
     }
     this.addToScoreDetails({scoreDetails, property: 'totalScore', score: props.totalScore, total: true});
 
@@ -320,7 +319,7 @@ export class ScoringReport {
     if (!financialDetails) 
       return {}
 
-    let profitable = 0, liquidity = 0, leverage = 0, technicalBankrupcy = 0, workingCapitalRatio = 0, debtLevel = 0, returnOnEquity = 0, netProfit = 0, debtFactor = 0
+    let profitable = 0, liquidity = 0, leverage = 0, technicalBankrupcy = 0, workingCapitalRatio = 0, debtLevel = 0, returnOnEquity = 0, netProfit = 0
     financialDetails.forEach(fd => {
       profitable += fd.netProfitP || 0
       liquidity += fd.acidTest || 0 
@@ -355,7 +354,15 @@ export class ScoringReport {
 
     debtLevel = (debtLevel / flen) < 50 ? 2 : 0
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'debtLevel', formProperty: 'indebtedness', score: debtLevel, group: PAYMENT_GROUP});
-    returnOnEquity = (returnOnEquity / flen) > 12 ? 2 : 1
+    
+    returnOnEquity /= flen
+    if (returnOnEquity > 12)
+      returnOnEquity = 2
+    else if (returnOnEquity > 1) 
+      returnOnEquity  = 1
+    else
+      returnOnEquity  = 0
+      
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'returnOnEquity', formProperty: 'returnOnEquity', score: returnOnEquity, group: PAYMENT_GROUP});
     
     netProfit /= flen
@@ -364,9 +371,6 @@ export class ScoringReport {
     else netProfit = 0
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'netProfit', formProperty: 'netProfitP', score: netProfit, group: PAYMENT_GROUP});
 
-    let paymentScore = profitable + liquidity + leverage + technicalBankrupcy + 
-                      workingCapitalRatio + debtLevel + returnOnEquity + netProfit + debtFactor
-    const { maxScores } = this.conf
     return {
       profitable,
       liquidity,
@@ -376,8 +380,6 @@ export class ScoringReport {
       debtLevel,
       returnOnEquity,
       netProfit,
-      debtFactor,
-      paymentScore
     }
   }
   private async getCommonScores(map, scoreDetails) {
@@ -425,7 +427,7 @@ export class ScoringReport {
       val = this.getEnumValue(qi, 'leaseType')
       if (val) {
         leaseType = val.score
-        this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'leaseType', property: 'leaseType', score: leaseType, group: ASSET_GROUP});
+        this.addToScoreDetails({scoreDetails, form: qi, formProperty: 'leaseType', property: 'leaseType', score: leaseType, group: ASSET_GROUP});
       }
     }
     return {
