@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.101](https://github.com/tradle/mycloud/compare/v3.0.1-rc.100...v3.0.1-rc.101) (2021-06-23)
+## [3.0.1-rc.102](https://github.com/tradle/mycloud/compare/v3.0.1-rc.101...v3.0.1-rc.102) (2021-06-24)
 
 
 ### Features
 
-* credit scoring ([e99e342](https://github.com/tradle/mycloud/commit/e99e342))
+* credit scoring ([176bf7a](https://github.com/tradle/mycloud/commit/176bf7a))
 
 
 
