@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.102](https://github.com/tradle/mycloud/compare/v3.0.1-rc.101...v3.0.1-rc.102) (2021-06-24)
+## [3.0.1-rc.103](https://github.com/tradle/mycloud/compare/v3.0.1-rc.102...v3.0.1-rc.103) (2021-06-25)
 
 
-### Features
+### Bug Fixes
 
-* credit scoring ([176bf7a](https://github.com/tradle/mycloud/commit/176bf7a))
+* set company name as title for an application ([c3372a4](https://github.com/tradle/mycloud/commit/c3372a4))
 
 
 
