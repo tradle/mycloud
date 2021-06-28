@@ -47,6 +47,8 @@ interface IBuroCheck {
   req: IPBReq
 }
 
+const CONSENT_TYPE = 'com.leaseforu.ApplicantConsent'
+
 const  CASHFLOW = 'com.leaseforu.PersonalCashflow'
 
 const CREDIT_CHECK = 'tradle.CreditReportIndividualCheck'
@@ -459,12 +461,44 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const { user, application, payload } = req
       if (!application) return
 
-      if (APPLICANT_INFO_TYPE !== payload[TYPE] && APPLICANT_ADDR_TYPE !== payload[TYPE])
+      if (APPLICANT_INFO_TYPE !== payload[TYPE] && APPLICANT_ADDR_TYPE !== payload[TYPE] && CONSENT_TYPE !== payload[TYPE])
         return
       
       const params = {}
 
-      if (APPLICANT_INFO_TYPE === payload[TYPE]) {
+      if (CONSENT_TYPE === payload[TYPE]) {
+        const stubs = getLatestForms(application);
+        const infoStub = stubs.find(({ type }) => type === APPLICANT_INFO_TYPE);
+        if (!infoStub)
+          return
+        const info = await bot.getResource(infoStub);
+        const applicantType =  info[APPLICANT]
+        if (!applicantType)
+          return
+        const applicantTypeId = applicantType.id.split('_')[1]
+        // handle only individual 
+        if (applicantTypeId === 'company' || applicantTypeId === 'medical')
+          return
+        const addrStub = stubs.find(({ type }) => type === APPLICANT_ADDR_TYPE);
+        if (!addrStub) {
+          return;
+        }
+        const addr = await bot.getResource(addrStub);
+        
+        params[STREET] = addr.street? addr.street : ''
+        params[NUMBER] = addr.number? addr.number : ''
+        params[NEIGHBORHOOD] = addr.neighborhood? addr.neighborhood : ''
+        params[CITY] = addr.city? addr.city : ''
+        params[STATE] = addr.state? addr.state : ''
+        params[ZIP] = addr.zip? addr.zip : ''
+        
+        params[PATERNAL_NAME] = info.paternalName? info.paternalName : ''
+        params[MATERNAL_NAME] = info.maternalName? info.maternalName : ''
+        params[FIRST_NAME] = info.firstName? info.firstName : ''
+        params[SECOND_NAME] = info.secondName? info.secondName : ''
+        params[RFC] = info.rfc? info.rfc : ''
+      }
+      else if (APPLICANT_INFO_TYPE === payload[TYPE]) {
         const applicantType =  payload[APPLICANT]
         if (!applicantType)
           return
@@ -482,8 +516,14 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         if (!changed) {
           return
         }
-        // check addr
+       
         const stubs = getLatestForms(application);
+        
+        const consentStub = stubs.find(({ type }) => type === CONSENT_TYPE);
+        if (!consentStub) {
+            return;
+        }
+
         const stub = stubs.find(({ type }) => type === APPLICANT_ADDR_TYPE);
         if (!stub) {
             return;
@@ -512,8 +552,14 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         })
         if (!changed)
           return
-        // check info
+       
         const stubs = getLatestForms(application);
+
+        const consentStub = stubs.find(({ type }) => type === CONSENT_TYPE);
+        if (!consentStub) {
+            return;
+        }
+
         const stub = stubs.find(({ type }) => type === APPLICANT_INFO_TYPE);
         if (!stub)
           return
