@@ -142,7 +142,7 @@ class OpenCorporatesAPI {
       }
       if (!url)
         url = `${BASE_URL}companies/search?q=${companyName.replace(/\s/g, '+')}&inactive=false&api_token=${apiToken}`
-      else        
+      else
         url += `?api_token=${apiToken}`
       // let json = test
       let json
@@ -599,6 +599,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         logger.debug(`creating verification for: ${resource.companyName}`)
       }
       // CHECK PASS
+      // if (status === 'pass' && hits.length === 1)
       if (status === 'pass' && hits.length === 1)
         if (ptype === LEGAL_ENTITY) {
           // if the application has name make sure that LE was the first form from which the name was derived
@@ -671,8 +672,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       let message
       let prefill: any = {}
       let errors
-      if (getEnumValueId({ model: bot.models[STATUS], value: result[0].status }) !== 'pass')
+      if (getEnumValueId({ model: bot.models[STATUS], value: result[0].status }) !== 'pass') {
         message = 'The company was not found. Please fill out the form'
+        application.applicantName = payload[map.companyName]
+      }
       else {
         let check = result[0]
         let company = check.rawData && check.rawData.length && check.rawData[0].company
