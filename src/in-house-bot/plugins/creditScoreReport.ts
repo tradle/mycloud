@@ -283,14 +283,22 @@ export class ScoringReport {
     const {asset, usefulLife, secondaryMarket, relocation, assetType, leaseType} = await this.getCommonScores(map, scoreDetails)
     let { maxScores } = this.conf
     
-    const assetScore = usefulLife + secondaryMarket + relocation + assetType + leaseType
-    this.addToScoreDetails({scoreDetails, form: asset, property: 'assetScore', score: assetScore, group: ASSET_GROUP, total: true, maxScores});
-    const characterScore = yearsInOperation + ownFacility + ratingInBureau
-    this.addToScoreDetails({scoreDetails, property: 'characterScore', score: characterScore, group: CHARACTER_GROUP, total: true, maxScores});
-    let paymentScore = debtFactor
-    for (let p in companyFinancials)
-      paymentScore += companyFinancials[p]
+    let characterScore = 0
+    let paymentScore = 0
+    let assetScore = 0    
+    scoreDetails.forEach(r => {
+      let { group, score } = r
+      if (group === CHARACTER_GROUP)
+        characterScore += score        
+      else if (group === PAYMENT_GROUP)
+        paymentScore += score
+      else if (group === ASSET_GROUP)
+        assetScore += score
+    })
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'paymentScore', score: paymentScore, group: PAYMENT_GROUP, total: true, maxScores});
+    this.addToScoreDetails({scoreDetails, form: asset, property: 'characterScore', score: characterScore, group: CHARACTER_GROUP, total: true, maxScores});
+    this.addToScoreDetails({scoreDetails, form: asset, property: 'assetScore', score: assetScore, group: ASSET_GROUP, total: true, maxScores});
+    let totalScore = characterScore + paymentScore + assetScore
     let props = {
       ...companyFinancials,
       debtFactor,
@@ -308,7 +316,7 @@ export class ScoringReport {
       paymentScore,
       // cosignerCreditBureauScore,
       // accounts: accountsPoints,
-      totalScore: characterScore + paymentScore + assetScore,
+      totalScore,
     }
     this.addToScoreDetails({scoreDetails, property: 'totalScore', score: props.totalScore, total: true});
 
