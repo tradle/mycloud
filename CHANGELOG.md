@@ -2,12 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.103](https://github.com/tradle/mycloud/compare/v3.0.1-rc.102...v3.0.1-rc.103) (2021-06-25)
+## [3.0.1-rc.104](https://github.com/tradle/mycloud/compare/v3.0.1-rc.103...v3.0.1-rc.104) (2021-07-01)
 
 
 ### Bug Fixes
 
-* set company name as title for an application ([c3372a4](https://github.com/tradle/mycloud/commit/c3372a4))
+* lenses were not redeploying for employee ([1af039a](https://github.com/tradle/mycloud/commit/1af039a))
+* totals were wrong ([ad7c2b0](https://github.com/tradle/mycloud/commit/ad7c2b0))
 
 
 
