@@ -477,7 +477,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           return
         const applicantTypeId = applicantType.id.split('_')[1]
         // handle only individual 
-        if (applicantTypeId === 'company' || applicantTypeId === 'medical')
+        if (applicantTypeId !== 'individual')
           return
         const addrStub = stubs.find(({ type }) => type === APPLICANT_ADDR_TYPE);
         if (!addrStub) {
@@ -504,7 +504,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           return
         const applicantTypeId = applicantType.id.split('_')[1]
         // handle only individual 
-        if (applicantTypeId === 'company' || applicantTypeId === 'medical')
+        if (applicantTypeId !== 'individual')
           return
           
         let changed = await hasPropertiesChanged({
@@ -569,7 +569,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           return
         const applicantTypeId = applicantType.id.split('_')[1]
         // handle only individual 
-        if (applicantTypeId === 'company' || applicantTypeId === 'medical')
+        if (applicantTypeId !== 'individual')
           return
         
         params[STREET] = payload.street? payload.street : ''
