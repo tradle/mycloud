@@ -473,7 +473,7 @@ const omitNamespace = ({ modelsPack, namespace }) => {
   let { models = [], lenses = [] } = modelsPack
   models = models.filter(model => Pack.getNamespace(model.id) !== namespace)
 
-  lenses = lenses.filter(lens => Pack.getNamespace(lens.id) !== namespace)
+  lenses = lenses.filter(lens => Pack.getNamespace(lens.id) !== `${namespace}.lens`)
 
   return Pack.pack({ models, lenses })
 }

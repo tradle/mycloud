@@ -197,7 +197,16 @@ export class BuroCheckAPI {
   }
 
   private buildSubjectInfo = async (rawData: any): Promise<any> => {
-    const subject = {}
+    const generalData = rawData.datosGenerales
+    const subject = {
+      companyName: generalData.nombre,
+      taxIdNumber: generalData.rfcCliente,
+      streetAddress: generalData.direccion1,
+      city: generalData.ciudad,
+      state: generalData.estado,
+      country: generalData.pais,
+      postalCode: generalData.codigoPostal
+    }
     const savedSubject = await this.saveResource(CB_SUBJECT, subject)
     const topStub = buildResourceStub({ resource: savedSubject.resource })
     
