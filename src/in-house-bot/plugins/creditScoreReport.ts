@@ -204,10 +204,14 @@ export class ScoringReport {
         map[type] = []
       map[type].push(f)
     })
-    let hasLeasingExperience = applicantInformation.leasingExperience && 2 || 0
     let { creditReport } = check
     if (!creditReport) return
+
     let scoreDetails: any = []
+
+    let hasLeasingExperience = applicantInformation.leasingExperience && 2 || 0
+    this.addToScoreDetails({scoreDetails, form: applicantInformation, formProperty: 'leasingExperience', property: 'hasLeasingExperience', score: hasLeasingExperience, group: CHARACTER_GROUP});
+
     creditReport = await this.bot.getResource(creditReport, {backlinks: ['generalData', 'accounts', 'commercialCredit' ]})
     let { generalData, accounts } = creditReport
     generalData = generalData  &&  await this.bot.getResource(generalData[0])
@@ -314,6 +318,7 @@ export class ScoringReport {
       leaseType,
       characterScore,
       paymentScore,
+      hasLeasingExperience,
       // cosignerCreditBureauScore,
       // accounts: accountsPoints,
       totalScore,
