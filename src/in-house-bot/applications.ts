@@ -198,7 +198,9 @@ export class Applications implements IHasModels {
 
     let checksCount = application.checksCount
     application.checksCount = (checksCount && ++application.checksCount) || 1
-
+    if (!application.checks)
+      application.checks = []
+    application.checks.push(checkResource)
     if (!latestChecks) {
       // if (checks) {
       //   const timeDesc = req.checks.slice().sort((a, b) => b._time - a._time)
@@ -213,10 +215,12 @@ export class Applications implements IHasModels {
       // }
       req.latestChecks = latestChecks
     }
-    let idx = latestChecks.findIndex((c) => c[TYPE] === props[TYPE])
-    if (idx !== -1) latestChecks.splice(idx, 1)
-    latestChecks.push(checkResource)
-
+    else {
+      let idx = latestChecks.findIndex((c) => c[TYPE] === props[TYPE])
+      if (idx !== -1) latestChecks.splice(idx, 1)
+      latestChecks.push(checkResource)
+      req.checks.push(checkResource)
+    }
     let failedChecks = latestChecks.filter((check) => !isPassedCheck(check))
     if (failedChecks.length) {
       application.numberOfChecksFailed = failedChecks.length
