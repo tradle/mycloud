@@ -437,6 +437,7 @@ export type ModelsPack = {
   models?: Model[]
   lenses?: any
   namespace?: string
+  versionId?: string
 }
 
 export interface ISettledPromise<T> {
