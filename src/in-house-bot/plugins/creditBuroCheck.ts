@@ -2,6 +2,7 @@ import xml2js from 'xml2js-parser'
 import nunjucks from 'nunjucks'
 import https from 'https'
 import randomString from 'randomstring'
+import AWS from 'aws-sdk'
 
 import {
   Bot,
@@ -37,7 +38,11 @@ interface IBuroCheckConf {
   password: string
   authorization: string
   path: string
-  trace?: boolean
+  trace?: boolean,
+
+  samples?: boolean
+  sampleReportsFolder?: string
+  sampleReportsBucket?: string
 }
 
 interface IBuroCheck {
@@ -47,24 +52,26 @@ interface IBuroCheck {
   req: IPBReq
 }
 
-const CONSENT_TYPE = 'com.leaseforu.ApplicantConsent'
+const UTF8 = 'utf-8'
 
-const  CASHFLOW = 'com.leaseforu.PersonalCashflow'
+const CONSENT_TYPE = 'com.svb.ApplicantConsent'
+
+const  CASHFLOW = 'com.svb.PersonalCashflow'
 
 const CREDIT_CHECK = 'tradle.CreditReportIndividualCheck'
-const SUMMARY = 'com.leaseforu.CreditBureauIndividualCreditSummary'
-const APPLICANT_INFO_TYPE = 'com.leaseforu.ApplicantInformation'
-const APPLICANT_ADDR_TYPE = 'com.leaseforu.ApplicantAddress'
+const SUMMARY = 'com.svb.CreditBureauIndividualCreditSummary'
+const APPLICANT_INFO_TYPE = 'com.svb.ApplicantInformation'
+const APPLICANT_ADDR_TYPE = 'com.svb.ApplicantAddress'
 
-const CB_SUBJECT = "com.leaseforu.CreditBureauIndividualSubject"
-const CB_ADDRESS = "com.leaseforu.CreditBureauIndividualAddresses"
-const CB_ACCOUNT = "com.leaseforu.CreditBureauIndividualAccounts"
-const CB_EMPLOYMENT = "com.leaseforu.CreditBureauIndividualEmployment"
-const CB_INQUIRY  = "com.leaseforu.CreditBureauIndividualInquiries"
-const CB_REPORT = "com.leaseforu.CreditBureauIndividualSummaryReport"
-const CB_SCORE = "com.leaseforu.CreditBureauIndividualCreditScore"
-const CB_HAWKALERT = "com.leaseforu.CreditBureauIndividualHawkAlertData"
-const CB_VALIDATION = "com.leaseforu.CreditBureauIndividualHawkAlertValidation"
+const CB_SUBJECT = "com.svb.CreditBureauIndividualSubject"
+const CB_ADDRESS = "com.svb.CreditBureauIndividualAddresses"
+const CB_ACCOUNT = "com.svb.CreditBureauIndividualAccounts"
+const CB_EMPLOYMENT = "com.svb.CreditBureauIndividualEmployment"
+const CB_INQUIRY  = "com.svb.CreditBureauIndividualInquiries"
+const CB_REPORT = "com.svb.CreditBureauIndividualSummaryReport"
+const CB_SCORE = "com.svb.CreditBureauIndividualCreditScore"
+const CB_HAWKALERT = "com.svb.CreditBureauIndividualHawkAlertData"
+const CB_VALIDATION = "com.svb.CreditBureauIndividualHawkAlertValidation"
 
 const SUBJECT = 'subject'
 
@@ -133,6 +140,8 @@ const TEMPLATE = `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/so
 </soapenv:Body>
 </soapenv:Envelope>`
 
+const samplesS3 = new AWS.S3()
+
 export class BuroCheckAPI {
   private bot: Bot
   private conf: IBuroCheckConf
@@ -174,8 +183,15 @@ export class BuroCheckAPI {
     
     let status: any
     try {
-      const xml = await this.httpRequest(options, data)
+      
+      let xml: string
 
+      if (this.conf.samples) {
+        xml = await this.getFileFromS3(samplesS3, this.conf.sampleReportsFolder + '/' + params[RFC] + '.xml', this.conf.sampleReportsBucket)   
+      }
+      else {
+        xml = await this.httpRequest(options, data)
+      }
       let parser = new xml2js.Parser({ explicitArray: false, trim: true })
       let jsonObj = parser.parseStringSync(xml)
       if (this.conf.trace)
@@ -447,6 +463,15 @@ export class BuroCheckAPI {
       // IMPORTANT
       req.end();
     })
+  }
+
+  private getFileFromS3= async (s3: AWS.S3, file: string, bucket: string): Promise<string> => {
+    const params = {
+      Bucket: bucket,
+      Key: file
+    }
+    const data = await s3.getObject(params).promise()
+    return data.Body.toString(UTF8)
   }
   
 }  
