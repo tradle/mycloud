@@ -58,6 +58,7 @@ export class ModelStore extends EventEmitter {
   public cumulativeGraphqlSchemaItem: CacheableBucketItem
   public myModelsPack: ModelsPack
   public cumulativeModelsPack: ModelsPack
+  public originalCumulativeModelsPack: ModelsPack
   public bucket: Bucket
   public lenses: any
   private logger: Logger
@@ -65,6 +66,7 @@ export class ModelStore extends EventEmitter {
   private myDomain: string
   private myNamespace: string
   private myCustomModels: any
+  private originalModelsPack: ModelsPack
   private baseModels: any
   private baseModelsIds: string[]
   private components: ModelStoreOpts
@@ -174,29 +176,33 @@ export class ModelStore extends EventEmitter {
       ensureNoModelsRemoved(current, modelsPack)
     }
 
-    const currentCumulative = await this.getCumulativeModelsPack()
+    let originalCumulativeModelsPack = await this.getOriginalCumulativeModelsPack()
     let cumulative
-    if (currentCumulative) {
+    if (originalCumulativeModelsPack) {
+      const currentCumulative = await this.getCumulativeModelsPack({originalCumulativeModelsPack})
       cumulative = omitNamespace({
         modelsPack: currentCumulative,
         namespace: modelsPack.namespace
       })
-
       extendModelsPack(cumulative, modelsPack)
+      extendModelsPack(originalCumulativeModelsPack, this.originalModelsPack)
     } else {
       cumulative = _.omit(modelsPack, ['namespace'])
+      originalCumulativeModelsPack = _.omit(this.originalModelsPack, ['namespace'])
     }
+    this.originalCumulativeModelsPack = Pack.pack(originalCumulativeModelsPack)
+    cumulative.versionId = this.originalCumulativeModelsPack.versionId
 
     this.logger.debug(`added ${modelsPack.namespace} models pack`)
 
     const assetKey = getModelsPackConfKey(modelsPack)
     const puts = [
-      this.bucket.gzipAndPut(assetKey, modelsPack),
-      this.bucket.gzipAndPut(this.cumulativePackKey, cumulative)
+      this.bucket.gzipAndPut(assetKey, this.originalModelsPack),
+      this.bucket.gzipAndPut(this.cumulativePackKey, this.originalCumulativeModelsPack)
     ]
 
     if (key && key !== assetKey) {
-      puts.push(this.bucket.gzipAndPut(key, modelsPack))
+      puts.push(this.bucket.gzipAndPut(key, this.originalModelsPack))
     }
 
     await Promise.all(puts)
@@ -226,13 +232,23 @@ export class ModelStore extends EventEmitter {
   }
 
   public getCumulativeModelsPack = async (opts?: any) => {
-    let form = basicModels[FORM]
-    const modificationHistory = form.modificationHistory
+    let originalCumulativeModelsPack
+    if (opts && typeof opts === 'object')
+      ({originalCumulativeModelsPack} = opts)
     try {
-      let modelsPack = await this.cumulativePackItem.get(opts)
+      let modelsPack = originalCumulativeModelsPack || await this.cumulativePackItem.get(opts)
       let { models } = modelsPack
       this.addFormBacklinks({ models })
       return modelsPack
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+      return null
+    }
+  }
+  public getOriginalCumulativeModelsPack = async (opts?: any) => {
+    try {
+      let modelsPack = await this.cumulativePackItem.get(opts)
+      return _.cloneDeep(modelsPack)
     } catch (err) {
       Errors.ignoreNotFound(err)
       return null
@@ -268,6 +284,7 @@ export class ModelStore extends EventEmitter {
     modelsPack: ModelsPack
     key?: string
   }) => {
+    debugger
     modelsPack = Pack.pack(modelsPack)
     const { namespace, models, lenses } = modelsPack
     if (namespace) {
@@ -310,7 +327,10 @@ export class ModelStore extends EventEmitter {
   }
   public setCustomModels = (modelsPack: ModelsPack) => {
     modelsPack = Pack.pack(modelsPack)
-    const { namespace = getNamespace(modelsPack), models = [], lenses = [] } = modelsPack
+
+    this.originalModelsPack = modelsPack
+    let modelsPackClone = _.cloneDeep(modelsPack)
+    const { namespace = getNamespace(modelsPack), models = [], lenses = [] } = modelsPackClone
 
     if (!namespace) {
       throw new Error('expected "namespace"')
@@ -318,7 +338,7 @@ export class ModelStore extends EventEmitter {
     this.addFormBacklinks({ models })
     this.cache.removeModels(this.myCustomModels)
     this.addModels(models)
-    this.myModelsPack = modelsPack
+    this.myModelsPack = modelsPackClone
     this.myNamespace = namespace
     this.myCustomModels = _.clone(models)
     this.lenses = (modelsPack.lenses || []).reduce((byId, lens) => {
@@ -477,11 +497,12 @@ const omitNamespace = ({ modelsPack, namespace }) => {
 
   return Pack.pack({ models, lenses })
 }
-
 const extendModelsPack = (modelsPack, ...sourcePacks) => {
   sourcePacks.forEach(source => {
-    const models = (modelsPack.models || []).concat(source.models || [])
-    const lenses = (modelsPack.lenses || []).concat(source.lenses || [])
+    // const models = (modelsPack.models || []).concat(source.models || [])
+    // const lenses = (modelsPack.lenses || []).concat(source.lenses || [])
+    const models = (source.models || []).concat(modelsPack.models || [])
+    const lenses = (source.lenses || []).concat(modelsPack.lenses || [])
     modelsPack.models = _.uniqBy(models, 'id')
     modelsPack.lenses = _.uniqBy(lenses, 'id')
   })
