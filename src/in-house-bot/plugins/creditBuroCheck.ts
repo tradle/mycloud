@@ -54,24 +54,24 @@ interface IBuroCheck {
 
 const UTF8 = 'utf-8'
 
-const CONSENT_TYPE = 'com.svb.ApplicantConsent'
+const CONSENT_TYPE = 'com.leaseforu.ApplicantConsent'
 
-const  CASHFLOW = 'com.svb.PersonalCashflow'
+const  CASHFLOW = 'com.leaseforu.PersonalCashflow'
 
 const CREDIT_CHECK = 'tradle.CreditReportIndividualCheck'
-const SUMMARY = 'com.svb.CreditBureauIndividualCreditSummary'
-const APPLICANT_INFO_TYPE = 'com.svb.ApplicantInformation'
-const APPLICANT_ADDR_TYPE = 'com.svb.ApplicantAddress'
+const SUMMARY = 'com.leaseforu.CreditBureauIndividualCreditSummary'
+const APPLICANT_INFO_TYPE = 'com.leaseforu.ApplicantInformation'
+const APPLICANT_ADDR_TYPE = 'com.leaseforu.ApplicantAddress'
 
-const CB_SUBJECT = "com.svb.CreditBureauIndividualSubject"
-const CB_ADDRESS = "com.svb.CreditBureauIndividualAddresses"
-const CB_ACCOUNT = "com.svb.CreditBureauIndividualAccounts"
-const CB_EMPLOYMENT = "com.svb.CreditBureauIndividualEmployment"
-const CB_INQUIRY  = "com.svb.CreditBureauIndividualInquiries"
-const CB_REPORT = "com.svb.CreditBureauIndividualSummaryReport"
-const CB_SCORE = "com.svb.CreditBureauIndividualCreditScore"
-const CB_HAWKALERT = "com.svb.CreditBureauIndividualHawkAlertData"
-const CB_VALIDATION = "com.svb.CreditBureauIndividualHawkAlertValidation"
+const CB_SUBJECT = "com.leaseforu.CreditBureauIndividualSubject"
+const CB_ADDRESS = "com.leaseforu.CreditBureauIndividualAddresses"
+const CB_ACCOUNT = "com.leaseforu.CreditBureauIndividualAccounts"
+const CB_EMPLOYMENT = "com.leaseforu.CreditBureauIndividualEmployment"
+const CB_INQUIRY  = "com.leaseforu.CreditBureauIndividualInquiries"
+const CB_REPORT = "com.leaseforu.CreditBureauIndividualSummaryReport"
+const CB_SCORE = "com.leaseforu.CreditBureauIndividualCreditScore"
+const CB_HAWKALERT = "com.leaseforu.CreditBureauIndividualHawkAlertData"
+const CB_VALIDATION = "com.leaseforu.CreditBureauIndividualHawkAlertValidation"
 
 const SUBJECT = 'subject'
 
