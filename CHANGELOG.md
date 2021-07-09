@@ -2,13 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.104](https://github.com/tradle/mycloud/compare/v3.0.1-rc.103...v3.0.1-rc.104) (2021-07-01)
+## [3.0.1-rc.105](https://github.com/tradle/mycloud/compare/v3.0.1-rc.104...v3.0.1-rc.105) (2021-07-08)
 
 
 ### Bug Fixes
 
-* lenses were not redeploying for employee ([1af039a](https://github.com/tradle/mycloud/commit/1af039a))
-* totals were wrong ([ad7c2b0](https://github.com/tradle/mycloud/commit/ad7c2b0))
+* hasLeasingExperience missing ([ec56be0](https://github.com/tradle/mycloud/commit/ec56be0))
+* ModelsPack is not updating for employee ([166f890](https://github.com/tradle/mycloud/commit/166f890))
+* newly created checks are not saved on application and request to be analized later in other plugins ([e7ff4d6](https://github.com/tradle/mycloud/commit/e7ff4d6))
+* rollback previous commit ([98468aa](https://github.com/tradle/mycloud/commit/98468aa))
 
 
 
