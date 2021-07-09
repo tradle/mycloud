@@ -151,12 +151,14 @@ export class ModelStore extends EventEmitter {
     modelsPack,
     validateAuthor = true,
     allowRemoveModels,
+    originalModelsPack,
     // validateUpdate=true,
     key
   }: {
     modelsPack: any
     validateAuthor?: boolean
     allowRemoveModels?: boolean
+    originalModelsPack?: any
     // validateUpdate?: boolean
     key?: string
   }) => {
@@ -175,6 +177,8 @@ export class ModelStore extends EventEmitter {
     if (current && !allowRemoveModels) {
       ensureNoModelsRemoved(current, modelsPack)
     }
+    if (!originalModelsPack)
+      this.originalModelsPack = modelsPack //_.omit(modelsPack, ['namespace'])
 
     let originalCumulativeModelsPack = await this.getOriginalCumulativeModelsPack()
     let cumulative
@@ -186,12 +190,12 @@ export class ModelStore extends EventEmitter {
       })
       extendModelsPack(cumulative, modelsPack)
       extendModelsPack(originalCumulativeModelsPack, this.originalModelsPack)
+      this.originalCumulativeModelsPack = Pack.pack(originalCumulativeModelsPack)
+      cumulative.versionId = this.originalCumulativeModelsPack.versionId
     } else {
+      this.originalCumulativeModelsPack = _.omit(this.originalModelsPack, ['namespace'])
       cumulative = _.omit(modelsPack, ['namespace'])
-      originalCumulativeModelsPack = _.omit(this.originalModelsPack, ['namespace'])
     }
-    this.originalCumulativeModelsPack = Pack.pack(originalCumulativeModelsPack)
-    cumulative.versionId = this.originalCumulativeModelsPack.versionId
 
     this.logger.debug(`added ${modelsPack.namespace} models pack`)
 
@@ -245,6 +249,7 @@ export class ModelStore extends EventEmitter {
       return null
     }
   }
+
   public getOriginalCumulativeModelsPack = async (opts?: any) => {
     try {
       let modelsPack = await this.cumulativePackItem.get(opts)
@@ -297,6 +302,7 @@ export class ModelStore extends EventEmitter {
       validateAuthor: false, // our own models, no need to validate
       allowRemoveModels: false, // missing models can break the UI
       modelsPack: this.myModelsPack,
+      originalModelsPack: this.originalModelsPack,
       key
     })
   }
@@ -326,7 +332,7 @@ export class ModelStore extends EventEmitter {
     })
   }
   public setCustomModels = (modelsPack: ModelsPack) => {
-    modelsPack = Pack.pack(modelsPack)
+    // modelsPack = Pack.pack(modelsPack)
 
     this.originalModelsPack = modelsPack
     let modelsPackClone = _.cloneDeep(modelsPack)
