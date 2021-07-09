@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.106](https://github.com/tradle/mycloud/compare/v3.0.1-rc.105...v3.0.1-rc.106) (2021-07-08)
+## [3.0.1-rc.107](https://github.com/tradle/mycloud/compare/v3.0.1-rc.106...v3.0.1-rc.107) (2021-07-09)
 
 
 ### Bug Fixes
 
-* typo ([7505d55](https://github.com/tradle/mycloud/commit/7505d55))
+* updated custom models didn't not get to client ([4c2ea5c](https://github.com/tradle/mycloud/commit/4c2ea5c))
 
 
 
