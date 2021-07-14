@@ -37,7 +37,7 @@ const CREDS_CHECK_OVERRIDE = 'tradle.CredentialsCheckOverride'
 const CREDS_COMPANY_CHECK = 'tradle.CreditReportLegalEntityCheck'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const APPLICATION = 'tradle.Application'
-const ONE_YEAR_MILLIS = 60 * 60 * 24 * 365 * 1000
+const ONE_YEAR_MILLIS = 31556952000 // 60 * 60 * 24 * 365 * 1000
 const ASSET_GROUP = 'assetScore'
 const CHARACTER_GROUP = 'characterScore'
 const PAYMENT_GROUP = 'paymentScore'
@@ -263,7 +263,7 @@ export class ScoringReport {
     if (legalEntity) legalEntity = legalEntity[0]
     let yearsInOperation = 0, ownFacility = 0
     if (legalEntity) {
-      if (legalEntity.registrationDate / ONE_YEAR_MILLIS > 2) 
+      if ((Date.now() - legalEntity.registrationDate) / ONE_YEAR_MILLIS > 2) 
         yearsInOperation = 1
       
       if (legalEntity.ownFacility) 
@@ -276,12 +276,12 @@ export class ScoringReport {
     const companyFinancials:any = this.calculateCompanyFinancials(financialDetails, scoreDetails)
 
     let debtFactor = map[COMPANY_CASH_FLOW]  &&  map[COMPANY_CASH_FLOW][0].extraEquipmentRatio
-    if (!debtFactor) debtFactor = 0
-    if (debtFactor <= 65) debtFactor = 19
-    else if (debtFactor > 65 && debtFactor <= 70) debtFactor = 16
-    else if (debtFactor > 70 && debtFactor <= 75) debtFactor = 12
-    else if (debtFactor > 75 && debtFactor <= 80) debtFactor = 8
-
+    if (!debtFactor  ||  debtFactor > 80) debtFactor = 0
+    if (debtFactor <= 65) debtFactor = 15
+    else if (debtFactor > 65 && debtFactor <= 70) debtFactor = 12
+    else if (debtFactor > 70 && debtFactor <= 75) debtFactor = 9
+    else if (debtFactor > 75 && debtFactor <= 80) debtFactor = 5
+    
     this.addToScoreDetails({scoreDetails, form: map[COMPANY_CASH_FLOW], property: 'debtFactor', formProperty: 'extraEquipmentRatio', score: debtFactor, group: PAYMENT_GROUP});
       
     const {asset, usefulLife, secondaryMarket, relocation, assetType, leaseType} = await this.getCommonScores(map, scoreDetails)
@@ -332,7 +332,8 @@ export class ScoringReport {
     if (!financialDetails) 
       return {}
 
-    let profitable = 0, liquidity = 0, leverage = 0, technicalBankrupcy = 0, workingCapitalRatio = 0, debtLevel = 0, returnOnEquity = 0, netProfit = 0
+    let profitable = 0, liquidity = 0, leverage = 0, technicalBankrupcy = 0, operatingIncomeMargin = 0,
+        workingCapitalRatio = 0, debtLevel = 0, returnOnEquity = 0, returnOnAssets = 0, netProfit = 0
     financialDetails.forEach(fd => {
       profitable += fd.netProfitP || 0
       liquidity += fd.acidTest || 0 
@@ -341,6 +342,8 @@ export class ScoringReport {
       workingCapitalRatio += fd.workingCapitalRatio || 0
       debtLevel += fd.indebtedness || 0
       returnOnEquity += fd.returnOnEquity || 0
+      returnOnAssets += fd.returnOnAssets || 0
+      operatingIncomeMargin += fd.operatingIncomeMargin || 0
       netProfit += fd.netProfitP || 0
     })
 
@@ -365,16 +368,40 @@ export class ScoringReport {
     else if (workingCapitalRatio < 2  &&  workingCapitalRatio > 1) workingCapitalRatio = 1
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'workingCapitalRatio', formProperty: 'workingCapitalRatio', score: workingCapitalRatio, group: PAYMENT_GROUP});
 
-    debtLevel = (debtLevel / flen) < 50 ? 2 : 0
+    debtLevel = 0
+    let avgDebtLevel = debtLevel / flen
+    if (avgDebtLevel < 60) 
+      debtLevel = 2
+    else (avgDebtLevel >= 60  &&  avgDebtLevel < 70)
+      debtLevel = 1 
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'debtLevel', formProperty: 'indebtedness', score: debtLevel, group: PAYMENT_GROUP});
     
-    returnOnEquity /= flen
-    if (returnOnEquity > 12)
-      returnOnEquity = 2
-    else if (returnOnEquity > 1) 
-      returnOnEquity  = 1
+    returnOnAssets /= flen
+    if (returnOnAssets >= 8)
+      returnOnAssets = 2
+    else if (returnOnAssets >= 2  &&  returnOnAssets < 8)
+      returnOnAssets = 1
     else
-      returnOnEquity  = 0
+      returnOnAssets = 0
+
+    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'returnOnAssets', formProperty: 'returnOnAssets', score: returnOnAssets, group: PAYMENT_GROUP});
+
+    operatingIncomeMargin /= flen
+    if (operatingIncomeMargin > 5)
+      operatingIncomeMargin = 2
+    else if (operatingIncomeMargin >= 3 && operatingIncomeMargin <= 5)
+      operatingIncomeMargin = 1
+    else
+      operatingIncomeMargin = 0  
+    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'operatingIncomeMargin', formProperty: 'operatingIncomeMargin', score: operatingIncomeMargin, group: PAYMENT_GROUP});
+
+    returnOnEquity /= flen
+    if (returnOnEquity >= 10)
+      returnOnEquity = 2
+    else if (returnOnEquity >= 2  &&  returnOnEquity < 10) 
+      returnOnEquity = 1
+    else
+      returnOnEquity = 0
       
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'returnOnEquity', formProperty: 'returnOnEquity', score: returnOnEquity, group: PAYMENT_GROUP});
     
@@ -392,6 +419,8 @@ export class ScoringReport {
       workingCapitalRatio,
       debtLevel,
       returnOnEquity,
+      returnOnAssets,
+      operatingIncomeMargin,
       netProfit,
     }
   }
