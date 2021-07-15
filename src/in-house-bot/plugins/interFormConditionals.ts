@@ -6,6 +6,8 @@ import { CreatePlugin, IPBReq, IPluginLifecycleMethods, ValidatePluginConf } fro
 import { TYPE } from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
 import { isSubClassOf } from '../utils'
+import { normalizeEnumForPrefill, getAllToExecute, getForms } from '../setProps-utils'
+
 // @ts-ignore
 const { parseStub, sanitize } = validateResource.utils
 
@@ -289,97 +291,97 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 function isSet(value) {
   return value.startsWith('set: ')
 }
-function getForms(formula) {
-  let forms = []
-  let idx = 0
-  let len = formula.length
-  while (idx < len) {
-    let idx1 = formula.indexOf("forms['", idx)
-    if (idx1 === -1) break
-    let idx2 = formula.indexOf("']", idx1)
-    if (idx2 === -1) {
-      debugger
-      break
-    }
-    forms.push(formula.slice(idx1 + 7, idx2))
-    idx = idx2 + 2
-  }
-  return forms
-}
-async function getAllToExecute({ bot, application, settings, model, logger }) {
-  let allForms = []
-  let allFormulas = []
+// function getForms(formula) {
+//   let forms = []
+//   let idx = 0
+//   let len = formula.length
+//   while (idx < len) {
+//     let idx1 = formula.indexOf("forms['", idx)
+//     if (idx1 === -1) break
+//     let idx2 = formula.indexOf("']", idx1)
+//     if (idx2 === -1) {
+//       debugger
+//       break
+//     }
+//     forms.push(formula.slice(idx1 + 7, idx2))
+//     idx = idx2 + 2
+//   }
+//   return forms
+// }
+// async function getAllToExecute({ bot, application, settings, model, logger }) {
+//   let allForms = []
+//   let allFormulas = []
 
-  settings.forEach(async val => {
-    let value = val.slice(5)
-    let idx = value.indexOf('=')
-    let propName = value.slice(0, idx).trim()
-    let formula = normalizeFormula({ formula: value })
-    if (!model.properties[propName]) {
-      debugger
-      return
-    }
+//   settings.forEach(async val => {
+//     let value = val.slice(5)
+//     let idx = value.indexOf('=')
+//     let propName = value.slice(0, idx).trim()
+//     let formula = normalizeFormula({ formula: value })
+//     if (!model.properties[propName]) {
+//       debugger
+//       return
+//     }
 
-    allFormulas.push([propName, formula])
-    let formIds = getForms(formula)
-    if (!formIds.length) return
+//     allFormulas.push([propName, formula])
+//     let formIds = getForms(formula)
+//     if (!formIds.length) return
 
-    formIds.forEach(f => !allForms.includes(f) && allForms.push(f))
-  })
+//     formIds.forEach(f => !allForms.includes(f) && allForms.push(f))
+//   })
 
-  let promises = []
-  application.forms
-    .map(appSub => parseStub(appSub.submission))
-    .forEach(f => {
-      if (allForms.includes(f.type)) promises.push(bot.objects.get(f.link))
-    })
-  let forms = {}
-  try {
-    let result = await Promise.all(promises)
-    result.forEach(r => (forms[r[TYPE]] = r))
-  } catch (err) {
-    logger.error('interFormConditionals', err)
-  }
+//   let promises = []
+//   application.forms
+//     .map(appSub => parseStub(appSub.submission))
+//     .forEach(f => {
+//       if (allForms.includes(f.type)) promises.push(bot.objects.get(f.link))
+//     })
+//   let forms = {}
+//   try {
+//     let result = await Promise.all(promises)
+//     result.forEach(r => (forms[r[TYPE]] = r))
+//   } catch (err) {
+//     logger.error('interFormConditionals', err)
+//   }
 
-  return { allForms, allFormulas, forms }
-}
-function normalizeEnumForPrefill({ form, model, models }) {
-  let props = model.properties
-  for (let p in form) {
-    if (!props[p]) continue
-    let { ref } = props[p]
-    if (ref) {
-      if (models[ref].subClassOf !== ENUM) continue
-      let val = form[p]
-      if (typeof val === 'object') continue
-      let evalue = models[ref].enum.find(e => e.id === val)
-      if (evalue) {
-        form[p] = {
-          id: `${ref}_${evalue.id}`,
-          title: evalue.title
-        }
-      }      
-      continue
-    }
-    if (!props[p].items || !props[p].items.ref) continue
+//   return { allForms, allFormulas, forms }
+// }
+// function normalizeEnumForPrefill({ form, model, models }) {
+//   let props = model.properties
+//   for (let p in form) {
+//     if (!props[p]) continue
+//     let { ref } = props[p]
+//     if (ref) {
+//       if (models[ref].subClassOf !== ENUM) continue
+//       let val = form[p]
+//       if (typeof val === 'object') continue
+//       let evalue = models[ref].enum.find(e => e.id === val)
+//       if (evalue) {
+//         form[p] = {
+//           id: `${ref}_${evalue.id}`,
+//           title: evalue.title
+//         }
+//       }      
+//       continue
+//     }
+//     if (!props[p].items || !props[p].items.ref) continue
 
-    ref = props[p].items.ref
-    if (models[ref].subClassOf !== ENUM) continue
+//     ref = props[p].items.ref
+//     if (models[ref].subClassOf !== ENUM) continue
 
-    form[p] = form[p].map(val => {
-      if (typeof val === 'object') return val
-      debugger
-      let evalue = models[ref].enum.find(e => e.id === val)
-      if (evalue) {
-        return {
-          id: `${ref}_${evalue.id}`,
-          title: evalue.title
-        }
-      }      
-      return val
-    })
-  }
-}
+//     form[p] = form[p].map(val => {
+//       if (typeof val === 'object') return val
+//       debugger
+//       let evalue = models[ref].enum.find(e => e.id === val)
+//       if (evalue) {
+//         return {
+//           id: `${ref}_${evalue.id}`,
+//           title: evalue.title
+//         }
+//       }      
+//       return val
+//     })
+//   }
+// }
 
 function normalizeEnums({ forms, models }) {
   let newForms = {}
