@@ -276,12 +276,7 @@ export class ScoringReport {
     const companyFinancials:any = this.calculateCompanyFinancials(financialDetails, scoreDetails)
 
     let debtFactor = map[COMPANY_CASH_FLOW]  &&  map[COMPANY_CASH_FLOW][0].extraEquipmentRatio
-    if (!debtFactor  ||  debtFactor > 80) debtFactor = 0
-    if (debtFactor <= 65) debtFactor = 15
-    else if (debtFactor > 65 && debtFactor <= 70) debtFactor = 12
-    else if (debtFactor > 70 && debtFactor <= 75) debtFactor = 9
-    else if (debtFactor > 75 && debtFactor <= 80) debtFactor = 5
-    
+    debtFactor = this.calcScore(debtFactor, this.conf.debtFactor)
     this.addToScoreDetails({scoreDetails, form: map[COMPANY_CASH_FLOW], property: 'debtFactor', formProperty: 'extraEquipmentRatio', score: debtFactor, group: PAYMENT_GROUP});
       
     const {asset, usefulLife, secondaryMarket, relocation, assetType, leaseType} = await this.getCommonScores(map, scoreDetails)
@@ -343,7 +338,7 @@ export class ScoringReport {
       debtLevel += fd.indebtedness || 0
       returnOnEquity += fd.returnOnEquity || 0
       returnOnAssets += fd.returnOnAssets || 0
-      operatingIncomeMargin += fd.operatingIncomeMargin || 0
+      operatingIncomeMargin += fd.operatingProfitP || 0
       netProfit += fd.netProfitP || 0
     })
 
@@ -368,12 +363,13 @@ export class ScoringReport {
     else if (workingCapitalRatio < 2  &&  workingCapitalRatio > 1) workingCapitalRatio = 1
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'workingCapitalRatio', formProperty: 'workingCapitalRatio', score: workingCapitalRatio, group: PAYMENT_GROUP});
 
-    debtLevel = 0
-    let avgDebtLevel = debtLevel / flen
-    if (avgDebtLevel < 60) 
+    debtLevel /= flen
+    if (debtLevel < 60) 
       debtLevel = 2
-    else (avgDebtLevel >= 60  &&  avgDebtLevel < 70)
+    else if (debtLevel >= 60  &&  debtLevel < 70)
       debtLevel = 1 
+    else
+      debtLevel = 0
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'debtLevel', formProperty: 'indebtedness', score: debtLevel, group: PAYMENT_GROUP});
     
     returnOnAssets /= flen
@@ -642,13 +638,26 @@ export class ScoringReport {
     }
   }
   private calcScore(value, scoreConf) {
+    if (!scoreConf) return 0
     for (let p in scoreConf) {
       let val = scoreConf[value]
 
       if (val)
         return val
       if (p.charAt(0) === '>') {
-        if (value > parseInt(p.slice(1)))
+        if (p.charAt(1) === '=') {
+          if (value >= parseInt(p.slice(2)))
+          return scoreConf[p]
+        }
+        else if (value > parseInt(p.slice(1)))
+          return scoreConf[p]
+      }
+      if (p.charAt(0) === '<') {
+        if (p.charAt(1) === '=') {
+          if (value <= parseInt(p.slice(2)))
+          return scoreConf[p]
+        }
+        else if (value < parseInt(p.slice(1)))
           return scoreConf[p]
       }
       let range = p.split('-')

@@ -10,7 +10,7 @@ module.exports = {
   },
   "overrides": [
    {
-    "files": ["*interFormConditionals.js", "*creditScoreReport.js"],
+    "files": ["*interFormConditionals.js", "*creditScoreReport.js", "*invoicing.js"],
      "rules": {
         "no-new-func": "warn"
      }

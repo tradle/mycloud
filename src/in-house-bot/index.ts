@@ -704,6 +704,7 @@ export const loadComponentsAndPlugins = ({
       'doctorCheck',
       'creditBuroCheck',
       'creditBuroLegalEntityCheck',
+      'facturapi',
       'czechCheck',
       'openCorporates',
       'complyAdvantage',
@@ -746,7 +747,8 @@ export const loadComponentsAndPlugins = ({
       'attestation',
       'leasingQuotes',
       'giinCheck',
-      'vatCheck'
+      'vatCheck',
+      'invoicing'
     ].forEach((name) => attachPlugin({ name }))
       ;[
         'hand-sig',
