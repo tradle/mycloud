@@ -1,6 +1,7 @@
 import xml2js from 'xml2js-parser'
 import nunjucks from 'nunjucks'
 import https from 'https'
+import AWS from 'aws-sdk'
 
 import {
   Bot,
@@ -38,6 +39,9 @@ interface IBuroCheckConf {
   authorization: string
   path: string
   trace?: boolean
+  samples?: boolean
+  sampleReportsFolder?: string
+  sampleReportsBucket?: string
 }
 
 interface IBuroCheck {
@@ -46,6 +50,8 @@ interface IBuroCheck {
   form: ITradleObject
   req: IPBReq
 }
+
+const UTF8 = 'utf-8'
 
 const PROVIDER = 'ConsultaBCC'
 const ASPECTS = 'Credit validity'
@@ -103,6 +109,8 @@ const TEMPLATE = `<consulta>
   </domicilio>
 </consulta>`
 
+const samplesS3 = new AWS.S3()
+
 export class BuroCheckAPI {
   private bot: Bot
   private conf: IBuroCheckConf
@@ -142,7 +150,13 @@ export class BuroCheckAPI {
     
     let status: any
     try {
-      const xml = await this.httpRequest(options, data)
+      let xml: string
+      if (this.conf.samples) {
+        xml = await this.getFileFromS3(samplesS3, this.conf.sampleReportsFolder + '/' + params[RFC] + '.xml', this.conf.sampleReportsBucket)   
+      }
+      else {
+        xml = await this.httpRequest(options, data)
+      }
 
       let parser = new xml2js.Parser({ explicitArray: false, trim: true })
       let jsonObj = parser.parseStringSync(xml)
@@ -364,6 +378,15 @@ export class BuroCheckAPI {
       // IMPORTANT
       req.end();
     })
+  }
+
+  private getFileFromS3= async (s3: AWS.S3, file: string, bucket: string): Promise<string> => {
+    const params = {
+      Bucket: bucket,
+      Key: file
+    }
+    const data = await s3.getObject(params).promise()
+    return data.Body.toString(UTF8)
   }
   
 }  
