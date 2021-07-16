@@ -2,18 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.109](https://github.com/tradle/mycloud/compare/v3.0.1-rc.108...v3.0.1-rc.109) (2021-07-15)
+## [3.0.1-rc.110](https://github.com/tradle/mycloud/compare/v3.0.1-rc.109...v3.0.1-rc.110) (2021-07-16)
 
 
 ### Bug Fixes
 
-* scoring formulas ([1b35b59](https://github.com/tradle/mycloud/commit/1b35b59))
-
-
-### Features
-
-* get rid of hardcoded invoice type ([480690c](https://github.com/tradle/mycloud/commit/480690c))
-* invoicing project ([a5dfae5](https://github.com/tradle/mycloud/commit/a5dfae5))
+* invoicing project - handling wrong event ([6e97cd5](https://github.com/tradle/mycloud/commit/6e97cd5))
 
 
 
