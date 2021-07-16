@@ -21,10 +21,10 @@ const ENUM = 'tradle.Enum'
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
   const plugin: IPluginLifecycleMethods = {
     name: 'invoicing',
-    // async didApproveApplication(opts: IWillJudgeAppArg, certificate: ITradleObject) {
-    //   const { application, user, req } = opts
-    async onmessage(req: IPBReq) {
-      const { payload, application, user } = req
+    async didApproveApplication(opts: IWillJudgeAppArg, certificate: ITradleObject) {
+      const { application, user, req } = opts
+    // async onmessage(req: IPBReq) {
+    //   const { payload, application, user } = req
       // debugger
       if (!application) return
 
@@ -61,7 +61,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           debugger
         }
       })
-      
+
       // if (!allSet) return
 
       prefill = sanitize(prefill).sanitized

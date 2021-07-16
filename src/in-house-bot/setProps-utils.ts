@@ -69,11 +69,14 @@ export async function getAllToExecute({ bot, application, settings, model, logge
   }
   if (additionalFormsFromProps) {
     for (let p in additionalFormsFromProps) {
-      let r = forms[additionalFormsFromProps[p]][p]
-      if (typeof r === 'object') {
-        let f = await bot.getResource(r)
+      let type = additionalFormsFromProps[p]
+      let r = forms[type]
+      if (!r) continue
+      let val = r[p]
+      if (typeof val === 'object') {
+        let f = await bot.getResource(val)
         allForms.push(f[TYPE])
-        forms[r[TYPE]] = f
+        forms[f[TYPE]] = f
       }
     }
   }
