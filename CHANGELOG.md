@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.110](https://github.com/tradle/mycloud/compare/v3.0.1-rc.109...v3.0.1-rc.110) (2021-07-16)
+## [3.0.1-rc.111](https://github.com/tradle/mycloud/compare/v3.0.1-rc.110...v3.0.1-rc.111) (2021-07-16)
 
 
 ### Bug Fixes
 
-* invoicing project - handling wrong event ([6e97cd5](https://github.com/tradle/mycloud/commit/6e97cd5))
+* null prop through error ([5ab6af5](https://github.com/tradle/mycloud/commit/5ab6af5))
 
 
 
