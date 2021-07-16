@@ -98,6 +98,10 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         item._sourceId = form._permalink
         for (let p in form) {
           if (!properties[p] && !keepProperties.includes(p)) continue
+          if (form[p] === null) {
+            debugger
+            continue
+          }
           if (typeof form[p] === 'object' && form[p]._permalink) {
             item[p] = { ...form[p], _refId: form[p]._permalink }
           } else item[p] = form[p]
