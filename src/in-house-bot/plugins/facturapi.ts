@@ -44,6 +44,9 @@ const DESCRIPTION = 'description'
 const PRODUCT_KEY = 'productKey'
 const NAME = 'legalName'
 const RFC = 'rfc'
+const PAYMENT_FORM = 'paymentForm'
+const PAYMENT_METHOD = 'paymentMethod'
+const USE_OF_CFDI = 'useOfCFDI'
 
 export class FacturAPI {
   private bot: Bot
@@ -132,7 +135,9 @@ debugger
             price: payload[PRICE].value
           }
         }],
-        payment_form: '06'
+        payment_form: payload[PAYMENT_FORM]? payload[PAYMENT_FORM].id.split('_')[1]: '06',
+        payment_method: payload[PAYMENT_METHOD]? payload[PAYMENT_METHOD].id.split('_')[1] : 'PUE',
+        use: payload[USE_OF_CFDI]? payload[USE_OF_CFDI].id.split('_')[1] : 'G01'
       }
 
       await facturAPI.submit({data})
