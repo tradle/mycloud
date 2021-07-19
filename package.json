@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "3.0.1-rc.111",
+  "version": "3.0.1-rc.112",
   "main": "index.js",
   "private": true,
   "repository": "https://github.com/tradle/mycloud",
@@ -160,7 +160,7 @@
     "@tradle/biz-plugins": "github:tradle/biz-plugins",
     "@tradle/bot-employee-manager": "github:tradle/bot-employee-manager",
     "@tradle/bot-products": "github:tradle/bot-products",
-    "@tradle/build-resource": "^4.0.4",
+    "@tradle/build-resource": "^4.0.5",
     "@tradle/cb-blockr": "^3.2.1",
     "@tradle/constants": "^2.5.0",
     "@tradle/countries": "github:tradle/countries",
