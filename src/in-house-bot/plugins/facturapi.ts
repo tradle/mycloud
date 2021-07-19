@@ -10,7 +10,8 @@ import {
   ITradleObject,
   IPBApp,
   IPBReq,
-  Logger
+  Logger,
+  Objects
 } from '../types'
 
 import Errors from '../../errors'
@@ -31,22 +32,24 @@ import {
 interface IFacturapiConf {
   authorization: string
   invoiceType: string
+
+  invoiceMap: any
   trace?: boolean,
 }
-
-const INVOICE_TYPE = 'com.leaseforu.Invoice'
 
 const FACTURAPI_INVOICE_ENDPOINT = 'https://www.facturapi.io/v1/invoices'
 
 const PRICE = 'price'
 const EMAIL = 'email'
-const DESCRIPTION = 'description'
 const PRODUCT_KEY = 'productKey'
 const NAME = 'legalName'
 const RFC = 'rfc'
-const PAYMENT_FORM = 'paymentForm'
-const PAYMENT_METHOD = 'paymentMethod'
-const USE_OF_CFDI = 'useOfCFDI'
+
+const ITEMS = 'items'
+const PRODUCT = 'product'
+const CUSTOMER = 'customer'
+const PRODUCT_PREF = 'items[].product.'
+const CUSTOMER_PREF = 'customer.'
 
 export class FacturAPI {
   private bot: Bot
@@ -102,42 +105,56 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const { user, application, payload } = req
       if (!application) return
 
-      const { invoiceType } = conf 
+      const { invoiceType, invoiceMap } = conf 
       if (invoiceType !== payload[TYPE])
         return
       if (!payload[NAME] || ! payload[EMAIL] || !payload[RFC] || 
-          !payload[DESCRIPTION] || !payload[PRODUCT_KEY] || !payload[PRICE])  
+          !payload[PRODUCT_KEY] || !payload[PRICE])  
         return
-debugger
-
+      
+      const propArray: string[] = Object.values(invoiceMap)  
+      
       let changed = await hasPropertiesChanged({
         resource: payload,
         bot,
-        propertiesToCheck: [PRICE, EMAIL, DESCRIPTION, PRODUCT_KEY, NAME, RFC],
+        propertiesToCheck: propArray,
         req
       })
       
       if (!changed) {
         return
       }
-
-      const data = {
-        customer: {
-          legal_name: payload[NAME],
-          email: payload[EMAIL],
-          tax_id: payload[RFC]
-        },
-        items: [{
-          quantity: 1,
-          product: {
-            description: payload[DESCRIPTION],
-            product_key: payload[PRODUCT_KEY],
-            price: payload[PRICE].value
+   
+      let data = {}
+      const props = bot.models[payload[TYPE]].properties
+      const map = conf.invoiceMap
+      const keys = Object.keys(map)
+      for (const key of keys) {
+        const property = map[key]
+        const value = payload[property]
+        let toAssign = value
+        if (!value) continue
+        if (props[property].type === 'object') {
+          if (props[property].ref === 'tradle.Money') {
+            toAssign = value.value
           }
-        }],
-        payment_form: payload[PAYMENT_FORM]? payload[PAYMENT_FORM].id.split('_')[1]: '06',
-        payment_method: payload[PAYMENT_METHOD]? payload[PAYMENT_METHOD].id.split('_')[1] : 'PUE',
-        use: payload[USE_OF_CFDI]? payload[USE_OF_CFDI].id.split('_')[1] : 'G01'
+          else {
+            toAssign = value.id.split('_')[1]
+            if (property === 'paymentForm')
+              toAssign = toAssign.substring(1)
+          }
+        }
+        if (key.indexOf('.') < 0) {
+          data[key] = toAssign
+        } else if (key.startsWith(PRODUCT_PREF)) {
+          const items = data[ITEMS]
+          if (!items) data[ITEMS] = [{product:{}}]
+          data[ITEMS][0][PRODUCT][key.substring(PRODUCT_PREF.length)] = toAssign
+        } else if (key.startsWith(CUSTOMER_PREF)) {
+          const customer = data[CUSTOMER]
+          if (!customer) data[CUSTOMER] = {}
+          data[CUSTOMER][key.substring(CUSTOMER_PREF.length)] = toAssign
+        }
       }
 
       await facturAPI.submit({data})
@@ -155,11 +172,19 @@ export const validateConf: ValidatePluginConf = async ({
   conf: IConfComponents
   pluginConf: IFacturapiConf
 }) => {
-  const { invoiceType, authorization } = pluginConf
+  const { invoiceType, authorization, invoiceMap } = pluginConf
   if (!invoiceType)
-    throw new Error(`No 'invoiceType' found in configuration`)
+    throw new Errors.InvalidInput(`No 'invoiceType' found in configuration`)
   if (!bot.models[invoiceType])
-    throw new Error(`Invalid 'invoiceType' ${invoiceType}`)
+    throw new Errors.InvalidInput(`Invalid 'invoiceType' ${invoiceType}`)
+  if (!invoiceMap)
+    throw new Errors.InvalidInput(`No 'invoiceMap' found in configuration`)
+  const mapProps: string[] = Object.values(invoiceMap)
+  const invoiceFormProps: any = bot.models[invoiceType].properties
+  for (const prop of mapProps) {
+    if (!invoiceFormProps[prop])
+      throw new Errors.InvalidInput(`${invoiceType} does not have property '${prop}' found in 'invoiceMap'`)
+  }
   if (!authorization || typeof authorization !== 'string') {
     throw new Errors.InvalidInput(`property 'authorization' is not set`)
   }
