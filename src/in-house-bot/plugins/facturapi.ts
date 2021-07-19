@@ -34,8 +34,6 @@ interface IFacturapiConf {
   trace?: boolean,
 }
 
-const INVOICE_TYPE = 'com.leaseforu.Invoice'
-
 const FACTURAPI_INVOICE_ENDPOINT = 'https://www.facturapi.io/v1/invoices'
 
 const PRICE = 'price'
