@@ -64,6 +64,8 @@ export class FacturAPI {
   }
 
   public submit = async ({ data }) => {
+    if (this.conf.trace)
+      this.logger.debug(`facturapi call payload: ${JSON.stringify(data)}`)
     await this.post(data, FACTURAPI_INVOICE_ENDPOINT)
   }
   
@@ -80,12 +82,13 @@ export class FacturAPI {
 
       if (res.ok) {
         const result = await res.json();
-        this.logger.debug(result)
+        if (this.conf.trace)
+          this.logger.debug(`facturapi call success response: ${JSON.stringify(result)}`)
       } else {
-        this.logger.error('status=' + res.status, res.statusText)
+        this.logger.error(`facturapi fail response: status=${res.status}, ${res.statusText}`)
       }
     } catch (err) {
-      this.logger.error(err.message)
+      this.logger.error(`facturapi error: ${err.message}`)
     }
   }
 
@@ -108,12 +111,14 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       const { invoiceType, invoiceMap } = conf 
       if (invoiceType !== payload[TYPE])
         return
+      
+      logger.debug('facturapi checking if required properties are in the Invoice')
+
       if (!payload[NAME] || ! payload[EMAIL] || !payload[RFC] || 
           !payload[PRODUCT_KEY] || !payload[PRICE])  
         return
-      
       const propArray: string[] = Object.values(invoiceMap)  
-      
+      logger.debug('facturapi checking if Invoice properties changed')
       let changed = await hasPropertiesChanged({
         resource: payload,
         bot,
