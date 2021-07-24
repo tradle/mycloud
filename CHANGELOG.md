@@ -2,7 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.114](https://github.com/tradle/mycloud/compare/v3.0.1-rc.113...v3.0.1-rc.114) (2021-07-21)
+## [3.0.1-rc.115](https://github.com/tradle/mycloud/compare/v3.0.1-rc.114...v3.0.1-rc.115) (2021-07-24)
+
+
+### Bug Fixes
+
+* invalid signature when object re-sent from client and overrides the previous version of itself (_orgsig is missing) ([c96f250](https://github.com/tradle/mycloud/commit/c96f250))
 
 
 
