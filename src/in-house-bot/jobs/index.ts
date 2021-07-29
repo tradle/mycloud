@@ -23,6 +23,7 @@ import { ImportBasicCompanyData } from './importBasicCompanyData'
 import { RoarFeedback } from './roarFeedback'
 import { Chaser } from './chaser'
 import { PendingChecksChaser } from './pendingChecksChaser'
+import { PendingWorksHandler } from './pendingWorksHandler'
 import { ImportCzechData } from './importCzech'
 // import { Deployment } from '../deployment'
 
@@ -136,7 +137,15 @@ export const roarFeedback: Executor = async ({ job, components }) => {
     components.bot.logger.error('job roarFeedback failed', err)
   }
 }
-
+ 
+export const pendingWorks: Executor = async ({ job, components }) => {
+  let handler = new PendingWorksHandler(components.bot, components.applications, components.conf.bot)
+  try {
+    await handler.chaseWorks()
+  } catch (err) {
+    components.bot.logger.error('job pendingWorksHandler failed', err)
+  }
+}  
 
 export const warmup: Executor = async ({ job, components }) => {
   await components.bot.lambdaWarmup.warmUp({

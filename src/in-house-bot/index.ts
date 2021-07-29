@@ -704,7 +704,7 @@ export const loadComponentsAndPlugins = ({
       'doctorCheck',
       'creditBuroCheck',
       'creditBuroLegalEntityCheck',
-      'facturapi',
+      'facturapi-job',
       'czechCheck',
       'openCorporates',
       'complyAdvantage',

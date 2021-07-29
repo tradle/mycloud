@@ -29,6 +29,8 @@ declare namespace PluginLifecycle {
   export type getRequiredForms = (opts: IGetRequiredFormsArg) => Promise<void|string[]>
   export type validateForm = (opts: IValidateFormArg) => Promise<void|IValidateFormOutput>
 
+  export type replay = (obj: ITradleObject) => Promise<void>
+
   // asynchronous, attach conditioned on runAsyncHandlers
   export type onCheckStatusChanged = (check: ITradleCheck) => Promise<void>
   export type onResourceChanged = (opts: OnResourceChangedArg) => Promise<void>
@@ -49,6 +51,7 @@ declare namespace PluginLifecycle {
     onCommand?: onCommand
     getRequiredForms?: getRequiredForms
     validateForm?: validateForm
+    replay?: replay 
 
     onCheckStatusChanged?: onCheckStatusChanged
     onResourceChanged?: onResourceChanged
