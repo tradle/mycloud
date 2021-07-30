@@ -155,15 +155,18 @@ export default class Delivery extends EventEmitter implements IDelivery {
   }): Promise<IDelivery> => {
     const { method, recipient, clientId, session, friend } = opts
     if (clientId || session || !(method in this.http)) {
+      this.logger.debug(`Transport 'MQTT/IOT'`)
       return this.mqtt
     }
 
     if (friend || !(method in this.mqtt)) {
+      this.logger.debug(`Transport 'HTTP', friend was passed`)
       return this.http
     }
 
     try {
       opts.friend = await this.friends.getByIdentityPermalink(recipient)
+      this.logger.debug(`Transport 'HTTP', friend was found`)
       return this.http
     } catch (err) {
       this.logger.debug(`cannot determine transport to use for recipient ${recipient}`)
