@@ -60,9 +60,8 @@ const COMMON_JOBS: Job[] = [
   {
     name: 'pendingWorks',
     function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: 1 * MINUTE,
+    period: 5 * MINUTE,
   },
-  /*
   {
     name: 'exportObjectsToAthena',
     function: DEFAULT_JOB_RUNNER_FUNCTION,
@@ -118,7 +117,6 @@ const COMMON_JOBS: Job[] = [
     function: DEFAULT_JOB_RUNNER_FUNCTION,
     period: 30 * MINUTE,
   },
-  */
   // {
   //   name: 'documentChecker',
   //   function: DEFAULT_JOB_RUNNER_FUNCTION,

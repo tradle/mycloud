@@ -41,7 +41,7 @@ interface IFacturapiConf {
 }
 
 const SUBMISSION_TYPE = 'com.svb.InvoiceSubmission'
-const PENDING_WORK_TYPE = 'com.svb.PendingWork'
+const PENDING_WORK_TYPE = 'tradle.PendingWork'
 const STATUS = 'tradle.Status'
 
 const FACTURAPI_INVOICE_ENDPOINT = 'https://www.facturapi.io/v1/invoices'
@@ -100,7 +100,7 @@ export class FacturAPI {
   
   private post = async (request: string, payload: IPBApp ) => {
     try {
-      let res = await fetch('https://www.facturapi.in/v1/invoices', {
+      let res = await fetch(FACTURAPI_INVOICE_ENDPOINT, {
           method: 'POST',
           body: request,
           headers: {
@@ -197,7 +197,7 @@ export class FacturAPI {
       done: false,
       attempts: 1,
       lastAttempt: Date.now(),
-     // frequency: 5*60*1000,
+      frequency: 5*60*1000,
       message,
       pendingRef
     }

@@ -13,7 +13,7 @@ import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
-const PENDING_WORK_TYPE = 'com.svb.PendingWork'
+const PENDING_WORK_TYPE = 'tradle.PendingWork'
 
 const LAST_ATTEMPT = 'lastAttempt'
 const FREQUENCY = 'frequency'
