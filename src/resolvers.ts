@@ -201,7 +201,7 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
     }
   }
 
-  const list = async (opts: ListOpts) => {
+  const list = async (opts: any) => { // ListOpts) => {
     if (opts.backlink && backlinks) {
       return listBacklink(opts)
     }
@@ -212,7 +212,10 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
     if (!filter.EQ) filter.EQ = {}
     filter.EQ[TYPE] = model.id
 
+    const conf = opts.context && opts.context.components && opts.context.components.conf || []
+
     return db.find({
+      allowScan: true,
       select,
       filter,
       orderBy,

@@ -699,7 +699,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
           prefill.alsoKnownAs = (isObject && previousNames[0].company_name) || previousNames[0]
           if (previousNames.length > 1)
             prefill.formerlyKnownAs =
-              (isObject && previousNames[1]) || previousNames[1].company_name
+              isObject && previousNames[1] && previousNames[1].company_name
         }
 
         if (incorporation_date) prefill.registrationDate = new Date(incorporation_date).getTime()

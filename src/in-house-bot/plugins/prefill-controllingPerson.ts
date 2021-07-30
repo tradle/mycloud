@@ -238,8 +238,10 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       }
       if (nationality) {
         nationality = this.getNationality(nationality, prefill.controllingEntityCountryOfResidence)
-        if (!nationality && country_of_residence)
-          nationality = prefill.controllingEntityCountryOfResidence
+        if (nationality)
+          prefill.nationality = nationality
+        else if (country_of_residence)
+          prefill.nationality = prefill.controllingEntityCountryOfResidence
       }
       if (date_of_birth)
         prefill.controllingEntityDateOfBirth =
@@ -486,8 +488,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       }
       if (nationality) {
         nationality = this.getNationality(nationality, prefill.controllingEntityCountryOfResidence)
-        if (!nationality && country_of_residence)
-          nationality = prefill.controllingEntityCountryOfResidence
+        if (nationality)
+          prefill.nationality = nationality
       }
       if (name_elements) {
         let { firstName, lastName } = prefill

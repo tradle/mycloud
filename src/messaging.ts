@@ -21,6 +21,7 @@ import Env from './env'
 import {
   SEQ,
   PREVLINK,
+  LINK,
   OWNER,
   TYPE,
   TYPES,
@@ -243,10 +244,36 @@ export default class Messaging {
     this.logger.debug('receiving message', summarizeObject(message))
 
     const saveToDB = !DB_IGNORE_PAYLOAD_TYPES.inbound.includes(message.object[TYPE])
-    const tasks: Promise<any>[] = [
-      this.storage.save({ object: message.object, saveToDB }),
+
+    const link = message.object._link
+    const tasks: Promise<any>[] = []
+    let existing: ITradleObject
+    try {
+      existing = await this.storage.getByLink(link)
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+    }
+
+    // if (existing) {
+    //   tasks.push(Promise.resolve(existing))
+    //   this.logger.debug(`not overwriting existing object: ${link}`)
+    // } else {
+    //   tasks.push(
+    //     this.storage.save({ object: message.object, saveToDB }),
+    //     this.messages.save(message)
+    //   )
+    // }
+    if (existing) {
+      tasks.push(Promise.resolve(existing))
+      this.logger.debug(`not overwriting existing object: ${link}`)
+    } else {
+      tasks.push(
+        this.storage.save({ object: message.object, saveToDB }),
+      )
+    }
+    tasks.push(
       this.messages.save(message)
-    ]
+    )
 
     if (message.seal) {
       tasks.push(this.watchSealedPayload(message))
