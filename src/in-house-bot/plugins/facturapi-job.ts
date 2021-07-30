@@ -100,14 +100,14 @@ export class FacturAPI {
   
   private post = async (request: string, payload: IPBApp ) => {
     try {
-      let res = await fetch(FACTURAPI_INVOICE_ENDPOINT + '-c', {
+      let res = await fetch('https://www.facturapi.in/v1/invoices', {
           method: 'POST',
           body: request,
           headers: {
             Authorization: 'Basic ' + this.encodeStringToBase64(this.conf.authorization + ':'),
             'Content-Type': 'application/json; charset=utf-8'
           },
-          timeout: 1000
+          timeout: 5000
       })
 
       if (res.ok) {
