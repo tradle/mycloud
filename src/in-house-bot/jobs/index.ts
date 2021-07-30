@@ -23,10 +23,12 @@ import { ImportBasicCompanyData } from './importBasicCompanyData'
 import { RoarFeedback } from './roarFeedback'
 import { Chaser } from './chaser'
 import { PendingChecksChaser } from './pendingChecksChaser'
+import { PendingWorksHandler } from './pendingWorksHandler'
 import { ImportCzechData } from './importCzech'
 // import { Deployment } from '../deployment'
 
 const SAFETY_MARGIN_MILLIS = 20000
+const JOBS = 'jobs'
 
 type ExecInput = {
   job: Job
@@ -42,6 +44,8 @@ export const chaser: Executor = async ({ job, components }) => {
 }
 
 export const exportObjectsToAthena: Executor = async ({ job, components }) => {
+  if (!isActive(components.conf.bot, 'exportObjectsToAthena'))
+    return
   let feeder = new AthenaFeed(components.bot)
   try {
     await feeder.objectsDump()
@@ -51,6 +55,8 @@ export const exportObjectsToAthena: Executor = async ({ job, components }) => {
 }
 
 export const importPsc: Executor = async ({ job, components }) => {
+  if (!isActive(components.conf.bot, 'importPsc'))
+    return
   const orgConf = components.conf
   const { org } = orgConf
   let importer = new ImportPsc(components.bot, components.applications, org)
@@ -62,6 +68,8 @@ export const importPsc: Executor = async ({ job, components }) => {
 }
 
 export const importLei: Executor = async ({ job, components }) => {
+  if (!isActive(components.conf.bot, 'importLei'))
+    return
   const orgConf = components.conf
   const { org } = orgConf
   let importer = new ImportLei(components.bot, components.applications, org)
@@ -73,6 +81,8 @@ export const importLei: Executor = async ({ job, components }) => {
 }
 
 export const importBasicCompanyData: Executor = async ({ job, components }) => {
+  if (!isActive(components.conf.bot, 'importBasicCompanyData'))
+    return
   const orgConf = components.conf
   const { org } = orgConf
   let importer = new ImportBasicCompanyData(components.bot, components.applications, org)
@@ -84,6 +94,8 @@ export const importBasicCompanyData: Executor = async ({ job, components }) => {
 }
 
 export const importRefdata: Executor = async ({ job, components }) => {
+  if (!isActive(components.conf.bot, 'importRefdata'))
+    return
   let importer = new ImportRefdata(components.bot)
   try {
     await importer.move()
@@ -93,6 +105,8 @@ export const importRefdata: Executor = async ({ job, components }) => {
 }
 
 export const importPitchbookData: Executor = async ({ job, components }) => {
+  if (!isActive(components.conf.bot, 'importPitchbookData'))
+    return
   let importer = new ImportPitchbookData(components.bot)
   try {
     await importer.move()
@@ -111,6 +125,8 @@ export const pendingChecksChaser: Executor = async ({ job, components }) => {
 }
 
 export const importCzech: Executor = async ({ job, components }) => {
+  if (!isActive(components.conf.bot, 'importCzech'))
+    return
   let importer = new ImportCzechData(components.bot)
   try {
     await importer.move()
@@ -120,6 +136,8 @@ export const importCzech: Executor = async ({ job, components }) => {
 }
 
 export const importMaxmindDb: Executor = async ({ job, components }) => {
+  if (!isActive(components.conf.bot, 'importMaxmindDb'))
+    return
   let importer = new ImportMaxmindDb(components.bot)
   try {
     await importer.execute()
@@ -129,6 +147,8 @@ export const importMaxmindDb: Executor = async ({ job, components }) => {
 }
 
 export const roarFeedback: Executor = async ({ job, components }) => {
+  if (!isActive(components.conf.bot, 'roarFeedback'))
+    return
   let roar = new RoarFeedback(components.bot, components.conf.bot)
   try {
     await roar.pullResponses()
@@ -136,7 +156,15 @@ export const roarFeedback: Executor = async ({ job, components }) => {
     components.bot.logger.error('job roarFeedback failed', err)
   }
 }
-
+ 
+export const pendingWorks: Executor = async ({ job, components }) => {
+  let handler = new PendingWorksHandler(components.bot, components.applications, components.conf.bot)
+  try {
+    await handler.chaseWorks()
+  } catch (err) {
+    components.bot.logger.error('job pendingWorksHandler failed', err)
+  }
+}  
 
 export const warmup: Executor = async ({ job, components }) => {
   await components.bot.lambdaWarmup.warmUp({
@@ -245,6 +273,18 @@ export const createSealBatch: Executor = async ({ job, components }) => {
   await bot.seal({
     object: signed
   })
+}
+
+const isActive = (bot:any, jobName: string): boolean => {
+  let jobs: any = bot[JOBS]
+  if (!jobs)
+    return false
+  if (jobs) {
+    let jobConf = jobs[jobName]
+    if (!jobConf || !jobConf.active)
+      return false
+  }
+  return true
 }
 
 // export const documentChecker:Executor = async ({ job, components }) => {
