@@ -1,4 +1,5 @@
 import fetch from 'node-fetch'
+import fs from 'fs'
 
 import {
   Bot,
@@ -37,8 +38,13 @@ interface IFacturapiConf {
   invoiceType: string
 
   invoiceMap: any
+
+  test?: boolean
   trace?: boolean,
 }
+
+const TEST_FILE = '/tmp/facturapi-test.json'
+const TEST_DEADEND = 'https://www.facturapi.not/v1/invoices'
 
 const SUBMISSION_TYPE = 'com.leaseforu.InvoiceSubmission'
 const PENDING_WORK_TYPE = 'tradle.PendingWork'
@@ -99,8 +105,9 @@ export class FacturAPI {
   }
   
   private post = async (request: string, payload: IPBApp ) => {
+    const url = this.doTest()? TEST_DEADEND : FACTURAPI_INVOICE_ENDPOINT
     try {
-      let res = await fetch(FACTURAPI_INVOICE_ENDPOINT, {
+      let res = await fetch(url, {
           method: 'POST',
           body: request,
           headers: {
@@ -240,6 +247,23 @@ export class FacturAPI {
 
   private encodeStringToBase64 = (text) => {
     return Buffer.from(text).toString('base64');
+  }
+
+  private doTest = () => {
+     if (!this.conf.test) return false
+     if (!fs.existsSync(TEST_FILE)) {
+       let data = JSON.stringify({cnt: 0});
+       fs.writeFileSync(TEST_FILE, data);
+       return false
+     }
+     let rawdata = fs.readFileSync(TEST_FILE, {encoding: 'utf-8'});
+     let json = JSON.parse(rawdata);
+     const cnt = json.cnt
+     let data = JSON.stringify({cnt: cnt+1});
+     fs.writeFileSync(TEST_FILE, data);
+     if (json.cnt % 2 === 0)
+       return true
+     return false  
   }
 }  
 
