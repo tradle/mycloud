@@ -40,7 +40,7 @@ interface IFacturapiConf {
   trace?: boolean,
 }
 
-const SUBMISSION_TYPE = 'com.svb.InvoiceSubmission'
+const SUBMISSION_TYPE = 'com.leaseforu.InvoiceSubmission'
 const PENDING_WORK_TYPE = 'tradle.PendingWork'
 const STATUS = 'tradle.Status'
 
