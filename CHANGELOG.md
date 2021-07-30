@@ -2,12 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.118](https://github.com/tradle/mycloud/compare/v3.0.1-rc.117...v3.0.1-rc.118) (2021-07-27)
-
-
-### Bug Fixes
-
-* nationality ([928feee](https://github.com/tradle/mycloud/commit/928feee))
+## [3.0.1-rc.119](https://github.com/tradle/mycloud/compare/v3.0.1-rc.118...v3.0.1-rc.119) (2021-07-30)
 
 
 
