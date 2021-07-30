@@ -1361,7 +1361,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
                 masterUser = await this.users.get(_author)
               }
             } catch (err) {
-              debugger
+              this.logger.debug(`Failed to find author: ${_author}`)
             }
           }
 
@@ -1398,7 +1398,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
           const batch = messages.map((message) =>
             toBotMessageEvent({ bot: this, user, masterUser, allUsers, message })
           )
-          // logger.debug(`feeding ${messages.length} messages to business logic`)
+          this.logger.debug(`feeding ${messages.length} messages to business logic`)
           if (async) {
             await this._fireMessageBatchEvent({ inbound: true, batch, async, spread: true })
           } else {
