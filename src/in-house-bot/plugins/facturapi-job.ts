@@ -1,5 +1,4 @@
 import fetch from 'node-fetch'
-import fs from 'fs'
 
 import {
   Bot,
@@ -105,7 +104,7 @@ export class FacturAPI {
   }
   
   private post = async (request: string, payload: IPBApp ) => {
-    const url = this.doTest()? TEST_DEADEND : FACTURAPI_INVOICE_ENDPOINT
+    const url = this.conf.test? TEST_DEADEND : FACTURAPI_INVOICE_ENDPOINT
     try {
       let res = await fetch(url, {
           method: 'POST',
@@ -247,23 +246,6 @@ export class FacturAPI {
 
   private encodeStringToBase64 = (text) => {
     return Buffer.from(text).toString('base64');
-  }
-
-  private doTest = () => {
-     if (!this.conf.test) return false
-     if (!fs.existsSync(TEST_FILE)) {
-       let data = JSON.stringify({cnt: 0});
-       fs.writeFileSync(TEST_FILE, data);
-       return false
-     }
-     let rawdata = fs.readFileSync(TEST_FILE, {encoding: 'utf-8'});
-     let json = JSON.parse(rawdata);
-     const cnt = json.cnt
-     let data = JSON.stringify({cnt: cnt+1});
-     fs.writeFileSync(TEST_FILE, data);
-     if (json.cnt % 2 === 0)
-       return true
-     return false  
   }
 }  
 
