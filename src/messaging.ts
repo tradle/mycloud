@@ -253,16 +253,6 @@ export default class Messaging {
     } catch (err) {
       Errors.ignoreNotFound(err)
     }
-
-    // if (existing) {
-    //   tasks.push(Promise.resolve(existing))
-    //   this.logger.debug(`not overwriting existing object: ${link}`)
-    // } else {
-    //   tasks.push(
-    //     this.storage.save({ object: message.object, saveToDB }),
-    //     this.messages.save(message)
-    //   )
-    // }
     if (existing) {
       tasks.push(Promise.resolve(existing))
       this.logger.debug(`not overwriting existing object: ${link}`)
