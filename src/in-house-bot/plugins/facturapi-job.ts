@@ -30,8 +30,6 @@ import {
   getLatestForms
 } from '../utils'
 
-import { PendingWorksHandler} from '../jobs/pendingWorksHandler'
-
 interface IFacturapiConf {
   authorization: string
   invoiceType: string
