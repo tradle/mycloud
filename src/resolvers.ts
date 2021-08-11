@@ -18,10 +18,11 @@ import validateResource from '@tradle/validate-resource'
 import { ResourceStub, Backlinks, Identities } from './types'
 import { allSettled } from './utils'
 import Errors from './errors'
+import { toStreamItems } from './test/utils'
 
 const { getRef, isDescendantOf } = validateModels.utils
 const { isInstantiable } = validateResource.utils
-
+const SHARE_REQUEST = 'tradle.ShareRequest'
 type PropertyInfo = {
   propertyName: string
   model: Model
@@ -243,6 +244,24 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
   function withPostProcess (fn, op) {
     return async (...args) => {
       const result = await fn(...args)
+      // Temprorary fix
+      if (result[TYPE] === SHARE_REQUEST  ||  (result.items  &&  result.items.length  &&  result.items[0][TYPE] === SHARE_REQUEST)) {
+        if (result.items  &&  result.items[0].with[0].id) {
+          result.items.forEach(item => {
+            item.with = item.with.map(w => {
+              let [ _t, _permalink, _link ] = w.id.split('_')
+              return {_t, _permalink, _link}
+            })            
+          })  
+        }      
+        else if (result.with[0].id) {
+          result.with = result.with.map(w => {
+            let [ _t, _permalink, _link ] = w.id.split('_')
+            return {_t, _permalink, _link}
+          })            
+        }
+      }
+      // debugger
       return postProcess(result, op, ...args)
     }
   }
