@@ -25,6 +25,7 @@ const DIFFERENCE_WITH_PREFILL = 'Differences With Prefilled Form'
 const PHOTO_ID = 'tradle.PhotoID'
 const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
+const SHARE_REQUEST = 'tradle.ShareRequest'
 
 interface IValidityCheck {
   rawData: any
@@ -79,6 +80,91 @@ class ClientEditsAPI {
     }
     if (!status) status = 'pass'
     return await this.createCheck({ req, rawData, status })
+  }
+  public async handleShareFromRequest(resource) {
+    debugger
+    let anotherOrgId = await this.bot.identities.byPermalink(resource._org)
+    if (!anotherOrgId) {
+      debugger
+      this.logger.debug(`No identity found for ${resource._org}`)
+    }
+    try {
+      await this.bot
+        .draft({ type: MODIFICATION })
+        .set({
+            dateModified: Date.now(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
+            form: resource,
+            modifications: {
+              shared: {
+                from: resource._org
+              }
+            }
+        })
+        .signAndSave()
+    } catch (err) {
+      debugger
+      this.logger.debug(`Error sharing resources from ${resource._org}`)
+    }
+  }
+  public async handleShareWithRequest(resource) {
+    debugger
+    // let sharedWith
+    // try {
+    //   sharedWith = await Promise.all(resource.with.map(r => this.bot.identities.byPermalink(r._permalink)))
+    // } catch (err) {
+    //   debugger
+    // }
+    let msgs
+    try {
+      msgs = await Promise.all(resource.links.map(link => this.bot.getMessageWithPayload({
+        select: ['object'],
+        link,
+        author: resource._author,
+        inbound: true
+      }))) 
+    } catch (err) {
+      debugger
+      this.logger.debug(`Message was not found for one of the links ${resource.links}`)
+      // return
+    } 
+    if (!msgs || !msgs.length) return
+    
+    let resources
+    try {
+      resources = await Promise.all(msgs.map((msg:any) => this.bot.db.findOne({
+        filter: {
+          EQ: {
+            [TYPE]: msg.object[TYPE],
+            _link: msg.object._link
+          }
+        }
+      })))
+    } catch (err) {
+      debugger
+    }
+    let modifications = []
+    let sharedWithHash = resource.with[0]._permalink
+    for (let i=0; i<resources.length; i++) {
+      modifications.push(this.bot
+        .draft({ type: MODIFICATION })
+        .set({
+            dateModified: Date.now(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
+            form: resources[i],
+            modifications: {
+              shared: {
+                with: sharedWithHash
+              }
+            }
+        })
+        .signAndSave()
+      )
+    }
+    try {
+      await Promise.all(modifications)
+    } catch (err) {
+      debugger
+      this.logger.debug(`Error sharing resources with ${sharedWithHash}`)
+    }
   }
 
   public checkTheDifferencesWithPrefill(payload, rawData, prefill) {
@@ -346,14 +432,26 @@ class ClientEditsAPI {
     }
   }
 }
-export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger, conf }) => {
-  const clientEdits = new ClientEditsAPI({ bot, applications, logger })
+export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) => {
+  const { bot, productsAPI, employeeManager, applications } = components
+    const clientEdits = new ClientEditsAPI({ bot, applications, logger })
   const plugin = {
     async onmessage(req: IPBReq) {
       // if (req.skipChecks) return
       const { payload, application } = req
       if (!payload._link) return
-      if (!application) return
+   if (!application) {
+        if (payload[TYPE] === SHARE_REQUEST) {
+          let myIdentity = await bot.getMyIdentity()
+          let { with:sharedWith } = payload
+          if (sharedWith.find(w => w.link === myIdentity._link))
+            await clientEdits.handleShareFromRequest(payload)
+          else
+            await clientEdits.handleShareWithRequest(payload)
+        }
+        return
+      }
+      const isEmployee = employeeManager.isEmployee(req)
       const { models } = bot
       if (!isSubClassOf(FORM, models[payload[TYPE]], models)) return
       const sourceOfData = payload._sourceOfData
