@@ -89,35 +89,7 @@ class ClientEditsAPI {
       this.logger.debug(`No identity found for ${resource._org}`)
     }
     anotherOrgId = anotherOrgId._link
-    let resources = resource.stubs
-    if (!resources) {
-      let msgs
-      try {
-        msgs = await Promise.all(resource.links.map(link => this.bot.getMessageWithPayload({
-          select: ['object'],
-          link,
-          author: anotherOrgId,
-          inbound: true
-        })))
-      } catch (err) {
-        debugger
-        this.logger.debug(`Message was not found for one of the links ${resource.links}`)
-        // return
-      }
-      if (!msgs || !msgs.length) return
-      try {
-        resources = await Promise.all(msgs.map((msg:any) => this.bot.db.findOne({
-          filter: {
-            EQ: {
-              [TYPE]: msg.object[TYPE],
-              _link: msg.object._link
-            }
-          }
-        })))
-      } catch (err) {
-        debugger
-      }
-    }
+    let resources = await this.getSharedResources(resource, anotherOrgId)
     let modifications = []
     for (let i=0; i<resources.length; i++) {
       modifications.push(this.bot
@@ -140,24 +112,6 @@ class ClientEditsAPI {
       debugger
       this.logger.debug(`Error sharing resources from ${anotherOrgId}`)
     }
-
-    // try {
-    //   await this.bot
-    //     .draft({ type: MODIFICATION })
-    //     .set({
-    //         dateModified: Date.now(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
-    //         form: resource,
-    //         modifications: {
-    //           shared: {
-    //             from: anotherOrgId._link
-    //           }
-    //         }
-    //     })
-    //     .signAndSave()
-    // } catch (err) {
-    //   debugger
-    //   this.logger.debug(`Error sharing resources from ${resource._org}`)
-    // }
   }
   public async handleShareWithRequest(resource) {
     debugger
@@ -167,34 +121,7 @@ class ClientEditsAPI {
     // } catch (err) {
     //   debugger
     // }
-    let msgs
-    try {
-      msgs = await Promise.all(resource.links.map(link => this.bot.getMessageWithPayload({
-        select: ['object'],
-        link,
-        author: resource._author,
-        inbound: true
-      })))
-    } catch (err) {
-      debugger
-      this.logger.debug(`Message was not found for one of the links ${resource.links}`)
-      // return
-    }
-    if (!msgs || !msgs.length) return
-
-    let resources
-    try {
-      resources = await Promise.all(msgs.map((msg:any) => this.bot.db.findOne({
-        filter: {
-          EQ: {
-            [TYPE]: msg.object[TYPE],
-            _link: msg.object._link
-          }
-        }
-      })))
-    } catch (err) {
-      debugger
-    }
+    let resources = await this.getSharedResources(resource, resource._author)
     let modifications = []
     let sharedWithHash = resource.with[0]._permalink
     for (let i=0; i<resources.length; i++) {
@@ -219,8 +146,39 @@ class ClientEditsAPI {
       this.logger.debug(`Error sharing resources with ${sharedWithHash}`)
     }
   }
+  private async getSharedResources(resource, author) {
+    debugger
+    let resources = resource.formStubs || resource.verificationStubs
+    if (resources) return resources
 
-  public checkTheDifferencesWithPrefill(payload, rawData, prefill) {
+    let msgs
+    try {
+      msgs = await Promise.all(resource.links.map(link => this.bot.getMessageWithPayload({
+        select: ['object'],
+        link,
+        author,
+        inbound: true
+      })))
+    } catch (err) {
+      debugger
+      this.logger.debug(`Message was not found for one of the links ${resource.links}`)
+      // return
+    }
+    if (!msgs || !msgs.length) return
+    try {
+      return await Promise.all(msgs.map((msg:any) => this.bot.db.findOne({
+        filter: {
+          EQ: {
+            [TYPE]: msg.object[TYPE],
+            _link: msg.object._link
+          }
+        }
+      })))
+    } catch (err) {
+      debugger
+    }
+  }
+  private checkTheDifferencesWithPrefill(payload, rawData, prefill) {
     let props = this.bot.models[payload[TYPE]].properties
     let hasChanges
     let changes = {}
@@ -487,7 +445,7 @@ class ClientEditsAPI {
 }
 export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) => {
   const { bot, productsAPI, employeeManager, applications } = components
-    const clientEdits = new ClientEditsAPI({ bot, applications, logger })
+  const clientEdits = new ClientEditsAPI({ bot, applications, logger })
   const plugin = {
     async onmessage(req: IPBReq) {
       // if (req.skipChecks) return
