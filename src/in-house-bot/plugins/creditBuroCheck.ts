@@ -20,6 +20,7 @@ import {
 import Errors from '../../errors'
 import validateResource from '@tradle/validate-resource'
 import { buildResourceStub } from '@tradle/build-resource'
+import { enumValue } from '@tradle/build-resource'
 
 // @ts-ignore
 const { sanitize } = validateResource.utils
@@ -53,6 +54,9 @@ interface IBuroCheck {
 }
 
 const UTF8 = 'utf-8'
+
+const PENDING_WORK_TYPE = 'tradle.PendingWork'
+const STATUS = 'tradle.Status'
 
 const CONSENT_TYPE = 'com.leaseforu.ApplicantConsent'
 
@@ -147,15 +151,33 @@ export class BuroCheckAPI {
   private conf: IBuroCheckConf
   private applications: Applications
   private logger: Logger
+
+  private PASS: object
+  private FAIL: object
+  private ERROR: object
   constructor({ bot, conf, applications, logger }) {
     this.bot = bot
     this.conf = conf
     this.applications = applications
     this.logger = logger
+
+    this.PASS = enumValue({
+      model: this.bot.models[STATUS],
+      value: 'pass'
+    })
+
+    this.FAIL = enumValue({
+      model: this.bot.models[STATUS],
+      value: 'fail'
+    })
+
+    this.ERROR = enumValue({
+      model: this.bot.models[STATUS],
+      value: 'error'
+    })
   }
 
   public lookup = async ({ form, params, application, req, user }) => {
-   
     const input = {
       username: this.conf.username,
       password: this.conf.password, 
@@ -163,70 +185,63 @@ export class BuroCheckAPI {
       params
     }
 
-    const data = nunjucks.renderString(TEMPLATE, input)
+    const data: string = nunjucks.renderString(TEMPLATE, input)
     if (this.conf.trace)
       this.logger.debug(data)
     
-    const options = {
-      hostname: 'lablz.com',
-      port: 443,
-      path: this.conf.path,
-      method: 'POST',
-      rejectUnauthorized: false,
-      timeout: 6000,
-      headers: {
-        Authorization: this.conf.authorization,
-        'Content-Type': 'text/xml; charset=UTF-8',
-        'Content-Length': data.length,
-      }
-    }
-    
     let status: any
     try {
-      
       let xml: string
-
       if (this.conf.samples) {
-        xml = await this.getFileFromS3(samplesS3, this.conf.sampleReportsFolder + '/' + params[RFC] + '.xml', this.conf.sampleReportsBucket)   
+        xml = await this.getFileFromS3(samplesS3,
+                                       this.conf.sampleReportsFolder + '/' + params[RFC] + '.xml',
+                                       this.conf.sampleReportsBucket)   
       }
       else {
-        xml = await this.httpRequest(options, data)
+        xml = await this.httpRequest(data)
       }
-      let parser = new xml2js.Parser({ explicitArray: false, trim: true })
-      let jsonObj = parser.parseStringSync(xml)
-      if (this.conf.trace)
-        this.logger.debug(JSON.stringify(jsonObj, null, 2))
-      const rawData: any = jsonObj["soapenv:Envelope"]["soapenv:Body"]["ns2:consultaXMLResponse"].return.Personas.Persona
-      if (rawData.Error) {
-        if (rawData.Error.UR.PasswordOClaveErronea || 
-            rawData.Error.UR.ErrorSistemaBuroCredito)
-          status = {
-            status: 'error',
-            rawData,
-            message: 'username or password error'
-          }
-        else   
-          status = {
-            status: 'fail',
-            rawData,
-            message: 'no match found'
-          }
-      } else {
-        status = {
-          status: 'pass',
-          message: `match found`,
-          rawData
-        }
-      }
+      status = this.handleResponse(xml)
     } catch (err) {
       status = {
-        status: 'error',
-        message: `failed to connect ${err.message}`
+        status: 'pending',
+        message: err.message
       }
     }
 
-    await this.createCheck({ application, status, form, req })
+    const check = await this.createCheck({ application, status, form, req })
+    if (status.status === 'pending') {
+      const checkStub = buildResourceStub({ resource: check })
+      await this.createPendingWork({ request: data, message: status.message, pendingRef: checkStub })
+    }
   }
+
+  public repost = async (pendingWork: ITradleObject) => {
+    try {
+      const xml = await this.httpRequest(pendingWork.request)
+      const status = this.handleResponse(xml)
+      
+      const check = await this.bot.getResource(pendingWork.pendingRef);
+
+      check.resultDetails = status.message
+      check.rawData = sanitize(status.rawData).sanitized
+      if (status.status === 'error')
+        check.status = this.ERROR
+      else if (status.status === 'pass')
+        check.status = this.PASS
+      else
+        check.status = this.FAIL
+
+      await this.updateResource(check)
+      
+      await this.endPendingWork(pendingWork)
+
+    } catch (err) {
+      this.logger.error(`creditBuroCheck repost error: ${err.message}`)
+      // update pending work
+      await this.updatePendingWork(pendingWork, err.message)
+    }
+  }
+
   private createCheck = async ({ application, status, form, req }: IBuroCheck) => {
     // debugger
     let resource: any = {
@@ -250,7 +265,37 @@ export class BuroCheckAPI {
     this.logger.debug(`${PROVIDER} creating CreditReportIndividualCheck`)
     const checkWrapper = await this.applications.createCheck(resource, req)
     this.logger.debug(`${PROVIDER} created CreditReportIndividualCheck`)
-  }  
+    return checkWrapper.resource
+  }
+  
+  private handleResponse = (xml: string) => {
+    let parser = new xml2js.Parser({ explicitArray: false, trim: true })
+    let jsonObj = parser.parseStringSync(xml)
+    if (this.conf.trace)
+      this.logger.debug(JSON.stringify(jsonObj, null, 2))
+    const rawData: any = jsonObj["soapenv:Envelope"]["soapenv:Body"]["ns2:consultaXMLResponse"].return.Personas.Persona
+    if (rawData.Error) {
+      if (rawData.Error.UR.PasswordOClaveErronea || 
+          rawData.Error.UR.ErrorSistemaBuroCredito)
+        return {
+            status: 'error',
+            rawData,
+            message: 'username or password error'
+        }
+        else   
+          return {
+            status: 'fail',
+            rawData,
+            message: 'no match found'
+          }
+    } else {
+      return {
+        status: 'pass',
+        message: 'match found',
+        rawData
+      }
+    }
+  }
 
   private buildSubjectInfo = async (rawData: any): Promise<any> => {
     const name = rawData.Nombre
@@ -422,15 +467,20 @@ export class BuroCheckAPI {
     }
     return sum
   }
-
-  private saveResource = (resourceType: string, resource: any) => {
-    return this.bot
-      .draft({ type: resourceType })
-      .set(resource)
-      .signAndSave()
-  }
-
-  private httpRequest = (params: any, postData: string) => {
+  private httpRequest = (postData: string) => {
+    const params = {
+      hostname: 'lablz.com',
+      port: 443,
+      path: this.conf.path,
+      method: 'POST',
+      rejectUnauthorized: false,
+      timeout: 6000,
+      headers: {
+        Authorization: this.conf.authorization,
+        'Content-Type': 'text/xml; charset=UTF-8',
+        'Content-Length': postData.length,
+      }
+    }
     return new Promise<string>((resolve, reject) => {
       let req = https.request(params, (res) => {
         // reject on bad status
@@ -473,7 +523,54 @@ export class BuroCheckAPI {
     const data = await s3.getObject(params).promise()
     return data.Body.toString(UTF8)
   }
-  
+
+  private createPendingWork = async ({ request, message, pendingRef }:
+    { request: string, message: string, pendingRef: ITradleObject }) => {
+    const pendingWork: any = {
+      plugin: 'creditBuroCheck',
+      request,
+      done: false,
+      attempts: 1,
+      lastAttempt: Date.now(),
+      frequency: 5*60*1000,
+      message,
+      pendingRef
+    }
+    if (this.conf.trace)
+      this.logger.debug(`creditBuroCheck createPendingWork: ${JSON.stringify(pendingWork)}`)
+    const res = await this.saveResource(PENDING_WORK_TYPE, pendingWork)
+    return res.resource
+  }
+
+  private updatePendingWork = async (pendingWork: ITradleObject, message: string) => {
+    pendingWork.lastAttempt = Date.now();
+    pendingWork.attempts += 1
+    pendingWork.message = message
+    if (this.conf.trace)
+      this.logger.debug(`creditBuroCheck updatePendingWork: ${JSON.stringify(pendingWork)}`)
+    const res = await this.updateResource(pendingWork)
+    return res  
+  }
+
+  private endPendingWork = async (pendingWork: ITradleObject) => {
+    pendingWork.lastAttempt = Date.now();
+    pendingWork.attempts += 1
+    pendingWork.done = true
+    if (this.conf.trace)
+      this.logger.debug(`creditBuroCheck endPendingWork: ${JSON.stringify(pendingWork)}`)
+    const res = await this.updateResource(pendingWork)
+    return res  
+  }
+
+  private saveResource = (resourceType: string, resource: any) => {
+    return this.bot
+      .draft({ type: resourceType })
+      .set(resource)
+      .signAndSave()
+  }
+  private updateResource = (resource: any) => {
+    return this.bot.versionAndSave(resource)
+  }
 }  
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
@@ -656,7 +753,13 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         }
       }
       else formRequest.prefill.expensesInBureau = { value: creditSummary.openPayable, currency: 'MXN' }  
-    }
+    },
+    async replay(obj: ITradleObject) {
+      // expected instance of PendingWork
+      if (obj.plugin !== 'creditBuroCheck')
+        throw Error(`creditBuroCheck called replay with bad parameter: ${obj}`)
+      await buroCheckAPI.repost(obj)  
+   }
   } 
   return { plugin }
 }

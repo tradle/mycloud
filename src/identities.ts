@@ -179,7 +179,11 @@ export default class Identities implements IHasLogger {
     }
 
     try {
-      return await this.db.findOne(findOpts)
+      let pubKeys:any = await this.db.find(findOpts)
+      let pubKey = pubKeys &&  pubKeys.items && pubKeys.items.find(pk => !pk.importedFrom  &&  pk._time < time)
+      if (pubKey) return pubKey
+      throw new Errors.UnknownAuthor(`with pubKey ${pub}`)
+      // return await this.db.findOne(findOpts)
     } catch (err) {
       rethrowNotFoundAsUnknownAuthor(err, `with pubKey ${pub}`)
     }
@@ -609,13 +613,20 @@ const getPubKeyMappingQuery = ({ pub, time }): DBFindOpts => ({
     EQ: {
       [TYPE]: PUB_KEY,
       pub
-    },
-    NULL: {
-      importedFrom: true
-    },
-    LT: {
-      _time: time
     }
   },
   orderBy: ORDER_BY_RECENT_FIRST
+  // filter: {
+  //   EQ: {
+  //     [TYPE]: PUB_KEY,
+  //     pub
+  //   },
+  //   NULL: {
+  //     importedFrom: true
+  //   },
+  //   LT: {
+  //     _time: time
+  //   }
+  // },
+  // orderBy: ORDER_BY_RECENT_FIRST
 })
