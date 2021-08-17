@@ -732,6 +732,7 @@ export const loadComponentsAndPlugins = ({
       'regulatorRegistration',
       'pscCheck',
       'creditScoreReport',
+      'contractSigning',
       // needs to move
       'specialApproval',
       'riskScore',
