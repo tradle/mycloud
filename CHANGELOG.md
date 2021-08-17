@@ -2,20 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.122](https://github.com/tradle/mycloud/compare/v3.0.1-rc.121...v3.0.1-rc.122) (2021-08-11)
+## [3.0.1-rc.123](https://github.com/tradle/mycloud/compare/v3.0.1-rc.122...v3.0.1-rc.123) (2021-08-17)
 
 
 ### Bug Fixes
 
-* bad parsing ([0bb1ad0](https://github.com/tradle/mycloud/commit/0bb1ad0))
-* mycloud to mycloud communications ([2b4521b](https://github.com/tradle/mycloud/commit/2b4521b))
-* patching ShareRequest that is sent with obsolete property stub ([eff5635](https://github.com/tradle/mycloud/commit/eff5635))
+* one of the slow poke queries ([e94a859](https://github.com/tradle/mycloud/commit/e94a859))
+* ShareRequest could be handled before the resources that are listed in it ([968ff2b](https://github.com/tradle/mycloud/commit/968ff2b))
 
 
 ### Features
 
-* packages update - sending share request along with shared resources ([96d8433](https://github.com/tradle/mycloud/commit/96d8433))
-* show if the form was shared or shared from on data lineage ([ac77bd3](https://github.com/tradle/mycloud/commit/ac77bd3))
+* contract signing first draft ([e4387d7](https://github.com/tradle/mycloud/commit/e4387d7))
+* show share in data lineage project ([0465d27](https://github.com/tradle/mycloud/commit/0465d27))
 
 
 
