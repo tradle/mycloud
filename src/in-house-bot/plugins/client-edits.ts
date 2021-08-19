@@ -15,7 +15,7 @@ import size from 'lodash/size'
 import isEqual from 'lodash/isEqual'
 
 const { TYPE } = constants
-const { FORM } = constants.TYPES
+const { FORM, VERIFICATION } = constants.TYPES
 const PROVIDER = 'Tradle'
 
 const CLIENT_EDITS_CHECK = 'tradle.ClientEditsCheck'
@@ -81,25 +81,37 @@ class ClientEditsAPI {
     if (!status) status = 'pass'
     return await this.createCheck({ req, rawData, status })
   }
-  public async handleShareFromRequest(resource) {
+  public async handleShareRequest({resource, shareFrom}:{resource:any, shareFrom?:boolean}) {
     debugger
-    let anotherOrgId = await this.bot.identities.byPermalink(resource._org)
-    if (!anotherOrgId) {
-      debugger
-      this.logger.debug(`No identity found for ${resource._org}`)
+    let propName, author
+    if (shareFrom) {
+      propName = 'from' 
+      author = resource._org
+      // author = await this.bot.identities.byPermalink(resource._org)
+      // if (!author) {
+      //   debugger
+      //   this.logger.debug(`No identity found for ${resource._org}`)
+      // }
+      // author = author._link
     }
-    anotherOrgId = anotherOrgId._link
-    let resources = await this.getSharedResources(resource, anotherOrgId)
+    else {
+      propName = 'with'
+      author = resource._author
+    }
+    let resources = await this.getSharedResources(resource, author)
+    let sharedId = shareFrom ? author : resource.with[0]._permalink
     let modifications = []
     for (let i=0; i<resources.length; i++) {
+      let isVerification = resources[i][TYPE] === VERIFICATION
       modifications.push(this.bot
         .draft({ type: MODIFICATION })
         .set({
             dateModified: Date.now(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
-            form: resources[i],
+            form: isVerification ? resources[i].document : resources[i],
             modifications: {
               shared: {
-                from: anotherOrgId
+                [propName]: sharedId,
+                isVerification
               }
             }
         })
@@ -110,46 +122,19 @@ class ClientEditsAPI {
       await Promise.all(modifications)
     } catch (err) {
       debugger
-      this.logger.debug(`Error sharing resources from ${anotherOrgId}`)
+      this.logger.debug(`Error sharing resources ${propName} ${sharedId}`)
     }
   }
-  public async handleShareWithRequest(resource) {
-    debugger
-    // let sharedWith
-    // try {
-    //   sharedWith = await Promise.all(resource.with.map(r => this.bot.identities.byPermalink(r._permalink)))
-    // } catch (err) {
-    //   debugger
-    // }
-    let resources = await this.getSharedResources(resource, resource._author)
-    let modifications = []
-    let sharedWithHash = resource.with[0]._permalink
-    for (let i=0; i<resources.length; i++) {
-      modifications.push(this.bot
-        .draft({ type: MODIFICATION })
-        .set({
-            dateModified: Date.now(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
-            form: resources[i],
-            modifications: {
-              shared: {
-                with: sharedWithHash
-              }
-            }
-        })
-        .signAndSave()
-      )
-    }
-    try {
-      await Promise.all(modifications)
-    } catch (err) {
-      debugger
-      this.logger.debug(`Error sharing resources with ${sharedWithHash}`)
-    }
-  }
+
   private async getSharedResources(resource, author) {
     debugger
-    let resources = resource.formStubs || resource.verificationStubs
-    if (resources) return resources
+    let { formStubs, verificationStubs} = resource
+    if (formStubs) return formStubs 
+    
+    if (resource.verificationStubs) {
+      let verifications = await Promise.all(verificationStubs.map(v => this.bot.getResource(v)))
+      return verifications
+    }
 
     let msgs
     try {
@@ -456,9 +441,14 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
         let myIdentity = await bot.getMyIdentity()
         let { with:sharedWith } = payload
         if (sharedWith.find(w => w._link === myIdentity._link))
-          await clientEdits.handleShareFromRequest(payload)
+          await clientEdits.handleShareRequest({resource: payload, shareFrom: true})
         else
-          await clientEdits.handleShareWithRequest(payload)
+          await clientEdits.handleShareRequest({resource: payload})
+
+        // if (sharedWith.find(w => w._link === myIdentity._link))
+        //   await clientEdits.handleShareFromRequest(payload)
+        // else
+        //   await clientEdits.handleShareWithRequest(payload)
       }
       if (!application)
         return
