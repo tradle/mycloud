@@ -22,6 +22,7 @@ import { ImportMaxmindDb } from './importMaxmindDb'
 import { ImportBasicCompanyData } from './importBasicCompanyData'
 import { RoarFeedback } from './roarFeedback'
 import { Chaser } from './chaser'
+import { ContractChaser } from './contractChaser'
 import { PendingChecksChaser } from './pendingChecksChaser'
 import { PendingWorksHandler } from './pendingWorksHandler'
 import { ImportCzechData } from './importCzech'
@@ -40,6 +41,12 @@ type Executor = (opts: ExecInput) => Promise<any | void>
 export const chaser: Executor = async ({ job, components }) => {
   const { bot } = components
   let chaser = new Chaser(bot)
+  await chaser.chase()
+}
+
+export const contractChaser: Executor = async ({ job, components }) => {
+  const { bot, applications } = components
+  let chaser = new ContractChaser(bot, applications)
   await chaser.chase()
 }
 
