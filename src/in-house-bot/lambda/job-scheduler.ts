@@ -117,6 +117,11 @@ const COMMON_JOBS: Job[] = [
     function: DEFAULT_JOB_RUNNER_FUNCTION,
     period: 30 * MINUTE,
   },
+  {
+    name: 'contractChaser',
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
+    period: 24 * 60 * MINUTE,
+  },
   // {
   //   name: 'documentChecker',
   //   function: DEFAULT_JOB_RUNNER_FUNCTION,
