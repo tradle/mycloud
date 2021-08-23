@@ -3,7 +3,7 @@ import _ from 'lodash'
 import constants from '@tradle/constants'
 import { title as getDisplayName } from '@tradle/build-resource'
 
-import { Bot, Logger, CreatePlugin, IPluginLifecycleMethods, ValidatePluginConf } from '../types'
+import { Bot, Logger, CreatePlugin, IPluginLifecycleMethods, ValidatePluginConf, IPBReq } from '../types'
 import { getLatestForms } from '../utils'
 import { isPrimitiveType } from '../../utils'
 
@@ -98,9 +98,9 @@ class ContractSigningAPI {
     case CURRENT_DATE:
       let dateStr = new Intl.DateTimeFormat(locale).format(Date.now())
       return contractText.replace(placeholder, dateStr)
-    case CONTRACT_NUMBER:      
+    case CONTRACT_NUMBER:
       return contractText.replace(placeholder, `${org.domain.split('.')[0].toUpperCase()}-${Date.now()}`)
-    case PROVIDER_COMPANY_NAME: 
+    case PROVIDER_COMPANY_NAME:
       return contractText.replace(placeholder, `${org.name}`)
     default:
       return contractText
@@ -112,53 +112,49 @@ export const createPlugin: CreatePlugin<void> = (components , { logger, conf }) 
   const contactSigning = new ContractSigningAPI({ bot, logger })
 
   const plugin: IPluginLifecycleMethods = {
+    // async onMessage(req:IPBReq) {
+    //   const { application, payload } = req
+    //   if (!application) return
+    //   if (payload[TYPE] !== CONTRACT_SIGNING) return
+    //   const productConf = conf[application.requestFor]
+    //   let firstPaymentDate = payload.firstScheduledPaymentDue
+    // },
     async willRequestForm({ application, formRequest }) {
       if (formRequest.form !== CONTRACT_SIGNING) return
-      
-      const productConf = conf[application.requestFor]
-      if (!productConf) return  
-      
-      const { contractMap, daysMap } = productConf.propertyMap
 
-      if (!contractMap) return 
-      
+      const productConf = conf[application.requestFor]
+      if (!productConf) return
+
+      const { contractMap, daysMap, termMap } = productConf.propertyMap
+
+      if (!contractMap) return
+
       const stubs = getLatestForms(application)
+
       if (!stubs || !stubs.length) return
 
-      // const { models } = bot
-      // let modelToProp = {}
-      // let formsWithContract = stubs.filter(stub => {
-      //   let m = models[stub.type]
-      //   if (!m) return false
-      //   let { properties } = m
-      //   for (let p in properties) {
-      //     if (properties[p].ref === CONTRACT) {
-      //       modelToProp[m.id] = p
-      //       return true
-      //     }
-      //   }
+      // if (stubs.find(stub => stub.type === CONTRACT_SIGNING)) return
 
-      //   return false
-      // })
-      // if (!formsWithContract.length) return
+      let stubsForContract = stubs.filter(stub =>
+        contractMap.form === stub.type ||
+        daysMap.form === stub.type     ||
+        termMap.form === stub.type)
 
-      let stubsForContract = stubs.filter(stub => contractMap.form === stub.type || daysMap.form === stub.type)
       if (!stubsForContract.length) return
 
       let formWithContractStub = stubsForContract.find(stub => contractMap.form === stub.type)
       let daysStub = stubsForContract.find(stub => daysMap.form === stub.type)
-      if (!formWithContractStub || !daysStub) return
+      let termStub = stubsForContract.find(stub => termMap.form === stub.type)
 
-      let contractForms
+      if (!formWithContractStub || !daysStub || !termStub) return
+
+      let formWithContract, daysResource, termResource
       try {
-        contractForms = await Promise.all(stubsForContract.map(stub => bot.getResource(stub)))
+        ([formWithContract, daysResource, termResource] = await Promise.all([formWithContractStub, daysStub, termStub].map(stub => bot.getResource(stub))))
       } catch (err) {
         debugger
         return
       }
-      let formWithContract = contractForms.find(f => contractMap.form === f[TYPE])
-      let daysResource = contractForms.find(f => daysMap.form === f[TYPE])
-
       let contract = formWithContract[contractMap.property]
       if (!contract) return
       contract = await bot.getResource(contract)
@@ -172,10 +168,22 @@ export const createPlugin: CreatePlugin<void> = (components , { logger, conf }) 
           [TYPE]: CONTRACT_SIGNING,
         }
       }
+      let term = termResource[termMap.property]
+      if (typeof term !== 'number') {
+        term = typeof term === 'object' ? term.title : term.toString()
+        let t = ''
+        for (let i=0; i<term.length; i++) {
+          let c = term[i]
+          if (c >= '0' && c <= '9')
+            t += c
+        }
+        term = t.length ? parseInt(t) : 0
+      }
       _.extend(formRequest.prefill, {
         contractText,
         title: contract.title,
-        [daysMap.property]: daysResource[daysMap.property]
+        daysTillFirstScheduledPayment: daysResource[daysMap.property] || 10,
+        term
       })
     }
   }
@@ -200,9 +208,9 @@ export const validateConf: ValidatePluginConf = async ({
     if (!models[p])  throw new Error(`there is no model ${p}`)
     let { propertyMap } = pluginConf[p]
     if (!propertyMap) throw new Error(`there is no 'propertyMap' for ${p} in configuration`)
-    const { contractMap, daysMap } = propertyMap
-    if (!contractMap || !daysMap) throw new Error(`there is no 'contractMap' and/or 'daysMap' in configuration`)
-    let maps = [contractMap, daysMap]
+    const { contractMap, daysMap, termMap } = propertyMap
+    if (!contractMap || !daysMap || !termMap) throw new Error(`there is no 'contractMap' and/or 'daysMap' and/or 'termMap' in configuration`)
+    let maps = [contractMap, daysMap, termMap]
     for (let i=0; i<maps.length; i++) {
       let { form, property } = maps[i]
       if (!models[form]) throw new Error(`there is no model ${form} configuration`)
