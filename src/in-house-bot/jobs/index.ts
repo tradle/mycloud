@@ -45,8 +45,8 @@ export const chaser: Executor = async ({ job, components }) => {
 }
 
 export const contractChaser: Executor = async ({ job, components }) => {
-  const { bot, applications } = components
-  let chaser = new ContractChaser(bot, applications)
+  const { bot, applications, conf } = components
+  let chaser = new ContractChaser(bot, applications, conf.bot.products.plugins.contractSigning)
   await chaser.chase()
 }
 
@@ -163,7 +163,7 @@ export const roarFeedback: Executor = async ({ job, components }) => {
     components.bot.logger.error('job roarFeedback failed', err)
   }
 }
- 
+
 export const pendingWorks: Executor = async ({ job, components }) => {
   let handler = new PendingWorksHandler(components.bot, components.applications, components.conf.bot)
   try {
@@ -171,7 +171,7 @@ export const pendingWorks: Executor = async ({ job, components }) => {
   } catch (err) {
     components.bot.logger.error('job pendingWorksHandler failed', err)
   }
-}  
+}
 
 export const warmup: Executor = async ({ job, components }) => {
   await components.bot.lambdaWarmup.warmUp({
