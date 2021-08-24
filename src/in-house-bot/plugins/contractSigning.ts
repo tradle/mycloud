@@ -2,16 +2,20 @@
 import _ from 'lodash'
 import constants from '@tradle/constants'
 import { title as getDisplayName } from '@tradle/build-resource'
+import validateResource from '@tradle/validate-resource'
+// @ts-ignore
+const { sanitize } = validateResource.utils
 
 import { Bot, Logger, CreatePlugin, IPluginLifecycleMethods, ValidatePluginConf, IPBReq } from '../types'
 import { getLatestForms } from '../utils'
 import { isPrimitiveType } from '../../utils'
+import { normalizeEnumForPrefill, getAllToExecute } from '../setProps-utils'
 
 const { TYPE, TYPES } = constants
 const { MONEY } = TYPES
 
 const CONTRACT_SIGNING = 'tradle.ContractSigning'
-const CONTRACT = 'tradle.Contract'
+const FORM_REQUEST = 'tradle.FormRequest'
 
 const CURRENT_DATE = '$currentDate'
 const CONTRACT_NUMBER = '$contractNumber'
@@ -108,17 +112,77 @@ class ContractSigningAPI {
   }
 }
 export const createPlugin: CreatePlugin<void> = (components , { logger, conf }) => {
-  const {conf: orgConf, bot} = components
+  const {conf: orgConf, bot, applications} = components
   const contactSigning = new ContractSigningAPI({ bot, logger })
 
   const plugin: IPluginLifecycleMethods = {
-    // async onMessage(req:IPBReq) {
-    //   const { application, payload } = req
-    //   if (!application) return
-    //   if (payload[TYPE] !== CONTRACT_SIGNING) return
-    //   const productConf = conf[application.requestFor]
-    //   let firstPaymentDate = payload.firstScheduledPaymentDue
-    // },
+
+    async onmessage(req:IPBReq) {
+      const { application, user, payload } = req
+      if (!application) return
+      if (payload[TYPE] !== CONTRACT_SIGNING) return
+      // debugger
+
+      const { requestFor } = application
+      let productConf = conf[requestFor]
+      if (!productConf) return
+
+      const { form, settings, moreSettings, additionalFormsFromProps } = productConf
+      if (!form  ||  !settings || !settings.length) return
+      let allSettings = _.cloneDeep(settings)
+      if (moreSettings.totalInitialPayment) 
+        allSettings.push(moreSettings.totalInitialPayment)
+      
+      let model = bot.models[form]
+      if (!model) return
+
+      let { allFormulas = [], forms } = await getAllToExecute({
+        application,
+        bot,
+        settings: allSettings,
+        model,
+        logger,
+        additionalFormsFromProps
+      })
+
+      let prefill = {
+        [TYPE]: form
+      }
+      let allSet = true
+      allFormulas.forEach(async val => {
+        let [propName, formula] = val
+        try {
+          let value = new Function('forms', 'application', `return ${formula}`)(forms, application)
+          prefill[propName] = value
+        } catch (err) {
+          allSet = false
+          debugger
+        }
+      })
+
+      // if (!allSet) return
+
+      prefill = sanitize(prefill).sanitized
+      if (!_.size(prefill)) return
+
+      normalizeEnumForPrefill({ form: prefill, model: bot.models[form], models: bot.models })
+
+      let item = {
+        [TYPE]: FORM_REQUEST,
+        form,
+        product: requestFor,
+        message: 'Please review and confirm receiving the invoice',
+        prefill
+      }
+      await applications.requestItem({
+        item,
+        application,
+        req,
+        user,
+        message: 'Please review and confirm'
+      })
+    },
+
     async willRequestForm({ application, formRequest }) {
       if (formRequest.form !== CONTRACT_SIGNING) return
 
