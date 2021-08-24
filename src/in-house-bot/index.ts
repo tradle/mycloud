@@ -749,7 +749,7 @@ export const loadComponentsAndPlugins = ({
       'leasingQuotes',
       'giinCheck',
       'vatCheck',
-      'invoicing'
+      // 'invoicing'
     ].forEach((name) => attachPlugin({ name }))
       ;[
         'hand-sig',
