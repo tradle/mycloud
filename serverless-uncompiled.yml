@@ -26,7 +26,7 @@ plugins:
   # - serverless-s3-local
   - serverless-iot-local
   - init-local
-  - serverless-offline
+  - "@tradle/serverless-offline"
   - pre-deploy
   # - serverless-offline-scheduler
 
@@ -242,7 +242,7 @@ custom:
       - cache
     allowCredentials: false
 
-  serverless-offline: ${{self:custom.vars.serverless-offline, self:custom.defaults.serverless-offline}}
+  "@tradle/serverless-offline": ${{self:custom.vars.serverless-offline, self:custom.defaults.serverless-offline}}
   serverless-iot-local: ${{self:custom.vars.serverless-iot-local, self:custom.defaults.serverless-iot-local}}
   # reinitializeOnConfChanged: ${{self:custom.vars.reinitializeOnConfChanged, self:custom.defaults.reinitializeOnConfChanged}}
 

@@ -15,6 +15,7 @@ import { Env } from '../env'
 import Errors from '../errors'
 import { loudAsync, wait } from '../utils'
 import { recreateDB } from './utils'
+import { getLocalIp } from '@tradle/aws-common-utils'
 const aliceKeys = require('./fixtures/alice/keys')
 const bobKeys = require('./fixtures/bob/keys')
 const aliceIdentity = require('./fixtures/alice/identity')
@@ -252,7 +253,7 @@ test(
 
     const endpoint = {
       apiKey: 'myApiKey',
-      apiUrl: 'http://localhost:12345'
+      apiUrl: `http://${getLocalIp()}:12345`
     }
 
     // @ts-ignore

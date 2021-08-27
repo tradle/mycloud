@@ -9,7 +9,7 @@ import _fs from 'fs'
 import readline from 'readline'
 import YAML from 'js-yaml'
 import yn from 'yn'
-import getLocalIP from 'localip'
+import { getLocalIp } from '@tradle/aws-common-utils'
 import isNative from 'is-native-module'
 import AWS from 'aws-sdk'
 import execa from 'execa'
@@ -419,7 +419,7 @@ export const getOfflinePort = (env?: Env) => {
   }
 
   const yml = require('./serverless-yml')
-  return yml.custom['serverless-offline'].port
+  return yml.custom['@tradle/serverless-offline'].port
 }
 
 export const getOfflineHost = (env?: Env) => {
@@ -428,7 +428,7 @@ export const getOfflineHost = (env?: Env) => {
   }
 
   const port = getOfflinePort(env)
-  return `http://${getLocalIP()}:${port}`
+  return `http://${getLocalIp()}:${port}`
 }
 
 export const confirm = async (question?: string) => {

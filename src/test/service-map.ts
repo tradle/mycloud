@@ -1,6 +1,6 @@
 import transform from 'lodash/transform'
 import format from 'string-format'
-import getLocalIP from 'localip'
+import { getLocalIp } from '@tradle/aws-common-utils'
 import { getStackName, getLocalResourceName } from '../cli/utils'
 import serverlessYml from '../cli/serverless-yml'
 import { parseEnvVarName } from '../service-map'
@@ -39,7 +39,7 @@ Object.keys(environment).forEach(key => {
   }
 
   if (key === 'IOT_ENDPOINT') {
-    map[key] = `${getLocalIP()}:${getVar('serverless-iot-local.httpPort')}`
+    map[key] = `${getLocalIp()}:${getVar('serverless-iot-local.httpPort')}`
     return
   }
 
