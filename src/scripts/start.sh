@@ -2,9 +2,7 @@
 
 set -euo pipefail
 
-echo "${TRADLE_LOCAL_IP}"
-
-if [[ -z "${TRADLE_LOCAL_IP}" ]]; then
+if [[ -z "${TRADLE_LOCAL_IP:-}" ]]; then
   docker ps >/dev/null 2>&1 || { echo 'please start Docker first'; exit 1; }
 fi
 
