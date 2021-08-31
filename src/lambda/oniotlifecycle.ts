@@ -49,7 +49,8 @@ export const onSubscribed = (lambda, opts) => {
   const { logger, bot } = lambda
   const { userSim } = bot
   return async (ctx, next) => {
-    const { clientId, topics } = ctx.event.data
+    const { clientId, topics: base } = ctx.event.data
+    const topics = base.map(topic => topic.topic)
     try {
       await userSim.onSubscribed({ clientId, topics })
       logger.debug('client subscribed to MQTT topics', { clientId, topics })
