@@ -237,7 +237,7 @@
     "koa-router": "^7.3.0",
     "lambda-ghostscript": "git+https://github.com/sina-masnadi/lambda-ghostscript.git",
     "lexicographic-semver": "^1.0.1",
-    "lodash": "~4.17.11",
+    "lodash": "^4.17.21",
     "lru-cache": "^4.1.1",
     "maxmind": "^4.0.0",
     "mem": "^3.0.1",
@@ -260,7 +260,7 @@
     "remap-keys": "^1.0.4",
     "segfault-handler": "^1.3.0",
     "serverless-http": "github:mvayngrib/serverless-http",
-    "sharp": "^0.25.4",
+    "sharp": "^0.29.0",
     "source-map-support": "^0.4.18",
     "string-format": "^0.5.0",
     "superagent": "^3.5.2",
@@ -270,6 +270,7 @@
     "typeforce": "^1.11.1",
     "unzipper": "^0.10.5",
     "uuid": "^3.1.0",
+    "x-ray-crawler": "^2.0.5",
     "xml2js": "^0.4.19",
     "xml2js-parser": "^1.1.1",
     "xtend": "^4.0.1",
@@ -277,7 +278,7 @@
     "yn": "^2.0.0"
   },
   "optionalDependencies": {
-    "@tradle/centrix": "github:tradle/centrix"
+    "@tradle/centrix": "^1.0.0"
   },
   "lint-staged": {
     "README.md": [
