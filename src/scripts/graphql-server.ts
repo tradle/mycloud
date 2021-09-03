@@ -7,7 +7,7 @@ import loadDockerEnv from 'node-env-file'
 loadDockerEnv(path.resolve(__dirname, '../../docker/.env'))
 
 import { loadCredentials, loadRemoteEnv } from '../cli/utils'
-import dynogels from 'dynogels'
+import dynogels from '@tradle/dynogels'
 // import { createBot } from '../in-house-bot/bot'
 // import sampleQueries from '../in-house-bot/sample-queries'
 

@@ -9,7 +9,7 @@ import _ from 'lodash'
 //   unmarshalItem as unmarshallDBItem
 // } from 'dynamodb-marshaler'
 
-import dynogels from 'dynogels'
+import dynogels from '@tradle/dynogels'
 import { utils as vrUtils } from '@tradle/validate-resource'
 import { Level } from './logger'
 import { NotFound } from './errors'
