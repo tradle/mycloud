@@ -63,6 +63,14 @@ package:
     - node_modules/canvas/**
     - "node_modules/@tradle/gen-samples/**"
     - node_modules/lambda-ghostscript/**/doc/**
+    - node_modules/lambda-ghostscript/**/examples/**
+    - node_modules/lambda-ghostscript/**/man/**
+    - node_modules/moment/min/**
+    - node_modules/moment/src/**
+    - node_modules/caniuse-lite/data/features
+    - node_modules/caniuse-lite/data/regions
+    - node_modules/aes-js/~/**
+    - node_modules/node-gs/tests/**
     - package-lock.json
     - clienttest/
     - .localstack/**
