@@ -2,7 +2,7 @@
 import DataURI from 'datauri'
 import fetch from 'node-fetch'
 // import request from 'superagent'
-import { fetchFavicons } from '@meltwater/fetch-favicon'
+import { fetchFavicon } from '@tradle/fetch-favicon'
 import { domainToUrl, runWithTimeout } from '../utils'
 
 export type Favicon = {
@@ -28,9 +28,30 @@ export const getLogo = async (opts: GetLogoOpts): Promise<string | void> => {
   })
 }
 
+const predicates = [
+  (f, s) => f.name === 'apple-touch-icon-precomposed' && f.size >= s,
+  (f, s) => f.name === 'apple-touch-icon' && f.size >= s,
+  (f, s) => f.name === 'shortcut icon' && f.size >= s,
+  (f, s) => f.name === 'twitter:image' && f.size >= s,
+  (f, s) => f.name === 'icon' && f.size >= s,
+  (f, s) => f.name === 'og:image' && f.size >= s,
+  (f, s) => f.name === 'msapplication-TileImage' && f.size >= s,
+
+  // no size
+  (f, s) => f.name === 'apple-touch-icon-precomposed',
+  (f, s) => f.name === 'apple-touch-icon',
+  (f, s) => f.name === 'shortcut icon',
+  (f, s) => f.name === 'twitter:image',
+  (f, s) => f.name === 'icon',
+  (f, s) => f.name === 'og:image',
+  (f, s) => f.name === 'msapplication-TileImage',
+  (f, s) => f.name === 'favicon.ico'
+]
+
 export const getFaviconUrl = async (siteUrl: string):Promise<string> => {
-  const icons = await fetchFavicons(domainToUrl(siteUrl))
-  const icon = chooseIcon(icons)
+  const icon = await fetchFavicon(domainToUrl(siteUrl), 120, {
+    predicates
+  })
   return getAbsoluteURL(siteUrl, icon)
 }
 
@@ -48,6 +69,8 @@ export const downloadImage = async (url: string) => {
     const text = await res.text()
     throw new Error(text)
   }
+
+  console.log(res)
 
   const arrayBuffer = await res.arrayBuffer()
   const data = new Buffer(arrayBuffer)
@@ -112,46 +135,4 @@ export const getDataURI = async (image, ext) => {
   const uri = new DataURI()
   uri.format(`.${ext}`, image)
   return uri.content
-}
-
-// export const getLogo = async ({ logo, domain }) => {
-//   if (!logo) {
-//     logo = await getFaviconUrl(domain)
-//   }
-
-//   if (!/^data:image/.test(logo)) {
-//     const { data, mimeType } = await downloadImage(logo)
-//     const ext = mimeType ? mimeType.split('/')[1] : logo.slice(logo.lastIndexOf('.'))
-//     logo = await getDataURI(data, ext)
-//   }
-
-//   return logo
-// }
-
-// copied and adapted from @meltwater/fetch-favicon/source/markActiveFavicon.js
-const predicates = [
-  (f, s) => f.name === 'apple-touch-icon-precomposed' && f.size >= s,
-  (f, s) => f.name === 'apple-touch-icon' && f.size >= s,
-  (f, s) => f.name === 'shortcut icon' && f.size >= s,
-  (f, s) => f.name === 'twitter:image' && f.size >= s,
-  (f, s) => f.name === 'icon' && f.size >= s,
-  (f, s) => f.name === 'og:image' && f.size >= s,
-  (f, s) => f.name === 'msapplication-TileImage' && f.size >= s,
-
-  // no size
-  (f, s) => f.name === 'apple-touch-icon-precomposed',
-  (f, s) => f.name === 'apple-touch-icon',
-  (f, s) => f.name === 'shortcut icon',
-  (f, s) => f.name === 'twitter:image',
-  (f, s) => f.name === 'icon',
-  (f, s) => f.name === 'og:image',
-  (f, s) => f.name === 'msapplication-TileImage',
-  (f, s) => f.name === 'favicon.ico'
-]
-
-const chooseIcon = (favicons, minSize?) => {
-  for (let i = 0; i < predicates.length; i++) {
-    let result = favicons.find(favicon => predicates[i](favicon, minSize))
-    if (result) return result.href
-  }
 }
