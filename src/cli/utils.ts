@@ -202,14 +202,17 @@ const interpolateTemplate = (opts: { arg?: string; sync?: boolean } = {}) => {
 const alphaNumRegex = /^[a-zA-Z][a-zA-Z0-9]+$/
 const stackNameRegex = /^tdl-[a-zA-Z0-9-]+-ltd$/
 
-const compileTemplate = async path => {
-  const file = await fs.readFile(path, { encoding: 'utf8' })
+const compileTemplate = async ({ input, outdir }) => {
+  debug('Loading %s', input)
+  const file = await fs.readFile(input, { encoding: 'utf8' })
+  debug('Reading yml')
   const yml = YAML.safeLoad(file)
-  const exists = fs.existsSync('./serverless.yml')
-  if (!exists) {
-    await fs.writeFile('./serverless.yml', file, { encoding: 'utf8' })
-  }
+  compile.addDevDependenciesToIgnore(yml)
+  const output = path.join(outdir, 'serverless.yml')
+  debug('Storing %s at %s to make interpolate data', input, output)
+  await fs.writeFile(output, YAML.dump(yml))
 
+  debug('Interpolate template from serverless.yml')
   const interpolatedStr = await interpolateTemplate()
   const interpolated = YAML.safeLoad(interpolatedStr)
   if (!stackNameRegex.test(interpolated.service)) {
@@ -228,6 +231,7 @@ const compileTemplate = async path => {
   // compile.addBucketTables({ yml, prefix: interpolated.custom.prefix })
   // setBucketEncryption({ target: yml, interpolated })
   compile.stripDevFunctions(yml)
+  compile.addDevDependenciesToIgnore(yml)
   // addCustomResourceDependencies(yml, interpolated)
 
   const IS_LOCAL = process.env.IS_LOCAL
@@ -238,7 +242,12 @@ const compileTemplate = async path => {
   // compile.addResourcesToEnvironment(yml)
   // compile.addResourcesToOutputs(yml)
   compile.addLogProcessorEvents(yml)
-  return YAML.dump(yml)
+  debug('Storing process data in %s', output)
+  await fs.writeFile(output, YAML.dump(yml))
+
+  const compiled = path.join(outdir, 'serverless-compiled.yml')
+  debug('Keeping copy of %s in %s', output, compiled)
+  await fs.writeFile(compiled, YAML.dump(yml))
 }
 
 function loadCredentials() {
