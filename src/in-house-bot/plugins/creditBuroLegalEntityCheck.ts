@@ -92,7 +92,7 @@ const TEMPLATE = `<consulta>
   <encabezado>
     <usuario>{{username}}</usuario>
     <contrasena>{{password}}</contrasena>
-    <tipoReporte>RCO</tipoReporte>
+    <tipoReporte>INFORME_BURO</tipoReporte>
     <formatoReporte>XML</formatoReporte>
     <variablesCnvb>N</variablesCnvb>
     <generarConsolidado>N</generarConsolidado>
