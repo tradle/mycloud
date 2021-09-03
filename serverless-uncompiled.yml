@@ -63,7 +63,7 @@ package:
     - node_modules/canvas/**
     - "node_modules/@tradle/gen-samples/**"
     - node_modules/lambda-ghostscript/**/doc/**
-    - npm-shrinkwrap.json
+    - package-lock.json
     - clienttest/
     - .localstack/**
 
