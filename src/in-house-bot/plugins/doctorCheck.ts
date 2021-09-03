@@ -15,12 +15,12 @@ import {
   IPBReq,
   Logger
 } from '../types'
+import { buildResourceStub } from '@tradle/build-resource'
 
 // @ts-ignore
 import {
   getStatusMessageForCheck,
-  doesCheckNeedToBeCreated,
-  getLatestCheck,
+  doesCheckNeedToBeCreated
 } from '../utils'
 
 import validateResource from '@tradle/validate-resource'
@@ -41,6 +41,10 @@ const PROVIDER = 'CONACEM'
 const DOCUMENT_CHECKER_CHECK = 'tradle.CredentialsCheck'
 const ASPECTS = 'Person Credentials Verification'
 
+const PENDING_WORK_TYPE = 'tradle.PendingWork'
+
+const PRODUCTION_URL = 'https://conacem.mx/conacem/controlcertificados/modulos/cosulta_web/app/listado.php'
+const TEST_URL = 'https://conacem.xxx/'
 
 interface ICredencialsCheck {
   application: IPBApp
@@ -56,7 +60,6 @@ export class DoctorCheckAPI {
   private applications: Applications
   private logger: Logger
 
-
   constructor({ bot, conf, applications, logger }) {
     this.bot = bot
     this.conf = conf
@@ -64,7 +67,13 @@ export class DoctorCheckAPI {
     this.logger = logger
   }
 
-  public async lookup(form: any, application: IPBApp, req: IPBReq) {
+  
+  public async post(form: any)
+  {
+    return await this.lookup(form, this.conf.test)
+  }
+
+  public async lookup(form: any, test: boolean) {
     this.logger.debug('doctorCheck lookup() called')
     const certificate = form[CERTIFICATE]
 
@@ -84,7 +93,8 @@ export class DoctorCheckAPI {
     
     let res
     try {
-      res = await fetch('https://conacem.mx/conacem/controlcertificados/modulos/cosulta_web/app/listado.php', {
+      const url = test? TEST_URL : PRODUCTION_URL
+      res = await fetch(url, {
         method: 'POST',
         body: formData,
         headers: {
@@ -94,7 +104,7 @@ export class DoctorCheckAPI {
       })
     } catch (err) {
       this.logger.error(err)
-      return {status: 'error', message: err.message}
+      return {status: 'pending', message: err.message}
     }
 
     const result = await res.json()
@@ -160,11 +170,71 @@ export class DoctorCheckAPI {
 
   private isValid(validity: string) {
      const parts = validity.split(' ')
-     if (parts.length != 11)
+     if (parts.length !== 11)
        return false
      const till = parts[10] + '-' + MONTHS[parts[8]] + '-' + parts[6]
      if (Date.now() > Date.parse(till)) return false
      return true
+  }
+
+  public repost = async (pendingWork: ITradleObject) => {
+    const payload = JSON.parse(pendingWork.request)
+    let status: any = await this.lookup(payload, false)
+    if (status.status === 'pending') {
+      await this.updatePendingWork(pendingWork, status.message)
+    } else {
+      await this.endPendingWork(pendingWork)
+    }
+    return status
+  }  
+
+  public createPendingWork = async ({ request, message, application }:
+    { request: string, message: string, application: ITradleObject }) => {
+    const pendingWork: any = {
+      plugin: 'doctorCheck',
+      request,
+      done: false,
+      attempts: 1,
+      lastAttempt: Date.now(),
+      frequency: 5*60*1000,
+      message,
+      application
+    }
+   
+    if (this.conf.trace)
+      this.logger.debug(`doctorCheck createPendingWork: ${JSON.stringify(pendingWork)}`)
+    const res = await this.saveResource(PENDING_WORK_TYPE, pendingWork)
+    return res.resource
+  }
+
+  private updatePendingWork = async (pendingWork: ITradleObject, message: string) => {
+    pendingWork.lastAttempt = Date.now();
+    pendingWork.attempts += 1
+    pendingWork.message = message
+    if (this.conf.trace)
+      this.logger.debug(`doctorCheck updatePendingWork: ${JSON.stringify(pendingWork)}`)
+    const res = await this.updateResource(pendingWork)
+    return res  
+  }
+
+  private endPendingWork = async (pendingWork: ITradleObject) => {
+    pendingWork.lastAttempt = Date.now();
+    pendingWork.attempts += 1
+    pendingWork.done = true
+    if (this.conf.trace)
+      this.logger.debug(`doctorCheck endPendingWork: ${JSON.stringify(pendingWork)}`)
+    const res = await this.updateResource(pendingWork)
+    return res  
+  }
+
+  public saveResource = (resourceType: string, resource: any) => {
+    return this.bot
+      .draft({ type: resourceType })
+      .set(resource)
+      .signAndSave()
+  }
+  public updateResource = (resource: any) => {
+    return this.bot.versionAndSave(resource)
   }
 }
 
@@ -194,103 +264,61 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!toCheck) {
         return
       }
-      logger.debug('doctorCheck lookup validateForm')
-      let status: any = await doctorCheckAPI.lookup(payload, application, req)
+      logger.debug('doctorCheck post validateForm')
+      let status: any = await doctorCheckAPI.post(payload)
 
-      if (status.status !== 'repeat')
-        await doctorCheckAPI.createCheck({ application, status, form: payload, req })
-
-      if (status.status === 'repeat') {
-        const payloadClone = _.cloneDeep(payload)
-        payloadClone[PERMALINK] = payloadClone._permalink
-        payloadClone[LINK] = payloadClone._link
-
-        // debugger
-        let formError: any = {
-          req,
-          user,
-          application
-        }
-
-        formError.details = {
-          prefill: payloadClone,
-          message: status.message
-        }
-
-        try {
-          await applications.requestEdit(formError)
-          return {
-            message: 'no request edit',
-            exit: true
-          }
-        } catch (err) {
-          debugger
-        }
-      } else if (status.status === 'fail' && status.errors) {
-        const payloadClone = _.cloneDeep(payload)
-        payloadClone[PERMALINK] = payloadClone._permalink
-        payloadClone[LINK] = payloadClone._link
-
-        payloadClone[SPECIALITY] = status.rawData.espe
-        payloadClone[VALIDITY] = status.rawData.VALIDO
-
-        // debugger
-        let formError: any = {
-          req,
-          user,
-          application
-        }
-
-        formError.details = {
-          prefill: payloadClone,
-          message: status.message
-        }
-        const errors = status.errors
-        _.extend(formError.details, { errors })
-
-        try {
-          await applications.requestEdit(formError)
-          return {
-            message: 'no request edit',
-            exit: true
-          }
-        } catch (err) {
-          debugger
-        }
-      } else if (status.status === 'pass') {
-        if (payload[SPECIALITY] === status.rawData.espe &&
-            payload[VALIDITY] === status.rawData.VALIDO) {
-          return
-        }
-        const payloadClone = _.cloneDeep(payload)
-        payloadClone[PERMALINK] = payloadClone._permalink
-        payloadClone[LINK] = payloadClone._link
-
-        payloadClone[SPECIALITY] = status.rawData.espe
-        payloadClone[VALIDITY] = status.rawData.VALIDO
-        if (!payload[CERTIFICATE]) payloadClone[CERTIFICATE] = status.rawData.ncert
-
-        let formError: any = {
-          req,
-          user,
-          application
-        }
-
-        formError.details = {
-          prefill: payloadClone,
-          message: 'Verifica'
-        }
-
-        try {
-          await applications.requestEdit(formError)
-          return {
-            message: 'no request edit',
-            exit: true
-          }
-        } catch (err) {
-          debugger
-        }
+      if (status.status === 'pending') {
+        const appStub = buildResourceStub({ resource: application })
+        
+        await doctorCheckAPI.createPendingWork({
+            request: JSON.stringify(payload),
+            message: status.message,
+            application: appStub })
       }
+      else if (status.status !== 'repeat') {
+        await doctorCheckAPI.createCheck({ application, status, form: payload, req })
+      }  
+      
+      // debugger
+      let formError: any = {
+        req,
+        user,
+        application
+      }
+      await requestEditConditionally(status, payload, applications, formError)
+    },
+    async replay(pendingWork: ITradleObject, applications: Applications) {
+      logger.debug('doctorCheck called replay')
+      // expected instance of PendingWork
+      if (pendingWork.plugin !== 'doctorCheck')
+        throw Error(`doctorCheck called replay with bad parameter: ${pendingWork}`)
+      const payload = JSON.parse(pendingWork.request)
+      let status: any = await doctorCheckAPI.repost(payload)  
+      if (status.status === 'pending') 
+        return
+
+      const application = await bot.getResource(pendingWork.application)
+
+      let check: any = {
+        status: status.status,
+        provider: PROVIDER,
+        application,
+        dateChecked: Date.now(),
+        aspects: ASPECTS,
+        form: payload
+      }
+      check.message = getStatusMessageForCheck({ models: this.bot.models, check })
+      if (status.message) check.resultDetails = status.message
+      if (status.rawData) check.rawData = sanitize(status.rawData).sanitized
+       
+      // create check
+      await doctorCheckAPI.saveResource(DOCUMENT_CHECKER_CHECK, check)    
+      
+      let formError: any = {
+        application,
+        applicant: application.applicant,
+      }
+      await requestEditConditionally(status, payload, applications, formError)
     }
   }
   return {
@@ -298,6 +326,70 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   }
 }
 
+const requestEditConditionally = async (status: any,
+                                        payload: any, 
+                                        applications: Applications,
+                                        formError: any) => {
+  if (status.status === 'repeat') {
+    const payloadClone = _.cloneDeep(payload)
+    payloadClone[PERMALINK] = payloadClone._permalink
+    payloadClone[LINK] = payloadClone._link
+
+    formError.details = {
+      prefill: payloadClone,
+      message: status.message
+    }
+
+    try {
+      await applications.requestEdit(formError)
+    } catch (err) {
+      debugger
+    }
+  } else if (status.status === 'fail' && status.errors) {
+    const payloadClone = _.cloneDeep(payload)
+    payloadClone[PERMALINK] = payloadClone._permalink
+    payloadClone[LINK] = payloadClone._link
+
+    payloadClone[SPECIALITY] = status.rawData.espe
+    payloadClone[VALIDITY] = status.rawData.VALIDO
+
+    formError.details = {
+      prefill: payloadClone,
+      message: status.message
+    }
+    const errors = status.errors
+    _.extend(formError.details, { errors })
+
+    try {
+      await applications.requestEdit(formError)
+    } catch (err) {
+      debugger
+    }
+  } else if (status.status === 'pass') {
+    if (payload[SPECIALITY] === status.rawData.espe &&
+        payload[VALIDITY] === status.rawData.VALIDO) {
+      return
+    }
+    const payloadClone = _.cloneDeep(payload)
+    payloadClone[PERMALINK] = payloadClone._permalink
+    payloadClone[LINK] = payloadClone._link
+
+    payloadClone[SPECIALITY] = status.rawData.espe
+    payloadClone[VALIDITY] = status.rawData.VALIDO
+    if (!payload[CERTIFICATE]) payloadClone[CERTIFICATE] = status.rawData.ncert
+
+    formError.details = {
+      prefill: payloadClone,
+      message: 'Verifica'
+    }
+
+    try {
+      await applications.requestEdit(formError)
+    } catch (err) {
+      debugger
+    }
+  }
+}
 
 const send1 = async () => {
   const formData = new FormData()

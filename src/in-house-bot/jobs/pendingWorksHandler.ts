@@ -48,7 +48,7 @@ export class PendingWorksHandler {
       const { plugin } = pluginModul.createPlugin({ bot: this.bot, applications : this.applications },
                                                   { conf, logger: this.logger })
       this.logger.debug('pendingWorkHandler calling plugin replay')                                            
-      await plugin.replay(work) 
+      await plugin.replay(work, this.applications) 
     }
   }    
   
