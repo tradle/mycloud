@@ -27,3 +27,4 @@ lib/serverless-interpolated.json
 schematest.js
 src/cli/cloudformation-template.json
 .localstack
+.stignore
