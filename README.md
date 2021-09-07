@@ -7,7 +7,6 @@ If you're developer, you'll also see how to set up your local environment, deplo
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-
 - [Orientation](#orientation)
   - [Digital Identity Intro](#digital-identity-intro)
 - [Setup](#setup)
@@ -91,8 +90,8 @@ To enforce https access to github run this command:
 
 The following are the versions used by the Tradle dev team:
 
-- Node.js@[8.10.0](https://nodejs.org/download/release/v8.10.0/) - this is the version used by Amazon for AWS Lambda. Yes, you can use the latest Node.js instead, but keep this in mind if you hit errors.
-- npm@3.10.10 - npm@5 sometimes has trouble with big dependency trees
+- Node.js@[14.17.5](https://nodejs.org/download/release/v14.17.5/) - this is the version used by Amazon for AWS Lambda. Yes, you can use the latest Node.js instead, but keep this in mind if you hit errors.
+- npm@6.14.14 - comes with 14.17.5
 
 #### Docker & Docker Compose
 
