@@ -107,7 +107,7 @@ Make sure you can run docker as non-root. On Linux, you can do this by adding yo
 
 #### AWS cli & credentials
 
-1. [Install](http://docs.aws.amazon.com/cli/latest/userguide/installing.html)
+1. [Install](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html)
 1. create a new IAM user with AdministratorAccess
 1. Configure your credentials: `aws configure` or `aws configure --profile <profileName>`. This will set up your AWS credentials in `~/.aws/`
 
@@ -128,8 +128,9 @@ Install: `npm i -g --save-exact typescript@3.3.3333`
 *Note: if you don't care about playing locally and want to skip ahead to deploying Tradle MyCloud to the cloud, skip this section*
 
 - [awslocal](https://github.com/localstack/awscli-local). aws-cli wrapper for querying localstack. (On OS X, install with `[sudo] pip install awscli-local`)
-- [Serverless Framework](https://github.com/serverless/serverless) - this is already installed as part of `devDependencies`, but you may also want it installed globally so you can use the serverless cli (`npm i -g serverless`)
-- [nodemon]([https:](https://github.com/remy/nodemon)) - detects changes in code and restarts your local server
+
+Note: with `npm i` command that follows below the `serverless` and `nodemon` commands are installed relatively. You can use `npx serverless` or
+`npx nodemon` to execute them respectively.
 
 ### Clone this project
 
