@@ -23,6 +23,7 @@
     "bindall": "^2.0.1",
     "copy-dynamodb-table": "^2.0.4",
     "dedupe-deps": "^1.1.1",
+    "doctoc": "^2.0.1",
     "env-file-parser": "^1.0.0",
     "eslint": "^4.19.1",
     "execa": "https://registry.npmjs.org/execa/-/execa-0.8.0.tgz",
