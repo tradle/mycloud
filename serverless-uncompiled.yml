@@ -325,6 +325,7 @@ provider:
   # deploymentBucket: ${{self:custom.vars.deploymentBucket, self:custom.defaultVars.deploymentBucket}}
   deploymentBucket: ${{self:custom.deploymentBucket}}
   environment:
+    NODE_OPTIONS: "--no-warnings --no-deprecation"
     # enable long stack traces
     BLUEBIRD_DEBUG: 1
     # IOT_TOPIC_PREFIX: ${{self:custom.prefixIOTTopic}}
