@@ -8,7 +8,7 @@
   "license": "MIT",
   "devDependencies": {
     "@tradle/aws-client": "^1.10.0",
-    "@tradle/serverless-offline": "^3.16.0",
+    "@tradle/serverless-offline": "^3.16.1",
     "@tradle/validate-model": "^7.1.32",
     "@types/graphql": "^0.12.3",
     "@types/json-schema": "^6.0.0",
