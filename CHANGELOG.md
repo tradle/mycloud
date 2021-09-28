@@ -2,34 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.124](https://github.com/tradle/mycloud/compare/v3.0.1-rc.123...v3.0.1-rc.124) (2021-09-22)
-
-
-### Bug Fixes
-
-* allowing custom server with start script ([a8cd515](https://github.com/tradle/mycloud/commit/a8cd515))
-* iot event shape is changed and 'topic' in it is a string and not wrapped object ([195e1ce](https://github.com/tradle/mycloud/commit/195e1ce))
-* making TRADLE_LOCAL_IP optional ([5606f93](https://github.com/tradle/mycloud/commit/5606f93))
-* preventing secp256k1 errors to break lambda ([ccb2a84](https://github.com/tradle/mycloud/commit/ccb2a84))
-* preventing warnings to be rendered to the client ([7f516c3](https://github.com/tradle/mycloud/commit/7f516c3))
-* removing 20MB lamdba-gs docs for smaller bundle ([0b62418](https://github.com/tradle/mycloud/commit/0b62418))
-* topic now come with qos ([5eb6f9a](https://github.com/tradle/mycloud/commit/5eb6f9a))
-* typo in serverless-iot-local ([6456c73](https://github.com/tradle/mycloud/commit/6456c73))
-* updating serverless-iot-local#aedes branch with fixes ([a028d60](https://github.com/tradle/mycloud/commit/a028d60))
-
-
-### Features
-
-* added configuration for contract signing; contract markdown ([aaf1f14](https://github.com/tradle/mycloud/commit/aaf1f14))
-* added more sources to override 'no-new-func' rule ([28d72a2](https://github.com/tradle/mycloud/commit/28d72a2))
-* adding term ([0f06c70](https://github.com/tradle/mycloud/commit/0f06c70))
-* contract signing project: send message for initial payment on signing ([2a62c4d](https://github.com/tradle/mycloud/commit/2a62c4d))
-* create modification resource for sharing verifications ([24b6701](https://github.com/tradle/mycloud/commit/24b6701))
-* invoicing ([cdfd991](https://github.com/tradle/mycloud/commit/cdfd991))
-* invoicing - scheduling payments ([4d8ca63](https://github.com/tradle/mycloud/commit/4d8ca63))
-* scheduling invoices to fulfill the contract obligations ([a1fee49](https://github.com/tradle/mycloud/commit/a1fee49))
-* scheduling invoices to fulfill the contract obligations ([c9f1dbb](https://github.com/tradle/mycloud/commit/c9f1dbb))
-* sending message to the customer for payments ([fe78a90](https://github.com/tradle/mycloud/commit/fe78a90))
+## [3.0.1-rc.125](https://github.com/tradle/mycloud/compare/v3.0.1-rc.124...v3.0.1-rc.125) (2021-09-28)
 
 
 
