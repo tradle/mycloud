@@ -987,9 +987,9 @@ ${this.genUsageInstructions(links)}`
 
     const { Resources, Mappings, Parameters } = template
     const { deployment } = Mappings
-    const logoPromise = getLogo(configuration).catch((err) => {
-      this.logger.warn('failed to get logo', { domain })
-    })
+    // const logoPromise = getLogo(configuration).catch((err) => {
+    //   this.logger.warn('failed to get logo', { domain })
+    // })
 
     const stage = template.Parameters.Stage.Default
     deployment.init = {
@@ -1002,7 +1002,7 @@ ${this.genUsageInstructions(links)}`
       BlockchainNetwork: blockchain,
       OrgName: name,
       OrgDomain: domain,
-      OrgLogo: (await logoPromise) || media.LOGO_UNKNOWN,
+      OrgLogo: /*(await logoPromise) ||*/ media.LOGO_UNKNOWN,
       OrgAdminEmail: adminEmail,
       SourceDeploymentBucket: bucket
     })
