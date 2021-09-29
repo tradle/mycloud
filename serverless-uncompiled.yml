@@ -26,7 +26,7 @@ plugins:
   # - serverless-s3-local
   - serverless-iot-local
   - init-local
-  - serverless-offline
+  - "@tradle/serverless-offline"
   - pre-deploy
   # - serverless-offline-scheduler
 
@@ -62,7 +62,16 @@ package:
     - node_modules/fsevents/**
     - node_modules/canvas/**
     - "node_modules/@tradle/gen-samples/**"
-    - npm-shrinkwrap.json
+    - node_modules/lambda-ghostscript/**/doc/**
+    - node_modules/lambda-ghostscript/**/examples/**
+    - node_modules/lambda-ghostscript/**/man/**
+    - node_modules/moment/min/**
+    - node_modules/moment/src/**
+    - node_modules/caniuse-lite/data/features
+    - node_modules/caniuse-lite/data/regions
+    - node_modules/aes-js/~/**
+    - node_modules/node-gs/tests/**
+    - package-lock.json
     - clienttest/
     - .localstack/**
 
@@ -242,7 +251,7 @@ custom:
       - cache
     allowCredentials: false
 
-  serverless-offline: ${{self:custom.vars.serverless-offline, self:custom.defaults.serverless-offline}}
+  "@tradle/serverless-offline": ${{self:custom.vars.serverless-offline, self:custom.defaults.serverless-offline}}
   serverless-iot-local: ${{self:custom.vars.serverless-iot-local, self:custom.defaults.serverless-iot-local}}
   # reinitializeOnConfChanged: ${{self:custom.vars.reinitializeOnConfChanged, self:custom.defaults.reinitializeOnConfChanged}}
 
@@ -304,8 +313,8 @@ provider:
   # https://github.com/serverless/serverless/issues/4312#issuecomment-331946882
   variableSyntax: "\\${{([ ~:a-zA-Z0-9._\\'\",\\-\\/\\(\\)]+?)}}"
   name: aws
-  runtime: nodejs10.x
-  nodeVersion: 'v10.x.x'
+  runtime: nodejs14.x
+  nodeVersion: 'v14.x.x'
   profile: ${{self:custom.profile}}
   stage: ${{self:custom.stage}}
   region: ${{self:custom.region}}
@@ -316,6 +325,7 @@ provider:
   # deploymentBucket: ${{self:custom.vars.deploymentBucket, self:custom.defaultVars.deploymentBucket}}
   deploymentBucket: ${{self:custom.deploymentBucket}}
   environment:
+    NODE_OPTIONS: "--no-warnings --no-deprecation"
     # enable long stack traces
     BLUEBIRD_DEBUG: 1
     # IOT_TOPIC_PREFIX: ${{self:custom.prefixIOTTopic}}

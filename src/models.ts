@@ -94,7 +94,6 @@ let models: any = extend(
   requireModels('@tradle/models-corporate-onboarding'),
   requireModels('@tradle/models-products-bot'),
   requireModels('@tradle/models-onfido'),
-  requireModels('@tradle/models-nz'),
   requireModels('@tradle/models-cloud'),
   requireModels('@tradle/models-cloud-services')
 )

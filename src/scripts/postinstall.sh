@@ -15,12 +15,10 @@ done
 #   cp "src/in-house-bot/conf/default.json" "src/in-house-bot/conf/provider.json"
 # fi
 
-if [ ! -e "serverless.yml" ]; then
-  echo "copying placeholder serverless.yml"
-  cp serverless-uncompiled.yml serverless.yml
-fi
-
 mkdir -p "$(dirname $0)/../../lib/"
+
+echo "Fixing secp256k1, as it is not binary compatible with node14 and the log statements cause errors."
+sed -i -e  "s/console.error('Secp256k1 bindings are not compiled. Pure JS implementation will be used.')//g" ./node_modules/secp256k1/index.js
 
 if ! [ -x "$(command -v tsc)" ]; then
   echo 'Error: typescript is not installed' >&2

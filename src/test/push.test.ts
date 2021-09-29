@@ -9,12 +9,13 @@
 // import { loudAsync, omitVirtual } from '../utils'
 // import { getSigningKey } from '../crypto'
 // import { createBot } from '../'
+// import { getLocalIp } from '@tradle/aws-common-utils'
 
 // const alice = omitVirtual(require('./fixtures/alice/identity'))
 // const aliceKeys = require('./fixtures/alice/keys')
 
 // test('push', loudAsync(async (t) => {
-//   const serverUrl = 'http://localhost:12345'
+//   const serverUrl = `http://${getLocalIp()}:12345`
 //   const key = getSigningKey(aliceKeys)
 //   const nonce = crypto.randomBytes(10).toString('hex')
 

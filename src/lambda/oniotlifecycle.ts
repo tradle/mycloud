@@ -49,7 +49,10 @@ export const onSubscribed = (lambda, opts) => {
   const { logger, bot } = lambda
   const { userSim } = bot
   return async (ctx, next) => {
-    const { clientId, topics } = ctx.event.data
+    // logger.debug('iotlifecycle event', ctx.event)
+    const { clientId, topics: base } = ctx.event.data
+    const topics = base.map(topic => (typeof topic === 'string') ? topic :  topic.topic)
+
     try {
       await userSim.onSubscribed({ clientId, topics })
       logger.debug('client subscribed to MQTT topics', { clientId, topics })
