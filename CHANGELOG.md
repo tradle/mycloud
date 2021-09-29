@@ -2,7 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.125](https://github.com/tradle/mycloud/compare/v3.0.1-rc.124...v3.0.1-rc.125) (2021-09-28)
+## [3.0.1-rc.126](https://github.com/tradle/mycloud/compare/v3.0.1-rc.125...v3.0.1-rc.126) (2021-09-29)
+
+
+### Bug Fixes
+
+* updating favicon with fix for unknown domains ([e5d7b29](https://github.com/tradle/mycloud/commit/e5d7b29))
 
 
 
