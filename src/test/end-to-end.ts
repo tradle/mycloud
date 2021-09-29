@@ -28,6 +28,7 @@ import { utils, crypto } from '../'
 // const userIdentities = require('./fixtures/users-pem')
 import intercept from './interceptor'
 import Errors from '../errors'
+import { getLocalIp } from '@tradle/aws-common-utils'
 const { createTestProfile } = require('./utils')
 const defaultBotInstance = require('../').bot
 const { MESSAGE } = TYPES
@@ -156,7 +157,7 @@ export class Test {
     await this.onboardEmployee({ user: employee })
 
     const { friends } = bot
-    const url = 'http://localhost:12345'
+    const url = `http://${getLocalIp()}:12345`
     const { identity } = await this.genIdentity()
     const friend = {
       name: 'friendly bank',

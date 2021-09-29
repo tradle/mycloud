@@ -10,6 +10,7 @@ export {
   addCustomResourceDependencies,
   addResourcesToOutputs,
   addResourcesToEnvironment,
+  addDevDependenciesToIgnore,
   removeResourcesThatDontWorkLocally,
   addBucketTables,
   stripDevFunctions,
@@ -217,6 +218,14 @@ function stripDevFunctions(yml) {
       delete functions[name]
     }
   })
+}
+
+function addDevDependenciesToIgnore(yml) {
+  const lockFile = require('../../package-lock.json')
+  const names = Object.entries(lockFile.dependencies)
+    .filter(([, value]) => (value as { dev: boolean }).dev)
+    .map(([name]) => name)
+  yml.package.exclude = yml.package.exclude.concat(names.map(name => `node_modules/${name}/**`))
 }
 
 function addResourcesToEnvironment(yaml) {
