@@ -103,7 +103,10 @@ class ContractSigningAPI {
       let dateStr = new Intl.DateTimeFormat(locale).format(Date.now())
       return contractText.replace(placeholder, dateStr)
     case CONTRACT_NUMBER:
-      return contractText.replace(placeholder, `${org.domain.split('.')[0].toUpperCase()}-${Date.now()}`)
+      let timeS = new Date().toISOString().split('T')
+      let cn = `${timeS[0].replace(/[\.\-\:ZT]/g, '')}-${timeS[1].replace(/[\.\-\:ZT]/g, '')}`
+      return contractText.replace(placeholder, cn)
+      // return contractText.replace(placeholder, `${org.domain.split('.')[0].toUpperCase()}-${Date.now()}`)
     case PROVIDER_COMPANY_NAME:
       return contractText.replace(placeholder, `${org.name}`)
     default:
@@ -130,9 +133,9 @@ export const createPlugin: CreatePlugin<void> = (components , { logger, conf }) 
       const { form, settings, moreSettings, additionalFormsFromProps } = productConf
       if (!form  ||  !settings || !settings.length) return
       let allSettings = _.cloneDeep(settings)
-      if (moreSettings.totalInitialPayment) 
+      if (moreSettings.totalInitialPayment)
         allSettings.push(moreSettings.totalInitialPayment)
-      
+
       let model = bot.models[form]
       if (!model) return
 
