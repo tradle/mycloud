@@ -516,7 +516,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (items.length === 1) return enumValue({ model, value: items[0].id })
       else {
         let cid = getEnumValueId({ model: bot.models[COUNTRY], value: countryOfResidence })
-        return items.find((item) => item.id === cid)
+        let item = items.find((item) => item.id === cid)
+        return enumValue({ model, value: item.id }) 
       }
     },
     prefillCompany(prefill, bo) {
