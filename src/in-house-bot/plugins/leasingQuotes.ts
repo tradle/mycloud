@@ -2,13 +2,13 @@ import cloneDeep from 'lodash/cloneDeep'
 import size from 'lodash/size'
 import extend from 'lodash/extend'
 
-import { 
-  CreatePlugin, 
+import {
+  CreatePlugin,
   Bot,
   Logger,
   Applications,
-  IPluginLifecycleMethods, 
-  ValidatePluginConf 
+  IPluginLifecycleMethods,
+  ValidatePluginConf
 } from '../types'
 import { TYPE } from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
@@ -52,8 +52,8 @@ class LeasingQuotesAPI {
     let qiStub = stubs.find(({ type }) => type.endsWith('QuotationInformation'))
     if (!qiStub) return
     const quotationInfo = await this.bot.getResource(qiStub)
-    let { 
-      factor, 
+    let {
+      factor,
       netPrice,
       assetName,
       quotationConfiguration,
@@ -67,13 +67,13 @@ class LeasingQuotesAPI {
       annualInsurance,
       fundedInsurance
     } = quotationInfo
-    
-    if (!factor || !netPrice || !quotationConfiguration || !exchangeRate || !depositPercentage || !deliveryTime || 
+
+    if (!factor || !netPrice || !quotationConfiguration || !exchangeRate || !depositPercentage || !deliveryTime ||
         !netPriceMx || !priceMx || !depositValue || !fundedInsurance) {
       this.logger.debug('quotation: Some numbers are missing')
       return {}
     }
-      
+
     let configuration = await this.bot.getResource(quotationConfiguration)
     if (!configuration) return
     let configurationItems = configuration.items
@@ -118,7 +118,7 @@ class LeasingQuotesAPI {
       let termVal = term.title.split(' ')[0]
       let factorPercentage = mathRound(factor / 100 / 12 * termVal, 4)
 
-      let dtID = deliveryTime.id.split('_')[1] 
+      let dtID = deliveryTime.id.split('_')[1]
       let deliveryTermPercentage = qc[dtID]
       let depositFactor = 0
       let lowDepositFactor
@@ -128,7 +128,8 @@ class LeasingQuotesAPI {
         lowDepositFactor = lowDepositPercent
       let totalPercentage = mathRound(1 + factorPercentage + deliveryTermPercentage + depositFactor + lowDepositFactor, 4)
 
-      let monthlyPayment = (priceMx.value - depositValue.value - (residualValue * priceMx.value/100)/(1 + factorVPdelVR))/(1 + vatRate) * totalPercentage/termVal
+      let depositVal = depositValue && depositValue.value || 0
+      let monthlyPayment = (priceMx.value - depositVal - (residualValue * priceMx.value/100)/(1 + factorVPdelVR))/(1 + vatRate) * totalPercentage/termVal
 
       let insurance = fundedInsurance.value
       let initialPayment = depositPercentage === 0 && monthlyPayment + insurance || depositValue.value / (1 + vatRate)
@@ -168,7 +169,7 @@ class LeasingQuotesAPI {
         vat: monthlyPayment && {
           value: vatQc,
           currency
-        }, 
+        },
         totalPayment: monthlyPayment && {
           value: mathRound(monthlyPayment + insurance + vatQc),
           currency
@@ -205,7 +206,7 @@ class LeasingQuotesAPI {
     if (!netPriceMx || !term || !monthlyPayment) {
       this.logger.debug('amortization: Some numbers are missing')
       return {}
-    }  
+    }
     let termVal = term.title.split(' ')[0]
     let payment = monthlyPayment.value
 
@@ -223,12 +224,12 @@ class LeasingQuotesAPI {
           value: mathRound(principal),
           currency
         },
-        payment: { 
+        payment: {
           value: payment,
           currency
         },
         interest: {
-          value: mathRound(principal * leseeImplicitRate / 12),        
+          value: mathRound(principal * leseeImplicitRate / 12),
           currency
         }
       }
@@ -259,18 +260,18 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!productConf) return
 
       let ftype = formRequest.form
-      let action = productConf[ftype] 
+      let action = productConf[ftype]
       if (!action) return
 
       let model = bot.models[ftype]
       if (!model) return
 
       let prefill = {}
-      if (action === QUOTATION) 
-        prefill = await leasingQuotes.quotationPerTerm(application, formRequest)      
-      else if (action === AMORTIZATION) 
+      if (action === QUOTATION)
+        prefill = await leasingQuotes.quotationPerTerm(application, formRequest)
+      else if (action === AMORTIZATION)
         prefill = await leasingQuotes.amortizationPerMonth(application, formRequest)
-      
+
       if (!size(prefill)) return
       if (!formRequest.prefill) {
         formRequest.prefill = {
@@ -287,7 +288,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 function mathRound(val: number, digits?:number) {
   if (!digits)
     digits = 2
-  let pow = Math.pow(10, digits)  
+  let pow = Math.pow(10, digits)
   return Math.round(val * pow)/pow
 }
 /*!
