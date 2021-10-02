@@ -141,7 +141,7 @@ export class ScoringReport {
     //   cosignerCreditBureauScore = cosignerScores.creditBureauScore
     // }
     let { maxScores } = this.conf
-    
+
     const {asset, usefulLife, secondaryMarket, relocation, assetType, leaseType} = await this.getCommonScores(map, scoreDetails)
     const characterScore = creditBureauScore + existingCustomer + yearsAtWork + yearsAtResidence
     this.addToScoreDetails({scoreDetails, property: 'characterScore', score: characterScore, group: CHARACTER_GROUP, total: true, maxScores});
@@ -149,7 +149,7 @@ export class ScoringReport {
     const assetScore = usefulLife + secondaryMarket + relocation + assetType + leaseType
 
     this.addToScoreDetails({scoreDetails, form: asset, property: 'assetScore', score: assetScore, group: ASSET_GROUP, total: true, maxScores});
-
+    let { accScore } = accountsPoints
     let props:any = {
       creditBureauScore,
       existingCustomer,
@@ -164,7 +164,7 @@ export class ScoringReport {
       assetType,
       leaseType,
       cosignerCreditBureauScore,
-      accounts: accountsPoints,
+      accounts: accScore,
       assetScore,
       // check
     }
@@ -182,7 +182,7 @@ export class ScoringReport {
         debugger
       }
     }
-    
+
     if (capacityToPay) {
       this.addToScoreDetails({scoreDetails, form: map[CASH_FLOW], formProperty: 'extraEquipmentFactor', property: 'capacityToPay', score: capacityToPay, group: PAYMENT_GROUP});
       this.addToScoreDetails({scoreDetails, form: map[CASH_FLOW], formProperty: 'extraEquipmentFactor', property: 'paymentScore', score: capacityToPay, group: PAYMENT_GROUP, total: true, maxScores});
@@ -192,7 +192,7 @@ export class ScoringReport {
 
     props.totalScore = characterScore + props.paymentScore + assetScore
     this.addToScoreDetails({scoreDetails, property: 'totalScore', score: props.totalScore, total: true});
-  
+
     let score = await this.bot.draft({ type: resultForm }).set(props).signAndSave()
     return { score, scoreDetails }
   }
@@ -219,42 +219,13 @@ export class ScoringReport {
     let ratingInBureau = 0
     if (financialRating) {
       let s = financialRating.slice(-2)
-      if (s === 'A1' || s === 'B2' || s === 'NC' || s === 'EX')
+      if (s === 'A1' || s === 'A2' || s === 'B1' || s === 'B2' || s === 'NC' || s === 'EX')
         ratingInBureau = 2
     }
     else
       ratingInBureau = 2
     this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'financialRating', property: 'ratingInBureau', score: ratingInBureau, group: CHARACTER_GROUP});
-
-    let worstMopThisYear = 0
-    accounts = accounts && await Promise.all(accounts.map(r => this.bot.getResource(r)))
-    if (accounts) {
-      let score = 2
-      let goodAccounts = 0
-      let score12 = 2
-      for (let i=0; i<accounts.length; i++) {
-        let acc = accounts[i]
-        const { history, closedDate } = acc 
-        if (!history  ||  closedDate) continue
-        if (hasDigitsBigerThan(history, 4)) 
-          score = 0        
-        else if (history.indexOf('4') !== -1)
-          score = score < 2 ? score : 1
-        else
-          goodAccounts++
-        let history12 = history.length > 12 ? history.slice(0, 12) : history
-        if (hasDigitsBigerThan(history12, 4))
-          score12 = 0
-        else if (history12.indexOf('4') !== -1)
-          score12 = score12 < 2 ? score12 : 1
-      }
-      this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'recentMonthsInArrears', score, group: CHARACTER_GROUP});
-      let percentageOfGoodAccounts = goodAccounts * 100/accounts.length
-      percentageOfGoodAccounts  = percentageOfGoodAccounts > 80 ? 2 : 0
-      this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'percentageOfGoodAccounts', score, group: CHARACTER_GROUP});
-      this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'worstMopThisYear', score: score12, group: CHARACTER_GROUP});
-    }
-
+    let recentAccounts = await this.calcAccountsForCompany(accounts, scoreDetails, generalData)
     let commercialCredit = creditReport.commercialCredit
     if (commercialCredit) {
       commercialCredit = await Promise.all(commercialCredit.map(r => this.bot.getResource(r)))
@@ -263,10 +234,10 @@ export class ScoringReport {
     if (legalEntity) legalEntity = legalEntity[0]
     let yearsInOperation = 0, ownFacility = 0
     if (legalEntity) {
-      if ((Date.now() - legalEntity.registrationDate) / ONE_YEAR_MILLIS > 2) 
+      if ((Date.now() - legalEntity.registrationDate) / ONE_YEAR_MILLIS > 2)
         yearsInOperation = 1
-      
-      if (legalEntity.ownFacility) 
+
+      if (legalEntity.ownFacility)
         ownFacility = 1
     }
     this.addToScoreDetails({scoreDetails, form: legalEntity, formProperty: 'registrationDate', property: 'yearsInOperation', score: yearsInOperation, group: CHARACTER_GROUP});
@@ -278,17 +249,17 @@ export class ScoringReport {
     let debtFactor = map[COMPANY_CASH_FLOW]  &&  map[COMPANY_CASH_FLOW][0].extraEquipmentRatio
     debtFactor = this.calcScore(debtFactor, this.conf.debtFactor)
     this.addToScoreDetails({scoreDetails, form: map[COMPANY_CASH_FLOW], property: 'debtFactor', formProperty: 'extraEquipmentRatio', score: debtFactor, group: PAYMENT_GROUP});
-      
+
     const {asset, usefulLife, secondaryMarket, relocation, assetType, leaseType} = await this.getCommonScores(map, scoreDetails)
     let { maxScores } = this.conf
-    
+
     let characterScore = 0
     let paymentScore = 0
-    let assetScore = 0    
+    let assetScore = 0
     scoreDetails.forEach(r => {
       let { group, score } = r
       if (group === CHARACTER_GROUP)
-        characterScore += score        
+        characterScore += score
       else if (group === PAYMENT_GROUP)
         paymentScore += score
       else if (group === ASSET_GROUP)
@@ -302,7 +273,6 @@ export class ScoringReport {
       ...companyFinancials,
       debtFactor,
       ratingInBureau,
-      worstMopThisYear,
       yearsInOperation,
       ownFacility,
       usefulLife,
@@ -317,30 +287,89 @@ export class ScoringReport {
       // cosignerCreditBureauScore,
       // accounts: accountsPoints,
       totalScore,
+      ...recentAccounts
     }
+
     this.addToScoreDetails({scoreDetails, property: 'totalScore', score: props.totalScore, total: true});
 
     let score = await this.bot.draft({ type: resultForm }).set(props).signAndSave()
     return { score, scoreDetails }
   }
+  private async calcAccountsForCompany(accounts, scoreDetails, generalData) {
+    accounts = accounts && await Promise.all(accounts.map(r => this.bot.getResource(r)))
+    if (!accounts) return {}
+    let score = 2
+    let goodAccounts = 0
+    let worstMopThisYear = 0
+    let last12monthsScore = 2 // score only for the last 12 months
+    let closedAccounts = []
+    let openedAccounts = []
+    for (let i=0; i<accounts.length; i++) {
+      let acc = accounts[i]
+      const { history, closedDate } = acc
+      if (!history) continue
+      if (closedDate) {
+        closedAccounts.push(acc)
+        continue
+      }
+      openedAccounts.push(acc)
+      if (!match4(history)) 
+      // if (hasDigitsBigerThan(history, 4))
+        score = 0
+      else if (history.indexOf('4') !== -1)
+        score = score < 2 ? score : 1
+      else
+        goodAccounts++
+      let history12 = history.length > 12 ? history.slice(0, 12) : history
+      if (!match4(history)) 
+      // if (hasDigitsBigerThan(history12, 4))
+        last12monthsScore = 0
+      else if (history12.indexOf('4') !== -1)
+        last12monthsScore = last12monthsScore < 2 ? last12monthsScore : 1
+    }
+    this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'recentMonthsInArrears', score, group: CHARACTER_GROUP});
+    let percentageOfGoodAccounts = goodAccounts * 100/accounts.length
+    percentageOfGoodAccounts  = percentageOfGoodAccounts > 80 ? 2 : 0
+    this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'percentageOfGoodAccounts', score, group: CHARACTER_GROUP});
+    worstMopThisYear = last12monthsScore
+    this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'worstMopThisYear', score: worstMopThisYear, group: CHARACTER_GROUP});
+    // calculate recentOpenedAccounts and recentClosedAccounts
+    // if (openedAccounts.length) openedAccounts.sort((a, b) => b.openingDate - a.openingDate)
+    // if (closedAccounts.length) closedAccounts.sort((a, b) => b.closedDate - a.closedDate)
+    let {count: openCnt, accScores: openAccScores} = this.calcRecentCompanyAccounts(openedAccounts)
+    let {count: closeCnt, accScores: closeAccScores} = this.calcRecentCompanyAccounts(closedAccounts)
+    let coef = Math.round(12/(openCnt + closeCnt) * 100)/100
+
+    let openedAccScoresSum = openAccScores.length ? openAccScores.map(acc => acc.percent).reduce((a, b) => a + b, 0) : 0
+    let closeedAccScoresSum = closeAccScores.length ? closeAccScores.map(acc => acc.percent).reduce((a, b) => a + b, 0) : 0
+    
+    let recentOpenedAccounts = openCnt * coef * openedAccScoresSum / 100
+    let recentClosedAccounts = closeCnt * coef * closeedAccScoresSum / 100
+    this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'recentOpenedAccounts', score: recentOpenedAccounts, group: CHARACTER_GROUP});
+    this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'recentClosedAccounts', score: recentClosedAccounts, group: CHARACTER_GROUP});
+    return { recentOpenedAccounts, recentClosedAccounts, worstMopThisYear }
+  }
+
   calculateCompanyFinancials(financialDetails, scoreDetails) {
-    if (!financialDetails) 
+    if (!financialDetails)
       return {}
 
-    let profitable = 0, liquidity = 0, leverage = 0, technicalBankrupcy = 0, operatingIncomeMargin = 0,
-        workingCapitalRatio = 0, debtLevel = 0, returnOnEquity = 0, returnOnAssets = 0, netProfit = 0
-    financialDetails.forEach(fd => {
-      profitable += fd.netProfitP || 0
-      liquidity += fd.acidTest || 0 
-      leverage =+ fd.leverage || 0
-      technicalBankrupcy += fd.technicalBankrupcy || 0
-      workingCapitalRatio += fd.workingCapitalRatio || 0
-      debtLevel += fd.indebtedness || 0
-      returnOnEquity += fd.returnOnEquity || 0
-      returnOnAssets += fd.returnOnAssets || 0
-      operatingIncomeMargin += fd.operatingProfitP || 0
-      netProfit += fd.netProfitP || 0
-    })
+    // let profitable = 0, liquidity = 0, leverage = 0, technicalBankrupcy = 0, operatingIncomeMargin = 0,
+    //     workingCapitalRatio = 0, debtLevel = 0, returnOnEquity = 0, returnOnAssets = 0, netProfit = 0
+
+    const fDetail = financialDetails.find(detail => detail.year.id.endsWith('currentYear'))
+    if (!fDetail) return {}
+
+    let profitable = fDetail.netProfitP || 0
+    let liquidity = fDetail.acidTest || 0
+    let leverage = fDetail.leverage || 0
+    let technicalBankrupcy = fDetail.technicalBankrupcy || 0
+    let workingCapitalRatio = fDetail.workingCapitalRatio || 0
+    let debtLevel = fDetail.indebtedness || 0
+    let returnOnEquity = fDetail.returnOnEquity || 0
+    let returnOnAssets = fDetail.returnOnAssets || 0
+    let operatingIncomeMargin = fDetail.operatingProfitP || 0
+    let netProfit = fDetail.netProfitP || 0
 
     const flen = financialDetails.length
     profitable = profitable  ? 2 : 0
@@ -351,27 +380,27 @@ export class ScoringReport {
 
     leverage = leverage && leverage / flen
     if (leverage <= 60) leverage = 2
-    else if (leverage < 71) leverage = 1  
+    else if (leverage < 71) leverage = 1
     else leverage = 0
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'leverage', formProperty: 'leverage', score: leverage, group: PAYMENT_GROUP});
-    
+
     technicalBankrupcy = (technicalBankrupcy / flen) < 33 ? 2 : 0
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'technicalBankrupcy', formProperty: 'technicalBankrupcy', score: technicalBankrupcy, group: PAYMENT_GROUP});
-    
+
     workingCapitalRatio /= flen
     if (workingCapitalRatio >= 2) workingCapitalRatio = 2
     else if (workingCapitalRatio < 2  &&  workingCapitalRatio > 1) workingCapitalRatio = 1
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'workingCapitalRatio', formProperty: 'workingCapitalRatio', score: workingCapitalRatio, group: PAYMENT_GROUP});
 
     debtLevel /= flen
-    if (debtLevel < 60) 
+    if (debtLevel < 60)
       debtLevel = 2
     else if (debtLevel >= 60  &&  debtLevel < 70)
-      debtLevel = 1 
+      debtLevel = 1
     else
       debtLevel = 0
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'debtLevel', formProperty: 'indebtedness', score: debtLevel, group: PAYMENT_GROUP});
-    
+
     returnOnAssets /= flen
     if (returnOnAssets >= 8)
       returnOnAssets = 2
@@ -388,19 +417,19 @@ export class ScoringReport {
     else if (operatingIncomeMargin >= 3 && operatingIncomeMargin <= 5)
       operatingIncomeMargin = 1
     else
-      operatingIncomeMargin = 0  
+      operatingIncomeMargin = 0
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'operatingIncomeMargin', formProperty: 'operatingIncomeMargin', score: operatingIncomeMargin, group: PAYMENT_GROUP});
 
     returnOnEquity /= flen
     if (returnOnEquity >= 10)
       returnOnEquity = 2
-    else if (returnOnEquity >= 2  &&  returnOnEquity < 10) 
+    else if (returnOnEquity >= 2  &&  returnOnEquity < 10)
       returnOnEquity = 1
     else
       returnOnEquity = 0
-      
+
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'returnOnEquity', formProperty: 'returnOnEquity', score: returnOnEquity, group: PAYMENT_GROUP});
-    
+
     netProfit /= flen
     if (netProfit > 10) netProfit = 2
     else if (netProfit < 10  &&  netProfit > 1) netProfit = 1
@@ -411,7 +440,7 @@ export class ScoringReport {
       profitable,
       liquidity,
       leverage,
-      technicalBankrupcy,       
+      technicalBankrupcy,
       workingCapitalRatio,
       debtLevel,
       returnOnEquity,
@@ -506,7 +535,7 @@ export class ScoringReport {
     const { models } = this.bot
     // could be multientry form like for CompanyFinancialDetails
     if (form) {
-      if (Array.isArray(form)) 
+      if (Array.isArray(form))
         formStub = form.map(f => buildResourceStub({resource: f, models }))
       else
         formStub =  buildResourceStub({ resource: form, models })
@@ -521,7 +550,7 @@ export class ScoringReport {
       max: total && maxScores && maxScores[property]
     }
     detail = sanitize(detail).sanitized
-    scoreDetails.push(detail)  
+    scoreDetails.push(detail)
   }
   private getEnumValue(resource, prop) {
     const evalue = resource[prop]
@@ -568,9 +597,8 @@ export class ScoringReport {
   }
   private async calcAccounts(crAccounts) {
     let accounts:any = await Promise.all(crAccounts.map(a => this.bot.getResource(a)))
-    let accountInfo = []
     let sumProps = ['totalMop2', 'totalMop3', 'totalMop4', 'totalMop5']
-    let data = accounts.map(acc => {
+    accounts.forEach(acc => {
       let sum = 0
       sumProps.forEach((p, i) => {
         let v = acc[sumProps[i]]
@@ -588,28 +616,31 @@ export class ScoringReport {
       })
       return {accountClosingDate: acc.accountClosingDate, sum }
     })
-    let close = 0, open = 0, 
-        goodOpen = 0, goodClose = 0, 
-        avgOpen = 0, avgClose = 0, 
-        badOpen = 0, badClose = 0
+    let goodOpen = 0, goodClose = 0,
+        avgOpen = 0, avgClose = 0,
+        badOpen = 0, badClose = 0,
+        openedAccounts = [], closedAccounts = []
     accounts.forEach(account => {
       const {accountClosingDate, sum} = account
       if (accountClosingDate) {
-        open++
+        closedAccounts.push(account)
         if (sum < 4) goodClose++
         else if (sum === 4) avgClose++
         else badClose++
       }
-      if (!accountClosingDate) {
-        close++
+      else {
+        openedAccounts.push(account)
         if (sum < 4) goodOpen++
         else if (sum === 4) avgOpen++
         else badOpen++
       }
     })
+    let open = openedAccounts.length
+    let close = closedAccounts.length
     // high=16, average=8, low=4
     const { accountsScore } = this.conf
     const { high, average, low } = accountsScore
+    let accScore
     if (open && close) {
       let points = 0
       let hcoef = high / (open + close)
@@ -624,18 +655,46 @@ export class ScoringReport {
       if (avgClose)
         points += acoef * avgClose
 
-      return Math.round(points)
+      accScore = Math.round(points)
     }
-    if (open) {
+    else if (open) {
       if (goodOpen) return high
       if (avgOpen) return average
-      return low
+      accScore =  low
     }
-    if (close) {
+    else if (close) {
       if (goodClose) return high
       if (avgClose) return average
-      return low
+      accScore =  low
     }
+    return { accScore }
+  }
+  private calcRecentCompanyAccounts(accounts) {
+    let recentAccountsMax3 = 0
+    let cnt = accounts.length
+    if (!cnt) return {}
+
+    cnt = Math.min(cnt, 3)
+    let accScores = []
+    for (let i=0; i<cnt; i++) {
+      let { history } = accounts[i]
+      if (!match3(history)) {
+        accScores.push({
+          percent: 0,
+          score:  0,
+        })
+        recentAccountsMax3++
+        continue
+      }
+      let good = history.indexOf('3') === -1
+      accScores.push({
+        percent: good ? 100 : 50,
+        score:  good ? 2 : 1,
+      })
+
+      recentAccountsMax3++
+    }
+    return {count: recentAccountsMax3, accScores}
   }
   private calcScore(value, scoreConf) {
     if (!scoreConf) return 0
@@ -911,9 +970,9 @@ export const validateConf: ValidatePluginConf = async ({
     if (high < average || high < low || average < low) throw new Error(`'high' should be the bigest score, 'average' bigger then 'low'`);
   }
 }
-function hasDigitsBigerThan(str, digit) {
-  for (let i=digit + 1; i<10; i++) {
-    if (str.indexOf('' + i) !== -1) return true 
-  } 
-  return false
+function match3(history) {
+  return history.replace(/[^0-9 ]/g, '').match(/^[0-3]+$/) 
+}
+function match4(history) {
+  return history.replace(/[^0-9 ]/g, '').match(/^[0-4]+$/) 
 }
