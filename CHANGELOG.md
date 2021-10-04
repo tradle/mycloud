@@ -2,27 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.127](https://github.com/tradle/mycloud/compare/v3.0.1-rc.123...v3.0.1-rc.127) (2021-09-30)
-
-
-### Bug Fixes
-
-* nationality is set as a enum value not as stub {id, title} ([8efe020](https://github.com/tradle/mycloud/commit/8efe020))
+## [3.0.1-rc.128](https://github.com/tradle/mycloud/compare/v3.0.1-rc.127...v3.0.1-rc.128) (2021-10-04)
 
 
 ### Features
 
-* added configuration for contract signing; contract markdown ([aaf1f14](https://github.com/tradle/mycloud/commit/aaf1f14))
-* added more sources to override 'no-new-func' rule ([28d72a2](https://github.com/tradle/mycloud/commit/28d72a2))
-* adding term ([0f06c70](https://github.com/tradle/mycloud/commit/0f06c70))
-* contract signing project: send message for initial payment on signing ([2a62c4d](https://github.com/tradle/mycloud/commit/2a62c4d))
-* create modification resource for sharing verifications ([24b6701](https://github.com/tradle/mycloud/commit/24b6701))
-* invoicing ([cdfd991](https://github.com/tradle/mycloud/commit/cdfd991))
-* invoicing - scheduling payments ([4d8ca63](https://github.com/tradle/mycloud/commit/4d8ca63))
-* making sure no deposit case works ([ef337c3](https://github.com/tradle/mycloud/commit/ef337c3))
-* scheduling invoices to fulfill the contract obligations ([a1fee49](https://github.com/tradle/mycloud/commit/a1fee49))
-* scheduling invoices to fulfill the contract obligations ([c9f1dbb](https://github.com/tradle/mycloud/commit/c9f1dbb))
-* sending message to the customer for payments ([fe78a90](https://github.com/tradle/mycloud/commit/fe78a90))
+* recent accounts scoring ([5d551b3](https://github.com/tradle/mycloud/commit/5d551b3))
 
 
 
