@@ -549,8 +549,9 @@ Previous exit stack: ${this.lastExitStack}`)
 
           // lambda should not fail!
           // it should return a failure status code but succeed
-          if (typeof err.status === 'number') {
-            ctx.status = err.status
+          const status = err.status
+          if (typeof status === 'number') {
+            ctx.status = status
             ctx.body = { message: err.message }
           } else if (!ctx.body && ctx.status === 404) {
             // koa defaults to 404
