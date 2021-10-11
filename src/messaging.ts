@@ -383,6 +383,9 @@ export default class Messaging {
   }
 
   public _queueMessageBatch = async (batch: IBatchSendOpts): Promise<ITradleMessage[]> => {
+    if (batch.length === 0) {
+      return []
+    }
     const { recipient } = batch[0]
     this.logger.debug(`sending batch of ${batch.length} messages to ${recipient}`)
     const messages = await series(batch.map(sendOpts => () => this._doQueueMessage(sendOpts)))
