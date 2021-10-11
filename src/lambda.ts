@@ -637,7 +637,7 @@ Previous exit stack: ${this.lastExitStack}`)
 
   private _initCloudWatchLogs = () => {
     this.use(async (ctx, next) => {
-      ctx.gzippedEvent = new Buffer(ctx.event.awslogs.data, 'base64')
+      (ctx as any).gzippedEvent = Buffer.alloc(ctx.event.awslogs.data, 'base64')
       const str = zlib.gunzipSync(ctx.gzippedEvent).toString('utf8')
       ctx.event = JSON.parse(str)
 
