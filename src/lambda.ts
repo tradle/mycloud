@@ -330,7 +330,11 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
   public finishRun = async (err?, result?) => {
     if (this.done) {
       throw new Error(`finishRun can only be called once per lambda invocation!
-Previous exit stack: ${this.lastExitStack}`)
+Previous exit stack: ${this.lastExitStack}
+${err
+  ? `Current exit stack: ${err.stack}`
+  : `Current result: ${result}`
+}`)
     }
 
     this.lastExitStack = getCurrentCallStack()
