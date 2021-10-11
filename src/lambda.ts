@@ -123,7 +123,7 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
   public containerId: string
   public accountId: string
   public requestCounter: number
-  public xraySegment?: AWS.XRay.Segment
+  public xraySegment?: AWSXray.SegmentLike
   private breakingContext: string
   private middleware: Middleware<Ctx>[]
   private initPromise: Promise<void>
