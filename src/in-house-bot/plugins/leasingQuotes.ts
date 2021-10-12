@@ -130,6 +130,7 @@ class LeasingQuotesAPI {
 
       let depositVal = depositValue && depositValue.value || 0
       let monthlyPayment = (priceMx.value - depositVal - (residualValue * priceMx.value/100)/(1 + factorVPdelVR))/(1 + vatRate) * totalPercentage/termVal
+      // let monthlyPaymentPMT = (vatRate/12)/(((1+vatRate/12)**termVal)-1)*(netPriceMx.value*((1+vatRate/12)**termVal)-(netPriceMx.value*residualValue/100))
 
       let insurance = fundedInsurance.value
       let initialPayment = depositPercentage === 0 && monthlyPayment + insurance || depositValue.value / (1 + vatRate)
@@ -210,8 +211,9 @@ class LeasingQuotesAPI {
     let termVal = term.title.split(' ')[0]
     let payment = monthlyPayment.value
 
-    let leseeImplicitRate = RATE(termVal, monthlyPayment, -netPriceMx.value) * 12 // * 100
-
+    let leseeImplicitRate = RATE(termVal, payment, -netPriceMx.value) * 12 // * 100
+// if (leseeImplicitRate < 0)
+//   leseeImplicitRate = -leseeImplicitRate
     let ftype = formRequest.form
     let itemType = ftype + 'Item'
     let {value: principal, currency } = netPriceMx
