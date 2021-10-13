@@ -65,7 +65,7 @@ export class ModelStore extends EventEmitter {
   private cache: DBModelStore
   private myDomain: string
   private myNamespace: string
-  private myCustomModels: any
+  public myCustomModels: any
   private originalModelsPack: ModelsPack
   private baseModels: any
   private baseModelsIds: string[]

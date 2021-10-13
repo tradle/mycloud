@@ -232,7 +232,8 @@ export const loadComponentsAndPlugins = ({
     models: {
       all: mergeModels()
         .add(baseModels, { validate: false })
-        .add((conf.modelsPack && conf.modelsPack.models) || {}, mergeModelsOpts)
+        .add(bot.modelStore.myCustomModels || {}, mergeModelsOpts)
+        // .add((conf.modelsPack && conf.modelsPack.models) || {}, mergeModelsOpts)
         .get()
     },
     products: productsList,
