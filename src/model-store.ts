@@ -241,7 +241,7 @@ export class ModelStore extends EventEmitter {
       ({originalCumulativeModelsPack} = opts)
     try {
       let modelsPack = originalCumulativeModelsPack || await this.cumulativePackItem.get(opts)
-      let { models } = modelsPack
+      let { models = [] } = modelsPack
       this.addFormBacklinks({ models })
       return modelsPack
     } catch (err) {
@@ -314,7 +314,6 @@ export class ModelStore extends EventEmitter {
       let prop = formProps[p]
       if (prop.items && prop.items.backlink) formBacklinks.push({ [p]: prop })
     }
-
     models.forEach(m => {
       if (m.abstract || !m.subClassOf) return
       let sub = m
@@ -341,7 +340,8 @@ export class ModelStore extends EventEmitter {
     if (!namespace) {
       throw new Error('expected "namespace"')
     }
-    this.addFormBacklinks({ models })
+    if (models)
+      this.addFormBacklinks({ models })
     this.cache.removeModels(this.myCustomModels)
     this.addModels(models)
     this.myModelsPack = modelsPackClone
