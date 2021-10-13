@@ -294,6 +294,14 @@ npm run info # or run: sls info
 
 This project uses TypeScript, which compiles to JavaScript. If you're changing any `*.ts` files, or if you run `git pull` be sure you have `tsc -w` running on the command line, which will watch for changes and rebuild your sources.
 
+### Inspect / Debugger mode
+
+You can start debugger mode by adding `--inspect` or `--inspect-brk` after the `npm start` script:
+
+```sh
+npm start --inspect-brk
+```
+
 ### serverless.yml
 
 If you modify `serverless-uncompiled.yml`, run `npm run build:yml` to preprocess it. Before running tests, re-run `npm run gen:localresources`

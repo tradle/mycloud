@@ -11,4 +11,4 @@ npm run fix:redis
 sleep 5
 npm run gen:localstack
 # npm run gen:localresources
-npm run start:fast
+npm run start:fast -- $@
