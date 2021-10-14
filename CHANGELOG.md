@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.130](https://github.com/tradle/mycloud/compare/v3.0.1-rc.129...v3.0.1-rc.130) (2021-10-14)
+## [3.0.1-rc.131](https://github.com/tradle/mycloud/compare/v3.0.1-rc.130...v3.0.1-rc.131) (2021-10-14)
 
 
 ### Bug Fixes
 
-* fixing unhandled rejection ([73442e2](https://github.com/tradle/mycloud/commit/73442e2))
+* deploying custom models throws error ([6f1f606](https://github.com/tradle/mycloud/commit/6f1f606))
 
 
 
