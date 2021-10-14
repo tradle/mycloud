@@ -2,19 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.129](https://github.com/tradle/mycloud/compare/v3.0.1-rc.128...v3.0.1-rc.129) (2021-10-13)
+## [3.0.1-rc.130](https://github.com/tradle/mycloud/compare/v3.0.1-rc.129...v3.0.1-rc.130) (2021-10-14)
 
 
 ### Bug Fixes
 
-* merge models receives augmented models in one case and original in another what when compared causes the error because of that ([636162d](https://github.com/tradle/mycloud/commit/636162d))
-* typo in calculations for lesseeImplicitRate ([19cadc6](https://github.com/tradle/mycloud/commit/19cadc6))
-* updating fetch-favicon to prevent errors with missing ssl certificate. ([#24](https://github.com/tradle/mycloud/issues/24)) ([5443415](https://github.com/tradle/mycloud/commit/5443415))
-
-
-### Features
-
-* adding signatures/photos to the text of the contract ([cff3784](https://github.com/tradle/mycloud/commit/cff3784))
+* fixing unhandled rejection ([73442e2](https://github.com/tradle/mycloud/commit/73442e2))
 
 
 
