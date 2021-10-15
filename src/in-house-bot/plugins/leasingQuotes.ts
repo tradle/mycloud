@@ -59,7 +59,7 @@ class LeasingQuotesAPI {
       assetName,
       quotationConfiguration,
       exchangeRate,
-      depositPercentage,
+      depositPercentage = 0,
       deliveryTime,
       netPriceMx,
       vat,
@@ -69,7 +69,7 @@ class LeasingQuotesAPI {
       fundedInsurance
     } = quotationInfo
 
-    if (!factor || !netPrice || !quotationConfiguration || !exchangeRate || !depositPercentage || !deliveryTime ||
+    if (!factor || !netPrice || !quotationConfiguration || !exchangeRate || !deliveryTime ||
         !netPriceMx || !priceMx || !depositValue || !fundedInsurance) {
       this.logger.debug('quotation: Some numbers are missing')
       return {}
