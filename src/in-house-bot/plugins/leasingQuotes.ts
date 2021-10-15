@@ -18,6 +18,7 @@ const { sanitize } = validateResource.utils
 const QUOTATION = 'quotation'
 const AMORTIZATION = 'amortization'
 interface AmortizationItem {
+  [TYPE]: string
   period: number,
   principal: {
     value: number,

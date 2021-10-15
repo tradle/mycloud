@@ -64,8 +64,8 @@ const compareBalance = (a, b) => {
   const padLength = a.length - b.length
   if (padLength > 0) {
     b = '0'.repeat(padLength) + b
-  } else if (padLength > 0) {
-    a = '0'.repeat(padLength) + a
+  } else if (padLength < 0) {
+    a = '0'.repeat(-padLength) + a
   }
 
   // can compare like nums

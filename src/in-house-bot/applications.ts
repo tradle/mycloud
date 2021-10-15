@@ -173,9 +173,9 @@ export class Applications implements IHasModels {
     let { application, latestChecks, checks } = req
 
     let checkModel = models[type]
-    if (application.top)
-      if (checkModel.properties.top) props.top = application.top
-      else if (checkModel.properties.top) props.top = application
+    if (checkModel.properties.top) {
+      props.top = application.top ?? application
+    }
 
     let oldCheck
     if (

@@ -49,6 +49,7 @@ import { Iot } from '../aws/iot-utils'
 import { Events, EventTopic } from '../events'
 import { Mailer } from '../mailer'
 import { MiddlewareContainer } from '../middleware-container'
+import { TYPE, ORG_SIG } from '@tradle/constants'
 
 export { KeyValueStore, KeyValueStoreExtended, ClientCache, ClientCache as AwsApis }
 
@@ -213,6 +214,7 @@ export interface ILambdaExecutionContext {
   error?: Error
   body: any
   done: boolean
+  status: number
   [x: string]: any
 }
 
@@ -245,6 +247,7 @@ export type Middleware<T> = ComposeMiddleware<T>
 export type MiddlewareHttp = Middleware<ILambdaHttpExecutionContext>
 
 export interface ITradleObject {
+  [ORG_SIG]?: string
   _version?: number
   _sigPubKey?: string
   _link?: string
@@ -746,6 +749,7 @@ export interface IHasModels {
 }
 
 export interface IBacklinkItem {
+  [TYPE]: string
   target: ResourceStub
   source: ResourceStub
   linkProp: string

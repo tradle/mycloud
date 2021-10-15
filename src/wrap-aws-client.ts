@@ -99,7 +99,7 @@ export const wrap = client => {
           return client[key]
         },
         set(value) {
-          return client[key] = value
+          client[key] = value
         }
       })
 
