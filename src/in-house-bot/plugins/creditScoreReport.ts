@@ -209,8 +209,8 @@ export class ScoringReport {
 
     let scoreDetails: any = []
 
-    let hasLeasingExperience = applicantInformation.leasingExperience && 2 || 0
-    this.addToScoreDetails({scoreDetails, form: applicantInformation, formProperty: 'leasingExperience', property: 'hasLeasingExperience', score: hasLeasingExperience, group: CHARACTER_GROUP});
+    // let hasLeasingExperience = applicantInformation.leasingExperience && 2 || 0
+    // this.addToScoreDetails({scoreDetails, form: applicantInformation, formProperty: 'leasingExperience', property: 'hasLeasingExperience', score: hasLeasingExperience, group: CHARACTER_GROUP});
 
     creditReport = await this.bot.getResource(creditReport, {backlinks: ['generalData', 'accounts', 'commercialCredit' ]})
     let { generalData, accounts } = creditReport
@@ -283,7 +283,7 @@ export class ScoringReport {
       leaseType,
       characterScore,
       paymentScore,
-      hasLeasingExperience,
+      // hasLeasingExperience,
       // cosignerCreditBureauScore,
       // accounts: accountsPoints,
       totalScore,
@@ -328,7 +328,7 @@ export class ScoringReport {
         last12monthsScore = last12monthsScore < 2 ? last12monthsScore : 1
     }
     this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'recentMonthsInArrears', score, group: CHARACTER_GROUP});
-    let percentageOfGoodAccounts = goodAccounts * 100/accounts.length
+    let percentageOfGoodAccounts = goodAccounts * 100/openedAccounts.length
     percentageOfGoodAccounts  = percentageOfGoodAccounts > 80 ? 2 : 0
     this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'percentageOfGoodAccounts', score, group: CHARACTER_GROUP});
     worstMopThisYear = last12monthsScore
@@ -341,10 +341,10 @@ export class ScoringReport {
     let coef = Math.round(12/(openCnt + closeCnt) * 100)/100
 
     let openedAccScoresSum = openAccScores.length ? openAccScores.map(acc => acc.percent).reduce((a, b) => a + b, 0) : 0
-    let closeedAccScoresSum = closeAccScores.length ? closeAccScores.map(acc => acc.percent).reduce((a, b) => a + b, 0) : 0
+    let closedAccScoresSum = closeAccScores.length ? closeAccScores.map(acc => acc.percent).reduce((a, b) => a + b, 0) : 0
     
-    let recentOpenedAccounts = openCnt * coef * openedAccScoresSum / 100
-    let recentClosedAccounts = closeCnt * coef * closeedAccScoresSum / 100
+    let recentOpenedAccounts = coef * openedAccScoresSum / 100
+    let recentClosedAccounts = coef * closedAccScoresSum / 100
     this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'recentOpenedAccounts', score: recentOpenedAccounts, group: CHARACTER_GROUP});
     this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'recentClosedAccounts', score: recentClosedAccounts, group: CHARACTER_GROUP});
     return { recentOpenedAccounts, recentClosedAccounts, worstMopThisYear }
@@ -371,28 +371,26 @@ export class ScoringReport {
     let operatingIncomeMargin = fDetail.operatingProfitP || 0
     let netProfit = fDetail.netProfitP || 0
 
-    const flen = financialDetails.length
+    // const flen = financialDetails.length
     profitable = profitable  ? 2 : 0
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'profitable', formProperty: 'netProfitP', score: profitable, group: CHARACTER_GROUP});
 
-    liquidity = (liquidity  &&  liquidity / flen) > 1 ? 2 : 0
+    liquidity = liquidity > 1 ? 2 : 0
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'liquidity', formProperty: 'acidTest', score: liquidity, group: PAYMENT_GROUP});
 
-    leverage = leverage && leverage / flen
     if (leverage <= 60) leverage = 2
     else if (leverage < 71) leverage = 1
     else leverage = 0
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'leverage', formProperty: 'leverage', score: leverage, group: PAYMENT_GROUP});
 
-    technicalBankrupcy = (technicalBankrupcy / flen) < 33 ? 2 : 0
+    technicalBankrupcy = technicalBankrupcy < 33 ? 2 : 0
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'technicalBankrupcy', formProperty: 'technicalBankrupcy', score: technicalBankrupcy, group: PAYMENT_GROUP});
 
-    workingCapitalRatio /= flen
     if (workingCapitalRatio >= 2) workingCapitalRatio = 2
     else if (workingCapitalRatio < 2  &&  workingCapitalRatio > 1) workingCapitalRatio = 1
+    else workingCapitalRatio = 0
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'workingCapitalRatio', formProperty: 'workingCapitalRatio', score: workingCapitalRatio, group: PAYMENT_GROUP});
 
-    debtLevel /= flen
     if (debtLevel < 60)
       debtLevel = 2
     else if (debtLevel >= 60  &&  debtLevel < 70)
@@ -401,7 +399,6 @@ export class ScoringReport {
       debtLevel = 0
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'debtLevel', formProperty: 'indebtedness', score: debtLevel, group: PAYMENT_GROUP});
 
-    returnOnAssets /= flen
     if (returnOnAssets >= 8)
       returnOnAssets = 2
     else if (returnOnAssets >= 2  &&  returnOnAssets < 8)
@@ -411,7 +408,6 @@ export class ScoringReport {
 
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'returnOnAssets', formProperty: 'returnOnAssets', score: returnOnAssets, group: PAYMENT_GROUP});
 
-    operatingIncomeMargin /= flen
     if (operatingIncomeMargin > 5)
       operatingIncomeMargin = 2
     else if (operatingIncomeMargin >= 3 && operatingIncomeMargin <= 5)
@@ -420,7 +416,6 @@ export class ScoringReport {
       operatingIncomeMargin = 0
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'operatingIncomeMargin', formProperty: 'operatingIncomeMargin', score: operatingIncomeMargin, group: PAYMENT_GROUP});
 
-    returnOnEquity /= flen
     if (returnOnEquity >= 10)
       returnOnEquity = 2
     else if (returnOnEquity >= 2  &&  returnOnEquity < 10)
@@ -430,7 +425,6 @@ export class ScoringReport {
 
     this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'returnOnEquity', formProperty: 'returnOnEquity', score: returnOnEquity, group: PAYMENT_GROUP});
 
-    netProfit /= flen
     if (netProfit > 10) netProfit = 2
     else if (netProfit < 10  &&  netProfit > 1) netProfit = 1
     else netProfit = 0
