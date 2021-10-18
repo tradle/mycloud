@@ -31,7 +31,7 @@ const { sanitize } = validateResource.utils
 const MONTHS = {ENERO: '01',FEBRERO: '02',MARZO: '03',ABRIL: '04',MAYO: '05',JUNIO: '06',
                 JULIO: '07', AGOSTO: '08',SEPTIEMBRE: '09',OCTUBRE: '10',NOVIEMBRE: '11',DICIEMBRE: '12'}
 const GOVERNMENTAL = 'governmental'
-const FORM_TYPE =  'io.lenka.ApplicantMedicalCertification'
+const FORM_TYPE =  'com.leaseforu.ApplicantMedicalCertification'
 const DOCTOR_NAME = 'medicalSpecialistName'
 const CERTIFICATE = 'medicalCertificateNumber'
 const SPECIALITY = 'medicalSpeciality'
