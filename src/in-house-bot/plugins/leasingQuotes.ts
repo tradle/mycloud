@@ -70,7 +70,7 @@ class LeasingQuotesAPI {
     } = quotationInfo
 
     if (!factor || !netPrice || !quotationConfiguration || !exchangeRate || !deliveryTime ||
-        !netPriceMx || !priceMx || !depositValue || !fundedInsurance) {
+        !netPriceMx || !priceMx || !fundedInsurance) {
       this.logger.debug('quotation: Some numbers are missing')
       return {}
     }
