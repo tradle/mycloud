@@ -134,7 +134,7 @@ class LeasingQuotesAPI {
       // let monthlyPaymentPMT = (vatRate/12)/(((1+vatRate/12)**termVal)-1)*(netPriceMx.value*((1+vatRate/12)**termVal)-(netPriceMx.value*residualValue/100))
 
       let insurance = fundedInsurance.value
-      let initialPayment = depositPercentage === 0 && monthlyPayment + insurance || depositValue.value / (1 + vatRate)
+      let initialPayment = depositPercentage === 0 && monthlyPayment + insurance ||  depositVal / (1 + vatRate)
       let commissionFeeCalculated = commissionFee * priceMx.value
       let initialPaymentVat = (initialPayment + commissionFeeCalculated) * vatRate
       let currency = netPriceMx.currency
