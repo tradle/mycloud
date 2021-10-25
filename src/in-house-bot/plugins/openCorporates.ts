@@ -233,8 +233,8 @@ class OpenCorporatesAPI {
           !alternative_names.length ||
           !alternative_names.filter(name => name.toLowerCase === companyName)
         ) {
-          let rParts = cName.split(' ')
-          let fParts = name.toLowerCase().split(' ')
+          let rParts = cName.replace(/[^\w\s]/gi, '').split(' ')
+          let fParts = name.replace(/[^\w\s]/gi, '').toLowerCase().split(' ')
           let commonParts = rParts.filter(p => fParts.includes(p))
           rightCompanyName = name
           if (!commonParts.length) return false
@@ -740,14 +740,15 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
           return
         }
         let error = ''
+        let errValue = 'Above is from primary data source. Please confirm.'
         if (wrongName) {
           error = 'Is it your company?'
-          errors = [{ name: 'companyName', error: 'Is it your company?' }]
+          errors = [{ name: 'companyName', error: errValue }]
         }
         if (wrongNumber) {
           if (!error) error = 'Is it your company?'
           if (!errors) errors = []
-          errors.push({ name: 'registrationNumber', error: 'Is it your company?' })
+          errors.push({ name: 'registrationNumber', error: errValue })
         }
         message = `${error} Please review and correct the data below for **${name}**`
       }
