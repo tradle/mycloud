@@ -146,7 +146,7 @@ class LeasingQuotesAPI {
         // depositFactor:
         lowDepositFactor: depositPercentage > lowDeposit && 0 || lowDepositPercent,
         term,
-        commissionFee: commissionFeeCalculated  &&  {
+        commissionFee: {
           value: mathRound(commissionFeeCalculated),
           currency
         },
