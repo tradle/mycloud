@@ -3,14 +3,14 @@ import extend from 'lodash/extend'
 import size from 'lodash/size'
 import cleanco from 'cleanco'
 
-import { Bot, Logger, CreatePlugin, IPluginLifecycleMethods } from '../types'
+import { Bot, Logger, CreatePlugin, IPluginLifecycleMethods, IPBReq } from '../types'
 
 import { TYPE } from '../../constants'
 import validateResource from '@tradle/validate-resource'
 import { enumValue } from '@tradle/build-resource'
 import { regions } from '@tradle/aws-s3-client'
 import { getEnumValueId } from '../../utils'
-import { isSubClassOf } from '../utils'
+import { isSubClassOf, getCheckParameters } from '../utils'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
@@ -26,6 +26,9 @@ const TYPE_OF_OWNERSHIP = 'tradle.legal.TypeOfOwnership'
 const COUNTRY = 'tradle.Country'
 const COMPANIES_HOUSE = 'Companies House'
 const OPEN_CORPORATES = 'Open Corporates'
+const REFRESH_PRODUCT = 'tradle.RefreshProduct'
+const FORM_REQUEST = 'tradle.FormRequest'
+const DATA_BUNDLE_SUBMITTED = 'tradle.DataBundleSubmitted'
 
 const companyKeywords = {
   DE: ['GmbH', 'HRB'],
@@ -38,9 +41,32 @@ const countryMap = {
 }
 
 export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
-  let { bot } = components
+  let { bot, applications } = components
   let { logger, conf } = pluginOpts
   const plugin: IPluginLifecycleMethods = {
+    async onmessage(req: IPBReq) {
+      if (req.skipChecks) return
+      const { user, application, payload } = req
+      if (!application  ||  application.requestFor !== 'tradle.RefreshProduct') return
+      
+      let ptype = payload[TYPE]
+      let isDataBundleSubmitted = ptype === DATA_BUNDLE_SUBMITTED
+      if (!isDataBundleSubmitted && ptype !== CONTROLLING_PERSON) return
+      if (ptype === CONTROLLING_PERSON) {
+        if (!application.submissions.find(sub => sub.submission[TYPE] === LEGAL_ENTITY)) return
+        if (!application.submissions.find(sub => sub.submission[TYPE] === DATA_BUNDLE_SUBMITTED)) return
+      }
+      let formRequest:any = {[TYPE]: FORM_REQUEST, form: CONTROLLING_PERSON}
+      await this.getCP({ application, formRequest, req: !isDataBundleSubmitted && req }) 
+      if (!formRequest.prefill) return
+      await applications.requestItem({
+        item: formRequest,
+        application,
+        req,
+        user,
+        message: 'Please review and confirm'
+      })
+    },
     async willRequestForm({ application, formRequest }) {
       let { form } = formRequest
       if (form !== CONTROLLING_PERSON) return
@@ -50,7 +76,12 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       let { checks } = application
       if (!checks) return
-
+      
+      if (application.requestFor !== REFRESH_PRODUCT)
+        await this.getCP({ application, formRequest })
+    },
+    async getCP({ application, formRequest, req }) {
+      let checks = application.checks
       let stubs = checks.filter(
         (check) =>
           check[TYPE] === CORPORATION_EXISTS ||
@@ -59,7 +90,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       )
       if (!stubs.length) return
       logger.debug('found ' + stubs.length + ' checks')
-      let result = await Promise.all(stubs.map((check) => bot.getResource(check)))
+      let result:any = await Promise.all(stubs.map((check) => bot.getResource(check)))
       result = result.filter((check) => !check.isInactive)
       result.sort((a, b) => b._time - a._time)
 
@@ -86,8 +117,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let carCheck = result.find((c) => c[TYPE] === CLIENT_ACTION_REQUIRED_CHECK)
       const statusM = bot.models[CHECK_STATUS]
       let forms = application.forms.filter((form) => form.submission[TYPE] === CONTROLLING_PERSON)
-      let officers, items
       if (!check) return
+      let officers, items
       if (check.status.id !== `${CHECK_STATUS}_pass`) {
         if (pscCheck && pscCheck.status.id === `${CHECK_STATUS}_pass`)
           await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
@@ -124,6 +155,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         officer = officers.length && officers[0].officer
       } else {
         items = await Promise.all(forms.map((f) => bot.getResource(f.submission)))
+        if (req) 
+          items.push(req.payload)
         if (items.length) {
           for (let i = 0; i < officers.length && !officer; i++) {
             let o = officers[i].officer
@@ -342,7 +375,11 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           id: 'tradle.legal.TypeOfControllingEntity_person'
         }
       }
-      formRequest.message = `Please review and correct the data below **for ${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+      if (formRequest.product === REFRESH_PRODUCT)
+        formRequest.message = `Your company’s profile is missing the following controlling person, found in a primary data source **${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+      else
+        formRequest.message = `Please review and correct the data below **for ${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+      
     },
     isCompany({ name, country }) {
       let tokens = name.replace(/[^\w\s]/gi, '').split(' ')
