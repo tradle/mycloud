@@ -49,7 +49,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       if (!application.forms || application.forms.length <= 1) {
         let pr = await bot.getResource(application.request)
-        if (pr.bundleId) {
+        if (pr.bundleId  &&  pr.bundleId.split('_') === PRODUCT_BUNDLE) {
           // debugger
           return [PRODUCT_BUNDLE].concat(bot.models[pr.requestFor].forms)
         }
@@ -138,6 +138,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
     },
     async willRequestForm({ application, formRequest }) {
       if (!application || formRequest.form !== PRODUCT_BUNDLE) return
+      let productMap = conf[application.requestFor]
+      if (!productMap) return
       let pr = await bot.getResource(application.request)
       if (!pr.bundleId) return
       let bundle = await bot.db.findOne({
