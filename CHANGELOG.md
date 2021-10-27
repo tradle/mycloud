@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.132](https://github.com/tradle/mycloud/compare/v3.0.1-rc.131...v3.0.1-rc.132) (2021-10-18)
+## [3.0.1-rc.133](https://github.com/tradle/mycloud/compare/v3.0.1-rc.132...v3.0.1-rc.133) (2021-10-20)
 
 
 ### Bug Fixes
 
-* recent accounts scoring; scoring from financial details ([9cc248e](https://github.com/tradle/mycloud/commit/9cc248e))
+* deposit null fix ([7de5d31](https://github.com/tradle/mycloud/commit/7de5d31))
 
 
 
