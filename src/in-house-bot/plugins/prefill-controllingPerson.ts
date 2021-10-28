@@ -58,7 +58,13 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       }
       let formRequest:any = {[TYPE]: FORM_REQUEST, form: CONTROLLING_PERSON}
       await this.getCP({ application, formRequest, req: !isDataBundleSubmitted && req }) 
-      if (!formRequest.prefill) return
+      if (!formRequest.prefill) {
+        await bot.sendSimpleMessage({
+          to: user,
+          message: 'You submitted all of the Controlling Entities'
+        });        
+        return
+      }
       await applications.requestItem({
         item: formRequest,
         application,
