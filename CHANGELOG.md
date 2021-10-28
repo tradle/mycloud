@@ -2,17 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.0](https://github.com/tradle/mycloud/compare/v3.1.0...v3.1.1-rc.0) (2021-10-28)
-
-
-### Bug Fixes
-
-* white glove broke with KYC refresh features :) ([5a9ee35](https://github.com/tradle/mycloud/commit/5a9ee35))
-
-
-### Features
-
-* KYC refresh - notify client when all additional CPs were submitted ([dd523fc](https://github.com/tradle/mycloud/commit/dd523fc))
+## [3.1.1-rc.1](https://github.com/tradle/mycloud/compare/v3.1.1-rc.0...v3.1.1-rc.1) (2021-10-28)
 
 
 
