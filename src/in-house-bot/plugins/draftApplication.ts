@@ -7,7 +7,6 @@ export const name = 'draftApplication'
 
 const APPLICATION = 'tradle.Application'
 const PRODUCT_BUNDLE = 'tradle.ProductBundle'
-const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 
 const exclude = [
   'tradle.ProductRequest',
@@ -49,9 +48,15 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       if (!application.forms || application.forms.length <= 1) {
         let pr = await bot.getResource(application.request)
-        if (pr.bundleId  &&  pr.bundleId.split('_') === PRODUCT_BUNDLE) {
-          // debugger
-          return [PRODUCT_BUNDLE].concat(bot.models[pr.requestFor].forms)
+        const { bundleId } = pr
+        if (bundleId) {
+          try {
+            let bundle  = await bot.getResource({_link: bundleId, _permalink: bundleId, _t: PRODUCT_BUNDLE})
+            if (bundle)
+              return [PRODUCT_BUNDLE].concat(bot.models[pr.requestFor].forms)
+          } catch (err) {
+            debugger
+          }
         }
       }
     },
