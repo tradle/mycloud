@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { Bot, Logger, CreatePlugin, IPluginLifecycleMethods } from '../types'
+import { CreatePlugin, IPluginLifecycleMethods } from '../types'
 import { TYPE } from '@tradle/constants'
 import { sendConfirmationEmail } from '../email-utils'
 
@@ -39,7 +39,7 @@ const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
 
 export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
   let { bot } = components
-  let { logger, conf } = pluginOpts
+  let { conf } = pluginOpts
   const senderEmail = conf.senderEmail || components.conf.bot.senderEmail
 
   const plugin: IPluginLifecycleMethods = {

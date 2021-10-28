@@ -634,7 +634,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         )
         beneficialOwners = uniqBy(beneficialOwners, 'data.name')
       }
-      let legalEntity
       for (let i = 0; i < beneficialOwners.length; i++) {
         let bene = beneficialOwners[i]
         let { data } = bene
@@ -706,73 +705,3 @@ function getCountryByTitle(country, models) {
     }
   )
 }
-// const beneTest = [
-//   {
-//     company_number: '06415759',
-//     data: {
-//       address: {
-//         address_line_1: '1 Goose Green',
-//         country: 'England',
-//         locality: 'Altrincham',
-//         postal_code: 'WA14 1DW',
-//         premises: 'Corpacq House'
-//       },
-//       etag: 'e5e6a05c5484ce25fca9884bb833d47c1fb1e0b4',
-//       identification: {
-//         country_registered: 'England',
-//         legal_authority: 'Companies Act 2006',
-//         legal_form: 'Private Company Limited By Shares',
-//         place_registered: 'Register Of Companies For England And Wales',
-//         registration_number: '11090838'
-//       },
-//       kind: 'corporate-entity-person-with-significant-control',
-//       links: {
-//         self:
-//           '/company/06415759/persons-with-significant-control/corporate-entity/c3JdMtrhD9Z17jLydOWsp6YVh9w'
-//       },
-//       name: 'Beyondnewcol Limited',
-//       natures_of_control: [
-//         'ownership-of-shares-75-to-100-percent',
-//         'voting-rights-75-to-100-percent',
-//         'right-to-appoint-and-remove-directors'
-//       ],
-//       notified_on: '2019-06-27'
-//     }
-//   },
-//   {
-//     company_number: '12134701',
-//     data: {
-//       address: {
-//         address_line_1: 'Bell Yard',
-//         country: 'United Kingdom',
-//         locality: 'London',
-//         postal_code: 'WC2A 2JR',
-//         premises: '7'
-//       },
-//       country_of_residence: 'United Kingdom',
-//       date_of_birth: {
-//         month: 3,
-//         year: 1966
-//       },
-//       etag: 'a46e27e4284b75c2a6a2b6a122df6b1abee4e13d',
-//       kind: 'individual-person-with-significant-control',
-//       links: {
-//         self:
-//           '/company/12134701/persons-with-significant-control/individual/fXEREOeTBLPNqrAK3ylzPr3w73Q'
-//       },
-//       name: 'Miss Joana Castellet',
-//       name_elements: {
-//         forename: 'Joana',
-//         surname: 'Castellet',
-//         title: 'Miss'
-//       },
-//       nationality: 'Spanish',
-//       natures_of_control: [
-//         'ownership-of-shares-75-to-100-percent',
-//         'voting-rights-75-to-100-percent',
-//         'right-to-appoint-and-remove-directors'
-//       ],
-//       notified_on: '2019-08-01'
-//     }
-//   }
-// ]
