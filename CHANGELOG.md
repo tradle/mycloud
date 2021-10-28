@@ -2,20 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [3.1.0](https://github.com/tradle/mycloud/compare/v3.0.1-rc.133...v3.1.0) (2021-10-27)
+## [3.1.1-rc.0](https://github.com/tradle/mycloud/compare/v3.1.0...v3.1.1-rc.0) (2021-10-28)
 
 
 ### Bug Fixes
 
-* commission fee 0 ([6c5f0b9](https://github.com/tradle/mycloud/commit/6c5f0b9))
-* extra form is added for refresh flow ([b3422ed](https://github.com/tradle/mycloud/commit/b3422ed))
-* matching company name with special chars ([a7e2708](https://github.com/tradle/mycloud/commit/a7e2708))
-* no t&c on remediation for now ([0e85d2e](https://github.com/tradle/mycloud/commit/0e85d2e))
+* white glove broke with KYC refresh features :) ([5a9ee35](https://github.com/tradle/mycloud/commit/5a9ee35))
 
 
 ### Features
 
-* KYC utility requesting additional CPs not present in bundle ([04a671f](https://github.com/tradle/mycloud/commit/04a671f))
+* KYC refresh - notify client when all additional CPs were submitted ([dd523fc](https://github.com/tradle/mycloud/commit/dd523fc))
 
 
 
