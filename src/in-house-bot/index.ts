@@ -965,11 +965,12 @@ const banter = (components: IBotComponents) => {
       to: user,
       object: {
         [TYPE]: 'tradle.SimpleMessage',
-        message: `Sorry, I'm not that smart yet!
+        message: 'Thank you for your message! Customer representative will be with you shortly!'
+//         message: `Sorry, I'm not that smart yet!
 
-If you start a product application, I'll see if I can get someone to help you.
+// If you start a product application, I'll see if I can get someone to help you.
 
-${PRODUCT_LIST_MENU_MESSAGE}`
+// ${PRODUCT_LIST_MENU_MESSAGE}`
       }
     })
   }
