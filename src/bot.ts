@@ -796,7 +796,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
     if (this.isLocal) {
       const yml = require('./serverless-interpolated')
-      const webPort = _.get(yml, 'custom.vars.local.webAppPort', 55555)
+      const webPort = _.get(yml, 'custom.vars.local.webAppPort', 55554)
       this.appLinks = createLinker({
         web: this.apiBaseUrl.replace(
           /http:\/\/\d+\.\d+.\d+\.\d+:\d+/,

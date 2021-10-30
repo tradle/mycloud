@@ -387,13 +387,9 @@ export class Deployment {
     const stage = template.Parameters.Stage.Default
     this.logger.debug('generated cloudformation template for child deployment')
     const { deploymentUUID } = template.Mappings.deployment.init
-    // const promiseTmpTopic = this._setupStackStatusAlerts({
-    //   id: deploymentUUID,
-    //   type: StackOperationType.create
-    // })
 
     const configuredBy = await this.bot.identities.byPermalink(configuration._author)
-    const childDeploymentRes = await this.bot
+    await this.bot
       .draft({ type: CHILD_DEPLOYMENT })
       .set({
         configuration,
@@ -402,7 +398,6 @@ export class Deployment {
       })
       .signAndSave()
 
-    // this.logger.debug('generated deployment tracker for child deployment', { uuid })
     return {
       template,
       url: stackUtils.getLaunchStackUrl({
@@ -410,7 +405,6 @@ export class Deployment {
         region: configuration.region,
         templateUrl
       })
-      // snsTopic: (await promiseTmpTopic).topic
     }
   }
 

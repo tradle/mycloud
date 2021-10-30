@@ -39,6 +39,6 @@
     "apiUrl": "http://localhost:10007/api/share"
   },
   "local": {
-    "webAppPort": 55555
+    "webAppPort": 55554
   }
 }
