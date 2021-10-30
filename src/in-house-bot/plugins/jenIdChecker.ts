@@ -34,7 +34,7 @@ const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 
 const PROVIDER = 'jenID Solutions GmbH.'
 
-const CLIENT_ID = '127.0.0.1:55555'
+const CLIENT_ID = '127.0.0.1:55554'
 
 const API_URL = 'https://www.checkid.online/inspectionjob/'
 

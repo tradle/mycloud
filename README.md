@@ -34,6 +34,7 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [Explore the Architecture](#explore-the-architecture)
     - [List deployed resources, API endpoints, ...](#list-deployed-resources-api-endpoints-)
 - [Development](#development)
+  - [Inspect / Debugger mode](#inspect--debugger-mode)
   - [serverless.yml](#serverlessyml)
   - [Testing](#testing)
   - [Hot re-loading](#hot-re-loading)
@@ -182,7 +183,7 @@ The first time you start the playground, Docker will pull the necessary images f
 npm start
 ```
 
-Now open your browser to [http://localhost:55555](http://localhost:55555). If 55555 is already your favorite port for something else, you can change the port in [./docker/docker-compose-localstack.yml](./docker/docker-compose-localstack.yml).
+Now open your browser to [http://localhost:55554](http://localhost:55554). If 55554 is already your favorite port for something else, you can change the port in [./docker/docker-compose-localstack.yml](./docker/docker-compose-localstack.yml).
 
 If you don't see your local provider, click the red menu button on the Conversations screen, choose "Add Server Url" and add `http://localhost:21012`
 
