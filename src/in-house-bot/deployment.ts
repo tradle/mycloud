@@ -1088,7 +1088,7 @@ ${this.genUsageInstructions(links)}`
 
   // if you change this, change relevant lambda IAM role statements in serverless-uncompiled.yml
   // look for -deploymentbucket-*
-  public getDeploymentBucketLogicalName = () => `${this._thisStackName}-deploymentbucket`
+  public getDeploymentBucketLogicalName = () => `${this.bot.stackUtils.thisStackName}-deploymentbucket`
 
   public getRegionalBucketName = (region: string) =>
     this.regionalS3.getRegionalBucketName({
@@ -1837,10 +1837,6 @@ ${this.genUsageInstructions(links)}`
 
   private _handleStackUpdateNonTradle = async (opts: CallHomeOpts) => {
     await Promise.all([this._saveMyDeploymentVersionInfo(), this.callHome(opts)])
-  }
-
-  private get _thisStackName() {
-    return this.bot.stackUtils.thisStackName
   }
 
   private _bucket = (name: string, region: string) => {
