@@ -155,7 +155,7 @@ const createMappingsForUpdate = (adminEmail?: string) => ({
   })
 })
 
-async function getCurrentAdminEmail (bot: Bot): Promise<string> {
+export async function getCurrentAdminEmail (bot: Bot): Promise<string> {
   const { aws, stackUtils } = bot
   const resources = await stackUtils.getStackResources()
   const { PhysicalResourceId } = resources.find((r) => {
