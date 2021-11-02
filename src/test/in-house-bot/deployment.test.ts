@@ -8,7 +8,7 @@ import sinon from 'sinon'
 import { TYPE } from '@tradle/constants'
 import fake from '@tradle/build-resource/fake'
 import buildResource from '@tradle/build-resource'
-import { Deployment } from '../../in-house-bot/deployment'
+import * as deployment from '../../in-house-bot/deployment'
 import * as utils from '../../utils'
 import Errors from '../../errors'
 import { createTestBot } from '../../'
@@ -21,6 +21,7 @@ const { loudAsync } = utils
 const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
 const TMP_SNS_TOPIC = 'tradle.cloud.TmpSNSTopic'
 const VERSION_INFO = 'tradle.cloud.VersionInfo'
+const { Deployment } = deployment
 
 test(
   'deployment by referral',
@@ -80,7 +81,7 @@ test(
       org: childOrg
   })
 
-  sandbox.stub(childDeployment, 'getCurrentAdminEmail').resolves(conf.adminEmail)
+  sandbox.stub(deployment, 'getCurrentAdminEmail').resolves(conf.adminEmail)
 
     const [childIdentity, parentIdentity] = await Promise.all([
     child.getMyIdentity(),
@@ -567,7 +568,7 @@ test(
     }
   })
 
-  sandbox.stub(childDeployment, 'getCurrentAdminEmail').resolves('child@mycloud.tradle.io')
+  sandbox.stub(deployment, 'getCurrentAdminEmail').resolves('child@mycloud.tradle.io')
 
   const getVIStub = sandbox.stub(tradleDeployment, 'getVersionInfoByTag').resolves(tradle.version)
   const endpointExistsStub = sandbox.stub(utils, 'doesHttpEndpointExist').resolves(true)
