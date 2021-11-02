@@ -7,10 +7,7 @@ import buildResource from '@tradle/build-resource'
 import { wrapBucket, Bucket } from '@tradle/aws-s3-client'
 
 import { S3Client } from '@tradle/aws-s3-client'
-import {
-  genSetDeliveryPolicyParams,
-  genCrossAccountPublishPermission
-} from '@tradle/aws-sns-client'
+import { genSetDeliveryPolicyParams } from '@tradle/aws-sns-client'
 import {
   getResourcesByType,
   getLambdaS3Keys,
@@ -21,7 +18,6 @@ import { TYPE, SIG, ORG, unitToMillis } from '../constants'
 import { TRADLE } from './constants'
 import { randomStringWithLength } from '../crypto'
 import baseModels from '../models'
-import { Alerts } from './alerts'
 import { createRegionalS3Client, RegionalS3Client } from './serverless-regional-s3'
 import {
   Env,
@@ -29,7 +25,6 @@ import {
   SNSUtils,
   Logger,
   ITradleObject,
-  IIdentity,
   IDeploymentConf,
   IMyDeploymentConf,
   IDeploymentConfForm,
@@ -77,7 +72,6 @@ const LAUNCH_MESSAGE = 'Launch your Tradle MyCloud'
 const ONLINE_MESSAGE = 'Your Tradle MyCloud is online!'
 const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
 const PARENT_DEPLOYMENT = 'tradle.cloud.ParentDeployment'
-const CONFIGURATION = 'tradle.cloud.Configuration'
 const AWS_REGION = 'tradle.cloud.AWSRegion'
 const TMP_SNS_TOPIC = 'tradle.cloud.TmpSNSTopic'
 const VERSION_INFO = 'tradle.cloud.VersionInfo'
@@ -105,7 +99,6 @@ const DEFAULT_LAUNCH_TEMPLATE_OPTS = {
       }
     ],
     signature: '{{fromOrg.name}} Team'
-    // twitter: 'tradles'
   }
 }
 
@@ -119,7 +112,6 @@ const DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS = {
       { body: 'Give <a href="{{employeeOnboarding}}">this link</a> to employees' }
     ],
     signature: '{{fromOrg.name}} Team'
-    // twitter: 'tradles'
   }
 }
 
@@ -184,13 +176,6 @@ type ChildStackIdentifier = {
   stackOwner: string
   stackId: string
 }
-
-// interface IUpdateChildDeploymentOpts {
-//   apiUrl?: string
-//   deploymentUUID?: string
-//   identity?: ResourceStub
-//   stackId?: string
-// }
 
 interface INotifyCreatorsOpts {
   configuration: ITradleObject
@@ -315,7 +300,6 @@ export class Deployment {
   }
 
   private callHomeDisabled: boolean
-  private opts: DeploymentCtorOpts
   constructor(opts: DeploymentCtorOpts) {
     const { bot, logger, conf, org, disableCallHome } = opts
 
@@ -328,7 +312,6 @@ export class Deployment {
     this.org = org
     this.isTradle = org && isProbablyTradle({ org })
     this.callHomeDisabled = this.isTradle || !!disableCallHome
-    this.opts = opts
     this.regionalS3 = createRegionalS3Client({
       clients: bot.aws,
       iamClient: bot.iamClient,
@@ -338,30 +321,6 @@ export class Deployment {
       logger
     })
   }
-
-  // const onForm = async ({ bot, user, type, wrapper, currentApplication }) => {
-  //   if (type !== CONFIGURATION) return
-  //   if (!currentApplication || currentApplication.requestFor !== DEPLOYMENT_PRODUCT) return
-
-  //   const { object } = wrapper.payload
-  //   const { domain } = object
-  //   try {
-  //     await getLogo({ domain })
-  //   } catch (err) {
-  //     const message = `couldn't process your logo!`
-  //     await bot.requestEdit({
-  //       user,
-  //       item: object,
-  //       message,
-  //       errors: [
-  //         {
-  //           name: 'domain',
-  //           error: message
-  //         }
-  //       ]
-  //     })
-  //   }
-  // }
 
   public genLaunchPackage = async (configuration: IDeploymentConf) => {
     const { stackUtils, s3Utils } = this.bot
@@ -501,7 +460,7 @@ export class Deployment {
       bucket
     })
 
-    const { templateUrl, code } = await this._saveTemplateAndCode({
+    const { templateUrl } = await this._saveTemplateAndCode({
       parentTemplate,
       template,
       bucket,
@@ -733,7 +692,6 @@ export class Deployment {
   }
 
   public handleStackUpdate = async (opts?: StackDeploymentInfo) => {
-    const { bot, logger, conf } = this
     if (this.isTradle) {
       await this._handleStackUpdateTradle()
       return
@@ -979,7 +937,7 @@ ${this.genUsageInstructions(links)}`
     template.Description = `MyCloud, by Tradle`
     domain = utils.normalizeDomain(domain)
 
-    const { Resources, Mappings, Parameters } = template
+    const { Mappings } = template
     const { deployment } = Mappings
     const logoPromise = getLogo(configuration).catch((err) => {
       this.logger.warn('failed to get logo', { domain })
@@ -1002,7 +960,6 @@ ${this.genUsageInstructions(links)}`
     })
 
     Deployment.ensureInitLogIsRetained(template)
-    // this._setLambdaCodePointers({ template, bucket })
     return template
   }
 
@@ -1030,7 +987,6 @@ ${this.genUsageInstructions(links)}`
     })
 
     Deployment.ensureInitLogIsRetained(template)
-    // this._setLambdaCodePointers({ template, bucket })
     return template
   }
 
@@ -1128,10 +1084,6 @@ ${this.genUsageInstructions(links)}`
       .set({ status })
       .version()
       .signAndSave()
-
-    // if (status === 'CREATE_COMPLETE' || status === 'UPDATE_COMPLETE') {
-    //   await this.snsUtils.unsubscribe(subscriptionArn)
-    // }
 
     return updated
   }
@@ -1231,7 +1183,6 @@ ${this.genUsageInstructions(links)}`
   }) => {
     let keys: string[] = Deployment.getS3DependencyKeys(template)
 
-    // const source = this.deploymentBucket
     const source = this._bucket(this.deploymentBucket.id, region)
     if (bucket === source.id) {
       // TODO:
@@ -1294,29 +1245,6 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  // public updateOwnStack = async ({
-  //   templateUrl,
-  //   notificationTopics = []
-  // }: {
-  //   templateUrl: string
-  //   notificationTopics?: string[]
-  // }) => {
-  //   await this.bot.lambdaUtils.invoke({
-  //     name: 'updateStack',
-  //     arg: { templateUrl, notificationTopics }
-  //   })
-  // }
-
-  // public requestUpdate = async () => {
-  //   const parent = await this.getParentDeployment()
-  //   return this.requestUpdateFromProvider({
-  //     provider: parent.parentIdentity._permalink,
-  //     version: {
-  //       tag: 'latest'
-  //     }
-  //   })
-  // }
-
   public requestUpdateFromTradle = async (
     {
       tag
@@ -1351,11 +1279,6 @@ ${this.genUsageInstructions(links)}`
   public draftUpdateRequest = (opts) => {
     utils.requireOpts(opts, ['tag', 'provider'])
 
-    // if (parent[TYPE] !== PARENT_DEPLOYMENT) {
-    //   throw new Errors.InvalidInput(`expected "parent" to be tradle.MyCloudFriend`)
-    // }
-
-    // const { parentIdentity } = parent
     const { env } = this.bot
     return this.bot
       .draft({ type: UPDATE_REQUEST })
@@ -1379,19 +1302,7 @@ ${this.genUsageInstructions(links)}`
       )
     }
 
-    // if (utils.compareTags(req.tag, '2.0.0') < 0) {
-    //   this.logger.debug('using deployment-v1 to generate template')
-    //   const { createDeployment } = require('./deployment-v1')
-    //   const v1 = createDeployment(this.opts)
-    //   return v1.handleUpdateRequest({ req, from })
-    // }
-
     utils.requireOpts(req, ['stackId', 'tag'])
-
-    // if (req.currentCommit === this.bot.version.commit) {
-    //   this.logger.debug('child is up to date')
-    //   throw new Errors.Exists(`already up to date`)
-    // }
 
     const [versionInfo, myPermalink] = await Promise.all([
       this.getVersionInfoByTag(req.tag),
@@ -1818,14 +1729,6 @@ ${this.genUsageInstructions(links)}`
     await this.bot.lambdaUtils.allowSNSToInvoke(lambda)
   }
 
-  private _subscribeEmailToTopic = async ({ email, topic }) => {
-    return await this.snsUtils.subscribeIfNotSubscribed({
-      topic,
-      protocol: 'email',
-      target: email
-    })
-  }
-
   private _subscribeLambdaToTopic = async ({ lambda, topic }) => {
     return await this.snsUtils.subscribeIfNotSubscribed({
       topic,
@@ -1951,7 +1854,6 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _bucket = (name: string, region: string) => {
-    // const { bot } = this
     const { env } = this.bot
     this.logger.debug(`bucket class instance for region: ${region}`)
     const config = createConfig({
@@ -1968,8 +1870,6 @@ ${this.genUsageInstructions(links)}`
     })
   }
 }
-
-const getArnRegion = (arn: string) => utils.parseArn(arn).region
 
 export const getCrossAccountLambdaRole = ({
   stackId,
