@@ -177,6 +177,15 @@ async function getCurrentAdminEmail (bot: Bot): Promise<string> {
   return params.OrgAdminEmail
 }
 
+function genLaunchedEmail (conf, values) {
+  const renderConf = _.get(conf, 'templates.launched')
+  const opts = _.defaults(renderConf, DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS)
+  return {
+    subject: ONLINE_MESSAGE,
+    body: Templates.renderEmailBody({ ...opts, values })
+  }
+}
+
 type CodeLocation = {
   bucket: Bucket
   keys: string[]
@@ -869,7 +878,7 @@ ${getAppLinksInstructions(links)}`
           from: this.conf.senderEmail,
           to: _.uniq([hrEmail, adminEmail]),
           format: 'html',
-          ...this.genLaunchedEmail({ ...links, fromOrg: this.org })
+          ...genLaunchedEmail(this.conf, { ...links, fromOrg: this.org })
         })
         .catch((err) => {
           this.logger.error('failed to email creators', err)
@@ -890,15 +899,6 @@ ${getAppLinksInstructions(links)}`
     const opts = _.defaults(renderConf, DEFAULT_LAUNCH_TEMPLATE_OPTS)
     return {
       subject: LAUNCH_MESSAGE,
-      body: Templates.renderEmailBody({ ...opts, values })
-    }
-  }
-
-  private genLaunchedEmail (values) {
-    const renderConf = _.get(this.conf, 'templates.launched')
-    const opts = _.defaults(renderConf, DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS)
-    return {
-      subject: ONLINE_MESSAGE,
       body: Templates.renderEmailBody({ ...opts, values })
     }
   }
