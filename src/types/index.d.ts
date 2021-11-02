@@ -443,12 +443,20 @@ export type ModelsPack = {
   versionId?: string
 }
 
-export interface ISettledPromise<T> {
-  isFulfilled: boolean
-  isRejected: boolean
-  value?: T
-  reason?: Error
+export interface ISettleError {
+  isFulfilled: false
+  isRejected: true
+  reason: Error
 }
+export interface ISettleResult<T> {
+  isFulfilled: true
+  isRejected: false
+  value: T
+}
+
+export type ISettled<T> = ISettleError | ISettleResult<T>
+
+export type ISettledPromise<T> = Promise<ISettled<T>>
 
 export interface IBucketInfo {
   length?: (obj: any) => number
