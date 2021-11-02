@@ -668,7 +668,7 @@ export class Deployment {
       apiUrl: this.bot.apiBaseUrl,
       org,
       identity,
-      stackId: this._thisStackArn,
+      stackId: this.bot.stackUtils.thisStackId,
       version: this.bot.version,
       adminEmail
     }) as ICallHomePayload
@@ -1285,7 +1285,7 @@ ${this.genUsageInstructions(links)}`
           service: 'tradle',
           stage: env.STACK_STAGE,
           region: env.AWS_REGION,
-          stackId: this._thisStackArn,
+          stackId: this.bot.stackUtils.thisStackId,
           blockchain: Deployment.encodeBlockchainEnumValue(this.bot.blockchain.toString()),
           ...opts
         })
@@ -1824,7 +1824,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _handleStackUpdateTradle = async () => {
-    const monitorSelf = this._setupLoggingAlerts({ stackId: this._thisStackArn })
+    const monitorSelf = this._setupLoggingAlerts({ stackId: this.bot.stackUtils.thisStackId })
     if (this.bot.version.commitsSinceTag > 0) {
       this.logger.debug(`not saving deployment version as I'm between versions`, this.bot.version)
       await monitorSelf
@@ -1837,10 +1837,6 @@ ${this.genUsageInstructions(links)}`
 
   private _handleStackUpdateNonTradle = async (opts: CallHomeOpts) => {
     await Promise.all([this._saveMyDeploymentVersionInfo(), this.callHome(opts)])
-  }
-
-  private get _thisStackArn() {
-    return this.bot.stackUtils.thisStackId
   }
 
   private get _thisStackName() {
