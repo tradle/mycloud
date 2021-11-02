@@ -68,7 +68,7 @@
     "gen:localstack": "node ./lib/scripts/gen-local-stack.js",
     "gen:resourcedefs": "node ./lib/scripts/gen-resource-defs.js",
     "gen:modelmap": "node ./lib/scripts/map-models-to-buckets.js",
-    "gen:versioninfo": "./lib/scripts/gen-version-info.js > lib/version.json",
+    "gen:versioninfo": "./lib/scripts/gen-version-info.js | tee src/version.json > lib/version.json",
     "eslint": "eslint --quiet --ignore-pattern 'src/**/*' .",
     "jslint": "npm run eslint",
     "setup:local": "./src/scripts/setup-local.sh",
