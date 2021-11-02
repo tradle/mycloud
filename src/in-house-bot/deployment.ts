@@ -1158,7 +1158,7 @@ ${this.genUsageInstructions(links)}`
 
     const target = this._bucket(bucket, region)
     const exists = await Promise.all(keys.map((key) => target.exists(key)))
-    keys = keys.filter((key, i) => !exists[i])
+    keys = keys.filter((_key, i) => !exists[i])
 
     if (!keys.length) {
       this.logger.debug('target bucket already has s3 dependencies')
@@ -1175,7 +1175,6 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _saveTemplateAndCode = async ({
-    parentTemplate,
     template,
     bucket,
     region
@@ -1673,7 +1672,7 @@ ${this.genUsageInstructions(links)}`
   private _subscribeToChildStackLoggingAlerts = async (topic: string) => {
     const lambda = this.bot.env.getLambdaArn(LOG_ALERTS_PROCESSOR_LAMBDA_NAME)
     const subscribe = this._subscribeLambdaToTopic({ topic, lambda })
-    const allow = this._allowSNSToCallLambda({ topic, lambda })
+    const allow = this._allowSNSToCallLambda({ lambda })
     const [subscription] = await Promise.all([subscribe, allow])
     return {
       lambda,
@@ -1818,7 +1817,7 @@ ${this.genUsageInstructions(links)}`
     })
     return wrapBucket({
       bucket: name,
-      client: s3Client // bot.s3Utils
+      client: s3Client
     })
   }
 }
