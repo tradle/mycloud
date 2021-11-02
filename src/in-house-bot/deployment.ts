@@ -1879,7 +1879,6 @@ const getStackUpdateTopicName = ({ stackOwner, stackId }: ChildStackIdentifier) 
   return `${name}-stack-status-${stackOwner.slice(0, 10)}`
 }
 
-// const getTmpTopicExpirationDate = () => Date.now() + TMP_SNS_TOPIC_TTL
 const getStackUpdateTopicExpirationDate = () => Date.now() + UPDATE_TOPIC_TTL
 const getLogAlertsTopicExpirationDate = () => Date.now() + LOG_TOPIC_TTL
 
