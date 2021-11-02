@@ -155,6 +155,28 @@ const createMappingsForUpdate = (adminEmail?: string) => ({
   })
 })
 
+async function getCurrentAdminEmail (bot: Bot): Promise<string> {
+  const { aws, stackUtils } = bot
+  const resources = await stackUtils.getStackResources()
+  const { PhysicalResourceId } = resources.find((r) => {
+    return r.ResourceType === 'AWS::SNS::Topic' && r.LogicalResourceId === 'AwsAlertsAlarm'
+  })
+
+  const { Subscriptions } = await aws.sns
+    .listSubscriptionsByTopic({
+      TopicArn: PhysicalResourceId
+    })
+    .promise()
+
+  const emails = Subscriptions.filter((s) => s.Protocol === 'email')
+  if (emails.length) {
+    return emails[0].Endpoint
+  }
+
+  const params = await stackUtils.getStackParameterValues()
+  return params.OrgAdminEmail
+}
+
 type CodeLocation = {
   bucket: Bucket
   keys: string[]
@@ -1227,7 +1249,7 @@ ${this.genUsageInstructions(links)}`
     provider: ResourceStub
     tag: string
   }) => {
-    const adminEmail = await this.getCurrentAdminEmail()
+    const adminEmail = await getCurrentAdminEmail(this.bot)
     const updateReq = this.draftUpdateRequest({
       adminEmail,
       tag,
@@ -1532,28 +1554,6 @@ ${this.genUsageInstructions(links)}`
     return true
   }
 
-  public getCurrentAdminEmail = async (): Promise<string> => {
-    const { aws, stackUtils } = this.bot
-    const resources = await stackUtils.getStackResources()
-    const { PhysicalResourceId } = resources.find((r) => {
-      return r.ResourceType === 'AWS::SNS::Topic' && r.LogicalResourceId === 'AwsAlertsAlarm'
-    })
-
-    const { Subscriptions } = await aws.sns
-      .listSubscriptionsByTopic({
-        TopicArn: PhysicalResourceId
-      })
-      .promise()
-
-    const emails = Subscriptions.filter((s) => s.Protocol === 'email')
-    if (emails.length) {
-      return emails[0].Endpoint
-    }
-
-    const params = await stackUtils.getStackParameterValues()
-    return params.OrgAdminEmail
-  }
-
   private _getLatestStableVersionInfoNew = async (): Promise<VersionInfo> => {
     return await this.bot.db.findOne({
       orderBy: {
@@ -1578,7 +1578,7 @@ ${this.genUsageInstructions(links)}`
       ...opts,
       org: opts.org || this.org,
       identity: opts.identity || this.bot.getMyIdentity(),
-      adminEmail: opts.adminEmail || this.getCurrentAdminEmail()
+      adminEmail: opts.adminEmail || getCurrentAdminEmail(this.bot)
     })
   }
 
