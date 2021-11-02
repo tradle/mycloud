@@ -216,7 +216,6 @@ export class Deployment {
   // exposed for testing
   private bot: Bot
   private snsUtils: SNSUtils
-  private env: Env
   private deploymentBucket: Bucket
   private logger: Logger
   private conf?: IDeploymentPluginConf
@@ -305,7 +304,6 @@ export class Deployment {
 
     this.bot = bot
     this.snsUtils = bot.snsUtils
-    this.env = bot.env
     this.logger = logger
     this.deploymentBucket = bot.buckets.ServerlessDeployment
     this.conf = conf
@@ -1099,7 +1097,7 @@ ${this.genUsageInstructions(links)}`
     })
 
   public getDeploymentBucketForRegion = async (region: string) => {
-    if (region === this._thisRegion) {
+    if (region === this.bot.env.AWS_REGION) {
       return this.deploymentBucket.id
     }
 
@@ -1286,7 +1284,7 @@ ${this.genUsageInstructions(links)}`
         utils.pickNonNull({
           service: 'tradle',
           stage: env.STACK_STAGE,
-          region: this._thisRegion,
+          region: env.AWS_REGION,
           stackId: this._thisStackArn,
           blockchain: Deployment.encodeBlockchainEnumValue(this.bot.blockchain.toString()),
           ...opts
@@ -1847,10 +1845,6 @@ ${this.genUsageInstructions(links)}`
 
   private get _thisStackName() {
     return this.bot.stackUtils.thisStackName
-  }
-
-  private get _thisRegion() {
-    return this.env.REGION
   }
 
   private _bucket = (name: string, region: string) => {
