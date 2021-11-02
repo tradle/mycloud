@@ -881,31 +881,27 @@ ${this.genUsageInstructions(links)}`
     if (firstErr) throw firstErr
   }
 
-  public genLaunchEmailBody = (values) => {
-    const renderConf = _.get(this.conf || {}, 'templates.launch') || {}
-    const opts = _.defaults(renderConf, DEFAULT_LAUNCH_TEMPLATE_OPTS)
-    return this.genEmailBody({ ...opts, values })
-  }
-
-  public genLaunchedEmailBody = (values) => {
-    const renderConf = _.get(this.conf || {}, 'templates.launched') || {}
-    const opts = _.defaults(renderConf, DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS)
-    return this.genEmailBody({ ...opts, values })
-  }
-
-  public genEmailBody = ({ template, data, values }) => {
+  private genEmailBody = ({ template, data, values }) => {
     return Templates.email[template](Templates.renderData(data, values))
   }
 
-  public genLaunchEmail = (opts) => ({
-    subject: LAUNCH_MESSAGE,
-    body: this.genLaunchEmailBody(opts)
-  })
+  public genLaunchEmail = (values) => {
+    const renderConf = _.get(this.conf || {}, 'templates.launch') || {}
+    const opts = _.defaults(renderConf, DEFAULT_LAUNCH_TEMPLATE_OPTS)
+    return {
+      subject: LAUNCH_MESSAGE,
+      body: this.genEmailBody({ ...opts, values })
+    }
+  }
 
-  public genLaunchedEmail = (opts) => ({
-    subject: ONLINE_MESSAGE,
-    body: this.genLaunchedEmailBody(opts)
-  })
+  public genLaunchedEmail = (values) => {
+    const renderConf = _.get(this.conf || {}, 'templates.launched') || {}
+    const opts = _.defaults(renderConf, DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS)
+    return {
+      subject: ONLINE_MESSAGE,
+      body: this.genEmailBody({ ...opts, values })
+    }
+  }
 
   public genUsageInstructions = getAppLinksInstructions
 
