@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
     "preserveConstEnums": true,
     "sourceMap": true,
@@ -7,6 +8,9 @@
     "moduleResolution": "node",
     "esModuleInterop": true,
     "removeComments": true,
+    "incremental": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
     "outDir": "lib",
     "lib": [
       "dom",
