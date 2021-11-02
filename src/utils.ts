@@ -155,14 +155,14 @@ export const runWithTimeout = async <T>(fn: () => Promise<T>, opts: ITimeoutOpts
 export const settle = <T>(promise: Promise<T>): ISettledPromise<T> => {
   return promise
     .then(value => ({
-      isFulfilled: true,
-      isRejected: false,
-      value
+        isFulfilled: true,
+        isRejected: false,
+        value
     }))
     .catch(reason => ({
-      isFulfilled: false,
-      isRejected: true,
-      reason
+        isFulfilled: false,
+        isRejected: true,
+        reason
     }))
 }
 
@@ -1307,7 +1307,7 @@ export const extendTradleObject = (a, b) => {
 }
 
 export const getStubsByType = (stubs: ResourceStub[], type: string): ParsedResourceStub[] => {
-  return stubs.map(parseStub).filter((parsed) => parsed.type === type)
+  return stubs.map(parseStub).filter(parsed => (parsed as ParsedResourceStub).type === type)
 }
 
 export const isUnsignedType = (modelId) => UNSIGNED_TYPES.includes(modelId)
