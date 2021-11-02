@@ -186,6 +186,29 @@ function genLaunchedEmail (conf, values) {
   }
 }
 
+async function notifyConfigurer (bot: Bot, {
+  configurer,
+  links
+}: {
+  links: IAppLinkSet
+  configurer: string
+}) {
+  const configurerUser = await bot.users.get(configurer)
+
+  let message
+  if (isEmployee({ user: configurerUser })) {
+    const someLinks = _.omit(links, 'employeeOnboarding')
+    message = `The MyCloud you drafted has been launched\n\n${getAppLinksInstructions(someLinks)}`
+  } else {
+    message = `${ONLINE_MESSAGE}\n\n${getAppLinksInstructions(links)}`
+  }
+
+  await bot.sendSimpleMessage({
+    to: configurerUser,
+    message
+  })
+}
+
 type CodeLocation = {
   bucket: Bucket
   keys: string[]
@@ -194,12 +217,6 @@ type CodeLocation = {
 type ChildStackIdentifier = {
   stackOwner: string
   stackId: string
-}
-
-interface INotifyCreatorsOpts {
-  configuration: ITradleObject
-  apiUrl: string
-  identity: ResourceStub
 }
 
 interface DeploymentCtorOpts {
@@ -822,76 +839,53 @@ export class Deployment {
       .signAndSave()
   }
 
-  public notifyConfigurer = async ({
-    configurer,
-    links
-  }: {
-    links: IAppLinkSet
-    configurer: string
-  }) => {
-    const configurerUser = await this.bot.users.get(configurer)
-
-    let message
-    if (isEmployee({ user: configurerUser })) {
-      const someLinks = _.omit(links, 'employeeOnboarding')
-      message = `The MyCloud you drafted has been launched
-
-${getAppLinksInstructions(someLinks)}`
-    } else {
-      message = `${ONLINE_MESSAGE}
-
-${getAppLinksInstructions(links)}`
-    }
-
-    await this.bot.sendSimpleMessage({
-      to: configurerUser,
-      message
-    })
-  }
-
   public notifyCreatorsOfChildDeployment = async (childDeployment) => {
     const { apiUrl, identity } = childDeployment
-    const configuration = await this.bot.getResource(childDeployment.configuration)
-    // stall till 10000 before time's up
-    await this.bot.stall({ buffer: 10000 })
-    await this.notifyCreators({ configuration, apiUrl, identity })
-  }
+    const { bot, logger, conf, org } = this
 
-  public notifyCreators = async ({ configuration, apiUrl, identity }: INotifyCreatorsOpts) => {
-    this.logger.debug('attempting to notify of stack launch')
+    const configuration = await bot.getResource(childDeployment.configuration)
+    // stall till 10000 before time's up
+    await bot.stall({ buffer: 10000 })
+
+    logger.debug('attempting to notify of stack launch')
     const { hrEmail, adminEmail, _author } = configuration as IDeploymentConfForm
 
-    const botPermalink = buildResource.permalink(identity)
-    const links = getAppLinks({ bot: this.bot, host: apiUrl, permalink: botPermalink })
-    const notifyConfigurer = this.notifyConfigurer({
+    const links = getAppLinks({ bot, host: apiUrl, permalink: buildResource.permalink(identity) })
+
+    await utils.allSettledReject([
+      notify(),
+      sendEmail()
+    ])
+
+    async function notify () {
+      try {
+        await notifyConfigurer(bot, {
       configurer: _author,
       links
-    }).catch((err) => {
-      this.logger.error('failed to send message to creator', err)
-      Errors.rethrow(err, 'developer')
     })
-
-    let emailAdmin
-    if (this.conf.senderEmail) {
-      emailAdmin = this.bot.mailer
-        .send({
-          from: this.conf.senderEmail,
-          to: _.uniq([hrEmail, adminEmail]),
-          format: 'html',
-          ...genLaunchedEmail(this.conf, { ...links, fromOrg: this.org })
-        })
-        .catch((err) => {
-          this.logger.error('failed to email creators', err)
-          Errors.rethrow(err, 'developer')
-        })
-    } else {
-      emailAdmin = Promise.resolve()
-      this.logger.debug(NO_SENDER_EMAIL)
+      } catch (err) {
+        logger.error('failed to send message to creator', err)
+        Errors.rethrow(err, 'developer')
+      }
     }
 
-    const results = await utils.allSettled([notifyConfigurer, emailAdmin])
-    const firstErr = results.find((result) => result.reason)
-    if (firstErr) throw firstErr
+    async function sendEmail() {
+      if (!conf.senderEmail) {
+        logger.debug(NO_SENDER_EMAIL)
+        return
+      }
+      try {
+        await bot.mailer.send({
+          from: conf.senderEmail,
+          to: _.uniq([hrEmail, adminEmail]),
+          format: 'html',
+          ...genLaunchedEmail(conf, { ...links, fromOrg: org })
+        })
+      } catch (err) {
+        logger.error('failed to email creators', err)
+          Errors.rethrow(err, 'developer')
+    }
+    }
   }
 
   public genLaunchEmail (values) {
