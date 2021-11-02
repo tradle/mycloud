@@ -1,50 +1,48 @@
 #!/usr/bin/env node
 
-import proc from 'child_process'
+import { exec } from 'child_process'
+import { promisify } from 'util'
 import { StackUtils } from '../aws/stack-utils'
 import { getVar } from '../cli/get-template-var'
 import { toSortableTag } from '../utils'
 
-const exec = (cmd: string) => proc.execSync(cmd, { encoding: 'utf8' }).trim()
-const commit = exec(`git rev-parse HEAD`).slice(0, 8)
-const { version } = require('../../package.json')
-let [tag, commitsSinceTag] = exec(`git describe --long`)
-  .match(/^(.*?)-(\d+)-g([^-]+)$/)
-  .slice(1)
-
-tag = tag.replace(/^v/, '')
-
-const branch = exec(`git symbolic-ref --short HEAD`)
-const info = {
-  commit,
-  commitsSinceTag: parseInt(commitsSinceTag, 10),
-  tag,
-  sortableTag: toSortableTag(tag),
-  branch,
-  time: new Date().toISOString(),
-  templatesPath: null
+const execAsync = promisify(exec)
+const execTrimmed = async (cmd: string) => {
+  return (await execAsync(cmd, { encoding: 'utf8' })).stdout.trim()
 }
 
-info.templatesPath = StackUtils.getStackLocationKeys({
-  ...process.env,
-  stage: getVar('stage'),
-  versionInfo: info
-}).dir
+;(async () => {
+  const [commitRaw, describeRaw, branch] = await Promise.all([
+    execTrimmed(`git rev-parse HEAD`),
+    execTrimmed(`git describe --long`),
+    execTrimmed(`git symbolic-ref --short HEAD`)
+  ])
+  const commit = commitRaw.slice(0, 8)
+  const { version } = require('../../package.json')
+  let [tag, commitsSinceTag] = describeRaw
+    .match(/^(.*?)-(\d+)-g([^-]+)$/)
+    .slice(1)
 
-process.stdout.write(JSON.stringify(info, null, 2))
+  tag = tag.replace(/^v/, '')
 
-// COMMIT=$(git rev-parse HEAD)
-// BRANCH=$(git symbolic-ref --short HEAD)
-// VERSION=$(cat package.json | jq .version)
-// # OLD_VERSION=$(cat ./lib/version.json | jq .commit -r)
-// # OLD_TIME=$(cat lib/version.json | jq .time -r)
-// # if [[ "$DEPLOY" == "1" -o "$VERSION" != "$OLD_VERSION" ]]; then
-//   TIME=$(date --iso-8601=seconds --utc)
-// #   echo "updating version.json 'time' from $OLD_TIME to $TIME"
-// # else
-// #   TIME="$OLD_TIME"
-// # fi
+  const info = {
+    commit,
+    commitsSinceTag: parseInt(commitsSinceTag, 10),
+    tag,
+    sortableTag: toSortableTag(tag),
+    branch,
+    time: new Date().toISOString(),
+    templatesPath: null
+  }
 
-// echo "{\"commit\": \"${COMMIT:0:7}\", \"tag\": $VERSION, \"branch\": \"$BRANCH\", \"time\":\"$TIME\"}" \
-//  | jq . \
-//  | cat > lib/version.json
+  info.templatesPath = StackUtils.getStackLocationKeys({
+    ...process.env,
+    stage: getVar('stage'),
+    versionInfo: info
+  }).dir
+
+  process.stdout.write(JSON.stringify(info, null, 2))
+})().catch(err => {
+  console.error(err.stack)
+  process.exit(1)
+})
