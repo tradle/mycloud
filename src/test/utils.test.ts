@@ -33,6 +33,7 @@ import {
   timeoutIn,
   batchProcess,
   allSettled,
+  allSettledReject,
   runWithBackoffWhile,
   runWithTimeout
 } from '../utils'
@@ -683,6 +684,30 @@ test(
     t.end()
   })
 )
+
+test('allSettledReject (reject)', async t => {
+  let slowResolved = false
+  try {
+    await allSettledReject([
+      Promise.reject(new Error('quick')),
+      new Promise(resolve => setTimeout(() => {
+        slowResolved = true
+        resolve()
+      }, 30))
+    ])
+    t.fail('unexpected resolve without error')
+  } catch (err) {
+    t.equals(err.message, 'quick', 'the quick promises error was recorded')
+  }
+  t.equals(slowResolved, true, 'the slow promise was resolved as well')
+})
+
+test('allSettledReject (resolve)', async t => {
+  t.deepEquals(await allSettledReject([
+    Promise.resolve('a'),
+    Promise.resolve('b')
+  ]), ['a', 'b'])
+})
 
 test(
   'batchProcess',
