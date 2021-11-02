@@ -827,11 +827,11 @@ export class Deployment {
       const someLinks = _.omit(links, 'employeeOnboarding')
       message = `The MyCloud you drafted has been launched
 
-${this.genUsageInstructions(someLinks)}`
+${getAppLinksInstructions(someLinks)}`
     } else {
       message = `${ONLINE_MESSAGE}
 
-${this.genUsageInstructions(links)}`
+${getAppLinksInstructions(links)}`
     }
 
     await this.bot.sendSimpleMessage({
@@ -902,8 +902,6 @@ ${this.genUsageInstructions(links)}`
       body: Templates.renderEmailBody({ ...opts, values })
     }
   }
-
-  public genUsageInstructions = getAppLinksInstructions
 
   public customizeTemplateForLaunch = async ({
     template,
