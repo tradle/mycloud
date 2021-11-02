@@ -20,7 +20,6 @@ import { randomStringWithLength } from '../crypto'
 import baseModels from '../models'
 import { createRegionalS3Client, RegionalS3Client } from './serverless-regional-s3'
 import {
-  Env,
   Bot,
   SNSUtils,
   Logger,
@@ -115,8 +114,6 @@ const DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS = {
   }
 }
 
-const ALERT_BRANCHES = ['master']
-
 // generated in AWS console
 const UPDATE_STACK_TOPIC_DELIVERY_POLICY = {
   http: {
@@ -163,15 +160,6 @@ type CodeLocation = {
   keys: string[]
 }
 
-enum StackOperationType {
-  create,
-  update
-}
-
-type UpdateDeploymentConf = {
-  adminEmail: string
-}
-
 type ChildStackIdentifier = {
   stackOwner: string
   stackId: string
@@ -189,11 +177,6 @@ interface DeploymentCtorOpts {
   conf?: IDeploymentPluginConf
   org?: IOrganization
   disableCallHome?: boolean
-}
-
-interface UpdateRequest extends ITradleObject {
-  provider: ResourceStub
-  tag: string
 }
 
 interface GenUpdatePackageForStackWithVersionOpts {
@@ -408,7 +391,6 @@ export class Deployment {
     }
 
     const result = await this.genUpdatePackageForStack({
-      // deployment: childDeployment,
       stackOwner: childDeployment.identity._permalink,
       stackId: stackId || childDeployment.stackId,
       parentTemplateUrl: versionInfo.templateUrl
@@ -910,7 +892,7 @@ ${this.genUsageInstructions(links)}`
     configuration: IDeploymentConf
     bucket: string
   }): Promise<MyCloudLaunchTemplate> => {
-    let { name, domain, logo, stackName, adminEmail, blockchain } = configuration
+    let { name, domain, stackName, adminEmail, blockchain } = configuration
 
     if (!(name && domain)) {
       throw new Errors.InvalidInput('expected "name" and "domain"')
@@ -1480,7 +1462,7 @@ ${this.genUsageInstructions(links)}`
 
   public listAvailableUpdates = async (providerPermalink?: string) => {
     if (!providerPermalink) {
-      providerPermalink = TRADLE.PERMALINK // await this.getTradleBotPermalink()
+      providerPermalink = TRADLE.PERMALINK
     }
 
     const { items } = await this.bot.db.find({
@@ -1504,7 +1486,7 @@ ${this.genUsageInstructions(links)}`
 
   public listDownloadedUpdates = async (providerPermalink?: string) => {
     if (!providerPermalink) {
-      providerPermalink = TRADLE.PERMALINK // await this.getTradleBotPermalink()
+      providerPermalink = TRADLE.PERMALINK
     }
 
     const { items } = await this.bot.db.find({
@@ -1700,7 +1682,7 @@ ${this.genUsageInstructions(links)}`
     }
   }
 
-  private _allowSNSToCallLambda = async ({ topic, lambda }) => {
+  private _allowSNSToCallLambda = async ({ lambda }) => {
     if (this.bot.isTesting) return
 
     const exists = await this.bot.lambdaUtils.canSNSInvokeLambda(lambda)
@@ -1757,7 +1739,6 @@ ${this.genUsageInstructions(links)}`
 
   private _saveDeploymentVersionInfo = async (info: VersionInfo) => {
     const { bot, logger } = this
-    const botPermalink = await bot.getMyPermalink()
 
     let versionInfo
     try {
