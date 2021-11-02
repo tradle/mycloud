@@ -849,7 +849,7 @@ ${this.genUsageInstructions(links)}`
     const { hrEmail, adminEmail, _author } = configuration as IDeploymentConfForm
 
     const botPermalink = buildResource.permalink(identity)
-    const links = this.getAppLinks({ host: apiUrl, permalink: botPermalink })
+    const links = getAppLinks({ bot: this.bot, host: apiUrl, permalink: botPermalink })
     const notifyConfigurer = this.notifyConfigurer({
       configurer: _author,
       links
@@ -880,13 +880,6 @@ ${this.genUsageInstructions(links)}`
     const firstErr = results.find((result) => result.reason)
     if (firstErr) throw firstErr
   }
-
-  public getAppLinks = ({ host, permalink }) =>
-    getAppLinks({
-      bot: this.bot,
-      host,
-      permalink
-    })
 
   public genLaunchEmailBody = (values) => {
     const renderConf = _.get(this.conf || {}, 'templates.launch') || {}
