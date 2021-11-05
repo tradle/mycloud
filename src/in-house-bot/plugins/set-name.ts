@@ -20,7 +20,8 @@ export const createPlugin = ({ bot, productsAPI }: { bot: Bot; productsAPI: any 
     // 'tradle.MortgageProduct': 'tradle.PersonalInfo',
     'tradle.CordaKYC': 'tradle.BusinessInformation',
     // 'tradle.CorporateBankAccount': 'tradle.W8BENE1',
-    'tradle.cloud.Deployment': 'tradle.cloud.Configuration'
+    'tradle.cloud.Deployment': 'tradle.cloud.Configuration',
+    'tradle.cloud.TmpDeployment': 'tradle.cloud.TmpDeployment'
   }
 
   const trySetName = async req => {

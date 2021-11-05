@@ -1,5 +1,4 @@
 import _ from 'lodash'
-import { randomBytes } from 'crypto'
 import { selectModelProps } from '../../utils'
 import {
   CreatePlugin,
@@ -20,9 +19,10 @@ import constants from '../../constants'
 import { Deployment, createDeployment } from '../deployment'
 import { TRADLE, TYPES } from '../constants'
 import { didPropChange, getParsedFormStubs } from '../utils'
+import { randomBytes } from 'crypto'
 
 const { TYPE } = constants
-const { DEPLOYMENT_PRODUCT, DEPLOYMENT_CONFIG_FORM } = TYPES
+const { TMP_DEPLOYMENT_PRODUCT, TMP_DEPLOYMENT_CONFIG_FORM } = TYPES
 const getCommit = (childDeployment: IChildDeployment) => _.get(childDeployment, 'version.commit')
 
 export interface IDeploymentPluginOpts extends IPluginOpts {
@@ -33,21 +33,20 @@ export const createPlugin: CreatePlugin<Deployment> = (
   components,
   { conf, logger }: IDeploymentPluginOpts
 ) => {
-  const { bot, applications, productsAPI, employeeManager, alerts } = components
+  const { bot, applications, productsAPI, alerts } = components
   const orgConf = components.conf
   const { org } = orgConf
   const deployment = createDeployment({ bot, logger, conf, org })
-  const getBotPermalink = bot.getPermalink()
   const onFormsCollected = async ({ req, user, application }) => {
-    if (application.requestFor !== DEPLOYMENT_PRODUCT) return
+    if (application.requestFor !== TMP_DEPLOYMENT_PRODUCT) return
 
     let form
-    if (req && req.payload && req.payload[TYPE] === DEPLOYMENT_CONFIG_FORM) {
+    if (req && req.payload && req.payload[TYPE] === TMP_DEPLOYMENT_CONFIG_FORM) {
       form = req.payload
     } else {
       const latest = getParsedFormStubs(application)
         .reverse()
-        .find(({ type }) => type === DEPLOYMENT_CONFIG_FORM)
+        .find(({ type }) => type === TMP_DEPLOYMENT_CONFIG_FORM)
 
       const { link } = latest
       form = await bot.objects.get(link)
@@ -131,7 +130,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
     await productsAPI.sendSimpleMessage({
       req,
       to: user,
-      message: `Account Created ${tmpID}`
+      message: `Account Created `
       // \n\nInvite employees using this link: ${employeeOnboardingUrl}`
     })
   }
