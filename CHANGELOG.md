@@ -2,7 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.1](https://github.com/tradle/mycloud/compare/v3.1.1-rc.0...v3.1.1-rc.1) (2021-10-28)
+## [3.1.1-rc.2](https://github.com/tradle/mycloud/compare/v3.1.1-rc.1...v3.1.1-rc.2) (2021-11-04)
+
+
+### Features
+
+* new annotation that defines visibility to client ([3c5fabf](https://github.com/tradle/mycloud/commit/3c5fabf))
 
 
 
