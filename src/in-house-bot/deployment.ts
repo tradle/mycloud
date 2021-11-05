@@ -386,11 +386,15 @@ export class Deployment {
       })
       .signAndSave()
 
+    const stackName = Deployment.expandStackName({ stackName: configuration.stackName, stage })
     return {
       template,
+      stackName,
+      templateUrl,
+      region,
       url: stackUtils.getLaunchStackUrl({
-        stackName: Deployment.expandStackName({ stackName: configuration.stackName, stage }),
-        region: configuration.region,
+        stackName,
+        region,
         templateUrl
       })
     }
@@ -1547,6 +1551,15 @@ export class Deployment {
   }
 
   private _getLatestStableVersionInfoNew = async (): Promise<VersionInfo> => {
+    // return {
+    //   tag: '2.3.1-rc.0',
+    //   sortableTag: '02.03.01-rc.00',
+    //   branch: 'master',
+    //   commit: 'c4b8667e',
+    //   commitsSinceTag: 0,
+    //   time: '1545071211223',
+    //   templateUrl: 'https://tdl-tradle-ltd-dev-serverlessdeploymentbucket-6dzw54ml2mod.s3.amazonaws.com/mycloud/tradle/dev/2.3.1-rc.0/c4b8667e/compiled-cloudformation-template.json'
+    // }
     return await this.bot.db.findOne({
       orderBy: {
         property: 'sortableTag',

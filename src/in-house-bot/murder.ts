@@ -21,6 +21,7 @@ export const NOT_CLEARABLE_TYPES = [
   'tradle.products.Customer',
   'tradle.cloud.ChildDeployment',
   'tradle.cloud.Configuration',
+  'tradle.cloud.TmpConfiguration'  
 ]
 
 const BATCH_SIZE = 50
