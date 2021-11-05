@@ -29,6 +29,7 @@ const OPEN_CORPORATES = 'Open Corporates'
 const REFRESH_PRODUCT = 'tradle.RefreshProduct'
 const FORM_REQUEST = 'tradle.FormRequest'
 const DATA_BUNDLE_SUBMITTED = 'tradle.DataBundleSubmitted'
+const DATA_BUNDLE = 'tradle.DataBundle'
 
 const companyKeywords = {
   DE: ['GmbH', 'HRB'],
@@ -47,22 +48,48 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
     async onmessage(req: IPBReq) {
       if (req.skipChecks) return
       const { user, application, payload } = req
-      if (!application  ||  application.requestFor !== 'tradle.RefreshProduct') return
-      
+      if (!application  ||  application.requestFor !== REFRESH_PRODUCT) return
+
       let ptype = payload[TYPE]
       let isDataBundleSubmitted = ptype === DATA_BUNDLE_SUBMITTED
       if (!isDataBundleSubmitted && ptype !== CONTROLLING_PERSON) return
+
+      const { submissions } = application 
+      if (!submissions.find(sub => sub.submission[TYPE] === LEGAL_ENTITY)) return
+      let dataBundleLink
       if (ptype === CONTROLLING_PERSON) {
-        if (!application.submissions.find(sub => sub.submission[TYPE] === LEGAL_ENTITY)) return
-        if (!application.submissions.find(sub => sub.submission[TYPE] === DATA_BUNDLE_SUBMITTED)) return
+        let dbs = submissions.find(sub => sub.submission[TYPE] === DATA_BUNDLE_SUBMITTED)
+        if (!dbs) return
+        dbs = await bot.getResource(dbs.submission)
+        dataBundleLink = dbs.dataBundle
       }
-      let formRequest:any = {[TYPE]: FORM_REQUEST, form: CONTROLLING_PERSON}
-      await this.getCP({ application, formRequest, req: !isDataBundleSubmitted && req }) 
+      else
+        dataBundleLink = payload.dataBundle
+      if (!dataBundleLink) return
+      let dataBundle = await bot.db.findOne({
+        filter: {
+          EQ: {
+            [TYPE]: DATA_BUNDLE,
+            _permalink: dataBundleLink
+          }
+        }
+      })
+      let { items } = dataBundle
+      if (!items || !items.length) return
+      let cpInBundleCount = items.reduce((n, item) => item[TYPE] === CONTROLLING_PERSON ? n + 1 : n, 0)
+      if (cpInBundleCount) {
+        let cpInAppCount = submissions.reduce((n, item) => item.submission[TYPE] === CONTROLLING_PERSON ? n + 1 : n, 0)
+        if (!isDataBundleSubmitted)
+          cpInAppCount++
+        if (cpInBundleCount > cpInAppCount) return
+      }
+      let formRequest:any = {[TYPE]: FORM_REQUEST, form: CONTROLLING_PERSON, product: REFRESH_PRODUCT}
+      await this.getCP({ application, formRequest, req: !isDataBundleSubmitted && req })
       if (!formRequest.prefill) {
         await bot.sendSimpleMessage({
           to: user,
           message: 'You submitted all of the Controlling Entities'
-        });        
+        });
         return
       }
       await applications.requestItem({
@@ -82,7 +109,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       let { checks } = application
       if (!checks) return
-      
+
       if (application.requestFor !== REFRESH_PRODUCT)
         await this.getCP({ application, formRequest })
     },
@@ -161,7 +188,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         officer = officers.length && officers[0].officer
       } else {
         items = await Promise.all(forms.map((f) => bot.getResource(f.submission)))
-        if (req) 
+        if (req)
           items.push(req.payload)
         if (items.length) {
           for (let i = 0; i < officers.length && !officer; i++) {
@@ -385,7 +412,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         formRequest.message = `Your company’s profile is missing the following controlling person, found in a primary data source **${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
       else
         formRequest.message = `Please review and correct the data below **for ${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
-      
+
     },
     isCompany({ name, country }) {
       let tokens = name.replace(/[^\w\s]/gi, '').split(' ')
@@ -560,7 +587,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       else {
         let cid = getEnumValueId({ model: bot.models[COUNTRY], value: countryOfResidence })
         let item = items.find((item) => item.id === cid)
-        return enumValue({ model, value: item.id }) 
+        return enumValue({ model, value: item.id })
       }
     },
     prefillCompany(prefill, bo) {
