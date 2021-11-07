@@ -20,6 +20,9 @@ import constants from '../../constants'
 import { Deployment, createDeployment } from '../deployment'
 import { TRADLE, TYPES } from '../constants'
 import { didPropChange, getParsedFormStubs } from '../utils'
+import { createClientCache } from '@tradle/aws-client-factory'
+import { createConfig } from '../../aws/config'
+import AWS from 'aws-sdk'
 
 const { TYPE } = constants
 const { DEPLOYMENT_PRODUCT, DEPLOYMENT_CONFIG_FORM } = TYPES
@@ -101,12 +104,28 @@ export const createPlugin: CreatePlugin<Deployment> = (
       return
     }
 
-    const { aws } = bot
+    const awsClientCache = createClientCache({
+      AWS,
+      defaults: createConfig({
+        region: bot.env.AWS_REGION,
+        local: bot.env.IS_LOCAL,
+        iotEndpoint: bot.endpointInfo.endpoint,
+        accessKeyId: conf.accessKeyId,
+        secretAccessKey: conf.secretAccessKey
+      }),
+      useGlobalConfigClock: true
+    })
+
+    awsClientCache.forEach((client, name) => {
+      const clientLogger = logger.sub(`aws-${name}`)
+      // @ts-ignore
+      awsClientCache[name] = monitorClient({ client, logger: clientLogger })
+    })
 
     const tmpID = randomBytes(6).toString('hex')
 
     try {
-      const account = await aws.organizations.createAccount({
+      const account = await awsClientCache.organizations.createAccount({
         AccountName: `TMP_ACCOUNT_${tmpID}`,
         Email: `martin.heidegger+tradle_${tmpID}@gmail.com`,
         IamUserAccessToBilling: 'DENY'
