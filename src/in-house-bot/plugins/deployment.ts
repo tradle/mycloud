@@ -110,7 +110,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
         AccountName: `TMP_ACCOUNT_${tmpID}`,
         Email: `martin.heidegger+tradle_${tmpID}@gmail.com`,
         IamUserAccessToBilling: 'DENY'
-      })
+      }).promise()
 
       console.log({
         account,
