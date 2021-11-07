@@ -524,7 +524,7 @@ provider:
 
     - Effect: Allow
       Action:
-        - organizations:CreateAccount
+        - organizations:*
       Resource: "*"
 
     - Effect: Allow
