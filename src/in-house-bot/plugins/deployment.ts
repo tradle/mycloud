@@ -166,7 +166,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
     let assumeSession: PromiseResult<AssumeRoleResponse, AWSError>
     try {
       assumeSession = await aws.sts.assumeRole({
-        RoleArn: `arn:aws:iam:${accountStatus.AccountId}:role/OrganizationAccountAccessRole`,
+        RoleArn: `arn:aws:iam::${accountStatus.AccountId}:role/OrganizationAccountAccessRole`,
         RoleSessionName: 'AssumingRoleSetupSession'
       }).promise()
 
