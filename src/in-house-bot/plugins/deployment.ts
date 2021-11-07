@@ -218,7 +218,7 @@ export const validateConf: ValidatePluginConf = async ({ bot, pluginConf }) => {
   if (senderEmail) {
     const resp = await bot.mailer.canSendFrom(senderEmail)
     if (!resp.result) {
-      throw new Error(resp.reason)
+      throw new Error(`Can not send test-email using ${senderEmail}: ${resp.reason}`)
     }
   }
 }
