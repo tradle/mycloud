@@ -20,7 +20,7 @@ import constants from '../../constants'
 import { Deployment, createDeployment } from '../deployment'
 import { TRADLE, TYPES } from '../constants'
 import { didPropChange, getParsedFormStubs } from '../utils'
-import { createClientCache } from '@tradle/aws-client-factory'
+import { createClientCache, monitor as monitorClient } from '@tradle/aws-client-factory'
 import { createConfig } from '../../aws/config'
 import AWS from 'aws-sdk'
 
