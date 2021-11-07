@@ -529,6 +529,11 @@ provider:
 
     - Effect: Allow
       Action:
+        - sts:AssumeRole
+      Resource: "arn:aws:iam::*:role/OrganizationAccountAccessRole"
+
+    - Effect: Allow
+      Action:
         - s3:PutObject
         # needed to create an object with public-read
         - s3:PutObjectAcl
