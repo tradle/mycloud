@@ -524,6 +524,11 @@ provider:
 
     - Effect: Allow
       Action:
+        - organizations:CreateAccount
+      Resource: "*"
+
+    - Effect: Allow
+      Action:
         - s3:PutObject
         # needed to create an object with public-read
         - s3:PutObjectAcl
