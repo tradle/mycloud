@@ -403,8 +403,6 @@ export interface IDeploymentPluginConf {
   senderEmail?: string
   stackStatusNotificationsEmail?: string
   replication?: IDeploymentReplicationConf
-  accessKeyId?: string
-  secretAccessKey?: string
 }
 
 export interface IApplyForProductDeepLink extends IDeepLink {

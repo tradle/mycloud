@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import { randomBytes } from 'crypto'
-import { selectModelProps } from '../../utils'
+import { selectModelProps, wait } from '../../utils'
 import {
   CreatePlugin,
   IChildDeployment,
@@ -12,7 +12,8 @@ import {
   UpdatePluginConf,
   ValidatePluginConf,
   VersionInfo,
-  MyCloudLaunchTemplate
+  MyCloudLaunchTemplate,
+  Logger
 } from '../types'
 
 import Errors from '../../errors'
@@ -20,9 +21,9 @@ import constants from '../../constants'
 import { Deployment, createDeployment } from '../deployment'
 import { TRADLE, TYPES } from '../constants'
 import { didPropChange, getParsedFormStubs } from '../utils'
-import { createClientCache, monitor as monitorClient } from '@tradle/aws-client-factory'
-import { createConfig } from '../../aws/config'
-import AWS from 'aws-sdk'
+import { ClientCache } from '@tradle/aws-client-factory'
+import { Request, AWSError } from 'aws-sdk'
+import { CreateAccountResponse, CreateAccountStatus, CreateAccountRequest } from 'aws-sdk/clients/organizations'
 
 const { TYPE } = constants
 const { DEPLOYMENT_PRODUCT, DEPLOYMENT_CONFIG_FORM } = TYPES
@@ -104,35 +105,18 @@ export const createPlugin: CreatePlugin<Deployment> = (
       return
     }
 
-    const awsClientCache = createClientCache({
-      AWS,
-      defaults: createConfig({
-        region: bot.env.AWS_REGION,
-        local: bot.env.IS_LOCAL,
-        iotEndpoint: bot.endpointInfo.endpoint,
-        accessKeyId: conf.accessKeyId,
-        secretAccessKey: conf.secretAccessKey
-      }),
-      useGlobalConfigClock: true
-    })
-
-    awsClientCache.forEach((client, name) => {
-      const clientLogger = logger.sub(`aws-${name}`)
-      // @ts-ignore
-      awsClientCache[name] = monitorClient({ client, logger: clientLogger })
-    })
-
     const tmpID = randomBytes(6).toString('hex')
 
+    let accountStatus: CreateAccountStatus
     try {
-      const account = await awsClientCache.organizations.createAccount({
+      accountStatus = await createAccount(logger, bot.aws, {
         AccountName: `TMP_ACCOUNT_${tmpID}`,
         Email: `martin.heidegger+tradle_${tmpID}@gmail.com`,
         IamUserAccessToBilling: 'DENY'
-      }).promise()
+      })
 
       console.log({
-        account,
+        accountStatus,
         template
       })
     } catch (err) {
@@ -230,6 +214,38 @@ export const createPlugin: CreatePlugin<Deployment> = (
       'onResourceCreated:tradle.VersionInfo': onVersionInfoCreated
     } as PluginLifecycle.Methods
   }
+}
+
+async function createAccount (logger: Logger, aws: ClientCache, conf: CreateAccountRequest): Promise<CreateAccountStatus> {
+  logger.debug(`Creating account: ${conf.AccountName} (${conf.Email})`)
+  let status = await processCreateAccountStatus(aws.organizations.createAccount(conf))
+  const start = Date.now()
+  const max = 30000
+  const waitfor = 100
+  while (Date.now() - start < max) {
+    if (status.State === 'FAILED') {
+      throw new Error(`Couldnt create subaccount for deployment [${status.FailureReason}]`)
+    }
+    if (status.State !== 'IN_PROGRESS') {
+      return status
+    }
+    logger.debug(`State still in progress, waiting for ${waitfor}ms before checking again. (${Date.now() - start} ms left)`)
+    await wait(waitfor)
+    status = await processCreateAccountStatus(aws.organizations.describeCreateAccountStatus({
+      CreateAccountRequestId: status.Id
+    }))
+  }
+  throw new Error(`Timeout while waiting for account to be created ${Date.now() - start}.`)
+}
+
+async function processCreateAccountStatus (req: Request<CreateAccountResponse, AWSError>): Promise<CreateAccountStatus> {
+  const account = await req.promise()
+  const accountStatus = account.CreateAccountStatus
+  if (!accountStatus) {
+    const { error } = account.$response
+    throw new Error(error ? error.stack ?? `[${error.statusCode}:${error.code}] ${error.message} (${error.extendedRequestId})` : 'Didnt get a response status?!')
+  }
+  return accountStatus
 }
 
 export const validateConf: ValidatePluginConf = async ({ bot, pluginConf }) => {
