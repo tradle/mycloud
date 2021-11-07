@@ -355,7 +355,7 @@ export class Deployment {
     const { stackUtils, s3Utils } = this.bot
     const { region } = configuration
     const [versionInfo, bucket] = await Promise.all([
-      this.getLatestStableVersionInfo(),
+      this.getBestVersionInfo(),
       this.getDeploymentBucketForRegion(region)
     ])
 
@@ -1339,9 +1339,15 @@ export class Deployment {
     return results[0]
   }
 
-  public getLatestStableVersionInfo = async (): Promise<VersionInfo> => {
-    this.logger.debug('looking up latest stable version')
-    return await this._getLatestStableVersionInfoNew()
+  private async getBestVersionInfo () {
+    try {
+      this.logger.debug('looking up latest stable version')
+      return await this._getLatestVersionInfoNew('stable')
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+    }
+    this.logger.debug('no stable version found, looking latest release candidate')
+    return await this._getLatestVersionInfoNew('releasecandidate')
   }
 
   public getLatestVersionInfo = async (): Promise<VersionInfo> => {
@@ -1550,16 +1556,7 @@ export class Deployment {
     return true
   }
 
-  private _getLatestStableVersionInfoNew = async (): Promise<VersionInfo> => {
-    // return {
-    //   tag: '2.3.1-rc.0',
-    //   sortableTag: '02.03.01-rc.00',
-    //   branch: 'master',
-    //   commit: 'c4b8667e',
-    //   commitsSinceTag: 0,
-    //   time: '1545071211223',
-    //   templateUrl: 'https://tdl-tradle-ltd-dev-serverlessdeploymentbucket-6dzw54ml2mod.s3.amazonaws.com/mycloud/tradle/dev/2.3.1-rc.0/c4b8667e/compiled-cloudformation-template.json'
-    // }
+  private _getLatestVersionInfoNew = async (channel: string): Promise<VersionInfo> => {
     return await this.bot.db.findOne({
       orderBy: {
         property: 'sortableTag',
@@ -1571,7 +1568,7 @@ export class Deployment {
           [ORG]: await this.bot.getMyPermalink(),
           'releaseChannel.id': buildResource.enumValue({
             model: baseModels['tradle.cloud.ReleaseChannel'],
-            value: 'stable'
+            value: channel
           }).id
         }
       }
