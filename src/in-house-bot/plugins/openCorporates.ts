@@ -248,16 +248,16 @@ class OpenCorporatesAPI {
     if (!companies.length) {
       if (!foundNumber && rightNumber) {
         message = `No matches for company name "${companyName}" `
-        if (registrationNumber) message += `with the registration number "${registrationNumber}" `
+        if (registrationNumber) message += `with registration number "${registrationNumber}" `
         message += 'were found'
       } else if (!foundDate && rightDate)
-        message = `The company with the name "${companyName}" and registration number "${registrationNumber}" has a different registration date: ${rightDate}`
+        message = `The company "${companyName}" with registration number "${registrationNumber}" has registration date ${rightDate} while customer entered ${toISODateString(registrationDate)}`
       else if (!foundCountry && rightCountry)
-        message = `The company with the name "${companyName}" and registration number "${registrationNumber}" registered on ${toISODateString(
+        message = `The company "${companyName}" with registration number "${registrationNumber}" registered on ${toISODateString(
           registrationDate
         )} was not found in "${country}"`
       else if (!foundCompanyName && rightCompanyName)
-        message = `The company name "${companyName}" is different from the found one ${rightCompanyName} which corresponds to registration number "${registrationNumber}"`
+        message = `The company "${companyName}" is different from the found one ${rightCompanyName} which corresponds to registration number "${registrationNumber}"`
     } else {
       if ((foundDate && registrationDate) || foundCountry)
         message = 'The following aspects matched:\n'
@@ -740,15 +740,15 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
           return
         }
         let error = ''
-        let errValue = 'Above is from primary data source. Please confirm.'
+        let errValue = 'Above is from the primary data source. Please confirm or correct.'
         if (wrongName) {
           error = 'Is it your company?'
-          errors = [{ name: 'companyName', error: errValue }]
+          errors = [{ name: 'companyName', error: errValue, oldValue: payload.companyName }]
         }
         if (wrongNumber) {
           if (!error) error = 'Is it your company?'
           if (!errors) errors = []
-          errors.push({ name: 'registrationNumber', error: errValue })
+          errors.push({ name: 'registrationNumber', error: errValue, oldValue: payload.registrationNumber })
         }
         message = `${error} Please review and correct the data below for **${name}**`
       }
