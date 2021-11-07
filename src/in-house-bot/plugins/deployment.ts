@@ -24,6 +24,8 @@ import { didPropChange, getParsedFormStubs } from '../utils'
 import { ClientCache } from '@tradle/aws-client-factory'
 import { Request, AWSError } from 'aws-sdk'
 import { CreateAccountResponse, CreateAccountStatus, CreateAccountRequest } from 'aws-sdk/clients/organizations'
+import { AssumeRoleResponse } from 'aws-sdk/clients/sts'
+import { PromiseResult } from 'aws-sdk/lib/request'
 
 const { TYPE } = constants
 const { DEPLOYMENT_PRODUCT, DEPLOYMENT_CONFIG_FORM } = TYPES
@@ -107,12 +109,15 @@ export const createPlugin: CreatePlugin<Deployment> = (
 
     const tmpID = randomBytes(6).toString('hex')
 
+    const { aws } = bot
+
     let accountStatus: CreateAccountStatus
     try {
-      accountStatus = await createAccount(logger, bot.aws, {
+      accountStatus = await createAccount(logger, aws, {
         AccountName: `TMP_ACCOUNT_${tmpID}`,
         Email: `martin.heidegger+tradle_${tmpID}@gmail.com`,
-        IamUserAccessToBilling: 'DENY'
+        IamUserAccessToBilling: 'DENY',
+        RoleName: 'OrganizationAccountAccessRole'
       })
 
       console.log({
@@ -135,6 +140,43 @@ export const createPlugin: CreatePlugin<Deployment> = (
       req,
       to: user,
       message: `Account Created ${tmpID}`
+      // \n\nInvite employees using this link: ${employeeOnboardingUrl}`
+    })
+
+    let assumeSession: PromiseResult<AssumeRoleResponse, AWSError>
+    try {
+      assumeSession = await aws.sts.assumeRole({
+        RoleArn: `arn:aws:iam:${accountStatus.AccountId}:role/OrganizationAccountAccessRole`,
+        RoleSessionName: 'AssumingRoleSetupSession'
+      }).promise()
+
+      const { error } = assumeSession.$response
+      if (error) {
+        throw new Error(`Error while assuming temporary account [${error.statusCode}][${error.code}] ${error.stack || error.message}`)
+      }
+    } catch (err) {
+      logger.debug('Failed to assume temporary account', err)
+      await applications.requestEdit({
+        req,
+        item: selectModelProps({ object: form, models: bot.models }),
+        details: {
+          message: err.message
+        }
+      })
+      return
+    }
+
+    console.log({ assumeSession })
+
+    await productsAPI.sendSimpleMessage({
+      req,
+      to: user,
+      message: `Account Created ${tmpID}:
+  ACCESS_KEY_ID: ${assumeSession.Credentials.AccessKeyId}
+  SECRET_ACCESS_KEY: ${assumeSession.Credentials.SecretAccessKey}
+  EXPIRATION: ${assumeSession.Credentials.Expiration}
+  SESSIOn_TOKEN: ${assumeSession.Credentials.SessionToken}
+      `
       // \n\nInvite employees using this link: ${employeeOnboardingUrl}`
     })
   }
