@@ -21,11 +21,12 @@ import constants from '../../constants'
 import { Deployment, createDeployment } from '../deployment'
 import { TRADLE, TYPES } from '../constants'
 import { didPropChange, getParsedFormStubs } from '../utils'
-import { ClientCache } from '@tradle/aws-client-factory'
-import { Request, AWSError } from 'aws-sdk'
+import { ClientCache, createClientCache } from '@tradle/aws-client-factory'
+import AWS, { Request, AWSError } from 'aws-sdk'
 import { CreateAccountResponse, CreateAccountStatus, CreateAccountRequest } from 'aws-sdk/clients/organizations'
 import { AssumeRoleResponse } from 'aws-sdk/clients/sts'
 import { PromiseResult } from 'aws-sdk/lib/request'
+import { createConfig } from '../../aws/config'
 
 const { TYPE } = constants
 const { DEPLOYMENT_PRODUCT, DEPLOYMENT_CONFIG_FORM } = TYPES
@@ -109,7 +110,16 @@ export const createPlugin: CreatePlugin<Deployment> = (
 
     const tmpID = randomBytes(6).toString('hex')
 
-    const { aws } = bot
+    const aws = createClientCache({
+      AWS,
+      defaults: createConfig({
+        region: bot.env.AWS_REGION,
+        local: bot.env.IS_LOCAL,
+        iotEndpoint: bot.endpointInfo.endpoint,
+        accessKeyId: conf.accessKeyId,
+        secretAccessKey: conf.secretAccessKey
+      })
+    })
 
     let accountStatus: CreateAccountStatus
     try {
