@@ -25,6 +25,7 @@ import { ClientCache, createClientCache } from '@tradle/aws-client-factory'
 import AWS, { Request, AWSError } from 'aws-sdk'
 import { CreateAccountResponse, CreateAccountStatus, CreateAccountRequest } from 'aws-sdk/clients/organizations'
 import { AssumeRoleResponse } from 'aws-sdk/clients/sts'
+import { Stack, StackStatus } from 'aws-sdk/clients/cloudformation'
 import { PromiseResult } from 'aws-sdk/lib/request'
 import { createConfig } from '../../aws/config'
 
@@ -199,6 +200,22 @@ export const createPlugin: CreatePlugin<Deployment> = (
       `
       // \n\nInvite employees using this link: ${employeeOnboardingUrl}`
     })
+
+    try {
+      const subAWS = createClientCache({
+        AWS,
+        defaults: createConfig({
+          region: bot.env.AWS_REGION,
+          local: bot.env.IS_LOCAL,
+          iotEndpoint: bot.endpointInfo.endpoint,
+          accessKeyId: assumeSession.Credentials.AccessKeyId,
+          secretAccessKey: assumeSession.Credentials.SecretAccessKey
+        })
+      })
+      await launchStack(logger, subAWS, template.templateUrl)
+    } catch (err) {
+
+    }
   }
 
   const maybeNotifyCreators = async ({ old, value }) => {
@@ -275,6 +292,52 @@ export const createPlugin: CreatePlugin<Deployment> = (
       'onResourceChanged:tradle.cloud.ChildDeployment': onChildDeploymentChanged,
       'onResourceCreated:tradle.VersionInfo': onVersionInfoCreated
     } as PluginLifecycle.Methods
+  }
+}
+
+async function launchStack (logger: Logger, aws: ClientCache, templateUrl: string): Promise<Stack> {
+  const stackName = `tdl-tradle-${randomBytes(6).toString('hex')}`
+  logger.debug(`Launching stack ${stackName} from template ${templateUrl}`)
+  const { $response: { error, data } } = await aws.cloudformation.createStack({
+    TemplateURL: templateUrl,
+    StackName: stackName,
+  }).promise()
+  if (error instanceof AWSError) {
+    throw new Error(`Error while launching stack [${error.statusCode}][${error.code}] ${error.stack || error.message} (${error.extendedRequestId})`)
+  }
+  if (!data) {
+    throw new Error('expected data to be returned')
+  }
+  const { StackId } = data
+  if (!StackId) {
+    throw new Error('expected stackid to be returned')
+  }
+  let status: StackStatus|null = null
+  while (true) {
+    logger.debug(`Waiting 250ms for stack update of ${stackName}`)
+    await wait(250)
+    const { Stacks: stacks } = await aws.cloudformation.describeStacks({
+      StackName: stackName
+    }).promise()
+    for (const stack of stacks) {
+      if (stack.StackName === stackName) {
+        if (stack.StackStatus !== status) {
+          status = stack.StackStatus
+          logger.debug(`Stack ${stackName} now in state [${status}]`)
+          if (status === 'CREATE_COMPLETE') {
+            return stack
+          }
+          if (
+            status === 'CREATE_FAILED' ||
+            status === 'ROLLBACK_COMPLETE' ||
+            status === 'DELETE_FAILED' ||
+            status === 'DELETE_COMPLETE'
+          ) {
+            throw new Error(`Stack creation failed status!`)
+          }
+        }
+      }
+    }
   }
 }
 
