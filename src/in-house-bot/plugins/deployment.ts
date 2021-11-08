@@ -212,10 +212,29 @@ export const createPlugin: CreatePlugin<Deployment> = (
           secretAccessKey: assumeSession.Credentials.SecretAccessKey
         })
       })
-      await launchStack(logger, subAWS, template.templateUrl)
+      console.log({
+        stack: await launchStack(logger, subAWS, template.templateUrl)
+      })
     } catch (err) {
-
+      logger.debug('Failed create stack', err)
+      await applications.requestEdit({
+        req,
+        item: selectModelProps({ object: form, models: bot.models }),
+        details: {
+          message: err.message
+        }
+      })
+      return
     }
+
+    await applications.requestEdit({
+      req,
+      item: selectModelProps({ object: form, models: bot.models }),
+      details: {
+        message: 'no error, just resetting to test'
+      }
+    })
+    return
   }
 
   const maybeNotifyCreators = async ({ old, value }) => {
