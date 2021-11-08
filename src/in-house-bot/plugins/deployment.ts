@@ -22,7 +22,7 @@ import { Deployment, createDeployment } from '../deployment'
 import { TRADLE, TYPES } from '../constants'
 import { didPropChange, getParsedFormStubs } from '../utils'
 import { ClientCache, createClientCache } from '@tradle/aws-client-factory'
-import AWS, { Request, AWSError } from 'aws-sdk'
+import AWS, { Request, AWSError, Credentials } from 'aws-sdk'
 import { CreateAccountResponse, CreateAccountStatus, CreateAccountRequest } from 'aws-sdk/clients/organizations'
 import { AssumeRoleResponse } from 'aws-sdk/clients/sts'
 import Cloudformation, { Stack, StackStatus, Stacks } from 'aws-sdk/clients/cloudformation'
@@ -121,8 +121,10 @@ export const createPlugin: CreatePlugin<Deployment> = (
       region: bot.env.AWS_REGION,
       local: bot.env.IS_LOCAL,
       iotEndpoint: bot.endpointInfo.endpoint,
-      accessKeyId: conf.accessKeyId,
-      secretAccessKey: conf.secretAccessKey
+      credentials: new Credentials({
+        accessKeyId: conf.accessKeyId,
+        secretAccessKey: conf.secretAccessKey
+      })
     })
 
     const aws = createClientCache({
