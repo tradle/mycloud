@@ -208,6 +208,8 @@ export const createPlugin: CreatePlugin<Deployment> = (
           region: bot.env.AWS_REGION,
           local: bot.env.IS_LOCAL,
           iotEndpoint: bot.endpointInfo.endpoint,
+          accessKeyId: assumeSession.Credentials.AccessKeyId,
+          secretAccessKey: assumeSession.Credentials.SecretAccessKey,
           sessionToken: assumeSession.Credentials.SessionToken
         })
       })
