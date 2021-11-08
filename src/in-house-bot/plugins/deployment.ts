@@ -117,16 +117,17 @@ export const createPlugin: CreatePlugin<Deployment> = (
     }
 
     const tmpID = randomBytes(6).toString('hex')
+    const awsConfig = createConfig({
+      region: bot.env.AWS_REGION,
+      local: bot.env.IS_LOCAL,
+      iotEndpoint: bot.endpointInfo.endpoint,
+      accessKeyId: conf.accessKeyId,
+      secretAccessKey: conf.secretAccessKey
+    })
 
     const aws = createClientCache({
       AWS,
-      defaults: createConfig({
-        region: bot.env.AWS_REGION,
-        local: bot.env.IS_LOCAL,
-        iotEndpoint: bot.endpointInfo.endpoint,
-        accessKeyId: conf.accessKeyId,
-        secretAccessKey: conf.secretAccessKey
-      })
+      defaults: awsConfig
     })
 
     let accountStatus: CreateAccountStatus
@@ -162,7 +163,8 @@ export const createPlugin: CreatePlugin<Deployment> = (
 
       console.log({
         accountStatus,
-        template
+        template,
+        awsConfig
       })
     } catch (err) {
       logger.debug('failed to create temporary account', err)
