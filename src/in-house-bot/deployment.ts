@@ -241,6 +241,14 @@ interface GenUpdatePackageForStackOpts {
   region?: string
 }
 
+export interface LaunchPackage {
+  template: MyCloudLaunchTemplate
+  url: string
+  stackName: string
+  templateUrl: string
+  region: string
+}
+
 const BlockchainNetworkModel = baseModels['tradle.BlockchainNetwork']
 
 export class Deployment {
@@ -351,7 +359,7 @@ export class Deployment {
     })
   }
 
-  public genLaunchPackage = async (configuration: IDeploymentConf) => {
+  public genLaunchPackage = async (configuration: IDeploymentConf): Promise<LaunchPackage> => {
     const { stackUtils, s3Utils } = this.bot
     const { region } = configuration
     const [versionInfo, bucket] = await Promise.all([

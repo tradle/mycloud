@@ -260,6 +260,7 @@
     "node-gs": "^0.1.1",
     "nodecredstash": "github:tradle/credstash",
     "nunjucks": "^3.2.3",
+    "p-map": "^4.0.0",
     "pify": "^2.3.0",
     "promise-locker": "^1.0.0",
     "random-name": "^0.1.2",
