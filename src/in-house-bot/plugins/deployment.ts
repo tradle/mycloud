@@ -134,7 +134,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
     const deploymentOpts = {
       ...configuration,
       // backwards compat
-      stackName: configuration.stackName || configuration.stackPrefix,
+      stackName: `tdl-mycloud-${randomBytes(6).toString('hex')}`,
       configurationLink: link
     } as IDeploymentConf
 
@@ -291,7 +291,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
           throw new Error('expected data to be returned')
         }
         const stack: Stack = null
-        const stackState: StackStatus = null
+        const status: StackStatus = null
         return {
           ...prev,
           stackAws,
@@ -313,27 +313,27 @@ export const createPlugin: CreatePlugin<Deployment> = (
         } catch (err) {
           throw new Error(`Error while describing stack ${err.stack}`)
         }
-        for (const stack of stacks) {
-          if (stack.StackName !== stackName) {
-            continue
-          }
-          if (stack.StackStatus === status) {
-            continue
-          }
-          loop.stack = stack
-          loop.status = stack.StackStatus
-          logger.debug(`Stack ${stackName} now in state [${status}]`)
-          if (status === 'CREATE_COMPLETE') {
-            return false
-          }
-          if (
-            status === 'CREATE_FAILED' ||
-            status === 'ROLLBACK_COMPLETE' ||
-            status === 'DELETE_FAILED' ||
-            status === 'DELETE_COMPLETE'
-          ) {
-            throw new Error(`Stack creation failed status!`)
-          }
+        const stack = stacks.find(stack => stack.StackName === stackName)
+        if (!stack) {
+          throw new Error('Stack gone?')
+        }
+        const { StackStatus: status } = stack
+        if (status === loop.status) {
+          return true
+        }
+        loop.stack = stack
+        loop.status = status
+        logger.debug(`Stack ${stackName} now in state [${status}]`)
+        if (status === 'CREATE_COMPLETE') {
+          return false
+        }
+        if (
+          status === 'CREATE_FAILED' ||
+          status === 'ROLLBACK_COMPLETE' ||
+          status === 'DELETE_FAILED' ||
+          status === 'DELETE_COMPLETE'
+        ) {
+          throw new Error(`Stack creation failed status!`)
         }
         return true
       })
