@@ -117,15 +117,17 @@ export const createPlugin: CreatePlugin<Deployment> = (
     }
 
     const tmpID = randomBytes(6).toString('hex')
-    const awsConfig = createConfig({
-      region: bot.env.AWS_REGION,
-      local: bot.env.IS_LOCAL,
-      iotEndpoint: bot.endpointInfo.endpoint,
+    const awsConfig = {
+      ...createConfig({
+        region: bot.env.AWS_REGION,
+        local: bot.env.IS_LOCAL,
+        iotEndpoint: bot.endpointInfo.endpoint
+      }),
       credentials: new Credentials({
         accessKeyId: conf.accessKeyId,
         secretAccessKey: conf.secretAccessKey
       })
-    })
+    }
 
     const aws = createClientCache({
       AWS,
