@@ -123,10 +123,12 @@ export const createPlugin: CreatePlugin<Deployment> = (
         local: bot.env.IS_LOCAL,
         iotEndpoint: bot.endpointInfo.endpoint
       }),
-      credentials: new Credentials({
-        accessKeyId: conf.accessKeyId,
-        secretAccessKey: conf.secretAccessKey
-      })
+      common: {
+        credentials: new Credentials({
+          accessKeyId: conf.accessKeyId,
+          secretAccessKey: conf.secretAccessKey
+        })
+      }
     }
 
     const aws = createClientCache({
