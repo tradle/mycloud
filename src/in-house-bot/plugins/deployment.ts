@@ -84,7 +84,14 @@ export const createPlugin: CreatePlugin<Deployment> = (
       region: string
     }
     try {
-      template = await deployment.genLaunchPackage(deploymentOpts)
+      template = {
+        template: null,
+        stackName: 'tdl-tradle-ltd-dev',
+        templateUrl: 'https://tdl-superawesome-ltd-dev-serverlessdeploymentbuck-1vlhszu8eejmx.s3.us-east-1.amazonaws.com/templates/template-b135f8c5-1636343495313-9786b33892.json',
+        region: 'us-east-1',
+        url: 'https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?stackName=tdl-tradle-ltd-dev&templateURL=https%3A%2F%2Ftdl-superawesome-ltd-dev-serverlessdeploymentbuck-1vlhszu8eejmx.s3.us-east-1.amazonaws.com%2Ftemplates%2Ftemplate-b135f8c5-1636343495313-9786b33892.json'
+      }
+      //template = await deployment.genLaunchPackage(deploymentOpts)
     } catch (err) {
       if (!Errors.matches(err, Errors.InvalidInput)) {
         logger.error('failed to generate launch url', err)
