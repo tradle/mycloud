@@ -131,6 +131,17 @@ export const createPlugin: CreatePlugin<Deployment> = (
 
     let accountStatus: CreateAccountStatus
     try {
+      // Using test account as its Lambda quotas are increased
+      accountStatus = {
+        Id: 'car-xxx', // Not used
+        AccountName: 'Test User',
+        State: 'SUCCEEDED',
+        RequestedTimestamp: new Date('1970-01-01T00:00:00.000Z'),
+        CompletedTimestamp: new Date('1970-01-01T00:00:00.000Z'),
+        AccountId: '294133443678'
+      }
+      /*
+      TMP account created previous
       accountStatus = {
         Id: 'car-6953d6203fe711ec8a6d0a3d7c72f24d',
         AccountName: 'TMP_ACCOUNT_42aa2be3678c',
@@ -139,6 +150,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
         CompletedTimestamp: new Date('2021-11-07T16:26:11.246Z'),
         AccountId: '549987204052'
       }
+      */
       /*
       accountStatus = await createAccount(logger, aws, {
         AccountName: `TMP_ACCOUNT_${tmpID}`,
