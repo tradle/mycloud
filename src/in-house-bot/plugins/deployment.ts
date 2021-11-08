@@ -25,7 +25,7 @@ import { ClientCache, createClientCache } from '@tradle/aws-client-factory'
 import AWS, { Request, AWSError } from 'aws-sdk'
 import { CreateAccountResponse, CreateAccountStatus, CreateAccountRequest } from 'aws-sdk/clients/organizations'
 import { AssumeRoleResponse } from 'aws-sdk/clients/sts'
-import { Stack, StackStatus, Stacks } from 'aws-sdk/clients/cloudformation'
+import Cloudformation, { Stack, StackStatus, Stacks } from 'aws-sdk/clients/cloudformation'
 import { PromiseResult } from 'aws-sdk/lib/request'
 import { createConfig } from '../../aws/config'
 
@@ -202,19 +202,14 @@ export const createPlugin: CreatePlugin<Deployment> = (
     })
 
     try {
-      const subAWS = createClientCache({
-        AWS,
-        defaults: createConfig({
-          region: bot.env.AWS_REGION,
-          local: bot.env.IS_LOCAL,
-          iotEndpoint: bot.endpointInfo.endpoint,
-          accessKeyId: assumeSession.Credentials.AccessKeyId,
-          secretAccessKey: assumeSession.Credentials.SecretAccessKey,
-          sessionToken: assumeSession.Credentials.SessionToken
-        })
+      const cf = new Cloudformation({
+        region: bot.env.AWS_REGION,
+        accessKeyId: assumeSession.Credentials.AccessKeyId,
+        secretAccessKey: assumeSession.Credentials.SecretAccessKey,
+        sessionToken: assumeSession.Credentials.SessionToken
       })
       console.log({
-        stack: await launchStack(logger, subAWS, template.templateUrl)
+        stack: await launchStack(logger, cf, template.templateUrl)
       })
     } catch (err) {
       logger.debug('Failed create stack', err)
@@ -315,10 +310,10 @@ export const createPlugin: CreatePlugin<Deployment> = (
   }
 }
 
-async function launchStack (logger: Logger, aws: ClientCache, templateUrl: string): Promise<Stack> {
+async function launchStack (logger: Logger, cf: Cloudformation, templateUrl: string): Promise<Stack> {
   const stackName = `tdl-tradle-${randomBytes(6).toString('hex')}`
   logger.debug(`Launching stack ${stackName} from template ${templateUrl}`)
-  const { $response: { error, data } } = await aws.cloudformation.createStack({
+  const { $response: { error, data } } = await cf.createStack({
     TemplateURL: templateUrl,
     StackName: stackName,
     Capabilities: [
@@ -341,7 +336,7 @@ async function launchStack (logger: Logger, aws: ClientCache, templateUrl: strin
     await wait(250)
     let stacks: Stacks
     try {
-      stacks = (await aws.cloudformation.describeStacks({
+      stacks = (await cf.describeStacks({
         StackName: stackName
       }).promise()).Stacks
     } catch (err) {
