@@ -12,20 +12,20 @@ import {
   UpdatePluginConf,
   ValidatePluginConf,
   VersionInfo,
-  MyCloudLaunchTemplate,
-  Logger
+  Logger,
+  Bot
 } from '../types'
 
 import Errors from '../../errors'
 import constants from '../../constants'
-import { Deployment, createDeployment } from '../deployment'
+import { Deployment, createDeployment, LaunchPackage } from '../deployment'
 import { TRADLE, TYPES } from '../constants'
 import { didPropChange, getParsedFormStubs } from '../utils'
 import { ClientCache, createClientCache } from '@tradle/aws-client-factory'
 import AWS, { Request, AWSError, Credentials } from 'aws-sdk'
 import { CreateAccountResponse, CreateAccountStatus, CreateAccountRequest } from 'aws-sdk/clients/organizations'
 import { AssumeRoleResponse } from 'aws-sdk/clients/sts'
-import Cloudformation, { Stack, StackStatus, Stacks } from 'aws-sdk/clients/cloudformation'
+import { Stack, StackStatus, Stacks } from 'aws-sdk/clients/cloudformation'
 import { PromiseResult } from 'aws-sdk/lib/request'
 import { createConfig } from '../../aws/config'
 
@@ -36,6 +36,74 @@ const getCommit = (childDeployment: IChildDeployment) => _.get(childDeployment, 
 export interface IDeploymentPluginOpts extends IPluginOpts {
   conf: IDeploymentPluginConf
 }
+
+interface INext <Input=any> {
+  add <Output> (handler: (input: Input) => Promise<Output>): INext<Output>
+  loop (cont: (input: Input) => boolean | Promise<boolean>): INext<Input>
+}
+
+interface ChainStep <Input=any, Loop=any> {
+  init: (input: Input) => Promise<Loop>
+  cont: (init: Loop) => boolean | Promise<boolean>
+}
+
+function chain (logger: Logger, bot: Bot, name: string, error: (err: Error) => Promise<void>): INext<void> {
+  const steps: ChainStep[] = []
+  let memory = undefined
+  let count = 0
+  let running: ChainStep = null
+  const next = () => bot.tasks.add({
+    name: `${name}:step:${count++}`,
+    async promiser () {
+      if (running === null) {
+        running = steps.shift()
+        logger.debug(`${name}:step:${count} start ${running.init.name}`)
+        try {
+          memory = await running.init(memory)
+        } catch (err) {
+          logger.debug(`${name}:step:${count} error while init`, err)
+          error(err)
+          return
+        }
+      }
+      try {
+        if (await running.cont(memory)) {
+          next()
+          return
+        }
+      } catch (err) {
+        logger.debug(`${name}:step:${count} error while cont`, err)
+        error(err)
+        return
+      }
+      logger.debug(`${name}:step:${count} done`)
+      running = null
+      next()
+    }
+  })
+  const noloop = () => false
+  const add: INext = {
+    add: (handler) => {
+      steps.push({
+        init: handler,
+        cont: noloop
+      })
+      return 
+    },
+    loop: (cont) => {
+      const step = steps[steps.length - 1]
+      if (step.cont !== noloop) {
+        throw new Error('Can set loop only once.')
+      }
+      step.cont = cont
+      return add
+    }
+  } as INext
+  return add
+}
+
+
+const passthrough = async input => input
 
 export const createPlugin: CreatePlugin<Deployment> = (
   components,
@@ -70,194 +138,212 @@ export const createPlugin: CreatePlugin<Deployment> = (
       configurationLink: link
     } as IDeploymentConf
 
-    // async
-    bot.sendSimpleMessage({
-      to: user,
-      message: `Generating a template and code package for your MyCloud. This could take up to 30 seconds...`
+    chain(logger, bot, 'deployment:lauch', async err => {
+      await applications.requestEdit({
+        req,
+        item: selectModelProps({ object: form, models: bot.models }),
+        details: {
+          message: err.message
+        }
+      })
     })
-
-    let template: {
-      template: MyCloudLaunchTemplate
-      url: string
-      stackName: string
-      templateUrl: string
-      region: string
-    }
-    try {
-      template = {
-        template: null,
-        stackName: 'tdl-tradle-ltd-dev',
-        templateUrl: 'https://tdl-superawesome-ltd-dev-serverlessdeploymentbuck-1vlhszu8eejmx.s3.us-east-1.amazonaws.com/templates/template-b135f8c5-1636343495313-9786b33892.json',
-        region: 'us-east-1',
-        url: 'https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?stackName=tdl-tradle-ltd-dev&templateURL=https%3A%2F%2Ftdl-superawesome-ltd-dev-serverlessdeploymentbuck-1vlhszu8eejmx.s3.us-east-1.amazonaws.com%2Ftemplates%2Ftemplate-b135f8c5-1636343495313-9786b33892.json'
-      }
-      //template = await deployment.genLaunchPackage(deploymentOpts)
-    } catch (err) {
-      if (!Errors.matches(err, Errors.InvalidInput)) {
-        logger.error('failed to generate launch url', err)
+      .add(async function start () {
+        await bot.sendSimpleMessage({
+          to: user,
+          message: `Generating a template and code package for your MyCloud. This could take up to 30 seconds...`
+        })
+      })
+      .add(async function getTemplate (): Promise<LaunchPackage> {
+        return {
+          template: null,
+          stackName: 'tdl-tradle-ltd-dev',
+          templateUrl: 'https://tdl-superawesome-ltd-dev-serverlessdeploymentbuck-1vlhszu8eejmx.s3.us-east-1.amazonaws.com/templates/template-b135f8c5-1636343495313-9786b33892.json',
+          region: 'us-east-1',
+          url: 'https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?stackName=tdl-tradle-ltd-dev&templateURL=https%3A%2F%2Ftdl-superawesome-ltd-dev-serverlessdeploymentbuck-1vlhszu8eejmx.s3.us-east-1.amazonaws.com%2Ftemplates%2Ftemplate-b135f8c5-1636343495313-9786b33892.json'
+        }
+        // return await deployment.genLaunchPackage(deploymentOpts)
+      })
+      .add(async function templateDone (pkg) {
+        await bot.sendSimpleMessage({
+          to: user,
+          message: `Package generated. Creating Account.`
+        })
+        return pkg
+      })
+      .add(async function createAccount (pkg) {
+        const tmpID = randomBytes(6).toString('hex')
+        const awsConfig = {
+          ...createConfig({
+            region: bot.env.AWS_REGION,
+            local: bot.env.IS_LOCAL,
+            iotEndpoint: bot.endpointInfo.endpoint
+          }),
+          common: {
+            credentials: new Credentials({
+              accessKeyId: conf.accessKeyId,
+              secretAccessKey: conf.secretAccessKey
+            })
+          }
+        }
+    
+        const aws = createClientCache({
+          AWS,
+          defaults: awsConfig
+        })
+        let accountStatus: CreateAccountStatus
+        // Using test account as its Lambda quotas are increased
+        accountStatus = {
+          Id: 'car-xxx', // Not used
+          AccountName: 'Test User',
+          State: 'SUCCEEDED',
+          RequestedTimestamp: new Date('1970-01-01T00:00:00.000Z'),
+          CompletedTimestamp: new Date('1970-01-01T00:00:00.000Z'),
+          AccountId: '294133443678'
+        }
+        /*
+        TMP account created previous
+        accountStatus = {
+          Id: 'car-6953d6203fe711ec8a6d0a3d7c72f24d',
+          AccountName: 'TMP_ACCOUNT_42aa2be3678c',
+          State: 'SUCCEEDED',
+          RequestedTimestamp: new Date('2021-11-07T16:26:08.284Z'),
+          CompletedTimestamp: new Date('2021-11-07T16:26:11.246Z'),
+          AccountId: '549987204052'
+        }
+        */
+        /*
+        accountStatus = await createAccount(logger, aws, {
+          AccountName: `TMP_ACCOUNT_${tmpID}`,
+          Email: `martin.heidegger+tradle_${tmpID}@gmail.com`,
+          IamUserAccessToBilling: 'DENY',
+          RoleName: 'OrganizationAccountAccessRole'
+        })
+        */
+        return {
+          aws,
+          accountStatus,
+          pkg,
+          awsConfig
+        }
+      })
+      .add(async function accountCreated (data) {
         await productsAPI.sendSimpleMessage({
           req,
           to: user,
-          message: `hmm, something went wrong, we'll look into it`
+          message: `Account Created ${data.accountStatus.AccountId}`
         })
+        return data
+      })
+      .add(async function assumeSession (prev) {
+        const { aws, accountStatus } = prev
+        const { $response: { error, data }}: PromiseResult<AssumeRoleResponse, AWSError> = await aws.sts.assumeRole({
+          RoleArn: `arn:aws:iam::${accountStatus.AccountId}:role/OrganizationAccountAccessRole`,
+          RoleSessionName: 'AssumingRoleSetupSession'
+        }).promise()
 
-        return
-      }
-
-      logger.debug('failed to generate launch url', err)
-      await applications.requestEdit({
-        req,
-        item: selectModelProps({ object: form, models: bot.models }),
-        details: {
-          message: err.message
+        if (error) {
+          throw new Error(`Error while assuming temporary account [${error.statusCode}][${error.code}] ${error.stack || error.message}`)
+        }
+        if (!data) {
+          throw new Error(`AssumeSession didnt return with data`)
+        }
+        return {
+          ...prev,
+          assumeSession: data
         }
       })
-
-      return
-    }
-
-    const tmpID = randomBytes(6).toString('hex')
-    const awsConfig = {
-      ...createConfig({
-        region: bot.env.AWS_REGION,
-        local: bot.env.IS_LOCAL,
-        iotEndpoint: bot.endpointInfo.endpoint
-      }),
-      common: {
-        credentials: new Credentials({
-          accessKeyId: conf.accessKeyId,
-          secretAccessKey: conf.secretAccessKey
+      .add(async function assumeSessionDone (prev) {
+        await productsAPI.sendSimpleMessage({
+          req,
+          to: user,
+          message: `Session Assumed`
         })
-      }
-    }
-
-    const aws = createClientCache({
-      AWS,
-      defaults: awsConfig
-    })
-
-    let accountStatus: CreateAccountStatus
-    try {
-      // Using test account as its Lambda quotas are increased
-      accountStatus = {
-        Id: 'car-xxx', // Not used
-        AccountName: 'Test User',
-        State: 'SUCCEEDED',
-        RequestedTimestamp: new Date('1970-01-01T00:00:00.000Z'),
-        CompletedTimestamp: new Date('1970-01-01T00:00:00.000Z'),
-        AccountId: '294133443678'
-      }
-      /*
-      TMP account created previous
-      accountStatus = {
-        Id: 'car-6953d6203fe711ec8a6d0a3d7c72f24d',
-        AccountName: 'TMP_ACCOUNT_42aa2be3678c',
-        State: 'SUCCEEDED',
-        RequestedTimestamp: new Date('2021-11-07T16:26:08.284Z'),
-        CompletedTimestamp: new Date('2021-11-07T16:26:11.246Z'),
-        AccountId: '549987204052'
-      }
-      */
-      /*
-      accountStatus = await createAccount(logger, aws, {
-        AccountName: `TMP_ACCOUNT_${tmpID}`,
-        Email: `martin.heidegger+tradle_${tmpID}@gmail.com`,
-        IamUserAccessToBilling: 'DENY',
-        RoleName: 'OrganizationAccountAccessRole'
+        return prev
       })
-      */
-
-      console.log({
-        accountStatus,
-        template,
-        awsConfig
-      })
-    } catch (err) {
-      logger.debug('failed to create temporary account', err)
-      await applications.requestEdit({
-        req,
-        item: selectModelProps({ object: form, models: bot.models }),
-        details: {
-          message: err.message
+      .add(async function startLaunch (prev) {
+        const { assumeSession, pkg } = prev
+        const stackAws = createClientCache({
+          AWS,
+          defaults: {
+            ...createConfig({
+              region: bot.env.AWS_REGION,
+              local: bot.env.IS_LOCAL,
+              iotEndpoint: bot.endpointInfo.endpoint
+            }),
+            common: {
+              credentials: new Credentials({
+                accessKeyId: assumeSession.Credentials.AccessKeyId,
+                secretAccessKey: assumeSession.Credentials.SecretAccessKey,
+                sessionToken: assumeSession.Credentials.SessionToken
+              })
+            }
+          }
+        })
+        const { $response: { error, data } } = await stackAws.cloudformation.createStack({
+          TemplateURL: pkg.templateUrl,
+          StackName: deploymentOpts.stackName,
+          Capabilities: ['CAPABILITY_NAMED_IAM']
+        }).promise()
+        if (error) {
+          throw new Error(`Error while launching stack [${error.statusCode}][${error.code}] ${error.stack || error.message} (${error.extendedRequestId})`)
+        }
+        if (!data) {
+          throw new Error('expected data to be returned')
+        }
+        const stack: Stack = null
+        const stackState: StackStatus = null
+        return {
+          ...prev,
+          stackAws,
+          stackId: data.StackId,
+          stack,
+          status
         }
       })
-      return
-    }
-
-    await productsAPI.sendSimpleMessage({
-      req,
-      to: user,
-      message: `Account Created ${tmpID}`
-      // \n\nInvite employees using this link: ${employeeOnboardingUrl}`
-    })
-
-    let assumeSession: PromiseResult<AssumeRoleResponse, AWSError>
-    try {
-      assumeSession = await aws.sts.assumeRole({
-        RoleArn: `arn:aws:iam::${accountStatus.AccountId}:role/OrganizationAccountAccessRole`,
-        RoleSessionName: 'AssumingRoleSetupSession'
-      }).promise()
-
-      const { error } = assumeSession.$response
-      if (error) {
-        throw new Error(`Error while assuming temporary account [${error.statusCode}][${error.code}] ${error.stack || error.message}`)
-      }
-    } catch (err) {
-      logger.debug('Failed to assume temporary account', err)
-      await applications.requestEdit({
-        req,
-        item: selectModelProps({ object: form, models: bot.models }),
-        details: {
-          message: `Error creating account: ${err.message}`
+      .loop(async (loop) => {
+        const { stackAws } = loop
+        const { stackName } = deploymentOpts
+        logger.debug(`Waiting 250ms for stack update of ${stackName}`)
+        await wait(250)
+        let stacks: Stacks
+        try {
+          stacks = (await stackAws.cloudformation.describeStacks({
+            StackName: stackName
+          }).promise()).Stacks
+        } catch (err) {
+          throw new Error(`Error while describing stack ${err.stack}`)
         }
-      })
-      return
-    }
-
-    console.log({ assumeSession })
-
-    await productsAPI.sendSimpleMessage({
-      req,
-      to: user,
-      message: `Account Created ${tmpID}:
-  ACCESS_KEY_ID: ${assumeSession.Credentials.AccessKeyId}
-  SECRET_ACCESS_KEY: ${assumeSession.Credentials.SecretAccessKey}
-  EXPIRATION: ${assumeSession.Credentials.Expiration}
-  SESSIOn_TOKEN: ${assumeSession.Credentials.SessionToken}
-      `
-      // \n\nInvite employees using this link: ${employeeOnboardingUrl}`
-    })
-
-    try {
-      const cf = new Cloudformation({
-        region: bot.env.AWS_REGION,
-        accessKeyId: assumeSession.Credentials.AccessKeyId,
-        secretAccessKey: assumeSession.Credentials.SecretAccessKey,
-        sessionToken: assumeSession.Credentials.SessionToken
-      })
-      console.log({
-        stack: await launchStack(logger, cf, template.templateUrl)
-      })
-    } catch (err) {
-      logger.debug('Failed create stack', err)
-      await applications.requestEdit({
-        req,
-        item: selectModelProps({ object: form, models: bot.models }),
-        details: {
-          message: `Error launching stack: ${err.message}`
+        for (const stack of stacks) {
+          if (stack.StackName !== stackName) {
+            continue
+          }
+          if (stack.StackStatus === status) {
+            continue
+          }
+          loop.stack = stack
+          loop.status = stack.StackStatus
+          logger.debug(`Stack ${stackName} now in state [${status}]`)
+          if (status === 'CREATE_COMPLETE') {
+            return false
+          }
+          if (
+            status === 'CREATE_FAILED' ||
+            status === 'ROLLBACK_COMPLETE' ||
+            status === 'DELETE_FAILED' ||
+            status === 'DELETE_COMPLETE'
+          ) {
+            throw new Error(`Stack creation failed status!`)
+          }
         }
+        return true
       })
-      return
-    }
-
-    await applications.requestEdit({
-      req,
-      item: selectModelProps({ object: form, models: bot.models }),
-      details: {
-        message: 'no error, just resetting to test'
-      }
-    })
-    return
+      .add(async function done (data) {
+        await productsAPI.sendSimpleMessage({
+          req,
+          to: user,
+          message: `All done ${data.stack}`
+        })
+      })
   }
 
   const maybeNotifyCreators = async ({ old, value }) => {
@@ -334,62 +420,6 @@ export const createPlugin: CreatePlugin<Deployment> = (
       'onResourceChanged:tradle.cloud.ChildDeployment': onChildDeploymentChanged,
       'onResourceCreated:tradle.VersionInfo': onVersionInfoCreated
     } as PluginLifecycle.Methods
-  }
-}
-
-async function launchStack (logger: Logger, cf: Cloudformation, templateUrl: string): Promise<Stack> {
-  const stackName = `tdl-tradle-${randomBytes(6).toString('hex')}`
-  logger.debug(`Launching stack ${stackName} from template ${templateUrl}`)
-  const { $response: { error, data } } = await cf.createStack({
-    TemplateURL: templateUrl,
-    StackName: stackName,
-    Capabilities: [
-      'CAPABILITY_NAMED_IAM'
-    ]
-  }).promise()
-  if (error) {
-    throw new Error(`Error while launching stack [${error.statusCode}][${error.code}] ${error.stack || error.message} (${error.extendedRequestId})`)
-  }
-  if (!data) {
-    throw new Error('expected data to be returned')
-  }
-  const { StackId } = data
-  if (!StackId) {
-    throw new Error('expected stackid to be returned')
-  }
-  let status: StackStatus|null = null
-  while (true) {
-    logger.debug(`Waiting 250ms for stack update of ${stackName}`)
-    await wait(250)
-    let stacks: Stacks
-    try {
-      stacks = (await cf.describeStacks({
-        StackName: stackName
-      }).promise()).Stacks
-    } catch (err) {
-      throw new Error(`Error while describing stack ${err.stack}`)
-    }
-    for (const stack of stacks) {
-      if (stack.StackName !== stackName) {
-        continue
-      }
-      if (stack.StackStatus === status) {
-        continue
-      }
-      status = stack.StackStatus
-      logger.debug(`Stack ${stackName} now in state [${status}]`)
-      if (status === 'CREATE_COMPLETE') {
-        return stack
-      }
-      if (
-        status === 'CREATE_FAILED' ||
-        status === 'ROLLBACK_COMPLETE' ||
-        status === 'DELETE_FAILED' ||
-        status === 'DELETE_COMPLETE'
-      ) {
-        throw new Error(`Stack creation failed status!`)
-      }
-    }
   }
 }
 

@@ -10,6 +10,7 @@ import {
   ClientCache,
   monitor as monitorClient
 } from '@tradle/aws-client-factory'
+import pmap from 'p-map'
 import { services as awsServices, AWSServices } from '@tradle/aws-combo'
 import { S3Client } from '@tradle/aws-s3-client'
 import { SNSClient } from '@tradle/aws-sns-client'
@@ -151,6 +152,8 @@ type SendInput = {
   object?: any
   link?: string
 }
+
+export type Response <Opts> = Opts extends Array<any> ? ITradleMessage[] : ITradleMessage
 
 export const createBot = (opts: IBotOpts = {}): Bot => new Bot(opts)
 
@@ -839,15 +842,15 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     return this.send(this.toMessageBatch(batch))
   }
 
-  public send = async (opts) => {
-    const batch = await Promise.map([].concat(opts), (oneOpts) => normalizeSendOpts(this, oneOpts))
+  public async send <Opts> (opts: Opts): Promise<ITradleMessage | ITradleMessage[]> {
+    const batch = await pmap([].concat(opts), (oneOpts) => normalizeSendOpts(this, oneOpts))
     const byRecipient = _.groupBy(batch, 'recipient')
     const recipients = Object.keys(byRecipient)
     this.logger.debug(`queueing messages to ${recipients.length} recipients`, {
       recipients
     })
 
-    const results = await Promise.map(recipients, (recipient) =>
+    const results = await pmap(recipients, (recipient) =>
       this._sendBatch({
         recipient,
         batch: byRecipient[recipient]
@@ -855,9 +858,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     )
 
     const messages = _.flatten(results)
-    if (messages) {
-      return Array.isArray(opts) ? messages : messages[0]
-    }
+    return Array.isArray(opts) ? messages : messages[0]
   }
 
   public _sendBatch = async ({ recipient, batch }) => {
@@ -865,9 +866,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const types = batch.map((m) => m[TYPE]).join(', ')
     this.logger.debug(`sending to ${recipient}: ${types}`)
     await this.outboundMessageLocker.lock(recipient)
-    let messages
     try {
-      messages = await this.messaging.queueMessageBatch(batch)
+      const messages = await this.messaging.queueMessageBatch(batch)
       this.tasks.add({
         name: 'delivery:live',
         promiser: () =>
@@ -895,11 +895,10 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
           )
         })
       }
+      return messages
     } finally {
       this.outboundMessageLocker.unlock(recipient)
     }
-
-    return messages
   }
 
   public sendPushNotification = async ({ recipient }: SendPushNotificationOpts) => {
@@ -964,8 +963,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   //   }
   // }
 
-  public sendSimpleMessage = async ({ to, message }) => {
-    return await this.send({
+  public async sendSimpleMessage ({ to, message }): Promise<ITradleMessage | ITradleMessage[]> {
+    return this.send({
       to,
       object: {
         [TYPE]: 'tradle.SimpleMessage',
