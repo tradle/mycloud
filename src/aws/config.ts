@@ -11,9 +11,10 @@ interface CreateConfigOpts {
   iotEndpoint: string
   accessKeyId?: string
   secretAccessKey?: string
+  sessionToken?: string
 }
 
-export const createConfig = ({ region, local, iotEndpoint, accessKeyId, secretAccessKey }: CreateConfigOpts): AWSConfig => {
+export const createConfig = ({ region, local, iotEndpoint, accessKeyId, secretAccessKey, sessionToken }: CreateConfigOpts): AWSConfig => {
   const httpOptions: any = {
     keepAlive: true,
     maxSockets: 50,
@@ -52,6 +53,7 @@ export const createConfig = ({ region, local, iotEndpoint, accessKeyId, secretAc
     httpOptions,
     accessKeyId,
     secretAccessKey,
+    sessionToken,
     s3: {
       signatureVersion: 'v4'
     },
