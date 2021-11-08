@@ -25,7 +25,7 @@ import { ClientCache, createClientCache } from '@tradle/aws-client-factory'
 import AWS, { Request, AWSError } from 'aws-sdk'
 import { CreateAccountResponse, CreateAccountStatus, CreateAccountRequest } from 'aws-sdk/clients/organizations'
 import { AssumeRoleResponse } from 'aws-sdk/clients/sts'
-import { Stack, StackStatus } from 'aws-sdk/clients/cloudformation'
+import { Stack, StackStatus, Stacks } from 'aws-sdk/clients/cloudformation'
 import { PromiseResult } from 'aws-sdk/lib/request'
 import { createConfig } from '../../aws/config'
 
@@ -181,7 +181,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
         req,
         item: selectModelProps({ object: form, models: bot.models }),
         details: {
-          message: err.message
+          message: `Error creating account: ${err.message}`
         }
       })
       return
@@ -220,7 +220,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
         req,
         item: selectModelProps({ object: form, models: bot.models }),
         details: {
-          message: err.message
+          message: `Error launching stack: ${err.message}`
         }
       })
       return
@@ -319,6 +319,9 @@ async function launchStack (logger: Logger, aws: ClientCache, templateUrl: strin
   const { $response: { error, data } } = await aws.cloudformation.createStack({
     TemplateURL: templateUrl,
     StackName: stackName,
+    Capabilities: [
+      'CAPABILITY_NAMED_IAM'
+    ]
   }).promise()
   if (error instanceof AWSError) {
     throw new Error(`Error while launching stack [${error.statusCode}][${error.code}] ${error.stack || error.message} (${error.extendedRequestId})`)
@@ -334,9 +337,14 @@ async function launchStack (logger: Logger, aws: ClientCache, templateUrl: strin
   while (true) {
     logger.debug(`Waiting 250ms for stack update of ${stackName}`)
     await wait(250)
-    const { Stacks: stacks } = await aws.cloudformation.describeStacks({
-      StackName: stackName
-    }).promise()
+    let stacks: Stacks
+    try {
+      stacks = (await aws.cloudformation.describeStacks({
+        StackName: stackName
+      }).promise()).Stacks
+    } catch (err) {
+      throw new Error(`Error while describing stack ${err.stack}`)
+    }
     for (const stack of stacks) {
       if (stack.StackName !== stackName) {
         continue
