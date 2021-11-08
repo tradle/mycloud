@@ -320,22 +320,24 @@ async function launchStack (logger: Logger, aws: ClientCache, templateUrl: strin
       StackName: stackName
     }).promise()
     for (const stack of stacks) {
-      if (stack.StackName === stackName) {
-        if (stack.StackStatus !== status) {
-          status = stack.StackStatus
-          logger.debug(`Stack ${stackName} now in state [${status}]`)
-          if (status === 'CREATE_COMPLETE') {
-            return stack
-          }
-          if (
-            status === 'CREATE_FAILED' ||
-            status === 'ROLLBACK_COMPLETE' ||
-            status === 'DELETE_FAILED' ||
-            status === 'DELETE_COMPLETE'
-          ) {
-            throw new Error(`Stack creation failed status!`)
-          }
-        }
+      if (stack.StackName !== stackName) {
+        continue
+      }
+      if (stack.StackStatus === status) {
+        continue
+      }
+      status = stack.StackStatus
+      logger.debug(`Stack ${stackName} now in state [${status}]`)
+      if (status === 'CREATE_COMPLETE') {
+        return stack
+      }
+      if (
+        status === 'CREATE_FAILED' ||
+        status === 'ROLLBACK_COMPLETE' ||
+        status === 'DELETE_FAILED' ||
+        status === 'DELETE_COMPLETE'
+      ) {
+        throw new Error(`Stack creation failed status!`)
       }
     }
   }
