@@ -150,7 +150,7 @@
   },
   "dependencies": {
     "@aws/dynamodb-expressions": "^0.4.0",
-    "@tradle/aws-client-factory": "^2.1.0",
+    "@tradle/aws-client-factory": "^2.2.1",
     "@tradle/aws-cloudformation-client": "^2.0.0",
     "@tradle/aws-cloudwatch-client": "^2.0.0",
     "@tradle/aws-combo": "^2.0.0",
