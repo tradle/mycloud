@@ -323,7 +323,7 @@ async function launchStack (logger: Logger, aws: ClientCache, templateUrl: strin
       'CAPABILITY_NAMED_IAM'
     ]
   }).promise()
-  if (error instanceof AWSError) {
+  if (error) {
     throw new Error(`Error while launching stack [${error.statusCode}][${error.code}] ${error.stack || error.message} (${error.extendedRequestId})`)
   }
   if (!data) {
