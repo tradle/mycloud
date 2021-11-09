@@ -52,35 +52,44 @@ function chain (logger: Logger, bot: Bot, name: string, error: (err: Error) => P
   let memory = undefined
   let count = 0
   let running: ChainStep = null
-  const next = () => bot.tasks.add({
-    name: `${name}:step:${count++}`,
-    async promiser () {
-      if (running === null) {
-        running = steps.shift()
-        logger.debug(`${name}:step:${count} start ${running.init.name}`)
+  let added = false
+  const next = () => {
+    if (steps.length === 0) {
+      logger.debug(`${name} all-done`)
+      added = false
+      return
+    }
+    added = true
+    bot.tasks.add({
+      name: `${name}:step:${count++}`,
+      async promiser () {
+        if (running === null) {
+          running = steps.shift()
+          logger.debug(`${name}:step:${count} start ${running.init.name}`)
+          try {
+            memory = await running.init(memory)
+          } catch (err) {
+            logger.debug(`${name}:step:${count} error while init`, err)
+            error(err)
+            return
+          }
+        }
         try {
-          memory = await running.init(memory)
+          if (await running.cont(memory)) {
+            next()
+            return
+          }
         } catch (err) {
-          logger.debug(`${name}:step:${count} error while init`, err)
+          logger.debug(`${name}:step:${count} error while cont`, err)
           error(err)
           return
         }
+        logger.debug(`${name}:step:${count} done`)
+        running = null
+        next()
       }
-      try {
-        if (await running.cont(memory)) {
-          next()
-          return
-        }
-      } catch (err) {
-        logger.debug(`${name}:step:${count} error while cont`, err)
-        error(err)
-        return
-      }
-      logger.debug(`${name}:step:${count} done`)
-      running = null
-      next()
-    }
-  })
+    })
+  }
   const noloop = () => false
   const add: INext = {
     add: (handler) => {
@@ -88,6 +97,9 @@ function chain (logger: Logger, bot: Bot, name: string, error: (err: Error) => P
         init: handler,
         cont: noloop
       })
+      if (!added) {
+        next()
+      }
       return add
     },
     loop: (cont) => {
