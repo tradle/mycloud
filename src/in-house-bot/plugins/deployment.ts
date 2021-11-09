@@ -88,7 +88,7 @@ function chain (logger: Logger, bot: Bot, name: string, error: (err: Error) => P
         init: handler,
         cont: noloop
       })
-      return 
+      return add
     },
     loop: (cont) => {
       const step = steps[steps.length - 1]
