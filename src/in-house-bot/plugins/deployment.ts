@@ -60,16 +60,17 @@ function chain (logger: Logger, bot: Bot, name: string, error: (err: Error) => P
       return
     }
     added = true
+    const taskName = `${name}:step:${count++}`
     bot.tasks.add({
-      name: `${name}:step:${count++}`,
+      name: taskName,
       async promiser () {
         if (running === null) {
           running = steps.shift()
-          logger.debug(`${name}:step:${count} start ${running.init.name}`)
+          logger.debug(`${taskName} start ${running.init.name}`)
           try {
             memory = await running.init(memory)
           } catch (err) {
-            logger.debug(`${name}:step:${count} error while init`, err)
+            logger.debug(`${taskName} error while init`, err)
             error(err)
             return
           }
@@ -80,11 +81,11 @@ function chain (logger: Logger, bot: Bot, name: string, error: (err: Error) => P
             return
           }
         } catch (err) {
-          logger.debug(`${name}:step:${count} error while cont`, err)
+          logger.debug(`${taskName} error while cont`, err)
           error(err)
           return
         }
-        logger.debug(`${name}:step:${count} done`)
+        logger.debug(`${taskName} done`)
         running = null
         next()
       }
