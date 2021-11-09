@@ -75,6 +75,7 @@ function chain (logger: Logger, bot: Bot, name: string, error: (err: Error) => P
         }
         try {
           if (await running.cont(memory)) {
+            logger.debug(`${runningName} continue`)
             next()
             return
           }
@@ -170,14 +171,14 @@ export const createPlugin: CreatePlugin<Deployment> = (
         })
       })
       .add(async function getTemplate (): Promise<LaunchPackage> {
-        return {
-          template: null,
-          stackName: 'tdl-tradle-ltd-dev',
-          templateUrl: 'https://tdl-superawesome-ltd-dev-serverlessdeploymentbuck-1vlhszu8eejmx.s3.us-east-1.amazonaws.com/templates/template-b135f8c5-1636343495313-9786b33892.json',
-          region: 'us-east-1',
-          url: 'https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?stackName=tdl-tradle-ltd-dev&templateURL=https%3A%2F%2Ftdl-superawesome-ltd-dev-serverlessdeploymentbuck-1vlhszu8eejmx.s3.us-east-1.amazonaws.com%2Ftemplates%2Ftemplate-b135f8c5-1636343495313-9786b33892.json'
-        }
-        // return await deployment.genLaunchPackage(deploymentOpts)
+        // return {
+        //   template: null,
+        //   stackName: 'tdl-tradle-ltd-dev',
+        //   templateUrl: 'https://tdl-superawesome-ltd-dev-serverlessdeploymentbuck-1vlhszu8eejmx.s3.us-east-1.amazonaws.com/templates/template-b135f8c5-1636343495313-9786b33892.json',
+        //   region: 'us-east-1',
+        //   url: 'https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?stackName=tdl-tradle-ltd-dev&templateURL=https%3A%2F%2Ftdl-superawesome-ltd-dev-serverlessdeploymentbuck-1vlhszu8eejmx.s3.us-east-1.amazonaws.com%2Ftemplates%2Ftemplate-b135f8c5-1636343495313-9786b33892.json'
+        // }
+        return await deployment.genLaunchPackage(deploymentOpts)
       })
       .add(async function templateDone (pkg) {
         await bot.sendSimpleMessage({
