@@ -2,7 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.4](https://github.com/tradle/mycloud/compare/v3.1.1-rc.3...v3.1.1-rc.4) (2021-11-07)
+## [3.1.1-rc.5](https://github.com/tradle/mycloud/compare/v3.1.1-rc.4...v3.1.1-rc.5) (2021-11-11)
+
+
+### Features
+
+* mycloud <-> mycloud - prelude to sharing ([fcc29bd](https://github.com/tradle/mycloud/commit/fcc29bd))
 
 
 
