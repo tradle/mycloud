@@ -10,7 +10,7 @@
     "@babel/core": "^7.15.5",
     "@babel/eslint-parser": "^7.15.7",
     "@tradle/aws-client": "^1.10.0",
-    "@tradle/serverless-offline": "^3.16.1",
+    "@tradle/serverless-offline": "^3.16.2",
     "@tradle/validate-model": "^7.1.33",
     "@types/graphql": "^0.12.3",
     "@types/json-schema": "^6.0.0",
