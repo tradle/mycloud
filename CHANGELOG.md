@@ -2,12 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.3](https://github.com/tradle/mycloud/compare/v3.1.1-rc.2...v3.1.1-rc.3) (2021-11-05)
-
-
-### Bug Fixes
-
-* timing issue with data bundle ([9138549](https://github.com/tradle/mycloud/commit/9138549))
+## [3.1.1-rc.4](https://github.com/tradle/mycloud/compare/v3.1.1-rc.3...v3.1.1-rc.4) (2021-11-07)
 
 
 
