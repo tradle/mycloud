@@ -54,7 +54,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let isDataBundleSubmitted = ptype === DATA_BUNDLE_SUBMITTED
       if (!isDataBundleSubmitted && ptype !== CONTROLLING_PERSON) return
 
-      const { submissions } = application 
+      const { submissions } = application
       if (!submissions.find(sub => sub.submission[TYPE] === LEGAL_ENTITY)) return
       let dataBundleLink
       if (ptype === CONTROLLING_PERSON) {
@@ -131,8 +131,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         [r.form._permalink, r.propertyName, r[TYPE], r.provider].join(',')
       )
 
-      let legalEntity = application.forms.find((f) => f.submission[TYPE] === LEGAL_ENTITY)
-      let legalEntityPermalink = legalEntity.submission._permalink
+      let legalEntity = application.forms.find((f) => f.submission[TYPE] === LEGAL_ENTITY).submission
+      let legalEntityPermalink = legalEntity._permalink
       let check = result.find(
         (c) => c[TYPE] === CORPORATION_EXISTS && c.form._permalink === legalEntityPermalink
       )
@@ -205,6 +205,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           }
         }
       }
+      legalEntity = await bot.getResource(legalEntity)
       let dataSource
       if (!officer) {
         if (await this.doSkipBO(application)) return
@@ -216,7 +217,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
             forms,
             officers,
             formRequest,
-            pscCheck
+            pscCheck,
+            legalEntity
           })
           dataSource = 'psc'
           this.addRefDataSource({ dataSource, formRequest, currenPrefill })
@@ -227,7 +229,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
             forms,
             officers,
             formRequest,
-            pscCheck: carCheck
+            pscCheck: carCheck,
+            legalEntity
           })
           dataSource = 'clientAction'
           // this.addRefDataSource({ dataSource: 'clientAction', formRequest, currenPrefill })
@@ -244,7 +247,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
             forms,
             officers,
             formRequest,
-            pscCheck: pitchbookCheck
+            pscCheck: pitchbookCheck,
+            legalEntity
           })
           this.addRefDataSource({ dataSource, formRequest, currenPrefill })
         }
@@ -295,7 +299,10 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           }
         }
         logger.debug('prefill = ' + formRequest.prefill)
-        formRequest.message = `Please review and correct the data below **for ${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+        if (formRequest.product === REFRESH_PRODUCT)
+          formRequest.message = `Your company’s profile is missing the following controlling person, found in a primary data source **${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+        else
+          formRequest.message = `Please review and correct the data below **for ${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
         return
       }
       if (country_of_residence) {
@@ -637,7 +644,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           title: natureOfControl.title
         }
     },
-    async prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck }) {
+    async prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck, legalEntity }) {
       if (!items) items = await Promise.all(forms.map((f) => bot.getResource(f.submission)))
       if (!pscCheck) return
 
@@ -679,6 +686,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
             if (officers.find((o) => this.compare(o.officer.name, bene))) continue
           }
         } else if (!kind.startsWith('corporate-')) return
+        else if (bene['company_number'] === legalEntity.registrationNumber)
+          continue
         let prefill: any = {
           name,
           prefilledName: name
@@ -702,7 +711,10 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           }
         }
         logger.debug('prefill = ' + formRequest.prefill)
-        formRequest.message = `Please review and correct the data below **for ${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+        if (formRequest.product === REFRESH_PRODUCT)
+          formRequest.message = `Your company’s profile is missing the following controlling person, found in a primary data source **${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+        else
+          formRequest.message = `Please review and correct the data below **for ${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
         return true
       }
     },
