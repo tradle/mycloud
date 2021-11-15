@@ -110,6 +110,7 @@ class RuesAPI {
     return res
   }
   private async send(id: string, cook: string, nit: string) {
+    const nitCode = this.getCode(nit)
     let response: any
     try {
       response = await fetch(CH_URL, {
@@ -118,7 +119,7 @@ class RuesAPI {
           cookie: cook,
           'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
         },
-        body: `__RequestVerificationToken=${id}&txtNIT=${nit}&txtCI=&txtDV=`
+        body: `__RequestVerificationToken=${id}&txtNIT=${nitCode}&txtCI=&txtDV=`
       })
     } catch (err) {
       this.logger.error(err)
@@ -139,6 +140,20 @@ class RuesAPI {
       const cookiePart = parts[0];
       return cookiePart;
     }).join(';');
+  }
+
+  private getCode = (nit) => {
+    let code = ''
+    let start = false
+    for (const c of nit) {
+      if (c >= '0' && c <= '9') {
+        code += c
+        start = true
+      } else if (start) {
+        return code
+      }  
+    }
+    return code
   }
   
 } 
