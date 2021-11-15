@@ -157,6 +157,8 @@ export const createPlugin: CreatePlugin<Deployment> = (
       configurationLink: link
     } as IDeploymentConf
 
+    let startTime = Date.now()
+
     chain(logger, bot, 'deployment:launch', async err => {
       await applications.requestEdit({
         req,
@@ -169,7 +171,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
       .add(async function start () {
         await bot.sendSimpleMessage({
           to: user,
-          message: 'Setting up your personal server, this will take up to 15 minutes...'
+          message: `Preparing server... ${Date.now() - startTime }`
         })
       })
       .add(async function getTemplate (): Promise<LaunchPackage> {
@@ -317,48 +319,48 @@ export const createPlugin: CreatePlugin<Deployment> = (
           status
         }
       })
-      .loop(async (loop) => {
-        const { stackAws } = loop
-        const { stackName } = deploymentOpts
-        logger.debug(`Waiting 250ms for stack update of ${stackName}`)
-        await wait(250)
-        let stacks: Stacks
-        try {
-          stacks = (await stackAws.cloudformation.describeStacks({
-            StackName: stackName
-          }).promise()).Stacks
-        } catch (err) {
-          throw new Error(`Error while describing stack ${err.stack}`)
-        }
-        const stack = stacks.find(stack => stack.StackName === stackName)
-        if (!stack) {
-          throw new Error('Stack gone?')
-        }
-        const { StackStatus: status } = stack
-        if (status === loop.status) {
-          return true
-        }
-        loop.stack = stack
-        loop.status = status
-        logger.debug(`Stack ${stackName} now in state [${status}]`)
-        if (status === 'CREATE_COMPLETE') {
-          return false
-        }
-        if (
-          status === 'CREATE_FAILED' ||
-          status === 'ROLLBACK_COMPLETE' ||
-          status === 'DELETE_FAILED' ||
-          status === 'DELETE_COMPLETE'
-        ) {
-          throw new Error(`Stack creation failed status!`)
-        }
-        return true
-      })
+      // .loop(async (loop) => {
+      //   const { stackAws } = loop
+      //   const { stackName } = deploymentOpts
+      //   logger.debug(`Waiting 250ms for stack update of ${stackName}`)
+      //   await wait(250)
+      //   let stacks: Stacks
+      //   try {
+      //     stacks = (await stackAws.cloudformation.describeStacks({
+      //       StackName: stackName
+      //     }).promise()).Stacks
+      //   } catch (err) {
+      //     throw new Error(`Error while describing stack ${err.stack}`)
+      //   }
+      //   const stack = stacks.find(stack => stack.StackName === stackName)
+      //   if (!stack) {
+      //     throw new Error('Stack gone?')
+      //   }
+      //   const { StackStatus: status } = stack
+      //   if (status === loop.status) {
+      //     return true
+      //   }
+      //   loop.stack = stack
+      //   loop.status = status
+      //   logger.debug(`Stack ${stackName} now in state [${status}]`)
+      //   if (status === 'CREATE_COMPLETE') {
+      //     return false
+      //   }
+      //   if (
+      //     status === 'CREATE_FAILED' ||
+      //     status === 'ROLLBACK_COMPLETE' ||
+      //     status === 'DELETE_FAILED' ||
+      //     status === 'DELETE_COMPLETE'
+      //   ) {
+      //     throw new Error(`Stack creation failed status!`)
+      //   }
+      //   return true
+      // })
       .add(async function done (data) {
         await productsAPI.sendSimpleMessage({
           req,
           to: user,
-          message: `All done ${data.stack}`
+          message: `Setting up your personal server, this will take up to ${Math.ceil((15 * 60 * 1000 + startTime - Date.now()) / (1000 * 60))} minutes...`
         })
       })
   }
