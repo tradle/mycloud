@@ -42,7 +42,7 @@ const API_BASED_VERIFIED_METHOD = 'tradle.APIBasedVerificationMethod'
 const CH_URL = 'https://beta.companieshouse.gov.uk'
 
 const CZECH_COUNTRY_ID = 'CZ' // handled by czechCheck
-
+const COLOMBIA_COUNTRY_CODE = 'CO' // handled by ruesCheck
 interface IOpenCorporatesConf {
   products: any
   propertyMap: any
@@ -539,7 +539,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         return
       }
 
-      if (payload[map.country].id.split('_')[1] === CZECH_COUNTRY_ID)
+      if (payload[map.country].id.split('_')[1] === CZECH_COUNTRY_ID ||
+          payload[map.country].id.split('_')[1] === COLOMBIA_COUNTRY_CODE)
         return
 
       let { resource, error } = await getCheckParameters({
@@ -652,7 +653,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         logger.debug('skipping prefill"')
         return
       }
-      if (payload[map.country].id.split('_')[1] === CZECH_COUNTRY_ID)
+      if (payload[map.country].id.split('_')[1] === CZECH_COUNTRY_ID ||
+          payload[map.country].id.split('_')[1] === COLOMBIA_COUNTRY_CODE)
         return
 
       if (payload._prevlink && payload.registrationDate) return
