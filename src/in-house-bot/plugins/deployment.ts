@@ -171,7 +171,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
       .add(async function start () {
         await bot.sendSimpleMessage({
           to: user,
-          message: `Preparing server... ${Date.now() - startTime }`
+          message: `Preparing server...`
         })
       })
       .add(async function getTemplate (): Promise<LaunchPackage> {
