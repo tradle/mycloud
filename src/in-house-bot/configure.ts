@@ -314,8 +314,6 @@ export class Conf {
   }
 
   public getPublicInfo = async () => {
-    // TODO: get via info.get()
-    // return await this.calcPublicInfo()
     try {
       let info = await this.info.get()
       if (info.templates && info.templates.length)
@@ -328,14 +326,8 @@ export class Conf {
       })
       return info
     } catch (err) {
-      Errors.ignoreNotFound(err)
-    }
-    try {
       return await this.calcPublicInfo()
-    } catch (err2) {
-      Errors.ignoreNotFound(err2)
     }
-    return {}
   }
 
   public calcPublicInfo = async (infoInput: Partial<IInfoInput> = {}): Promise<any> => {
