@@ -313,19 +313,11 @@ export class Conf {
   }
 
   public getPublicInfo = async () => {
-    // TODO: get via info.get()
-    // return await this.calcPublicInfo()
     try {
       return await this.info.get()
     } catch (err) {
-      Errors.ignoreNotFound(err)
-    }
-    try {
       return await this.calcPublicInfo()
-    } catch (err2) {
-      Errors.ignoreNotFound(err2)
     }
-    return {}
   }
 
   public calcPublicInfo = async (infoInput: Partial<IInfoInput> = {}): Promise<any> => {
