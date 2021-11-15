@@ -51,6 +51,7 @@ function chain (logger: Logger, bot: Bot, name: string, error: (err: Error) => P
   const steps: ChainStep[] = []
   let memory = undefined
   let count = 0
+  let step = 0
   let running: ChainStep = null
   let runningName = null
   let added = false
@@ -63,7 +64,8 @@ function chain (logger: Logger, bot: Bot, name: string, error: (err: Error) => P
         logger.debug(taskName)
         if (running === null) {
           running = steps.shift()
-          runningName = `${name}:process:${running.init.name}`
+          step += 1
+          runningName = `${name}:process:${step}:${running.init.name}`
           logger.debug(`${runningName} start`)
           try {
             memory = await running.init(memory)
@@ -155,7 +157,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
       configurationLink: link
     } as IDeploymentConf
 
-    chain(logger, bot, 'deployment:lauch', async err => {
+    chain(logger, bot, 'deployment:launch', async err => {
       await applications.requestEdit({
         req,
         item: selectModelProps({ object: form, models: bot.models }),
@@ -244,7 +246,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
         }
       })
       .add(async function accountCreated (data) {
-        await productsAPI.sendSimpleMessage({
+        await bot.sendSimpleMessage({
           to: user,
           message: `Account Created ${data.accountStatus.AccountId}`
         })
@@ -269,7 +271,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
         }
       })
       .add(async function assumeSessionDone (prev) {
-        await productsAPI.sendSimpleMessage({
+        await bot.sendSimpleMessage({
           to: user,
           message: `Session Assumed`
         })
