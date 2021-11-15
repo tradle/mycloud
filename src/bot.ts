@@ -129,6 +129,7 @@ import { hookUp as setupDefaultHooks } from './hooks'
 import { Resource, ResourceInput, IResourcePersister } from './resource'
 import networks from './networks'
 import { logger } from '@tradle/dynamodb/lib/defaults'
+import { getLocalIp } from '@tradle/aws-common-utils'
 
 const { addLinks } = crypto
 
@@ -799,7 +800,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       this.appLinks = createLinker({
         web: this.apiBaseUrl.replace(
           /http:\/\/\d+\.\d+.\d+\.\d+:\d+/,
-          `http://localhost:${webPort}`
+          `http://${getLocalIp()}:${webPort}`
         )
       })
 

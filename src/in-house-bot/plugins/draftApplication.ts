@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { Bot, Logger, CreatePlugin, IPluginLifecycleMethods } from '../types'
+import { CreatePlugin, IPluginLifecycleMethods } from '../types'
 import { TYPE } from '@tradle/constants'
 import { sendConfirmationEmail } from '../email-utils'
 
@@ -7,7 +7,6 @@ export const name = 'draftApplication'
 
 const APPLICATION = 'tradle.Application'
 const PRODUCT_BUNDLE = 'tradle.ProductBundle'
-const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 
 const exclude = [
   'tradle.ProductRequest',
@@ -40,7 +39,7 @@ const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
 
 export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
   let { bot } = components
-  let { logger, conf } = pluginOpts
+  let { conf } = pluginOpts
   const senderEmail = conf.senderEmail || components.conf.bot.senderEmail
 
   const plugin: IPluginLifecycleMethods = {
@@ -49,9 +48,15 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       if (!application.forms || application.forms.length <= 1) {
         let pr = await bot.getResource(application.request)
-        if (pr.bundleId) {
-          // debugger
-          return [PRODUCT_BUNDLE].concat(bot.models[pr.requestFor].forms)
+        const { bundleId } = pr
+        if (bundleId) {
+          try {
+            let bundle  = await bot.getResource({_link: bundleId, _permalink: bundleId, _t: PRODUCT_BUNDLE})
+            if (bundle)
+              return [PRODUCT_BUNDLE].concat(bot.models[pr.requestFor].forms)
+          } catch (err) {
+            debugger
+          }
         }
       }
     },
@@ -138,6 +143,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
     },
     async willRequestForm({ application, formRequest }) {
       if (!application || formRequest.form !== PRODUCT_BUNDLE) return
+      let productMap = conf[application.requestFor]
+      if (!productMap) return
       let pr = await bot.getResource(application.request)
       if (!pr.bundleId) return
       let bundle = await bot.db.findOne({

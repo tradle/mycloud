@@ -16,6 +16,7 @@ const { MONEY } = TYPES
 
 const CONTRACT_SIGNING = 'tradle.ContractSigning'
 const FORM_REQUEST = 'tradle.FormRequest'
+const PHOTO = 'tradle.Photo'
 
 const CURRENT_DATE = '$currentDate'
 const CONTRACT_NUMBER = '$contractNumber'
@@ -61,7 +62,8 @@ class ContractSigningAPI {
 
     locale = locale || 'en-US'
 
-    formToProp.forEach(pair => {
+    for (let i=0; i<formToProp.length; i++) {
+      let pair = formToProp[i]
       let formId = Object.keys(pair)[0]
       if (BUILT_IN_VARIABLES.includes(formId)) {
         contractText = this.insertBuiltInVariable(locale, org, formId, contractText)
@@ -79,7 +81,7 @@ class ContractSigningAPI {
         contractText = contractText.replace(placeholder, val)
         return
       }
-      let { ref } = models[formId].properties[prop]
+      let { ref, signature } = models[formId].properties[prop]
       if (!ref)
         contractText = contractText.replace(placeholder, val.toString())
       else if (ref === MONEY) {
@@ -89,11 +91,23 @@ class ContractSigningAPI {
       else if (models[ref].enum) {
         contractText = contractText.replace(placeholder, val.title)
       }
+      else if (ref === PHOTO) {
+        if (val.url) {
+          // let f = _.cloneDeep(form)
+          try {
+            await this.bot.objects.presignEmbeddedMediaLinks({object:form})
+          } catch (err) {
+            debugger
+          }
+          let url = val.url.slice(val.url.indexOf('http'))
+          contractText = contractText.replace(placeholder, `![image](${url})`)
+        }
+      }
       else {
         let title = getDisplayName({models, model: models[ref], resource: val})
         contractText = contractText.replace(placeholder, title)
       }
-    })
+    }
     return contractText
   }
   private insertBuiltInVariable(locale, org, variable, contractText) {
@@ -103,7 +117,10 @@ class ContractSigningAPI {
       let dateStr = new Intl.DateTimeFormat(locale).format(Date.now())
       return contractText.replace(placeholder, dateStr)
     case CONTRACT_NUMBER:
-      return contractText.replace(placeholder, `${org.domain.split('.')[0].toUpperCase()}-${Date.now()}`)
+      let timeS = new Date().toISOString().split('T')
+      let cn = `${timeS[0].replace(/[\.\-\:ZT]/g, '')}-${timeS[1].replace(/[\.\-\:ZT]/g, '')}`
+      return contractText.replace(placeholder, cn)
+      // return contractText.replace(placeholder, `${org.domain.split('.')[0].toUpperCase()}-${Date.now()}`)
     case PROVIDER_COMPANY_NAME:
       return contractText.replace(placeholder, `${org.name}`)
     default:
@@ -130,9 +147,9 @@ export const createPlugin: CreatePlugin<void> = (components , { logger, conf }) 
       const { form, settings, moreSettings, additionalFormsFromProps } = productConf
       if (!form  ||  !settings || !settings.length) return
       let allSettings = _.cloneDeep(settings)
-      if (moreSettings.totalInitialPayment) 
+      if (moreSettings.totalInitialPayment)
         allSettings.push(moreSettings.totalInitialPayment)
-      
+
       let model = bot.models[form]
       if (!model) return
 

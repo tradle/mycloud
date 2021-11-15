@@ -107,7 +107,9 @@ export const createMiddleware = (bot:Bot) => {
   const { dbUtils, streamProcessor } = bot
   return async (ctx, next) => {
     const records = dbUtils.getRecordsFromEvent(ctx.event)
-    await processRecords({ bot, records })
+    if (records.length > 0) {
+      await processRecords({ bot, records })
+    }
   }
 }
 

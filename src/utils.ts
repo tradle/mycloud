@@ -60,6 +60,7 @@ import * as types from './typeforce-types'
 import Logger, { consoleLogger } from './logger'
 import Env from './env'
 import baseModels from './models'
+import { getLocalIp } from '@tradle/aws-common-utils'
 
 export { clone, extend, isEqual as deepEqual, isEqual } from 'lodash'
 
@@ -1047,14 +1048,14 @@ export const logResponseBody = (logger: Logger) => (req, res, next) => {
   const oldEnd = res.end
   const chunks: Buffer[] = []
 
-  res.write = (chunk) => {
+  res.write = function (chunk) {
     chunks.push(chunk)
 
     // @ts-ignore
     oldWrite.apply(res, arguments)
   }
 
-  res.end = (chunk) => {
+  res.end = function (chunk) {
     if (chunk) chunks.push(chunk)
 
     const body = Buffer.concat(chunks).toString('utf8')
@@ -1222,6 +1223,7 @@ export const isLocalUrl = (url: string) => {
 
 export const isLocalHost = (host: string) => {
   host = host.split(':')[0]
+  if (host === getLocalIp()) return true
   if (host === 'localhost') return true
 
   const isIP = IP.isV4Format(host) || IP.isV6Format(host)

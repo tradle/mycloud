@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import dynogels from 'dynogels'
+import dynogels from '@tradle/dynogels'
 import { createTable, DB, Table, utils, Search, ITableOpts } from '@tradle/dynamodb'
 import AWS from 'aws-sdk'
 // import { createMessagesTable } from './messages-table'

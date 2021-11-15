@@ -7,7 +7,7 @@ import loadDockerEnv from 'node-env-file'
 loadDockerEnv(path.resolve(__dirname, '../../docker/.env'))
 
 import { loadCredentials, loadRemoteEnv } from '../cli/utils'
-import dynogels from 'dynogels'
+import dynogels from '@tradle/dynogels'
 // import { createBot } from '../in-house-bot/bot'
 // import sampleQueries from '../in-house-bot/sample-queries'
 
@@ -22,7 +22,7 @@ if (TESTING) {
 
 const { port } = require('minimist')(process.argv.slice(2), {
   default: {
-    port: require('../cli/serverless-yml').custom['serverless-offline'].port
+    port: require('../cli/serverless-yml').custom['@tradle/serverless-offline'].port
   }
 })
 
@@ -35,11 +35,12 @@ dynogels.log = {
 }
 
 import lambda from '../in-house-bot/lambda/http/graphql'
+import { getLocalIp } from '@tradle/aws-common-utils'
 // lambda.execCtx = {
 //   event: {}
 // }
 
 lambda.koa.listen(port)
 
-console.log(`GraphiQL is at http://localhost:${port}`)
-console.log(`DynamoDB Admin is at http://localhost:${DYNAMO_ADMIN_PORT}`)
+console.log(`GraphiQL is at http://${getLocalIp()}:${port}`)
+console.log(`DynamoDB Admin is at http://${getLocalIp()}:${DYNAMO_ADMIN_PORT}`)

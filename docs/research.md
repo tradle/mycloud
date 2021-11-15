@@ -2,10 +2,10 @@
 
 visualize the architecture: https://cloudcraft.co/app
 
-https://github.com/lambci/docker-lambda
-  - rebuild native node modules for AWS Lambda environment
+https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-image-repositories.html
+  - Serverless build docker images
 
-LambCI - lambda-based CI, costs nothing when it's not building your crap
+Replacement to LambCI
 
 ## Questions
 

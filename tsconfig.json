@@ -2,7 +2,7 @@
   "compilerOptions": {
     "preserveConstEnums": true,
     "sourceMap": true,
-    "target": "es2017",
+    "target": "es2018",
     "module": "commonjs",
     "moduleResolution": "node",
     "esModuleInterop": true,
@@ -10,8 +10,9 @@
     "outDir": "lib",
     "lib": [
       "dom",
-      "es2017",
-      "esnext.asynciterable"
+      "es2018",
+      "ES2018.AsyncIterable",
+      "ES2018.AsyncGenerator"
     ],
     "baseUrl": ".",
     "paths": {

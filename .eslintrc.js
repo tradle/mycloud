@@ -4,7 +4,9 @@ module.exports = {
     node: true
   },
   extends: 'eslint:recommended',
+  parser: '@babel/eslint-parser',
   parserOptions: {
+    requireConfigFile: false,
     sourceType: 'module',
     ecmaVersion: 8
   },
@@ -110,7 +112,6 @@ module.exports = {
         allowEmptyCatch: false
       }
     ],
-    'no-empty-block': 'warn',
     'no-empty-function': 'off',
     'no-eq-null': 'warn',
     'no-eval': 'error',

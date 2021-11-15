@@ -2,19 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.0.1-rc.123](https://github.com/tradle/mycloud/compare/v3.0.1-rc.122...v3.0.1-rc.123) (2021-08-17)
+## [3.1.1-rc.6](https://github.com/tradle/mycloud/compare/v3.1.1-rc.5...v3.1.1-rc.6) (2021-11-11)
 
 
 ### Bug Fixes
 
-* one of the slow poke queries ([e94a859](https://github.com/tradle/mycloud/commit/e94a859))
-* ShareRequest could be handled before the resources that are listed in it ([968ff2b](https://github.com/tradle/mycloud/commit/968ff2b))
-
-
-### Features
-
-* contract signing first draft ([e4387d7](https://github.com/tradle/mycloud/commit/e4387d7))
-* show share in data lineage project ([0465d27](https://github.com/tradle/mycloud/commit/0465d27))
+* PSC returns the original company as a BO; fix messages for KYC refresh ([4d948cc](https://github.com/tradle/mycloud/commit/4d948cc))
 
 
 

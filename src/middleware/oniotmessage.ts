@@ -19,7 +19,7 @@ export const onMessage = (lambda: Lambda, opts) => {
     }
 
     ctx.clientId = clientId
-    const buf = typeof data === 'string' ? new Buffer(data, 'base64') : data
+    const buf = typeof data === 'string' ? Buffer.from(data, 'base64') : data
     let messages
     let type
     let payload

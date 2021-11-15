@@ -10,8 +10,9 @@ const TERMS_AND_CONDITIONS_FIRST_TIME =
 const TERMS_AND_CONDITIONS_NTH_TIME =
   'Our Terms and Conditions have changed. Please review them before continuing'
 const DATA_CLAIM = 'tradle.DataClaim'
+const REFRESH_PRODUCT = 'tradle.RefreshProduct'
 const UPDATE_RESPONSE = 'tradle.cloud.UpdateResponse'
-const ALLOW_WITHOUT_ACCEPTING = [DATA_CLAIM, UPDATE_RESPONSE]
+const ALLOW_WITHOUT_ACCEPTING = [DATA_CLAIM, UPDATE_RESPONSE, REFRESH_PRODUCT]
 
 export const name = 'termsAndConditions'
 
@@ -23,7 +24,6 @@ export const createPlugin: CreatePlugin<void> = (
     name: 'termsAndConditions',
     getRequiredForms: async ({ user, application }) => {
       if (!application) return
-
       let requestFor = application.requestFor
       let { enabled } = conf
       if (!enabled) return

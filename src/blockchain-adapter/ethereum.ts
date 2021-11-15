@@ -1,5 +1,5 @@
 
-import Wallet from 'ethereumjs-wallet'
+import Wallet from '@tradle/ethereumjs-wallet'
 import BN from 'bn.js'
 import fetch from 'node-fetch'
 import Network from '@tradle/ethereum-adapter'

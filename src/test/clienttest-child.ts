@@ -224,7 +224,7 @@ export const testProvider = async ({ url, offset, n }) => {
 }
 
 const wrapWorkerMethod = fn => async (optsStr, callback) => {
-  const promise = new Promise(async (resolve, reject) => {
+  const promise = new Promise((resolve, reject) => {
     const SegfaultHandler = require('segfault-handler')
     const opts = JSON.parse(optsStr)
     const { i } = opts
@@ -234,14 +234,11 @@ const wrapWorkerMethod = fn => async (optsStr, callback) => {
 
     SegfaultHandler.registerHandler(`clientest-crash-${i}.log`)
 
-    let result
     try {
-      result = await fn(opts)
+      Promise.resolve(fn(opts)).then(resolve, reject)
     } catch (err) {
       return reject(err)
     }
-
-    resolve(result)
   })
 
   let result
