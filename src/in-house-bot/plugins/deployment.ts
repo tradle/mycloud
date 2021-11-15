@@ -169,7 +169,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
       .add(async function start () {
         await bot.sendSimpleMessage({
           to: user,
-          message: 'Setting up your personal server'
+          message: 'Setting up your personal server, this will take up to 15 minutes...'
         })
       })
       .add(async function getTemplate (): Promise<LaunchPackage> {
