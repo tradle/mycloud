@@ -319,8 +319,13 @@ export class Conf {
       return await this.info.get()
     } catch (err) {
       Errors.ignoreNotFound(err)
-      return await this.calcPublicInfo()
     }
+    try {
+      return await this.calcPublicInfo()
+    } catch (err2) {
+      Errors.ignoreNotFound(err2)
+    }
+    return {}
   }
 
   public calcPublicInfo = async (infoInput: Partial<IInfoInput> = {}): Promise<any> => {
@@ -353,7 +358,7 @@ export class Conf {
     const tour = _.get(bot, 'tours.intro')
     const currency = _.get(bot, 'defaultCurrency') || 'USD'
     const locale = _.get(bot, 'defaultLocale')
-    const optionalPairing = _.get(bot, 'optionalPairing')
+    const optionalPairing = _.get(bot, 'optionalPairing', true)
     const allowedMimeTypes = _.get(bot, 'allowedMimeTypes')
     const requireDeviceLocalAuth = _.get(bot, 'requireDeviceLocalAuth')
     debugger
