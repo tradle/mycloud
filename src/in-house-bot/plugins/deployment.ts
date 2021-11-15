@@ -169,7 +169,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
       .add(async function start () {
         await bot.sendSimpleMessage({
           to: user,
-          message: `Generating a template and code package for your MyCloud. This could take up to 30 seconds...`
+          message: 'Setting up your personal server'
         })
       })
       .add(async function getTemplate (): Promise<LaunchPackage> {
@@ -182,13 +182,13 @@ export const createPlugin: CreatePlugin<Deployment> = (
         // }
         return await deployment.genLaunchPackage(deploymentOpts)
       })
-      .add(async function templateDone (pkg) {
-        await bot.sendSimpleMessage({
-          to: user,
-          message: `Package generated. Creating Account.`
-        })
-        return pkg
-      })
+      // .add(async function templateDone (pkg) {
+      //   await bot.sendSimpleMessage({
+      //     to: user,
+      //     message: `Package generated. Creating Account.`
+      //   })
+      //   return pkg
+      // })
       .add(async function createAccount (pkg) {
         const tmpID = randomBytes(6).toString('hex')
         const awsConfig = {
@@ -245,13 +245,13 @@ export const createPlugin: CreatePlugin<Deployment> = (
           awsConfig
         }
       })
-      .add(async function accountCreated (data) {
-        await bot.sendSimpleMessage({
-          to: user,
-          message: `Account Created ${data.accountStatus.AccountId}`
-        })
-        return data
-      })
+      // .add(async function accountCreated (data) {
+      //   await bot.sendSimpleMessage({
+      //     to: user,
+      //     message: `Account Created ${data.accountStatus.AccountId}`
+      //   })
+      //   return data
+      // })
       .add(async function assumeSession (prev) {
         const { aws, accountStatus } = prev
         const { $response: { error, data }}: PromiseResult<AssumeRoleResponse, AWSError> = await aws.sts.assumeRole({
@@ -270,13 +270,13 @@ export const createPlugin: CreatePlugin<Deployment> = (
           assumeSession: data
         }
       })
-      .add(async function assumeSessionDone (prev) {
-        await bot.sendSimpleMessage({
-          to: user,
-          message: `Session Assumed`
-        })
-        return prev
-      })
+      // .add(async function assumeSessionDone (prev) {
+      //   await bot.sendSimpleMessage({
+      //     to: user,
+      //     message: `Session Assumed`
+      //   })
+      //   return prev
+      // })
       .add(async function startLaunch (prev) {
         const { assumeSession, pkg } = prev
         const stackAws = createClientCache({
