@@ -8,8 +8,9 @@ lambda.use(async (ctx, next) => {
   const result = await conf.getPublicInfo()
   if (!ctx.body) ctx.body = {}
   Object.assign(ctx.body, {
-    optionalPairing: true
-  }, result)
+    optionalPairing: true,
+    ...result
+  })
 })
 
 export const handler = lambda.handler
