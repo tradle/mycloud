@@ -245,7 +245,6 @@ export const createPlugin: CreatePlugin<Deployment> = (
       })
       .add(async function accountCreated (data) {
         await productsAPI.sendSimpleMessage({
-          req,
           to: user,
           message: `Account Created ${data.accountStatus.AccountId}`
         })
@@ -271,7 +270,6 @@ export const createPlugin: CreatePlugin<Deployment> = (
       })
       .add(async function assumeSessionDone (prev) {
         await productsAPI.sendSimpleMessage({
-          req,
           to: user,
           message: `Session Assumed`
         })
