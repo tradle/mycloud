@@ -44,10 +44,15 @@ class ClientEditsAPI {
   }
 
   public async checkEdits({ req, sourceOfData, distance }) {
-    let { user, payload, application } = req
-    let formRequest = await this.bot.getResource(sourceOfData)
-
-    let prefill = formRequest.prefill
+    let { payload, application } = req
+    let prefill
+    try {
+      let formRequest = await this.bot.getResource(sourceOfData)
+      prefill = formRequest.prefill
+    } catch (err) {
+      this.logger.debug(`Source of data is probably from a different provider`) 
+      return
+    }
     if (!prefill || !size(prefill)) return
     let createCheck = await doesCheckNeedToBeCreated({
       bot: this.bot,
