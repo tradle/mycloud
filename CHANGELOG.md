@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.6](https://github.com/tradle/mycloud/compare/v3.1.1-rc.5...v3.1.1-rc.6) (2021-11-11)
+## [3.1.1-rc.7](https://github.com/tradle/mycloud/compare/v3.1.1-rc.6...v3.1.1-rc.7) (2021-11-15)
 
 
 ### Bug Fixes
 
-* PSC returns the original company as a BO; fix messages for KYC refresh ([4d948cc](https://github.com/tradle/mycloud/commit/4d948cc))
+* source of data might be from a different provider ([d3a2a03](https://github.com/tradle/mycloud/commit/d3a2a03))
 
 
 
