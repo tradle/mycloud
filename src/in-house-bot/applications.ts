@@ -65,6 +65,7 @@ const SANCTIONS_CHECK = 'tradle.SanctionsCheck'
 const CORPORATION_EXISTS_CHECK = 'tradle.CorporationExistsCheck'
 const DOCUMENT_VALIDITY_CHECK = 'tradle.DocumentValidityCheck'
 const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
+const NOT_VERIFIABLE = ['tradle.TermsAndConditions', ASSIGN_RELATIONSHIP_MANAGER]
 
 type AppInfo = {
   application: IPBApp
@@ -368,7 +369,8 @@ export class Applications implements IHasModels {
 
     // avoid building increasingly tall trees of verifications
     const sourcesOnly = flatMap(verifications, (v) => (isEmpty(v.sources) ? v : v.sources))
-    return await formStubs.map(async (formStub) => {
+    let formStubsToVerify = formStubs.filter(stub => NOT_VERIFIABLE.indexOf(stub[TYPE]) === -1)
+    return await formStubsToVerify.map(async (formStub) => {
       const sources = sourcesOnly.filter(
         (v) => parseStub(v.document).link === parseStub(formStub).link
       )
