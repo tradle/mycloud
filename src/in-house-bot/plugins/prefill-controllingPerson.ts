@@ -279,10 +279,9 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (!date_of_birth && !country_of_residence) {
         if (identification && identification.registration_number) isCompany = true
         else {
-          let le = await bot.getResource(legalEntity.submission)
           isCompany = this.isCompany({
             name,
-            country: le.country
+            country: legalEntity.country
           })
         }
       }
