@@ -2,18 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.8](https://github.com/tradle/mycloud/compare/v3.1.1-rc.7...v3.1.1-rc.8) (2021-11-17)
+## [3.1.1-rc.9](https://github.com/tradle/mycloud/compare/v3.1.1-rc.8...v3.1.1-rc.9) (2021-11-18)
 
 
 ### Bug Fixes
 
-* typo ([dfb9f8c](https://github.com/tradle/mycloud/commit/dfb9f8c))
-* verification on T&C? ridiculous ([5b08264](https://github.com/tradle/mycloud/commit/5b08264))
-
-
-### Features
-
-* added verifications to Form ([2b8426a](https://github.com/tradle/mycloud/commit/2b8426a))
+* nationalities and BO(s) with the same number as parent company :/ ([101d97b](https://github.com/tradle/mycloud/commit/101d97b))
 
 
 
