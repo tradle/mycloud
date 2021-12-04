@@ -7,7 +7,8 @@ import uniqBy from 'lodash/uniqBy'
 import flatMap from 'lodash/flatMap'
 import flatten from 'lodash/flatten'
 import isEmpty from 'lodash/isEmpty'
-import { buildResourceStub } from '@tradle/build-resource'
+import { enumValue, buildResourceStub } from '@tradle/build-resource'
+
 import { parseStub, getEnumValueId } from '../utils'
 import { isPassedCheck, removeRoleFromUser, getLatestChecks } from './utils'
 import Errors from '../errors'
@@ -32,6 +33,22 @@ import {
   UpdateResourceOpts
 } from './types'
 
+const ORG_TO_TRUST_CIRCLE = {
+  'lenka.io': 'local',
+  'unicreditgroup.eu': 'taskForce',
+  'bancod.com': 'regional',
+  'bankofamerica.com': 'global',
+  'bankb.com': 'regional',
+  'bank.com': 'local'
+}
+const ORG_TO_TYPE = {
+  'lenka.io': 'corporate',
+  'unicreditgroup.eu': 'bank',
+  'bancod.com': 'bank',
+  'bankofamerica.com': 'bank',
+  'bankb.com': 'bank',
+  'bank.com': 'bank'
+}
 interface IPBJudgeAppOpts {
   req?: IPBReq
   application: string | IPBApp | ResourceStub
@@ -66,6 +83,8 @@ const CORPORATION_EXISTS_CHECK = 'tradle.CorporationExistsCheck'
 const DOCUMENT_VALIDITY_CHECK = 'tradle.DocumentValidityCheck'
 const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
 const NOT_VERIFIABLE = ['tradle.TermsAndConditions', ASSIGN_RELATIONSHIP_MANAGER]
+const ENTITY_TYPES = 'tradle.EntityTypes'
+const TRUST_CIRCLE = 'tradle.TrustCircle'
 
 type AppInfo = {
   application: IPBApp
@@ -502,16 +521,43 @@ export class Applications implements IHasModels {
 
     return allPassed
   }
-
   public createVerification = async ({
     req,
     application,
-    verification
+    verification,
+    org
   }: {
     verification: ITradleObject
     application?: IPBApp
-    req?: IPBReq
+    req?: IPBReq,
+    org: ITradleObject
   }) => {
+    if (org) {
+      let entityType = ORG_TO_TYPE[org.domain]
+      if (entityType) {
+        const et = this.bot.models[ENTITY_TYPES]
+        entityType = et.enum.find(item => item.id === entityType)
+        if (entityType) {
+          verification.entityType = enumValue({
+            model: et,
+            value: entityType.id
+          })
+
+        }
+      }
+      let trustCircle = ORG_TO_TRUST_CIRCLE[org.domain]
+      if (trustCircle) {
+        const tc = this.bot.models[TRUST_CIRCLE]
+        trustCircle = tc.enum.find(item => item.id === trustCircle)
+        if (trustCircle) {
+          verification.trustCircle = enumValue({
+            model: tc,
+            value: trustCircle.id
+          })
+        }
+      }
+    }
+
     verification = await this.bot.sign(verification)
     const promiseSave = this.bot.save(verification)
     if (application) {
