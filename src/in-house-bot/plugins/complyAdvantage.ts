@@ -94,13 +94,15 @@ class ComplyAdvantageAPI {
     propertyMap,
     req,
     propertyName,
-    companyNameProperty
+    companyNameProperty,
+    org
   }: {
     pConf: any
     propertyMap?: any
     req: IPBReq
     propertyName?: string
     companyNameProperty?: string
+    org: ITradleObject
   }) {
     let criteria = pConf.filter
     const { application, payload } = req
@@ -137,7 +139,7 @@ class ComplyAdvantageAPI {
       else if ('dateOfBirth' in notMatched)
         dateProp = 'dateOfBirth'
       if (dateProp  &&
-         (new Date(notMatched[dateProp]).getFullYear() === new Date(payload[dateProp]).getFullYear())) return    
+         (new Date(notMatched[dateProp]).getFullYear() === new Date(payload[dateProp]).getFullYear())) return
     }
     let defaultMap: any = defaultPropMap
 
@@ -178,7 +180,7 @@ class ComplyAdvantageAPI {
       //     registrationDate = parseScannedDate(date)
       //     resource.registrationDate = registrationDate
       //   }
-      // }      
+      // }
     }
 
     if (!companyName || !registrationDate) {
@@ -212,7 +214,8 @@ class ComplyAdvantageAPI {
       req,
       aspects,
       name: companyNameProperty,
-      propertyName
+      propertyName,
+      org
     })
   }
 
@@ -220,12 +223,14 @@ class ComplyAdvantageAPI {
     propertyMap,
     req,
     criteria,
-    propertyName
+    propertyName,
+    org
   }: {
     propertyMap: any
     req: IPBReq
     criteria: any
     propertyName?: string
+    org: ITradleObject
   }) {
     const { application, payload } = req
 
@@ -297,20 +302,22 @@ class ComplyAdvantageAPI {
       application
     })
     // debugger
-    return await this.createChecksAndVerifications({ r, req, aspects, name, propertyName })
+    return await this.createChecksAndVerifications({ r, req, aspects, name, propertyName, org })
   }
   async createChecksAndVerifications({
     r,
     req,
     aspects,
     name,
-    propertyName
+    propertyName, 
+    org
   }: {
     r: ITradleObject
     req: IPBReq
     aspects: string
     name: string
     propertyName?: string
+    org: ITradleObject
   }) {
     let pchecks = []
     let { rawData, hits, status } = r
@@ -324,7 +331,7 @@ class ComplyAdvantageAPI {
         this.logger.debug(`${PROVIDER} creating verification for: ${name}`)
       }
       pchecks.push(this.createCheck({ rawData, status, req, aspects, propertyName }))
-      if (hasVerification) pchecks.push(this.createVerification({ rawData, req }))
+      if (hasVerification) pchecks.push(this.createVerification({ rawData, req, org }))
     }
     return await Promise.all(pchecks)
   }
@@ -478,7 +485,7 @@ class ComplyAdvantageAPI {
     this.logger.debug(`${PROVIDER} End Creating SanctionsCheck: ${Date.now() - startDate}`)
   }
 
-  public createVerification = async ({ rawData, req }) => {
+  public createVerification = async ({ rawData, req, org }) => {
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
@@ -495,12 +502,13 @@ class ComplyAdvantageAPI {
       .draft({ type: VERIFICATION })
       .set({
         document: payload,
+        checkType: SANCTIONS_CHECK,
         method
       })
       .toJSON()
 
     let startDate = Date.now()
-    await this.applications.createVerification({ application, verification })
+    await this.applications.createVerification({ application, verification, org })
     this.logger.debug(`${PROVIDER} create verification: ${Date.now() - startDate}`)
     if (application.checks)
       await this.applications.deactivateChecks({
@@ -512,9 +520,11 @@ class ComplyAdvantageAPI {
   }
 }
 export const createPlugin: CreatePlugin<void> = (
-  { bot, productsAPI, applications },
+  components,
   { conf, logger }
 ) => {
+  const { bot, productsAPI, applications } = components
+  const { org } = components.conf
   const complyAdvantage = new ComplyAdvantageAPI({ bot, productsAPI, applications, conf, logger })
   const plugin = {
     name: 'complyAdvantage',
@@ -532,7 +542,7 @@ export const createPlugin: CreatePlugin<void> = (
       let productId = application.requestFor
       if (!fConf && (!products || !products[productId])) return
 
-      let { criteria, propertyMap, isPerson, pConf } = await this.checkForms(conf, payload, req)
+      let { criteria, propertyMap, isPerson, pConf } = await this.checkForms(conf, payload, req, org)
 
       if (isPerson) return
 
@@ -575,11 +585,12 @@ export const createPlugin: CreatePlugin<void> = (
           propertyMap: partialMap,
           propertyName: names[i],
           companyNameProperty: namesMap.companyName,
-          req
+          req,
+          org
         })
       }
     },
-    async checkForms(conf, payload, req) {
+    async checkForms(conf, payload, req, org) {
       let { forms } = conf
       let ptype = payload[TYPE]
       let pConf = forms[ptype]
@@ -593,7 +604,8 @@ export const createPlugin: CreatePlugin<void> = (
         await complyAdvantage.getAndProcessDataForPerson({
           req,
           criteria,
-          propertyMap: propertyMap || defaultPersonPropMap
+          propertyMap: propertyMap || defaultPersonPropMap,
+          org
         })
         return { isPerson }
       }
@@ -614,7 +626,8 @@ export const createPlugin: CreatePlugin<void> = (
         await complyAdvantage.getAndProcessDataForPerson({
           req,
           criteria,
-          propertyMap
+          propertyMap,
+          org
         })
         return { isPerson }
       }

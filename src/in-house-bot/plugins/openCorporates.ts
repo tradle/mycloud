@@ -59,6 +59,8 @@ const defaultPropMap = {
 
 const BASE_URL = 'https://api.opencorporates.com/'
 const DISPLAY_NAME = 'Open Corporates'
+const ASPECTS = 'Company existence'
+
 const test = {
   api_version: '0.4.7',
   results: {
@@ -298,7 +300,7 @@ class OpenCorporatesAPI {
       application,
       dateChecked: Date.now(),
       shareUrl: url,
-      aspects: 'Company existence',
+      aspects: ASPECTS,
       form
     }
     checkR = sanitize(checkR).sanitized
@@ -328,7 +330,7 @@ class OpenCorporatesAPI {
     return check.toJSON()
   }
 
-  public createVerification = async ({ application, form, rawData, req }) => {
+  public createVerification = async ({ application, form, rawData, req, org }) => {
     // debugger
     const method: any = {
       [TYPE]: API_BASED_VERIFIED_METHOD,
@@ -336,7 +338,7 @@ class OpenCorporatesAPI {
         [TYPE]: API,
         name: OPEN_CORPORATES
       },
-      aspect: 'company existence',
+      aspect: ASPECTS,
       reference: [{ queryId: 'report:' + rawData.company_number }],
       rawData
     }
@@ -345,13 +347,15 @@ class OpenCorporatesAPI {
       .draft({ type: VERIFICATION })
       .set({
         document: form,
+        checkType: CORPORATION_EXISTS,
         method
       })
       .toJSON()
 
     await this.applications.createVerification({
       application,
-      verification
+      verification,
+      org
     })
     // debugger
 
@@ -505,7 +509,9 @@ class OpenCorporatesAPI {
   }
 }
 
-export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger, conf }) => {
+export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) => {
+  const { bot, applications } = components
+  const { org } = components.conf
   const openCorporates = new OpenCorporatesAPI({ bot, conf, applications, logger })
   const plugin: IPluginLifecycleMethods = {
     name: 'open-corporates',
@@ -632,7 +638,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
             application,
             form: payload,
             rawData: hits[0].company,
-            req
+            req,
+            org
           })
         )
       // })

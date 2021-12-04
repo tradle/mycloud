@@ -161,7 +161,7 @@ export class RegulatorRegistrationAPI {
     }
     return null
   }
-  public async check({ subject, form, application, req, user }) {
+  public async check({ subject, form, application, req, user, org }) {
     let status
     let formRegistrationNumber = form[subject.check]
     this.logger.debug(`regulatorRegistration check() called with number ${formRegistrationNumber}`)
@@ -207,7 +207,7 @@ export class RegulatorRegistrationAPI {
     await this.createCheck({ application, status, form, dataSourceLink, rawData, req, aspects })
 
     if (status.status === 'pass') {
-      await this.createVerification({ application, form, req, aspects })
+      await this.createVerification({ application, form, req, aspects, org })
 
       prefill = sanitize(prefill).sanitized
       const payloadClone = _.cloneDeep(form)
@@ -257,7 +257,7 @@ export class RegulatorRegistrationAPI {
     this.logger.debug(`${PROVIDER} Created RegulatorRegistrationCheck`)
   }
 
-  public createVerification = async ({ application, form, req, aspects }) => {
+  public createVerification = async ({ application, form, req, aspects, org }) => {
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
@@ -272,11 +272,12 @@ export class RegulatorRegistrationAPI {
       .draft({ type: VERIFICATION })
       .set({
         document: form,
+        checkType: REGULATOR_REGISTRATION_CHECK,
         method
       })
       .toJSON()
 
-    await this.applications.createVerification({ application, verification, req })
+    await this.applications.createVerification({ application, verification, req, org })
     if (application.checks)
       await this.applications.deactivateChecks({
         application,
@@ -287,8 +288,11 @@ export class RegulatorRegistrationAPI {
   }
 }
 
-export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
+export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) => {
+  const { bot, applications } = components
+  const { org } = components.conf
   const regulatorRegistrationAPI = new RegulatorRegistrationAPI({ bot, conf, applications, logger })
+
   // debugger
   const plugin: IPluginLifecycleMethods = {
     async validateForm({ req }) {
@@ -333,7 +337,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         form: payload,
         application,
         req,
-        user
+        user,
+        org
       })
     }
   }

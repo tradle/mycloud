@@ -36,7 +36,7 @@ class DocumentValidityAPI {
     this.logger = logger
   }
 
-  public async checkDocument({ req }) {
+  public async checkDocument({ req, org }) {
     let { user, payload, application } = req
     let {
       documentType,
@@ -139,7 +139,7 @@ class DocumentValidityAPI {
 
     let pchecks = []
     pchecks.push(this.createCheck({ req, rawData, status: rawData.Status }))
-    if (rawData.Status === 'pass') pchecks.push(this.createVerification({ rawData, req }))
+    if (rawData.Status === 'pass') pchecks.push(this.createVerification({ rawData, req, org }))
     let checksAndVerifications = await Promise.all(pchecks)
   }
   public createCheck = async ({ rawData, status, req }: IValidityCheck) => {
@@ -178,7 +178,7 @@ class DocumentValidityAPI {
     this.logger.debug(`Created DocumentValidity Check for: ${form.firstName} ${form.lastName}`)
   }
 
-  public createVerification = async ({ rawData, req }) => {
+  public createVerification = async ({ rawData, req, org }) => {
     let { user, application, payload } = req
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
@@ -201,12 +201,13 @@ class DocumentValidityAPI {
       .draft({ type: VERIFICATION })
       .set({
         document: payload,
+        checkType: DOCUMENT_VALIDITY,
         method
       })
       .toJSON()
     // debugger
 
-    await this.applications.createVerification({ application, verification })
+    await this.applications.createVerification({ application, verification, org })
     this.logger.debug('Created DocumentValidity Verification')
     if (application.checks)
       await this.applications.deactivateChecks({
@@ -217,7 +218,9 @@ class DocumentValidityAPI {
       })
   }
 }
-export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger }) => {
+export const createPlugin: CreatePlugin<void> = (components, { logger }) => {
+  const { bot, applications } = components
+  const { org } = components.conf
   const documentValidity = new DocumentValidityAPI({ bot, applications, logger })
   const plugin = {
     async onmessage(req: IPBReq) {
@@ -225,7 +228,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       const { user, application, applicant, payload } = req
       if (!application || payload[TYPE] !== PHOTO_ID) return
 
-      await documentValidity.checkDocument({ req })
+      await documentValidity.checkDocument({ req, org })
     }
   }
 

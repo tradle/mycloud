@@ -98,7 +98,7 @@ class CentrixAPI {
     this.test = test
   }
   // Two different checks ran here: Digital Identity verification and Address verification
-  public async callCentrix({ req, photoID, props, doVerifyAddress }) {
+  public async callCentrix({ req, photoID, props, doVerifyAddress, org }) {
     // debugger
     const idType = getDocumentType(photoID)
     let method: string
@@ -188,7 +188,7 @@ class CentrixAPI {
     this.logger.debug(
       `${checkFor} success, EnquiryNumber: ${rawData.ResponseDetails.EnquiryNumber}`
     )
-    await this.createCentrixVerification({ req, photoID, rawData, application, doVerifyAddress })
+    await this.createCentrixVerification({ req, photoID, rawData, application, doVerifyAddress, org })
 
     // artificial timeout till we figure out why updating state
     // twice in a row sometimes loses the first change
@@ -227,7 +227,7 @@ class CentrixAPI {
     let checkR = check.toJSON()
   }
 
-  public async createCentrixVerification({ req, photoID, rawData, application, doVerifyAddress }) {
+  public async createCentrixVerification({ req, photoID, rawData, application, doVerifyAddress, org }) {
     // const { object } = photoID
     const object = photoID.object || photoID
     rawData = sanitize(rawData).sanitized
@@ -258,7 +258,8 @@ class CentrixAPI {
 
     await this.applications.createVerification({
       application: req.application,
-      verification
+      verification,
+      org
     })
 
     if (application.checks)
@@ -271,10 +272,12 @@ class CentrixAPI {
   }
 }
 export const createPlugin: CreatePlugin<CentrixAPI> = (
-  { bot, productsAPI, applications },
+  components,
   { conf, logger }
 ) => {
+  const { bot, productsAPI, applications } = components
   const { test, credentials } = conf
+  const { org } = components.conf
   if (typeof createClient !== 'function') {
     throw new Error('centrix client not available')
   }
@@ -292,10 +295,12 @@ export const createPlugin: CreatePlugin<CentrixAPI> = (
     const { centrixData, addressVerificationData } = data
     if (centrixData) {
       centrixData.req = req
+      centrixData.org = org
       logger.debug(`calling Centrix...`)
       await centrixAPI.callCentrix(centrixData)
     }
     if (addressVerificationData) {
+      centrixData.org = org
       addressVerificationData.req = req
       logger.debug(`calling Centrix... address verification`)
       await centrixAPI.callCentrix(addressVerificationData)

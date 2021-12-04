@@ -132,7 +132,7 @@ export class IFacetecZoomCheckAPI {
     this.logger.debug(`Created ${PROVIDER} check for ${ASPECTS}`)
   }
 
-  public createVerification = async ({ application, form, rawData, req }) => {
+  public createVerification = async ({ application, form, rawData, req, org }) => {
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
@@ -148,11 +148,12 @@ export class IFacetecZoomCheckAPI {
       .draft({ type: VERIFICATION })
       .set({
         document: form,
+        checkType: SELFIE_SPOOF_PROOF_CHECK,
         method
       })
       .toJSON()
 
-    await this.applications.createVerification({ application, verification })
+    await this.applications.createVerification({ application, verification, org })
     this.logger.debug(`Created ${PROVIDER} verification for ${ASPECTS}`)
     if (application.checks)
       await this.applications.deactivateChecks({
@@ -167,9 +168,11 @@ export class IFacetecZoomCheckAPI {
 export const name = 'facetecZoom'
 
 export const createPlugin: CreatePlugin<IFacetecZoomCheckAPI> = (
-  { bot, applications },
+  components,
   { conf, logger }
 ) => {
+  const { bot, applications } = components
+  const { org } = components.conf
   const documentChecker = new IFacetecZoomCheckAPI({ bot, applications, conf, logger })
   const plugin: IPluginLifecycleMethods = {
     onFormsCollected: async ({ req }) => {
@@ -212,7 +215,8 @@ export const createPlugin: CreatePlugin<IFacetecZoomCheckAPI> = (
           application,
           form,
           rawData: status.rawData,
-          req
+          req,
+          org
         })
       }
     },

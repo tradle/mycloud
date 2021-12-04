@@ -42,8 +42,8 @@ const countryMap = {
 }
 
 export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
-  let { bot, applications } = components
-  let { logger, conf } = pluginOpts
+  const { bot, applications } = components
+  const { logger, conf } = pluginOpts
   const plugin: IPluginLifecycleMethods = {
     async onmessage(req: IPBReq) {
       if (req.skipChecks) return
