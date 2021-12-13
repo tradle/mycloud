@@ -2,12 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.9](https://github.com/tradle/mycloud/compare/v3.1.1-rc.8...v3.1.1-rc.9) (2021-11-18)
+## [3.1.1-rc.10](https://github.com/tradle/mycloud/compare/v3.1.1-rc.9...v3.1.1-rc.10) (2021-12-13)
 
 
-### Bug Fixes
+### Features
 
-* nationalities and BO(s) with the same number as parent company :/ ([101d97b](https://github.com/tradle/mycloud/commit/101d97b))
+* show type of organization that verified the resource (temporary for demo) ([e8cf002](https://github.com/tradle/mycloud/commit/e8cf002))
+* show type of organization that verified the resource and type of check that passed verification (temporary for demo) ([a71e993](https://github.com/tradle/mycloud/commit/a71e993))
 
 
 
