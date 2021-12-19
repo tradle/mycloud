@@ -50,7 +50,7 @@ class ClientEditsAPI {
       let formRequest = await this.bot.getResource(sourceOfData)
       prefill = formRequest.prefill
     } catch (err) {
-      this.logger.debug(`Source of data is probably from a different provider`) 
+      this.logger.debug(`Source of data is probably from a different provider`)
       return
     }
     if (!prefill || !size(prefill)) return
@@ -90,7 +90,7 @@ class ClientEditsAPI {
     debugger
     let propName, author
     if (shareFrom) {
-      propName = 'from' 
+      propName = 'from'
       author = resource._org
       // author = await this.bot.identities.byPermalink(resource._org)
       // if (!author) {
@@ -134,8 +134,8 @@ class ClientEditsAPI {
   private async getSharedResources(resource, author) {
     debugger
     let { formStubs, verificationStubs} = resource
-    if (formStubs) return formStubs 
-    
+    if (formStubs) return formStubs
+
     if (resource.verificationStubs) {
       let verifications = await Promise.all(verificationStubs.map(v => this.bot.getResource(v)))
       return verifications
@@ -253,7 +253,14 @@ class ClientEditsAPI {
   }) => {
     const { payload } = req
 
-    let prevResource = payload._p && (await this.bot.objects.get(payload._p))
+    let prevResource
+    if (payload._p) {
+      try {
+        prevResource = (await this.bot.objects.get(payload._p))
+      } catch (err) {
+        debugger
+      }
+    }
 
     let isInitialSubmission, prefill
     if (payload._sourceOfData) {
@@ -362,7 +369,13 @@ class ClientEditsAPI {
     const { payload } = req
     const sourceOfData = payload._sourceOfData
     let dataLineage, prefill
-    if (sourceOfData) ({ dataLineage, prefill } = await this.bot.getResource(sourceOfData))
+    if (sourceOfData) {
+      try {
+        ({ dataLineage, prefill } = await this.bot.getResource(sourceOfData))
+      } catch (err) {
+        debugger
+      }
+    } 
     else if (payload[TYPE] !== PHOTO_ID || !payload.scanJson) return
     else {
       let { address, personal, document } = payload.scanJson
@@ -457,7 +470,6 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
       }
       if (!application)
         return
-      const isEmployee = employeeManager.isEmployee(req)
       const { models } = bot
       if (!isSubClassOf(FORM, models[payload[TYPE]], models)) return
       const sourceOfData = payload._sourceOfData
