@@ -39,7 +39,11 @@ const ORG_TO_TRUST_CIRCLE = {
   'bancod.com': 'regional',
   'bankofamerica.com': 'global',
   'bankb.com': 'regional',
-  'bank.com': 'local'
+  'bank.com': 'local',
+  'banko.com': 'regional',
+  'banke.com': 'global',
+  'bankf.com': 'regional',
+  'bankg.com': 'regional',
 }
 const ORG_TO_TYPE = {
   'lenka.io': 'corporate',
@@ -47,7 +51,11 @@ const ORG_TO_TYPE = {
   'bancod.com': 'bank',
   'bankofamerica.com': 'bank',
   'bankb.com': 'bank',
-  'bank.com': 'bank'
+  'bank.com': 'bank',
+  'banco.com': 'bank',
+  'banke.com': 'bank',
+  'bankf.com': 'bank',
+  'bankg.com': 'bank',
 }
 const COUNTRIES = {
   'lenka.io': 'US',
@@ -55,7 +63,11 @@ const COUNTRIES = {
   'bancod.com': 'bank',
   'bankofamerica.com': 'US',
   'bankb.com': 'UK',
-  'bank.com': 'DU'
+  'bank.com': 'DU',
+  'banko.com': 'MX',
+  'banke.com': 'UK',
+  'bankf.com': 'DU',
+  'bankg.com': 'MX',
 }
 interface IPBJudgeAppOpts {
   req?: IPBReq
