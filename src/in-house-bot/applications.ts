@@ -398,7 +398,8 @@ export class Applications implements IHasModels {
     // avoid building increasingly tall trees of verifications
     const sourcesOnly = flatMap(verifications, (v) => (isEmpty(v.sources) ? v : v.sources))
     let formStubsToVerify = formStubs.filter(stub => NOT_VERIFIABLE.indexOf(stub[TYPE]) === -1)
-    return await formStubsToVerify.map(async (formStub) => {
+    let sentVerifications = []
+    await formStubsToVerify.forEach(async (formStub) => {
       const sources = sourcesOnly.filter(
         (v) => parseStub(v.document).link === parseStub(formStub).link
       )
@@ -406,23 +407,24 @@ export class Applications implements IHasModels {
       //   this.logger.debug('not issuing verification for form, as no source verifications found', formStub)
       //   return
       // }
+      for (let i=0; i<sources.length; i++) {
+        const verification = await this.productsAPI.verify({
+          req,
+          user,
+          application,
+          object: formStub,
+          verification: sources[i],
+          send
+        })
 
-      const verification = await this.productsAPI.verify({
-        req,
-        user,
-        application,
-        object: formStub,
-        verification: { sources },
-        send
-      })
+        await this.bot.sealIfNotBatching({
+          counterparty: user.id,
+          object: verification
+        })
 
-      await this.bot.sealIfNotBatching({
-        counterparty: user.id,
-        object: verification
-      })
-
-      return verification
+        sentVerifications.push(verification)      }
     })
+    return sentVerifications
   }
 
   public sealFormsForApplication = async ({ application }: AppInfo) => {
