@@ -584,7 +584,7 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
         logger.error('No api_token provided')
         return
       }
-
+      let willRequirePrefill = payload[TYPE] === LEGAL_ENTITY && !payload[map.registrationDate]
       let r: {
         rawData: object
         message?: string
@@ -632,7 +632,7 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
           req
         })
       )
-      if (hasVerification)
+      if (hasVerification  &&  !willRequirePrefill)
         pchecks.push(
           openCorporates.createVerification({
             application,
