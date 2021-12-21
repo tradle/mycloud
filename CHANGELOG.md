@@ -2,19 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.11](https://github.com/tradle/mycloud/compare/v3.1.1-rc.10...v3.1.1-rc.11) (2021-12-21)
-
-
-### Bug Fixes
-
-* some errors are not caught and as a result stopping handling the request ([c8f824a](https://github.com/tradle/mycloud/commit/c8f824a))
-
-
-### Features
-
-* don't create verification for the first LE submission ([abd5bf6](https://github.com/tradle/mycloud/commit/abd5bf6))
-* sharing hierarchy of forms and verifications ([9e5346d](https://github.com/tradle/mycloud/commit/9e5346d))
-* show country of the verifying provider ([7c403b2](https://github.com/tradle/mycloud/commit/7c403b2))
+## [3.1.1-rc.12](https://github.com/tradle/mycloud/compare/v3.1.1-rc.11...v3.1.1-rc.12) (2021-12-21)
 
 
 
