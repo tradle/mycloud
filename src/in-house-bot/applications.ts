@@ -49,6 +49,14 @@ const ORG_TO_TYPE = {
   'bankb.com': 'bank',
   'bank.com': 'bank'
 }
+const COUNTRIES = {
+  'lenka.io': 'US',
+  'unicreditgroup.eu': 'IT',
+  'bancod.com': 'bank',
+  'bankofamerica.com': 'US',
+  'bankb.com': 'UK',
+  'bank.com': 'DU'
+}
 interface IPBJudgeAppOpts {
   req?: IPBReq
   application: string | IPBApp | ResourceStub
@@ -85,6 +93,7 @@ const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
 const NOT_VERIFIABLE = ['tradle.TermsAndConditions', ASSIGN_RELATIONSHIP_MANAGER]
 const ENTITY_TYPES = 'tradle.EntityTypes'
 const TRUST_CIRCLE = 'tradle.TrustCircle'
+const COUNTRY = 'tradle.Country'
 
 type AppInfo = {
   application: IPBApp
@@ -555,6 +564,14 @@ export class Applications implements IHasModels {
             value: trustCircle.id
           })
         }
+      }
+      let countryId = COUNTRIES[org.domain]
+      if (countryId) {
+        const country = this.bot.models[COUNTRY]
+        verification.country = enumValue({
+          model: country,
+          value: countryId
+        })
       }
     }
 
