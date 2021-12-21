@@ -446,7 +446,7 @@ export const getCheckParameters = async ({
   try {
     dbRes = resource._prevlink && (await bot.objects.get(resource._prevlink))
   } catch (error) {
-    console.log('getCheckParameters ', error)
+    console.log('getCheckParameters ', `${error.name} ${error.message}`)
   }
   let runCheck = !dbRes
   let r: any = {}
@@ -624,12 +624,15 @@ export const getChangedProperties = async ({
       dbRes = await bot.objects.get(resource._prevlink)
     } catch (err) {
       bot.logger.debug(
-        `not found previous version for the resource - check if this was refresh: ${JSON.stringify(
-          resource,
-          null,
-          2
-        )}`
+        `not found previous version for the resource - check if this was refresh: type: ${resource._t} _link: ${resource._link}`
       )
+      // bot.logger.debug(
+      //   `not found previous version for the resource - check if this was refresh: ${JSON.stringify(
+      //     resource,
+      //     null,
+      //     2
+      //   )}`
+      // )
       debugger
       return { needsCheck: true }
     }
