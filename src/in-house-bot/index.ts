@@ -990,7 +990,8 @@ const banter = (components: IBotComponents) => {
 
   return {
     'onmessage:tradle.SimpleMessage': handleSimpleMessage,
-    'onmessage:tradle.DataBundleSubmitted': handleDataBundleSubmitted
+    'onmessage:tradle.DataBundleSubmitted': handleDataBundleSubmitted,
+    'onmessage:tradle.ShareRequestSubmitted': handleDataBundleSubmitted,
   }
 }
 

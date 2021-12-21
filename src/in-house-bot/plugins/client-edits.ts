@@ -26,6 +26,7 @@ const PHOTO_ID = 'tradle.PhotoID'
 const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const SHARE_REQUEST = 'tradle.ShareRequest'
+const SHARE_REQUEST_SUBMITTED = 'tradle.ShareRequestSubmitted'
 
 interface IValidityCheck {
   rawData: any
@@ -375,7 +376,7 @@ class ClientEditsAPI {
       } catch (err) {
         debugger
       }
-    } 
+    }
     else if (payload[TYPE] !== PHOTO_ID || !payload.scanJson) return
     else {
       let { address, personal, document } = payload.scanJson
@@ -454,19 +455,21 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
       // if (req.skipChecks) return
       const { payload, application } = req
       if (!payload._link) return
+      if (payload[TYPE] === SHARE_REQUEST_SUBMITTED) {
+        debugger
+        return
+      }  
 
       if (payload[TYPE] === SHARE_REQUEST) {
+        let { formStubs, verificationStubs} = payload
+        if (!formStubs && !verificationStubs)
+          return
         let myIdentity = await bot.getMyIdentity()
         let { with:sharedWith } = payload
         if (sharedWith.find(w => w._link === myIdentity._link))
           await clientEdits.handleShareRequest({resource: payload, shareFrom: true})
         else
           await clientEdits.handleShareRequest({resource: payload})
-
-        // if (sharedWith.find(w => w._link === myIdentity._link))
-        //   await clientEdits.handleShareFromRequest(payload)
-        // else
-        //   await clientEdits.handleShareWithRequest(payload)
       }
       if (!application)
         return
