@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.14](https://github.com/tradle/mycloud/compare/v3.1.1-rc.13...v3.1.1-rc.14) (2021-12-22)
+## [3.1.1-rc.15](https://github.com/tradle/mycloud/compare/v3.1.1-rc.14...v3.1.1-rc.15) (2021-12-22)
 
 
-### Features
+### Bug Fixes
 
-* more bank mappings ([1ee75c4](https://github.com/tradle/mycloud/commit/1ee75c4))
+* typo in country code ([5ff1513](https://github.com/tradle/mycloud/commit/5ff1513))
 
 
 
