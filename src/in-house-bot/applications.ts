@@ -63,10 +63,10 @@ const COUNTRIES = {
   'bancod.com': 'bank',
   'bankofamerica.com': 'US',
   'bankb.com': 'UK',
-  'bank.com': 'DU',
+  'bank.com': 'DE',
   'banko.com': 'MX',
   'banke.com': 'UK',
-  'bankf.com': 'DU',
+  'bankf.com': 'DE',
   'bankg.com': 'MX',
 }
 interface IPBJudgeAppOpts {
