@@ -580,15 +580,20 @@ export class Applications implements IHasModels {
         }
       }
       let countryId = COUNTRIES[org.domain]
-      if (countryId) {
-        const country = this.bot.models[COUNTRY]
-        let c = enumValue({
-          model: country,
-          value: countryId
-        })
-        if (c)
-          verification.country = c
-      }
+      // if (countryId) {
+      //   const country = this.bot.models[COUNTRY]
+      //     try {
+      //     let c = enumValue({
+      //       model: country,
+      //       value: countryId
+      //     })
+      //     if (c)
+      //       verification.country = c
+      //     } catch (err) {
+      //       this.logger.debug(`There is no country with code ${country}`)
+      //     }
+      //   }
+      // }
     }
 
     verification = await this.bot.sign(verification)
