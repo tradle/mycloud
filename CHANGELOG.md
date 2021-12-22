@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.16](https://github.com/tradle/mycloud/compare/v3.1.1-rc.15...v3.1.1-rc.16) (2021-12-22)
+## [3.1.1-rc.17](https://github.com/tradle/mycloud/compare/v3.1.1-rc.16...v3.1.1-rc.17) (2021-12-22)
 
 
 ### Bug Fixes
 
-* typo ([344e5af](https://github.com/tradle/mycloud/commit/344e5af))
+* typo in country code ([3231a17](https://github.com/tradle/mycloud/commit/3231a17))
 
 
 
