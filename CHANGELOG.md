@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.13](https://github.com/tradle/mycloud/compare/v3.1.1-rc.12...v3.1.1-rc.13) (2021-12-22)
+## [3.1.1-rc.14](https://github.com/tradle/mycloud/compare/v3.1.1-rc.13...v3.1.1-rc.14) (2021-12-22)
 
 
 ### Features
 
-* don't create verification trees for now ([cf71001](https://github.com/tradle/mycloud/commit/cf71001))
+* more bank mappings ([1ee75c4](https://github.com/tradle/mycloud/commit/1ee75c4))
 
 
 
