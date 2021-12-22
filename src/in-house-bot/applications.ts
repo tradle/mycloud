@@ -62,10 +62,10 @@ const COUNTRIES = {
   'unicreditgroup.eu': 'IT',
   'bancod.com': 'bank',
   'bankofamerica.com': 'US',
-  'bankb.com': 'UK',
+  'bankb.com': 'GB',
   'bank.com': 'DE',
   'banco.com': 'MX',
-  'banke.com': 'UK',
+  'banke.com': 'GB',
   'bankf.com': 'DE',
   'bankg.com': 'MX',
 }
@@ -582,10 +582,12 @@ export class Applications implements IHasModels {
       let countryId = COUNTRIES[org.domain]
       if (countryId) {
         const country = this.bot.models[COUNTRY]
-        verification.country = enumValue({
+        let c = enumValue({
           model: country,
           value: countryId
         })
+        if (c)
+          verification.country = c
       }
     }
 
