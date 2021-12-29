@@ -615,7 +615,7 @@ test(
     const result = await firstSuccess(pending.concat(failed).concat(resolved))
     t.equal(result, 100)
     failed.forEach((promise, index) => t.equal(promise.isRejected(), true, `failed#${index} is not rejected.`))
-    resolved.forEach((promise, index) => t.equal(promise.isResolved(), true, `resolved#${index} is not not resolved.`))
+    resolved.forEach((promise, index) => t.equal(promise.isResolved(), true, `resolved#${index} is not resolved.`))
     pending.forEach((promise, index) => t.equal(promise.isPending(), true, `pending#${index} is not pending.`))
 
     try {
