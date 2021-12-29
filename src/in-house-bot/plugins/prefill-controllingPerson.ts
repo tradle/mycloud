@@ -42,8 +42,8 @@ const countryMap = {
 }
 
 export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
-  let { bot, applications } = components
-  let { logger, conf } = pluginOpts
+  const { bot, applications } = components
+  const { logger, conf } = pluginOpts
   const plugin: IPluginLifecycleMethods = {
     async onmessage(req: IPBReq) {
       if (req.skipChecks) return
@@ -279,10 +279,9 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (!date_of_birth && !country_of_residence) {
         if (identification && identification.registration_number) isCompany = true
         else {
-          let le = await bot.getResource(legalEntity.submission)
           isCompany = this.isCompany({
             name,
-            country: le.country
+            country: legalEntity.country
           })
         }
       }
@@ -310,9 +309,9 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         if (country) prefill.controllingEntityCountryOfResidence = country
       }
       if (nationality) {
-        nationality = this.getNationality(nationality, prefill.controllingEntityCountryOfResidence)
-        if (nationality)
-          prefill.nationality = nationality
+        let nationalityCountry = this.getNationality(nationality, prefill.controllingEntityCountryOfResidence)
+        if (nationalityCountry)
+          prefill.nationality = nationalityCountry
         else if (country_of_residence)
           prefill.nationality = prefill.controllingEntityCountryOfResidence
       }
@@ -564,9 +563,9 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         }
       }
       if (nationality) {
-        nationality = this.getNationality(nationality, prefill.controllingEntityCountryOfResidence)
-        if (nationality)
-          prefill.nationality = nationality
+        let nationalityCountry = this.getNationality(nationality, prefill.controllingEntityCountryOfResidence)
+        if (nationalityCountry)
+          prefill.nationality = nationalityCountry
       }
       if (name_elements) {
         let { firstName, lastName } = prefill
@@ -594,6 +593,10 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       else {
         let cid = getEnumValueId({ model: bot.models[COUNTRY], value: countryOfResidence })
         let item = items.find((item) => item.id === cid)
+        if (!item) {
+          if (nationality === 'American')
+            item = items.find(item => item.cca3 === 'USA')
+        }
         return enumValue({ model, value: item.id })
       }
     },
@@ -687,7 +690,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           }
         } else if (!kind.startsWith('corporate-')) return
         else if (bene['company_number'] === legalEntity.registrationNumber)
-          continue
+          debugger
         let prefill: any = {
           name,
           prefilledName: name

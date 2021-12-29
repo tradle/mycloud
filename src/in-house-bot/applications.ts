@@ -7,7 +7,8 @@ import uniqBy from 'lodash/uniqBy'
 import flatMap from 'lodash/flatMap'
 import flatten from 'lodash/flatten'
 import isEmpty from 'lodash/isEmpty'
-import { buildResourceStub } from '@tradle/build-resource'
+import { enumValue, buildResourceStub } from '@tradle/build-resource'
+
 import { parseStub, getEnumValueId } from '../utils'
 import { isPassedCheck, removeRoleFromUser, getLatestChecks } from './utils'
 import Errors from '../errors'
@@ -32,6 +33,42 @@ import {
   UpdateResourceOpts
 } from './types'
 
+const ORG_TO_TRUST_CIRCLE = {
+  'lenka.io': 'local',
+  'unicreditgroup.eu': 'taskForce',
+  'bancod.com': 'regional',
+  'bankofamerica.com': 'global',
+  'bankb.com': 'regional',
+  'bank.com': 'local',
+  'banco.com': 'taskForce',
+  'banke.com': 'global',
+  'bankf.com': 'regional',
+  'bankg.com': 'taskForce',
+}
+const ORG_TO_TYPE = {
+  'lenka.io': 'corporate',
+  'unicreditgroup.eu': 'bank',
+  'bancod.com': 'bank',
+  'bankofamerica.com': 'bank',
+  'bankb.com': 'broker',
+  'bank.com': 'bank',
+  'banco.com': 'bank',
+  'banke.com': 'bank',
+  'bankf.com': 'bank',
+  'bankg.com': 'bank',
+}
+const COUNTRIES = {
+  'lenka.io': 'US',
+  'unicreditgroup.eu': 'IT',
+  'bancod.com': 'bank',
+  'bankofamerica.com': 'US',
+  'bankb.com': 'GB',
+  'bank.com': 'DE',
+  'banco.com': 'MX',
+  'banke.com': 'GB',
+  'bankf.com': 'DE',
+  'bankg.com': 'MX',
+}
 interface IPBJudgeAppOpts {
   req?: IPBReq
   application: string | IPBApp | ResourceStub
@@ -65,6 +102,10 @@ const SANCTIONS_CHECK = 'tradle.SanctionsCheck'
 const CORPORATION_EXISTS_CHECK = 'tradle.CorporationExistsCheck'
 const DOCUMENT_VALIDITY_CHECK = 'tradle.DocumentValidityCheck'
 const NOTIFICATION_STATUS = 'tradle.NotificationStatus'
+const NOT_VERIFIABLE = ['tradle.TermsAndConditions', ASSIGN_RELATIONSHIP_MANAGER]
+const ENTITY_TYPES = 'tradle.EntityTypes'
+const TRUST_CIRCLE = 'tradle.TrustCircle'
+const COUNTRY = 'tradle.Country'
 
 type AppInfo = {
   application: IPBApp
@@ -368,7 +409,9 @@ export class Applications implements IHasModels {
 
     // avoid building increasingly tall trees of verifications
     const sourcesOnly = flatMap(verifications, (v) => (isEmpty(v.sources) ? v : v.sources))
-    return await formStubs.map(async (formStub) => {
+    let formStubsToVerify = formStubs.filter(stub => NOT_VERIFIABLE.indexOf(stub[TYPE]) === -1)
+    let sentVerifications = []
+    await formStubsToVerify.forEach(async (formStub) => {
       const sources = sourcesOnly.filter(
         (v) => parseStub(v.document).link === parseStub(formStub).link
       )
@@ -376,23 +419,24 @@ export class Applications implements IHasModels {
       //   this.logger.debug('not issuing verification for form, as no source verifications found', formStub)
       //   return
       // }
+      for (let i=0; i<sources.length; i++) {
+        const verification = await this.productsAPI.verify({
+          req,
+          user,
+          application,
+          object: formStub,
+          verification: sources[i],
+          send
+        })
 
-      const verification = await this.productsAPI.verify({
-        req,
-        user,
-        application,
-        object: formStub,
-        verification: { sources },
-        send
-      })
+        await this.bot.sealIfNotBatching({
+          counterparty: user.id,
+          object: verification
+        })
 
-      await this.bot.sealIfNotBatching({
-        counterparty: user.id,
-        object: verification
-      })
-
-      return verification
+        sentVerifications.push(verification)      }
     })
+    return sentVerifications
   }
 
   public sealFormsForApplication = async ({ application }: AppInfo) => {
@@ -500,16 +544,58 @@ export class Applications implements IHasModels {
 
     return allPassed
   }
-
   public createVerification = async ({
     req,
     application,
-    verification
+    verification,
+    org
   }: {
     verification: ITradleObject
     application?: IPBApp
-    req?: IPBReq
+    req?: IPBReq,
+    org: ITradleObject
   }) => {
+    if (org) {
+      let entityType = ORG_TO_TYPE[org.domain]
+      if (entityType) {
+        const et = this.bot.models[ENTITY_TYPES]
+        entityType = et.enum.find(item => item.id === entityType)
+        if (entityType) {
+          verification.entityType = enumValue({
+            model: et,
+            value: entityType.id
+          })
+
+        }
+      }
+      let trustCircle = ORG_TO_TRUST_CIRCLE[org.domain]
+      if (trustCircle) {
+        const tc = this.bot.models[TRUST_CIRCLE]
+        trustCircle = tc.enum.find(item => item.id === trustCircle)
+        if (trustCircle) {
+          verification.trustCircle = enumValue({
+            model: tc,
+            value: trustCircle.id
+          })
+        }
+      }
+      let countryId = COUNTRIES[org.domain]
+      // if (countryId) {
+      //   const country = this.bot.models[COUNTRY]
+      //     try {
+      //     let c = enumValue({
+      //       model: country,
+      //       value: countryId
+      //     })
+      //     if (c)
+      //       verification.country = c
+      //     } catch (err) {
+      //       this.logger.debug(`There is no country with code ${country}`)
+      //     }
+      //   }
+      // }
+    }
+
     verification = await this.bot.sign(verification)
     const promiseSave = this.bot.save(verification)
     if (application) {

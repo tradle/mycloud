@@ -3,8 +3,6 @@ import fetch from 'node-fetch'
 import FormData from 'form-data'
 import DataURI from 'strong-data-uri'
 
-import buildResource from '@tradle/build-resource'
-import { buildResourceStub, title } from '@tradle/build-resource'
 import constants from '@tradle/constants'
 import {
   Bot,
@@ -18,14 +16,12 @@ import {
   ValidatePluginConf
 } from '../types'
 
-import { parseStub, post } from '../../utils'
+import { post } from '../../utils'
 import { trimLeadingSlashes, trimTrailingSlashes } from '../../string-utils'
 import {
   getParsedFormStubs,
-  getCheckParameters,
   doesCheckNeedToBeCreated,
   getStatusMessageForCheck,
-  getEnumValueId
 } from '../utils'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
@@ -74,11 +70,13 @@ export class DocumentCheckerAPI {
   private conf: IDocumentCheckerConf
   private logger: Logger
   private applications: Applications
-  constructor({ bot, applications, conf, logger }) {
+  private org: ITradleObject
+  constructor({ bot, applications, conf, logger, org }) {
     this.bot = bot
     this.conf = conf
     this.applications = applications
     this.logger = logger
+    this.org = org
   }
   public getData = async (resource, application, req) => {
     let bearer = await getToken()
@@ -278,7 +276,7 @@ export class DocumentCheckerAPI {
     this.logger.debug(`Created ${PROVIDER} check for ${ASPECTS}`)
   }
 
-  public createVerification = async ({ user, application, form, rawData }) => {
+  public createVerification = async ({ user, application, form, rawData, org }) => {
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
@@ -294,11 +292,12 @@ export class DocumentCheckerAPI {
       .draft({ type: VERIFICATION })
       .set({
         document: form,
+        checkType: DOCUMENT_CHECKER_CHECK,
         method
       })
       .toJSON()
 
-    await this.applications.createVerification({ application, verification })
+    await this.applications.createVerification({ application, verification, org: this.org })
     this.logger.debug(`Created ${PROVIDER} verification for ${ASPECTS}`)
     if (application.checks)
       await this.applications.deactivateChecks({
@@ -387,7 +386,7 @@ export class DocumentCheckerAPI {
 
     pchecks.push(updatedCheck)
     if (status === 'pass')
-      pchecks.push(this.createVerification({ user, application, form, rawData }))
+      pchecks.push(this.createVerification({ user, application, form, rawData, org: this.org }))
 
     // if (state !== 'finished'  ||  error  ||  ret.status === 'error')
     //    pchecks.push(this.createCheck({application, rawData, status: {status: 'error'}, form}))
@@ -405,10 +404,12 @@ export class DocumentCheckerAPI {
 export const name = 'documentChecker'
 
 export const createPlugin: CreatePlugin<DocumentCheckerAPI> = (
-  { bot, applications },
+  components,
   { conf, logger }
 ) => {
-  const documentChecker = new DocumentCheckerAPI({ bot, applications, conf, logger })
+  const { bot, applications } = components
+  const { org } = components.conf
+  const documentChecker = new DocumentCheckerAPI({ bot, applications, conf, logger, org })
   const plugin: IPluginLifecycleMethods = {
     onFormsCollected: async ({ req }) => {
       if (req.skipChecks) return
