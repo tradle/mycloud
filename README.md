@@ -1,6 +1,5 @@
 # @tradle/serverless
 
-
 Welcome to Tradle serverless / Tradle MyCloud! You'll find everything you need to configure and launch your own Tradle instance here.
 
 If you're developer, you'll also see how to set up your local environment, deploy, and develop your own chatbots.
