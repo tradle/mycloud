@@ -287,6 +287,16 @@ export const validateConf: ValidatePluginConf = async ({
   conf: IConfComponents
   pluginConf: IPscConf
 }) => {
+  
+  let jobs: any = conf.bot['jobs']
+  if (!jobs)
+    throw new Errors.InvalidInput('job importPsc is not active')
+  if (jobs) {
+    let jobConf = jobs['importPsc']
+    if (!jobConf || !jobConf.active)
+      throw new Errors.InvalidInput('job importPsc is not active')
+  }
+
   const { models } = bot
   if (!pluginConf.athenaMaps) throw new Errors.InvalidInput('athena maps are not found')
   pluginConf.athenaMaps.forEach(subject => {

@@ -37,9 +37,9 @@ const TYPE_MESSAGE = 'tradle.Message'
 
 interface Structure {
   stream: fs.WriteStream,
-  permalinkLocations: Map<string, Array<number>>,
+  permalinkLocations: Map<string, number[]>,
   lastLine: number,
-  permalinks: Array<string>
+  permalinks: string[]
 }
 
 export class AthenaFeed {
@@ -60,13 +60,16 @@ export class AthenaFeed {
   public objectsDump = async () => {
     let start = new Date().getTime()
     // prepare directory in temp
-    !fs.existsSync(TYPES_DIR) && fs.mkdirSync(TYPES_DIR);
-
-    let objectFiles = []
+    if(!fs.existsSync(TYPES_DIR)) {
+      fs.mkdirSync(TYPES_DIR)
+    }  
+    
+    // collect s3 object file names and the timestamps
+    const objectFiles: { name: string, time: number }[] = []
     await this.objectsBucketFilenames(objectFiles, undefined)
     this.logger.debug(`number of object files ${objectFiles.length}`)
     objectFiles.sort((one, two) => {
-      if (one.time == two.time) {
+      if (one.time === two.time) {
         if (one.name > two.name)
           return 1
         return -1
@@ -75,7 +78,7 @@ export class AthenaFeed {
       return -1
     })
 
-    // collect datadump file names
+    // collect exported datadump file names
     let dump = []
     await this.datadumpFilenames(dump, undefined)
 
@@ -85,11 +88,11 @@ export class AthenaFeed {
       this.logger.debug(`last marker ${last}`)
       for (; idx < objectFiles.length; idx++) {
         let obj = objectFiles[idx]
-        if (obj.name == last)
+        if (obj.name === last)
           break;
       }
       idx++
-      if (idx == objectFiles.length) {
+      if (idx === objectFiles.length) {
         this.logger.debug('all documents are processed')
         return
       }
@@ -114,7 +117,7 @@ export class AthenaFeed {
         idx--;
         break;
       }
-      if (idx % 500 == 0) {
+      if (idx % 500 === 0) {
         this.logger.debug(`processed idx=${idx}`)
         let time = new Date().getTime()
         if (time - start > TIME_LIMIT) {
@@ -124,7 +127,7 @@ export class AthenaFeed {
         }
       }
     }
-    if (idx == objectFiles.length) idx--
+    if (idx === objectFiles.length) idx--
     let marker = objectFiles[idx].name;
 
     // close all write streams
@@ -139,7 +142,7 @@ export class AthenaFeed {
       await promise
     }
 
-    // prepare file for upload
+    // prepare file for upload and merge with already dumped
     for (let [type, struct] of map) {
       await this.merge(type, struct, dump)
     }
@@ -176,7 +179,7 @@ export class AthenaFeed {
     this.logger.debug(`job run total time(sec): ${(time - start) / 1000}`);
   }
 
-  consumeFile = (map: Map<string, Structure>, file: string) => {
+  private consumeFile = (map: Map<string, Structure>, file: string) => {
     let json = JSON.parse(file);
     let type = json._t
     if (TYPE_FILTER.includes(type))
@@ -185,23 +188,25 @@ export class AthenaFeed {
       return
 
     let permalink = json._permalink
-    if (TYPE_MESSAGE == type) {
+    if (TYPE_MESSAGE === type) {
       let payloadTypeModel = this.bot.models[json._payloadType]
       if (!payloadTypeModel)
         return
-      if (payloadTypeModel.subClassOf != 'tradle.Form')
+      if (payloadTypeModel.subClassOf !== 'tradle.Form')
         return
       permalink = json._payloadLink
+      
+      // object blob element is not saved
       delete json.object
       file = JSON.stringify(json)
     }
 
     let struct = map.get(type)
-    let locationsArray: Array<number>
+    let locationsArray: number[]
 
     if (!struct) {
       let stream = fs.createWriteStream(TYPES_DIR + type, { encoding: UTF8 })
-      let permalinkLocations: Map<string, Array<number>> = new Map()
+      let permalinkLocations: Map<string, number[]> = new Map()
       locationsArray = []
       permalinkLocations.set(permalink, locationsArray)
       struct = { stream, permalinkLocations, lastLine: 0, permalinks: [] }
@@ -222,11 +227,11 @@ export class AthenaFeed {
     struct.permalinks.push(permalink)
   }
 
-  merge = async (type: string, struct: Structure, dump: Array<string>) => {
+  private merge = async (type: string, struct: Structure, dump: string[]) => {
     let table = type.toLowerCase().replace(/\./g, '_')
     let inbucket = `${DATADUMP_FOLDER}${table}/${type}`
     if (dump.includes(inbucket)) {
-      let permalinkInbuckets: Array<string>
+      let permalinkInbuckets: string[]
       try {
         await this.s3download(this.outputLocation, inbucket, TYPES_DIR + type + '-inbucket')
         let str = await this.getFile(targetS3, DATADUMP_FOLDER + type + '-permalinks', this.outputLocation)
@@ -237,13 +242,13 @@ export class AthenaFeed {
       }
 
       // check new permalinks
-      let toSkip: Array<number> = []
+      let toSkip: number[] = []
       for (let i = 0; i < permalinkInbuckets.length; i++) {
         if (struct.permalinkLocations.has(permalinkInbuckets[i]))
           toSkip.push(i)
       }
 
-      if (toSkip.length == 0) {
+      if (toSkip.length === 0) {
         // append new file after processing
         await this.appendWithRewrite(type, '-inbucket', struct, permalinkInbuckets)
       }
@@ -264,7 +269,7 @@ export class AthenaFeed {
           let index = 0
           const transform = (line: String) => {
             let skip = toSkip[skipIdx]
-            if (skipIdx < toSkip.length && index == skip) {
+            if (skipIdx < toSkip.length && index === skip) {
               skipIdx++
             }
             else {
@@ -276,7 +281,7 @@ export class AthenaFeed {
           }
 
           rlp.on('line', transform)
-            .on('close', function () {
+            .on('close', () => {
               typeRewrite.end()
               resolve('done')
             });
@@ -294,7 +299,7 @@ export class AthenaFeed {
     }
   }
 
-  datadumpFilenames = async (names: Array<string>, contToken: string) => {
+  private datadumpFilenames = async (names: string[], contToken: string) => {
     let params = {
       Bucket: this.outputLocation,
       Prefix: DATADUMP_FOLDER,
@@ -305,7 +310,7 @@ export class AthenaFeed {
       let data = await targetS3.listObjectsV2(params).promise()
 
       for (let content of data.Contents) {
-        if (content.Size == 0)
+        if (content.Size === 0)
           continue
         names.push(content.Key)
       }
@@ -318,7 +323,7 @@ export class AthenaFeed {
   }
 
   // collect object names
-  objectsBucketFilenames = async (files: Array<{ name: string, time: number }>,
+  private objectsBucketFilenames = async (files: { name: string, time: number }[],
     contToken: string) => {
 
     let params = {
@@ -331,7 +336,7 @@ export class AthenaFeed {
       let data = await objectsS3.listObjectsV2(params).promise()
 
       for (let content of data.Contents) {
-        if (content.Size == 0)
+        if (content.Size === 0)
           continue
         files.push({ name: content.Key, time: content.LastModified.getTime() })
       }
@@ -343,8 +348,8 @@ export class AthenaFeed {
     }
   }
 
-  getFile = async (s3: AWS.S3, file: string, bucket: string): Promise<string> => {
-    var params = {
+  private getFile = async (s3: AWS.S3, file: string, bucket: string): Promise<string> => {
+    const params = {
       Bucket: bucket,
       Key: file
     }
@@ -352,20 +357,20 @@ export class AthenaFeed {
     return data.Body.toString(UTF8)
   }
 
-  writeStreamToPromise = (stream: any) => {
+  private writeStreamToPromise = (stream: any) => {
     return new Promise((resolve, reject) => {
       stream.on('finish', resolve).on('error', reject)
     })
   }
 
-  readStreamToPromise = (stream: any) => {
+  private readStreamToPromise = (stream: any) => {
     return new Promise((resolve, reject) => {
       stream.on('end', resolve).on('error', reject)
     })
   }
 
-  s3download = async (bucketName: string, keyName: string, localDest: string) => {
-    if (typeof localDest == 'undefined') {
+  private s3download = async (bucketName: string, keyName: string, localDest: string) => {
+    if (typeof localDest === 'undefined') {
       localDest = keyName;
     }
     let params = {
@@ -384,10 +389,10 @@ export class AthenaFeed {
     })
   }
 
-  upload = async (type: string, posfix: string) => {
+  private upload = async (type: string, posfix: string) => {
     let table = type.toLowerCase().replace(/\./g, '_')
     let stream = fs.createReadStream(TYPES_DIR + type + posfix)
-    var contentToPost = {
+    const contentToPost = {
       Bucket: `${this.outputLocation}/${DATADUMP_FOLDER}${table}`,
       Key: type,
       Body: stream
@@ -395,8 +400,8 @@ export class AthenaFeed {
     let res = await targetS3.upload(contentToPost).promise()
   }
 
-  putMarker = async (last: string) => {
-    var contentToPost = {
+  private putMarker = async (last: string) => {
+    const contentToPost = {
       Bucket: this.outputLocation,
       Key: `${DATADUMP_FOLDER}${MARKER}`,
       Body: last
@@ -404,8 +409,8 @@ export class AthenaFeed {
     let res = await targetS3.putObject(contentToPost).promise()
   }
 
-  putPermalinks = async (permalinks: string, type: string) => {
-    var contentToPost = {
+  private putPermalinks = async (permalinks: string, type: string) => {
+    const contentToPost = {
       Bucket: this.outputLocation,
       Key: `${DATADUMP_FOLDER}${type}-permalinks`,
       Body: permalinks
@@ -413,7 +418,7 @@ export class AthenaFeed {
     let res = await targetS3.putObject(contentToPost).promise()
   }
 
-  skipLines = (permalinkLocations: Map<string, Array<number>>): Array<number> => {
+  private skipLines = (permalinkLocations: Map<string, number[]>): number[] => {
     let toSkip = []
     for (let [link, lines] of permalinkLocations) {
       for (let idx = 0; idx < lines.length - 1; idx++) {
@@ -423,9 +428,9 @@ export class AthenaFeed {
     return toSkip
   }
 
-  appendWithRewrite = async (type: string, posfix: string, struct: Structure, permalinks: Array<string>) => {
+  private appendWithRewrite = async (type: string, posfix: string, struct: Structure, permalinks: string[]) => {
     let toSkip = this.skipLines(struct.permalinkLocations)
-    if (toSkip.length == 0) {
+    if (toSkip.length === 0) {
       let permalinksToWrite = JSON.stringify(permalinks.concat(struct.permalinks))
       // append file
       await this.appendFile(TYPES_DIR + type + posfix, TYPES_DIR + type)
@@ -448,22 +453,22 @@ export class AthenaFeed {
         let index = 0
         const transform = (line: String) => {
           let skip = toSkip[skipIdx]
-          if (skipIdx < toSkip.length && index == skip) {
+          if (skipIdx < toSkip.length && index === skip) {
             skipIdx++
           }
           else {
             subsetPermalinks.push(struct.permalinks[index])
-            typeRewrite.write(line);
-            typeRewrite.write(NL);
+            typeRewrite.write(line)
+            typeRewrite.write(NL)
           }
           index++
         }
 
         rlp.on('line', transform)
-          .on('close', function () {
+          .on('close', () => {
             typeRewrite.end()
             resolve('done')
-          });
+          })
       })
       await typePromise
 
@@ -475,9 +480,9 @@ export class AthenaFeed {
     }
   }
 
-  freshRewrite = async (type: string, struct: Structure) => {
+  private freshRewrite = async (type: string, struct: Structure) => {
     let toSkip = this.skipLines(struct.permalinkLocations)
-    if (toSkip.length == 0) {
+    if (toSkip.length === 0) {
       let permalinksToWrite = JSON.stringify(struct.permalinks)
       // upload type and permalinks
       await this.putPermalinks(permalinksToWrite, type)
@@ -498,7 +503,7 @@ export class AthenaFeed {
         let index = 0
         const transform = (line: String) => {
           let skip = toSkip[skipIdx]
-          if (skipIdx < toSkip.length && index == skip) {
+          if (skipIdx < toSkip.length && index === skip) {
             skipIdx++
           }
           else {
@@ -510,10 +515,10 @@ export class AthenaFeed {
         }
 
         rlp.on('line', transform)
-          .on('close', function () {
+          .on('close', () => {
             typeRewrite.end()
             resolve('done')
-          });
+          })
       })
       await typePromise
 
@@ -524,41 +529,41 @@ export class AthenaFeed {
     }
   }
 
-  appendFile = async (toFile: string, appendFile: string) => {
+  private appendFile = async (toFile: string, appendFile: string) => {
     // open destination file for appending
-    var w = fs.createWriteStream(toFile, { flags: 'a', encoding: UTF8 })
+    const w = fs.createWriteStream(toFile, { flags: 'a', encoding: UTF8 })
     // open source file for reading
-    var r = fs.createReadStream(appendFile, { encoding: UTF8 })
+    const r = fs.createReadStream(appendFile, { encoding: UTF8 })
 
     return new Promise((resolve, reject) => {
       w.on('close', resolve).on('error', reject)
-      r.pipe(w);
+      r.pipe(w)
     })
   }
 
-  genCreateTable = (table: string, model: any, existingColumns: Set<string>): { drop: boolean, ddl: string } => {
+  private genCreateTable = (table: string, model: any, existingColumns: Set<string>): { drop: boolean, ddl: string } => {
     let createTable = `CREATE EXTERNAL TABLE ${table} (\n`
     let drop = false
     for (let name of Object.keys(model.properties)) {
-      if (name.toLowerCase() == '_time')
+      if (name.toLowerCase() === '_time')
         continue
       let dbtype = 'string' // default
       let element = model.properties[name]
       let type = element['type']
-      if (type == 'array')
+      if (type === 'array')
         continue
-      if (type == 'object') {
+      if (type === 'object') {
         let ref = element['ref']
-        if (!ref || ref == 'tradle.Object')
+        if (!ref || ref === 'tradle.Object')
           continue
 
         let refModel = this.bot.models[ref]
-        if (refModel.subClassOf == 'tradle.Enum')
+        if (refModel.subClassOf === 'tradle.Enum')
           dbtype = 'struct<id:string,title:string>'
         else
           dbtype = 'struct<`_t`:string,`_permalink`:string,`_link`:string,`_displayname`:string>'
       }
-      else if (type == 'date')
+      else if (type === 'date')
         dbtype = 'bigint'
       let column = name.toLowerCase()
       if (existingColumns && !existingColumns.has(column))
@@ -601,7 +606,7 @@ export class AthenaFeed {
     return { drop, ddl: createTable }
   }
 
-  showTables = async (): Promise<Set<string>> => {
+  private showTables = async (): Promise<Set<string>> => {
     let show = 'SHOW TABLES'
     let result: any = await this.executeDDL(show, 250)
     let rows: [] = result.ResultSet.Rows
@@ -613,7 +618,7 @@ export class AthenaFeed {
     return tables
   }
 
-  currentColumns = async (table: string): Promise<Set<string>> => {
+  private currentColumns = async (table: string): Promise<Set<string>> => {
     let show = `SHOW CREATE TABLE ${table}`
     let result: any = await this.executeDDL(show, 250)
     let rows: [] = result.ResultSet.Rows
@@ -623,22 +628,22 @@ export class AthenaFeed {
       let idx1 = str.indexOf('`')
       let idx2 = str.indexOf('`', idx1 + 1)
       let column = str.substring(idx1 + 1, idx2)
-      if (column == '_s')
+      if (column === '_s')
         break
       columns.add(column)
     }
     return columns
   }
 
-  sleep = async (ms: number) => {
+  private sleep = async (ms: number) => {
     await this._sleep(ms);
   }
 
-  _sleep = (ms: number) => {
+  private _sleep = (ms: number) => {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  getExecutionId = async (sql: string): Promise<string> => {
+  private getExecutionId = async (sql: string): Promise<string> => {
     return new Promise((resolve, reject) => {
       let outputLocation = `s3://${this.outputLocation}/${ATHENA_OUTPUT}`
       let params = {
@@ -656,7 +661,7 @@ export class AthenaFeed {
     })
   }
 
-  checkStatus = async (id: string): Promise<string> => {
+  private checkStatus = async (id: string): Promise<string> => {
     return new Promise((resolve, reject) => {
       athena.getQueryExecution({ QueryExecutionId: id }, (err, data) => {
         if (err) return reject(err)
@@ -669,7 +674,7 @@ export class AthenaFeed {
     })
   }
 
-  getResults = async (id: string) => {
+  private getResults = async (id: string) => {
     return new Promise((resolve, reject) => {
       athena.getQueryResults({ QueryExecutionId: id }, (err, data) => {
         if (err) return reject(err)
@@ -678,7 +683,7 @@ export class AthenaFeed {
     })
   }
 
-  executeDDL = async (sql: string, delay: number) => {
+  private executeDDL = async (sql: string, delay: number) => {
     let id: string
     try {
       id = await this.getExecutionId(sql)
@@ -698,7 +703,7 @@ export class AthenaFeed {
         this.logger.error(err)
         return undefined
       }
-      if (result == 'SUCCEEDED')
+      if (result === 'SUCCEEDED')
         break;
 
       if (timePassed > 10000) {
