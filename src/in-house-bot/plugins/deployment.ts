@@ -23,7 +23,7 @@ import { TRADLE, TYPES } from '../constants'
 import { didPropChange, getParsedFormStubs } from '../utils'
 import { ClientCache, createClientCache } from '@tradle/aws-client-factory'
 import AWS, { Request, AWSError, Credentials } from 'aws-sdk'
-import { CreateAccountResponse, CreateAccountStatus, CreateAccountRequest } from 'aws-sdk/clients/organizations'
+import { CreateAccountResponse, CreateAccountStatus, CreateAccountRequest,  } from 'aws-sdk/clients/organizations'
 import { AssumeRoleResponse } from 'aws-sdk/clients/sts'
 import { Stack, StackStatus, Stacks } from 'aws-sdk/clients/cloudformation'
 import { PromiseResult } from 'aws-sdk/lib/request'
@@ -213,6 +213,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
         })
         let accountStatus: CreateAccountStatus
         // Using test account as its Lambda quotas are increased
+        /*
         accountStatus = {
           Id: 'car-xxx', // Not used
           AccountName: 'Test User',
@@ -221,6 +222,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
           CompletedTimestamp: new Date('1970-01-01T00:00:00.000Z'),
           AccountId: '294133443678'
         }
+        */
         /*
         TMP account created previous
         accountStatus = {
@@ -232,14 +234,13 @@ export const createPlugin: CreatePlugin<Deployment> = (
           AccountId: '549987204052'
         }
         */
-        /*
-        accountStatus = await createAccount(logger, aws, {
+        accountStatus = await createOrganizationAccount(logger, aws, {
           AccountName: `TMP_ACCOUNT_${tmpID}`,
           Email: `martin.heidegger+tradle_${tmpID}@gmail.com`,
           IamUserAccessToBilling: 'DENY',
           RoleName: 'OrganizationAccountAccessRole'
         })
-        */
+        console.log(accountStatus)
         return {
           aws,
           accountStatus,
@@ -442,7 +443,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
   }
 }
 
-async function createAccount (logger: Logger, aws: ClientCache, conf: CreateAccountRequest): Promise<CreateAccountStatus> {
+async function createOrganizationAccount (logger: Logger, aws: ClientCache, conf: CreateAccountRequest): Promise<CreateAccountStatus> {
   logger.debug(`Creating account: ${conf.AccountName} (${conf.Email})`)
   let status = await processCreateAccountStatus(aws.organizations.createAccount(conf))
   const start = Date.now()
