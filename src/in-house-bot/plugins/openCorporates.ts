@@ -330,13 +330,13 @@ class OpenCorporatesAPI {
     return check.toJSON()
   }
 
-  public createVerification = async ({ application, form, rawData, req, org }) => {
+  public createVerification = async ({ application, form, rawData, req, org, provider }) => {
     // debugger
     const method: any = {
       [TYPE]: API_BASED_VERIFIED_METHOD,
       api: {
         [TYPE]: API,
-        name: OPEN_CORPORATES
+        name: provider
       },
       aspect: ASPECTS,
       reference: [{ queryId: 'report:' + rawData.company_number }],
@@ -638,6 +638,7 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
             application,
             form: payload,
             rawData: hits[0].company,
+            provider,
             req,
             org
           })
