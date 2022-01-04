@@ -1,20 +1,16 @@
-Below is a concise description of how the job implemented in athenafeed.ts
-does the export of tradle objects (creates data lake).
+Below is a description of how we dump data to the data lake.
+This is implemented in the job athenafeed.ts
 
-1. Any write into dynamoDb is duplicated by creating a file in S3 into which the
-   object content is dumped. For a never modified object it will be a single file.
-   For modified objects there will be as many files as the object versions.
-   The object's bucket name follows the pattern "tdl-....-ltd-dev-buckets-...-objects-..."
+1. Any write into dynamoDB is duplicated by creating an object in S3. 
+   When object is modified in DynamoDB, a new S3 object is created, thus previous object versions are always preserved as separate S3 objects. The object's bucket name follows the pattern "tdl-....-ltd-dev-buckets-...-objects-..."
+Note that the DynamoDB record often does not have all properties of the object due to DynamoDB record size limitations.
    
-   The function of the athenafeed job is to pick up the files from the objects bucket and
-   merge the object files of the same type into a single file.
-   The end result is maintenance in S3 of files to which the new objects are appended
-   and existing objects updated.
-   The export files are placed in S3 bucket with name pattern
+   The function of the athenafeed job is to detect new S3 objects in the **objects** bucket and
+   merge them into the file in the data lake. Objects of the same type (same data model) are placed into a separate data lake file. New objects are appended and existing objects updated in this type-specific file. The data lake files are saved to S3 bucket with the following name pattern
      "tdl-...-ltd-dev-buckets-...-privateconf-..." in data_export/ folder.    
 
 2. Now how it works.
-   The run time of the job is limited by Lambda hard set limit of 15 minutes.
+   The run time of the job is limited by Lambda hard time limit of 15 minutes.
    So at every job invocation for  ~ 10 minutes it does the following:
     - collects into memory all file names found in objects bucket
     - sort them by file timestamp
