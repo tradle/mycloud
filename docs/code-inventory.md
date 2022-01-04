@@ -11,7 +11,7 @@
 ### Security on reading resources
 ### How to write a plugin 
 ## GraphQL
-Standard GraphQL is supported for queries. GraphQL Mutations are not supported. Instead we are using a reliable messaging mechanism for sending data from mobile and web clients to the server. 
+Standard [GraphQL](https://graphql.org/code/) is supported for queries. GraphQL Mutations are not supported. Instead we are using our own reliable messaging mechanism for sending data from mobile and web clients to the server. 
 You can use an open source Graphiql tool to view all resources in MyCloud. 
 (to enabled this, put graphqlAuth: false in bot.json. WARNING - this is only for development, production  servers MUST have graphqlAuth: true)
 ### mapping to GraphQL schema
