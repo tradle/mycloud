@@ -153,7 +153,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
     const deploymentOpts = {
       ...configuration,
       // backwards compat
-      stackName: `tdl-mycloud-${randomBytes(6).toString('hex')}`,
+      stackName: `tdl-mycloudbot-ltd-${randomBytes(6).toString('hex')}`,
       configurationLink: link
     } as IDeploymentConf
 
@@ -223,6 +223,14 @@ export const createPlugin: CreatePlugin<Deployment> = (
           AccountId: '294133443678'
         }
         */
+        accountStatus = {
+          Id: 'car-4dbf6a00699011eca9620ee01865ebc6',
+          AccountName: 'TMP_ACCOUNT_4ffdf507ce61',
+          State: 'SUCCEEDED',
+          RequestedTimestamp: new Date('2021-12-30T16:48:24.545Z'),
+          CompletedTimestamp: new Date('2021-12-30T16:48:27.371Z'),
+          AccountId: '820625939058'
+        }
         /*
         TMP account created previous
         accountStatus = {
@@ -236,11 +244,12 @@ export const createPlugin: CreatePlugin<Deployment> = (
         */
         accountStatus = await createOrganizationAccount(logger, aws, {
           AccountName: `TMP_ACCOUNT_${tmpID}`,
-          Email: `martin.heidegger+tradle_${tmpID}@gmail.com`,
+          Email: `martin.heidegger+tradle_${tmpID}@gmail.com`, // TODO: Make configurable
           IamUserAccessToBilling: 'DENY',
           RoleName: 'OrganizationAccountAccessRole'
         })
         console.log(accountStatus)
+        // TODO: check the newly created ccount limits (particular lambda execution)
         return {
           aws,
           accountStatus,
@@ -480,7 +489,7 @@ export const validateConf: ValidatePluginConf = async ({ bot, pluginConf }) => {
   if (senderEmail) {
     const resp = await bot.mailer.canSendFrom(senderEmail)
     if (!resp.result) {
-      throw new Error(`Can not send test-email using ${senderEmail}: ${resp.reason}`)
+      throw new Error(`Can not send test-email using ${senderEmail}: ${resp.reason} (Did you register the email address here? The email address needs to be verified at https://console.aws.amazon.com/sesv2/home?region=us-east-1#/verified-identities)`)
     }
   }
 }
