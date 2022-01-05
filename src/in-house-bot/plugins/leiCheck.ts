@@ -133,7 +133,7 @@ export class LeiCheckAPI {
     if (result.lei && result.bo)
       return result
 
-    await sleep(1500)
+    await sleep(500)
     let resultBO = false
     let resultLEI = false
    
