@@ -378,7 +378,6 @@ export class Conf {
     const allowedMimeTypes = _.get(bot, 'allowedMimeTypes')
     const requireDeviceLocalAuth = _.get(bot, 'requireDeviceLocalAuth')
     const templates = _.get(bot, 'templates')
-    debugger
     return {
       sandbox: bot.sandbox,
       bot: {
