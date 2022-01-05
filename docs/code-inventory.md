@@ -30,19 +30,19 @@ Scheduled jobs use the DynamoDB TTL as a time tick.
 For the fill updated list of jobs, go here:
 https://github.com/tradle/mycloud/tree/master/src/in-house-bot/jobs
 
-athenafeed.ts             - incremental backup of all operational data as individual S3 object to the data lake for reporting with any BI tool. See doc at: https://github.com/tradle/mycloud/blob/master/docs/backup-to-datalake.md
-chaser.ts                 - customer onboarding outreach via email, chases customers that did not respond in time (uses configurable policy - xxx).
-contractChaser.ts         - invoicing for leasing: sends Tradle app msg reminding customer to make a payment
-importBasicCompanyData.ts - imports companieshouse.gov.uk into the data lake
-importCzech.ts            - download data from Czech ministry of justice site 
-importLei.ts              - LEI data download
-importMaxmindDb.ts        - import the data for the IP to address mapping
-importPitchbook.ts        - import company and its investors data from Pitchbook commercial provider
-importPsc.ts              - import UK UBO data (persons of significant control)
-importRefdata.ts          - import registered regulated companies from BaFIN (DE), FCA (UK), FINRA/SEC (US)
-pendingChecksChaser.ts    - delayed Athena query execution (universal - can be used by any plugin that uses Athena)
-pendingWorksHandler.ts    - universal delayed API request execution (universal - can be used by any plugin at uses 3rd party APIs)
-roarFeedback.ts           - integration with Oracle Financials Risk Engine
+1. athenafeed.ts             - incremental backup of all operational data as individual S3 object to the data lake for reporting with any BI tool. See doc at: https://github.com/tradle/mycloud/blob/master/docs/backup-to-datalake.md
+1. chaser.ts                 - customer onboarding outreach via email, chases customers that did not respond in time (uses configurable policy - xxx).
+1. contractChaser.ts         - invoicing for leasing: sends Tradle app msg reminding customer to make a payment
+1. importBasicCompanyData.ts - imports companieshouse.gov.uk into the data lake
+1. importCzech.ts            - download data from Czech ministry of justice site 
+1. importLei.ts              - LEI data download
+1. importMaxmindDb.ts        - import the data for the IP to address mapping
+1. importPitchbook.ts        - import company and its investors data from Pitchbook commercial provider
+1. importPsc.ts              - import UK UBO data (persons of significant control)
+1. importRefdata.ts          - import registered regulated companies from BaFIN (DE), FCA (UK), FINRA/SEC (US)
+1. pendingChecksChaser.ts    - delayed Athena query execution (universal - can be used by any plugin that uses Athena)
+1. pendingWorksHandler.ts    - universal delayed API request execution (universal - can be used by any plugin at uses 3rd party APIs)
+1. roarFeedback.ts           - integration with Oracle Financials Risk Engine
 
 
 ## UI for Configuation
