@@ -353,7 +353,6 @@ export class Conf {
     const optionalPairing = _.get(bot, 'optionalPairing', true)
     const allowedMimeTypes = _.get(bot, 'allowedMimeTypes')
     const requireDeviceLocalAuth = _.get(bot, 'requireDeviceLocalAuth')
-    debugger
     return {
       sandbox: bot.sandbox,
       bot: {
