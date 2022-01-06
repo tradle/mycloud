@@ -2,6 +2,14 @@
 Documented at https://github.com/tradle/mycloud
 
 ## Messaging stack 
+Tradle implements asynchronous messagging with the highest level of guaranteed delivery for messages sent from client to server and from server to client. It implements resends if connection was dropped, it automatically resends when connection is back, it removes duplicate messages, and it never loses a message.
+
+For reliable delivery inbound and outbound messages are stored in the append-only log on the client side. Similarly the append-only log is kept on the server (MyCloud) and DynamoDB tables inbox and outbox are used for persistence.
+
+For network we use MQTT on top of WebSockets (WebSockets is a mature and stable protocol on top of HTTP that is universally by Web proxies and API gateways. MQTT is a mature and stable publish / subscribe protocol that is extremely lightweight as it was designed to support high throughput of messages from low powered IoT devices (in AWS MQTT service is called AWS IoT). (xxx - what MQTT queue names do we use?)
+
+WebSockets gives us bidirectional communication line between the client and the server, that is either one can initiate a message. When network connectivity is lost client's messaging stack automatically reconnects, restoring WebSockets and MQTT and initiating resync with the other side (How is it done by the server xxx). To start a connection AWS STS service is used, as it is required by the security implementation for MQTT.
+
 ## Lambdas 
 ### Start and update stack lambda 
 
