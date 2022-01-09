@@ -107,7 +107,7 @@ export class RegulatorRegistrationAPI {
     this.refDataBucket = this.bot.buckets.PrivateConf.id //BUCKET //
   }
 
-  private select = async (sql: string, file: string) => {
+  private select = async (sql: string, delimiter: string, file: string) => {
     let output: any
     try {
       output = await this.s3.selectObjectContent({
@@ -117,7 +117,9 @@ export class RegulatorRegistrationAPI {
         Expression: sql,
         InputSerialization: {
           CSV: {
-            FileHeaderInfo: 'USE'
+            FileHeaderInfo: 'USE',
+            FieldDelimiter: delimiter? delimiter : ',',
+            QuoteCharacter: ''
           },
           CompressionType: 'GZIP'
         },
@@ -140,7 +142,7 @@ export class RegulatorRegistrationAPI {
           const out = buffer.toString()
           const records = out.split('\n')
           for (let i in records) {
-            const single = records[i].replace(/(\\")/gm, '"').replace('\\n', '')
+            const single = records[i].replace('\\n', '')
             if (single) {
               try {
                 list.push(JSON.parse(single))
@@ -162,10 +164,10 @@ export class RegulatorRegistrationAPI {
     return res
   }
 
-  private queryS3File = async (sql: string, file: string, map: any) => {
+  private queryS3File = async (sql: string, delimiter: string, file: string, map: any) => {
     this.logger.debug(`regulatorRegistration queryS3File called with sql ${sql} for file ${file}`)
     try {
-      let list = await this.select(sql, file)
+      let list = await this.select(sql, delimiter, file)
       this.logger.debug('athena query result', list)
       return { status: true, error: null, data: list }
     } catch (err) {
@@ -239,7 +241,7 @@ export class RegulatorRegistrationAPI {
     this.logger.debug(`regulatorRegistration check() called with number ${formRegistrationNumber}`)
     let sql = util.format(subject.query, formRegistrationNumber)
     //let find = subject.test ? subject.test : await this.queryAthena(sql, subject.map)
-    let find = subject.test ? subject.test : await this.queryS3File(sql, subject.file, subject.map)
+    let find = subject.test ? subject.test : await this.queryS3File(sql, subject.delimiter, subject.file, subject.map)
     let rawData
     let prefill
     if (!find.status) {
