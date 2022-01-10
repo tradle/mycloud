@@ -37,6 +37,8 @@ const { sanitize } = validateResource.utils
 
 const POLL_INTERVAL = 500
 const ATHENA_OUTPUT = 'temp/athena'
+const IMPORT_PSC_JOB = 'importPsc'
+const JOBS = 'jobs'
 
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
@@ -94,7 +96,7 @@ export class PscCheckAPI {
     this.athenaHelper = new AthenaHelper(bot, logger, this.athena, 'pscCheck')
   }
 
-  getLinkToDataSource = async () => {
+  private getLinkToDataSource = async () => {
     try {
       return await this.bot.db.findOne({
         filter: {
@@ -122,27 +124,22 @@ export class PscCheckAPI {
       return { status: false, error: err, data: null }
     }
 
-    await sleep(2000)
-    let timePassed = 2000
-    while (true) {
-      let result = false
-      try {
-        result = await this.athenaHelper.checkStatus(id)
-      } catch (err) {
-        this.logger.error('pscCheck athena error', err)
-        return { status: false, error: err, data: null }
-      }
-      if (result) break
-
-      if (timePassed > 5000) {
-        this.logger.debug('pscCheck athena pending result')
-        return { status: false, error: 'pending result', data: { id } }
-      }
-      await sleep(POLL_INTERVAL)
-      timePassed += POLL_INTERVAL
-    }
+    await sleep(1500)
+    let result = false
     try {
-      let list: Array<any> = await this.athenaHelper.getResults(id)
+      result = await this.athenaHelper.checkStatus(id)
+    } catch (err) {
+      this.logger.error('pscCheck athena error', err)
+      return { status: false, error: err, data: null }
+    }
+    
+    if (!result) {
+      this.logger.debug('pscCheck athena pending result')
+      return { status: false, error: 'pending result', data: { id } }
+    }
+    
+    try {
+      let list: any[] = await this.athenaHelper.getResults(id)
       this.logger.debug(`pscCheck athena query result contains ${list.length} rows`)
       return { status: true, error: null, data: list }
     } catch (err) {
@@ -152,7 +149,7 @@ export class PscCheckAPI {
   }
   public mapToSubject = type => {
     for (let subject of this.conf.athenaMaps) {
-      if (subject.type == type) return subject
+      if (subject.type === type) return subject
     }
     return null
   }
@@ -183,7 +180,7 @@ export class PscCheckAPI {
         }
         rawData = typeof find.error === 'object' && find.error
       }
-    } else if (find.status && find.data.length == 0) {
+    } else if (find.status && find.data.length === 0) {
       status = {
         status: 'fail',
         message: `Company with provided number ${formCompanyNumber} is not found`
@@ -214,7 +211,7 @@ export class PscCheckAPI {
 
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
-    if (status.status == 'pending') {
+    if (status.status === 'pending') {
       resource.pendingInfo = rawData
     }
     else if (rawData && Array.isArray(rawData)) {
@@ -287,6 +284,16 @@ export const validateConf: ValidatePluginConf = async ({
   conf: IConfComponents
   pluginConf: IPscConf
 }) => {
+  
+  let jobs: any = conf.bot[JOBS]
+  if (!jobs)
+    throw new Errors.InvalidInput('job importPsc is not active')
+  if (jobs) {
+    let jobConf = jobs[IMPORT_PSC_JOB]
+    if (!jobConf || !jobConf.active)
+      throw new Errors.InvalidInput('job importPsc is not active')
+  }
+
   const { models } = bot
   if (!pluginConf.athenaMaps) throw new Errors.InvalidInput('athena maps are not found')
   pluginConf.athenaMaps.forEach(subject => {

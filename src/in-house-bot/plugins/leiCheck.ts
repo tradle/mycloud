@@ -21,11 +21,15 @@ import {
   CreatePlugin,
   Applications,
   IPluginLifecycleMethods,
+  ValidatePluginConf,
+  IConfComponents,
   ITradleObject,
   IPBApp,
   IPBReq,
   Logger
 } from '../types'
+
+import Errors from '../../errors'
 
 import AWS from 'aws-sdk'
 import _ from 'lodash'
@@ -36,7 +40,8 @@ import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
-const POLL_INTERVAL = 500
+const IMPORT_LEI_JOB = 'importLei'
+const JOBS = 'jobs'
 
 const FORM_TYPE_LE = 'tradle.legal.LegalEntity'
 
@@ -64,6 +69,10 @@ interface ILeiCheck {
   form: ITradleObject
   rawData?: any
   req: IPBReq
+}
+
+interface ILeiConf {
+  trace?: boolean
 }
 
 export class LeiCheckAPI {
@@ -124,43 +133,34 @@ export class LeiCheckAPI {
     if (result.lei && result.bo)
       return result
 
-    await sleep(2000)
-    let timePassed = 2000
+    await sleep(500)
     let resultBO = false
     let resultLEI = false
-    while (true) {
-      if (!result.bo && !resultBO) {
-        try {
-          resultBO = await this.athenaHelper.checkStatus(idBO)
-        } catch (err) {
-          this.logger.error('leiCheck athena error', err)
-          result.bo = { status: false, error: err, data: null }
-        }
-      }
-      if (!result.lei && !resultLEI) {
-        try {
-          resultLEI = await this.athenaHelper.checkStatus(idLEI)
-        } catch (err) {
-          this.logger.error('leiCheck athena error', err)
-          result.lei = { status: false, error: err, data: null }
-        }
-      }
-
-      if (resultBO && resultLEI) break
-      if (result.lei && result.bo) break
-
-      if (timePassed > 3000) {
-        this.logger.error('leiCheck athena pending result')
-        if (!resultBO)
-          result.bo = { status: false, error: 'pending result', data: [{ id: idBO, func: 'leiRelations' }] }
-        if (!resultLEI)
-          result.lei = { status: false, error: 'pending result', data: [{ id: idLEI }] }
-        break
-      }
-      await sleep(POLL_INTERVAL)
-      timePassed += POLL_INTERVAL
+   
+    try {
+      resultBO = await this.athenaHelper.checkStatus(idBO)
+    } catch (err) {
+      this.logger.error('leiCheck athena error', err)
+      result.bo = { status: false, error: err, data: null }
+    }
+   
+    try {
+      resultLEI = await this.athenaHelper.checkStatus(idLEI)
+    } catch (err) {
+      this.logger.error('leiCheck athena error', err)
+      result.lei = { status: false, error: err, data: null }
+    }
+   
+    if (!resultBO && !result.bo) {
+      this.logger.warn('leiCheck athena pending result for leiRelations')
+      result.bo = { status: false, error: 'pending result', data: [{ id: idBO, func: 'leiRelations' }] }
     }
 
+    if (!resultLEI && !result.lei) {
+      this.logger.warn('leiCheck athena pending result for lei')
+      result.lei = { status: false, error: 'pending result', data: [{ id: idLEI }] }
+    }  
+ 
     if (resultBO) {
       try {
         let list: any[] = await this.athenaHelper.getResults(idBO)
@@ -364,3 +364,22 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   }
   return { plugin }
 }
+
+export const validateConf: ValidatePluginConf = async ({ bot,
+  conf,
+  pluginConf
+}: {
+  bot: Bot
+  conf: IConfComponents
+  pluginConf: ILeiConf
+}) => {
+  let jobs: any = conf.bot[JOBS]
+  if (!jobs)
+    throw new Errors.InvalidInput('job importLei is not active')
+  if (jobs) {
+    let jobConf = jobs[IMPORT_LEI_JOB]
+    if (!jobConf || !jobConf.active)
+      throw new Errors.InvalidInput('job importPsc is not active')
+  }
+}
+
