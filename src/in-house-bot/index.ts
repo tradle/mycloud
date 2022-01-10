@@ -157,6 +157,13 @@ export const loadConfAndComponents = async (opts: ConfigureLambdaOpts): Promise<
     millis: LOAD_CONF_TIMEOUT
   })
 
+  const { blockchainApiKey} = botConf
+  if (blockchainApiKey) {
+    bot.blockchain.setAdapterOpts({
+      apiKey: blockchainApiKey
+    })
+  }
+
   logger.debug('loaded in-house bot conf components')
 
   // const { domain } = org
@@ -709,6 +716,7 @@ export const loadComponentsAndPlugins = ({
       'facturapi-job',
       'czechCheck',
       'openCorporates',
+      // 'limit-applications',
       'complyAdvantage',
       // 'controllingPersonRegistration',
       'centrix',

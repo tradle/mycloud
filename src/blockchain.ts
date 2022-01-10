@@ -43,6 +43,11 @@ interface IBlockchainAdapter {
   pubKeyToAddress: (pub: string) => string
 }
 
+interface IBlockchainAdapterOpts { 
+  privateKey?: string
+  apiKey?: string
+}
+
 const compareNums = (a, b) => a - b
 const compareBalance = (a, b) => {
   if (typeof a === 'number' && typeof b === 'number') {
@@ -83,12 +88,14 @@ export default class Blockchain {
   public networkName: string
   public minBalance: string
 
+  
   private reader: any
   private network: IBlockchainAdapter
   private writers = {}
   private getTxAmount = () => this.network.minOutputAmount
   private logger:Logger
   private identity:Identity
+  private blockchainAdapterOpts: IBlockchainAdapterOpts
   public addressesAPI: {
     transactions: (addresses: string[], blockHeight?: number) => Promise<any>,
     balance: (address: string) => Promise<string|number>
@@ -109,13 +116,29 @@ export default class Blockchain {
     if (!adapters[blockchain]) {
       throw new Error(`unsupported blockchain type: ${blockchain}`)
     }
+    
+    this.logger = logger
+    this.identity = identity
+    this.blockchainAdapterOpts = {}
+    this.initReader()
+  }
 
-    this.reader = this.createAdapter()
+  private initReader = () => {
+    this.reader = this.createAdapter(this.blockchainAdapterOpts)
     this.addressesAPI = this.reader.blockchain.addresses
     this.getInfo = this.reader.blockchain.info
     this.network = this.reader.network
-    this.logger = logger
-    this.identity = identity
+  }
+
+  public setAdapterOpts = (opts: IBlockchainAdapterOpts) => {
+    this.blockchainAdapterOpts = opts
+    if (this.reader) {
+      this.initReader()
+    }
+
+    if (this.writers) {
+      this.writers = {}
+    }
   }
 
   public toString = () => `${this.network.blockchain}:${this.network.name}`
@@ -272,7 +295,7 @@ export default class Blockchain {
     return await this.addressesAPI.balance(address)
   }
 
-  private createAdapter = (opts:{ privateKey?: string }={}) => {
+  private createAdapter = (opts:IBlockchainAdapterOpts={}) => {
     const { blockchain, networkName } = this
     const create = adapters[blockchain]
     return create({ blockchain, networkName, ...opts })
@@ -282,7 +305,8 @@ export default class Blockchain {
     const { fingerprint, priv } = key
     if (!this.writers[fingerprint]) {
       const { transactor } = this.createAdapter({
-        privateKey: priv
+        ...this.blockchainAdapterOpts,
+        privateKey: priv,
       })
 
       this.writers[fingerprint] = transactor
