@@ -40,6 +40,10 @@ import validateResource from '@tradle/validate-resource'
 const { sanitize } = validateResource.utils
 import remapKeys from 'remap-keys'
 
+const IMPORT_REFDATA_JOB = 'importRefdata'
+const JOBS = 'jobs'
+const BOT_CONF = 'botConf'
+
 const POLL_INTERVAL = 500
 const ATHENA_OUTPUT = 'temp/athena'
 
@@ -429,6 +433,14 @@ export const validateConf: ValidatePluginConf = async ({
   conf: IConfComponents
   pluginConf: IRegulatorRegistrationConf
 }) => {
+  let jobs: any = conf[BOT_CONF][JOBS]
+  if (!jobs)
+    throw new Errors.InvalidInput('no active jobs including importRefdata')
+  if (jobs) {
+    let jobConf = jobs[IMPORT_REFDATA_JOB]
+    if (!jobConf || !jobConf.active)
+      throw new Errors.InvalidInput('job importRefdata is not active')
+  }
   const { models } = bot
   if (!pluginConf.athenaMaps) throw new Errors.InvalidInput('athena maps are not found')
   pluginConf.athenaMaps.forEach(subject => {
