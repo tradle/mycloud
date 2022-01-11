@@ -39,6 +39,7 @@ const POLL_INTERVAL = 500
 const ATHENA_OUTPUT = 'temp/athena'
 const IMPORT_PSC_JOB = 'importPsc'
 const JOBS = 'jobs'
+const BOT_CONF = 'botConf'
 
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
@@ -284,10 +285,9 @@ export const validateConf: ValidatePluginConf = async ({
   conf: IConfComponents
   pluginConf: IPscConf
 }) => {
-  
-  let jobs: any = conf.bot[JOBS]
+  let jobs: any = conf[BOT_CONF][JOBS]
   if (!jobs)
-    throw new Errors.InvalidInput('job importPsc is not active')
+    throw new Errors.InvalidInput('no active jobs including importPsc')
   if (jobs) {
     let jobConf = jobs[IMPORT_PSC_JOB]
     if (!jobConf || !jobConf.active)

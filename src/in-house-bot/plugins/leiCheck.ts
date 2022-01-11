@@ -42,6 +42,7 @@ const { sanitize } = validateResource.utils
 
 const IMPORT_LEI_JOB = 'importLei'
 const JOBS = 'jobs'
+const BOT_CONF = 'botConf'
 
 const FORM_TYPE_LE = 'tradle.legal.LegalEntity'
 
@@ -373,13 +374,13 @@ export const validateConf: ValidatePluginConf = async ({ bot,
   conf: IConfComponents
   pluginConf: ILeiConf
 }) => {
-  let jobs: any = conf.bot[JOBS]
+  let jobs: any = conf[BOT_CONF][JOBS]
   if (!jobs)
-    throw new Errors.InvalidInput('job importLei is not active')
+    throw new Errors.InvalidInput('no active jobs including importLei')
   if (jobs) {
     let jobConf = jobs[IMPORT_LEI_JOB]
     if (!jobConf || !jobConf.active)
-      throw new Errors.InvalidInput('job importPsc is not active')
+      throw new Errors.InvalidInput('job importLei is not active')
   }
 }
 
