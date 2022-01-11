@@ -2,12 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.18](https://github.com/tradle/mycloud/compare/v3.1.1-rc.17...v3.1.1-rc.18) (2021-12-22)
+## [3.1.1-rc.19](https://github.com/tradle/mycloud/compare/v3.1.1-rc.18...v3.1.1-rc.19) (2022-01-10)
 
 
 ### Bug Fixes
 
-* typo in country code ([a8d24ed](https://github.com/tradle/mycloud/commit/a8d24ed))
+* seals on blockchain ([b9cb445](https://github.com/tradle/mycloud/commit/b9cb445))
+* wrong provider shows in verification ([f6f990e](https://github.com/tradle/mycloud/commit/f6f990e))
 
 
 
