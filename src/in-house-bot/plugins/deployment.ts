@@ -244,7 +244,7 @@ export const createPlugin: CreatePlugin<Deployment> = (
         */
         accountStatus = await createOrganizationAccount(logger, aws, {
           AccountName: `TMP_ACCOUNT_${tmpID}`,
-          Email: `martin.heidegger+tradle_${tmpID}@gmail.com`, // TODO: Make configurable
+          Email: `aws-test+${tmpID}@tradle.io`, // TODO: Make configurable
           IamUserAccessToBilling: 'DENY',
           RoleName: 'OrganizationAccountAccessRole'
         })
