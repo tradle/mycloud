@@ -6,6 +6,7 @@ import AWS from 'aws-sdk'
 
 import {
   Bot,
+  IBotConf,
   Logger,
 } from '../types'
 
@@ -27,6 +28,12 @@ const FATCA_PREFIX = 'refdata/fatca/ffi_list/'
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
 
+const JOBS = 'jobs'
+const EMDAgents = 'EMDAgents'
+const EMoneyFirms = 'EMoneyFirms'
+const CreditInstitutions = 'CreditInstitutions'
+const FirmsWithPSDPermissions = 'FirmsWithPSDPermissions'
+
 const s3 = new AWS.S3({ accessKeyId, secretAccessKey });
 
 export class ImportRefdata {
@@ -34,20 +41,28 @@ export class ImportRefdata {
   private bot: Bot
   private logger: Logger
   private outputLocation: string
+  private importRefdataConf: any
 
-  constructor(bot: Bot) {
+  constructor(bot: Bot, conf: IBotConf) {
     this.bot = bot
     this.logger = bot.logger
     this.outputLocation = this.bot.buckets.PrivateConf.id //BUCKET //
+
+    let jobs: any = conf[JOBS]
+    if (jobs) {
+      this.importRefdataConf = jobs.ImportRefdata
+    }
   }
 
   public move = async () => {
     this.logger.debug("ImportRefData called")
     let current: string[] = await this.list()
-    await this.moveUKFile('EMDAgents', 'emd_agents', current)
-    await this.moveUKFile('EMoneyFirms', 'e_money_firms', current)
-    await this.moveUKFile('CreditInstitutions', 'credit_institutions', current)
-    await this.moveUKFile('PSDFirms', 'firms_psd_perm', current)
+    if (this.importRefdataConf) {
+      await this.moveUKFile('EMDAgents', this.importRefdataConf[EMDAgents], 'emd_agents', current)
+      await this.moveUKFile('EMoneyFirms', this.importRefdataConf[EMoneyFirms], 'e_money_firms', current)
+      await this.moveUKFile('CreditInstitutions', this.importRefdataConf[CreditInstitutions], 'credit_institutions', current)
+      await this.moveUKFile('FirmsWithPSDPermissions', this.importRefdataConf[FirmsWithPSDPermissions], 'firms_psd_perm', current)
+    }
     await this.moveBafin(current)
     await this.moveFFIList(current)
   }
@@ -148,36 +163,33 @@ export class ImportRefdata {
     fs.unlinkSync(file)
   }
 
-  private moveUKFile = async (name: string, table: string, current: string[]) => {
+  private moveUKFile = async (name: string, fileKey: string, table: string, current: string[]) => {
     this.logger.debug('moveUKFile ' + name)
     try {
       fs.ensureDirSync(TEMP + GB_PREFIX + table)
 
-      let get: any
       let i = 0
+      let get
       while (true) {
         try {
-          get = await fetch(`https://register.fca.org.uk/ShPo_registerdownload?file=${name}`)
-          break;
+          get = await fetch(`https://register.fca.org.uk/servlet/servlet.FileDownload?file=${fileKey}`)
+          break
         } catch (err) {
           if (i++ > 5) throw err
         }
       }
-      let html = await get.text()
-      this.logger.debug('moveUKFile fetched html for ' + name)
-      let idx1 = html.indexOf('.handleRedirect(')
-      let idx2 = html.indexOf('\'', idx1 + 18)
-
-      i = 0
-      while (true) {
-        try {
-          get = await fetch('https://register.fca.org.uk' + html.substring(idx1 + 17, idx2))
-          break;
-        } catch (err) {
-          if (i++ > 5) throw err
-        }
+      const status = get.status
+      if (status >= 400 && status < 500) {
+        // error to report
+        this.logger.error(`importRefdata failed download with status ${status} for ${name}, fileKey=${fileKey}`)
+        return
       }
+      else if (status >= 500) {
+        // maybe next time
 
+        return
+      }
+  
       let key = `${GB_PREFIX}${table}/${name}.csv.gz`
       let file = TEMP + key
 

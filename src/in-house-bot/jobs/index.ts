@@ -103,7 +103,7 @@ export const importBasicCompanyData: Executor = async ({ job, components }) => {
 export const importRefdata: Executor = async ({ job, components }) => {
   if (!isActive(components.conf.bot, 'importRefdata'))
     return
-  let importer = new ImportRefdata(components.bot)
+  let importer = new ImportRefdata(components.bot,  components.conf.bot)
   try {
     await importer.move()
   } catch (err) {
