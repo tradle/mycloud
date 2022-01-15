@@ -50,7 +50,7 @@ export class ImportRefdata {
 
     let jobs: any = conf[JOBS]
     if (jobs) {
-      this.importRefdataConf = jobs.ImportRefdata
+      this.importRefdataConf = jobs.importRefdata
     }
   }
 
