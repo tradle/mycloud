@@ -70,7 +70,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (!productMap) return
 
       let applicationWithForms = await bot.getResource(payload, { backlinks: ['forms'] })
-      debugger
       let { forms } = applicationWithForms
       if (!forms.length) return
       let models = bot.models
@@ -106,7 +105,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         if (exclude.includes(type)) return
         let emailProp = !emailAddress  &&  productMap[type]
         if (emailProp  &&  !emailAddress) {
-          // debugger
           emailAddress = form[emailProp]
         }
         let properties = models[type].properties
@@ -126,7 +124,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       })
       if (!emailAddress) return
       
-      // debugger
       const requestFor = payload.requestFor
       let bundle = await bot
         .draft({
@@ -160,7 +157,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         message: '',
         template: CONFIRMATION_EMAIL_DATA_TEMPLATE
       })
-      // debugger
     },
     async willRequestForm({ application, formRequest }) {
       if (!application || formRequest.form !== PRODUCT_BUNDLE) return
