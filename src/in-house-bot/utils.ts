@@ -885,7 +885,7 @@ export const getAssociateResources = async ({
   applicationOnly,
   resourceOnly
 }: {
-  application: IPBApp
+  application: any
   bot: Bot
   applicationOnly?: boolean
   resourceOnly?: boolean
@@ -895,7 +895,7 @@ export const getAssociateResources = async ({
   if (!parentApplication) return {}
   let parentApp
   if (!resourceOnly)
-    parentApp = await bot.getResource({ type: APPLICATION, permalink: parentApplication })
+    parentApp = await bot.getResource({ type: APPLICATION, permalink: parentApplication, backlinks: ['forms'] })
   if (applicationOnly) return { parentApp }
   let [type, hash] = associatedResource.split('_')
   let associatedRes = await bot.getResource({ type, permalink: hash })

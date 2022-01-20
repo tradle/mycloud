@@ -52,7 +52,7 @@ declare namespace PluginLifecycle {
     onCommand?: onCommand
     getRequiredForms?: getRequiredForms
     validateForm?: validateForm
-    replay?: replay 
+    replay?: replay
 
     onCheckStatusChanged?: onCheckStatusChanged
     onResourceChanged?: onResourceChanged
@@ -102,6 +102,7 @@ export interface IGetRequiredFormsArg {
   user: IPBUser
   application: IPBApp
   productModel: any
+  req?: IPBApp
 }
 
 export interface OnResourceChangedArg {
