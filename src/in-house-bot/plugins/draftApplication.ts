@@ -2,7 +2,7 @@ import _ from 'lodash'
 import { CreatePlugin, IPluginLifecycleMethods } from '../types'
 import { TYPE } from '@tradle/constants'
 import { sendConfirmationEmail } from '../email-utils'
-
+import { getAssociateResources } from '../utils'
 export const name = 'draftApplication'
 
 const APPLICATION = 'tradle.Application'
@@ -79,6 +79,19 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         .filter(form => !exclude.includes(form[TYPE]))
 
       let f = forms.find(form => productMap[form[TYPE]])  
+      let emailAddress
+
+      if (!f && payload.parent) {
+      // HACK -  need to send in chat not email when parent is known
+        let parent = await bot.getResource(payload.parent, {backlinks: ['forms']})
+        let parentForms = parent.forms
+        .map(submission => submission.submission)
+        .filter(form => !exclude.includes(form[TYPE]))
+    
+        f = parentForms.find(form => productMap[form[TYPE]])  
+        f = await bot.getResource(f)
+        emailAddress = f[productMap[f[TYPE]]]
+      }
       if (!f) return
 
       forms = await Promise.all(forms.map(form => bot.getResource(form)))
@@ -86,15 +99,14 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let keepProperties = ['_t']
       forms = _.uniqBy(forms, '_permalink')
 
-      let emailAddress
-
       forms.sort((a, b) => a._time - b._time)
+
       forms.forEach(form => {
         let type = form[TYPE]
         if (exclude.includes(type)) return
-        let emailProp = productMap[type]
+        let emailProp = !emailAddress  &&  productMap[type]
         if (emailProp  &&  !emailAddress) {
-          debugger
+          // debugger
           emailAddress = form[emailProp]
         }
         let properties = models[type].properties
@@ -113,7 +125,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         }
       })
       if (!emailAddress) return
-      debugger
+      
+      // debugger
       const requestFor = payload.requestFor
       let bundle = await bot
         .draft({
@@ -125,6 +138,16 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         })
         .signAndSave()
 
+      const { parentApp, associatedRes } = await getAssociateResources({application: payload, bot})  
+      let extraQueryParams = {
+        bundleId: bundle.link
+      }
+      if (parentApp && associatedRes) {
+        _.extend(extraQueryParams, {
+          associatedResource: `${associatedRes[TYPE]}_${associatedRes._permalink}`,
+          parentApplication: parentApp._permalink
+        })
+      }
       await sendConfirmationEmail({
         emailAddress,
         senderEmail,
@@ -133,13 +156,11 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         product: requestFor,
         subject: `Please review and complete the application for ${models[requestFor].title}`,
         name: 'Customer',
-        extraQueryParams: {
-          bundleId: bundle.link
-        },
+        extraQueryParams,
         message: '',
         template: CONFIRMATION_EMAIL_DATA_TEMPLATE
       })
-      debugger
+      // debugger
     },
     async willRequestForm({ application, formRequest }) {
       if (!application || formRequest.form !== PRODUCT_BUNDLE) return

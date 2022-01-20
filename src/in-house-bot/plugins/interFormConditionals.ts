@@ -5,7 +5,7 @@ import extend from 'lodash/extend'
 import { CreatePlugin, IPBReq, IPluginLifecycleMethods, ValidatePluginConf } from '../types'
 import { TYPE } from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
-import { isSubClassOf } from '../utils'
+import { isSubClassOf, getLatestForms } from '../utils'
 import { normalizeEnumForPrefill, getAllToExecute, getForms } from '../setProps-utils'
 
 // @ts-ignore
@@ -14,6 +14,7 @@ const { parseStub, sanitize } = validateResource.utils
 export const name = 'interFormConditionals'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const FORM_REQUEST = 'tradle.FormRequest'
+const FORM = 'tradle.Form'
 const APPLICATION = 'tradle.Application'
 const ENUM = 'tradle.Enum'
 const CHECK = 'tradle.Check'
@@ -22,7 +23,7 @@ const APPLICATION_APPROVAL = 'tradle.ApplicationApproval'
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
   const plugin: IPluginLifecycleMethods = {
     name: 'interFormConditionals',
-    getRequiredForms: async ({ user, application }) => {
+    getRequiredForms: async ({ user, application, req }) => {
       if (!application) return
 
       if (application.processingDataBundle) return []
@@ -44,18 +45,38 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           if (f.type !== PRODUCT_REQUEST && f.type !== FORM_REQUEST)
             promises.push(bot.objects.get(f.link))
         })
-
+      let formsCnt = promises.length
+      if (application.parent) {
+        let parentApp = await bot.getResource(application.parent, {backlinks: ['forms']})
+        let parentForms = getLatestForms(parentApp)
+        parentForms = parentForms.filter(f => f.type !== PRODUCT_REQUEST && isSubClassOf(FORM, bot.models[f.type], bot.models))
+        parentForms.forEach(f => promises.push(bot.objects.get(f.link))) 
+        if (req)
+          req.parentFormsStubs = parentForms      
+      }  
+      
       let forms = {}
       if (promises.length) {
+        let parentForms = []
         try {
           let result = await Promise.all(promises)
-          result.forEach(r => (forms[r[TYPE]] = r))
+          result.forEach((r, i) => {
+            forms[r[TYPE]] = r
+          })
+          let { parentFormsStubs } = req
+          if (parentFormsStubs && parentFormsStubs.length) {
+            for (let i=0; i<parentFormsStubs.length; i++) {
+              let ftype = parentFormsStubs[i].type
+              parentForms.push(forms[ftype])
+            } 
+            req.parentForms = parentForms
+          }
         } catch (err) {
           logger.error('interFormConditionals', err)
         }
       }
       forms = normalizeEnums({ forms, models: bot.models })
-
+      
       let retForms = []
       productForms.forEach(f => {
         if (typeof f === 'string') {
