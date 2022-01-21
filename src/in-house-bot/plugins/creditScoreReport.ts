@@ -795,16 +795,13 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       else if (parentChecks)
         extend(checks, parentChecks)
 
-      let { forms } = application
+      let forms = getLatestForms(application)
       if (!forms)
         forms = application.submissions.filter(
           s => bot.models[s.submission[TYPE]].subClassOf === 'tradle.Form'
         )
-      let applicantInformationSubmission = forms.find(form => form.submission[TYPE].endsWith(`.${APPLICANT_INFORMATION}`))
-      let applicantInformationStub
-      if (applicantInformationSubmission) 
-        applicantInformationStub = applicantInformationSubmission.submission
-      else {
+      let applicantInformationStub = forms.find(form => form.type.endsWith(`.${APPLICANT_INFORMATION}`))
+      if (!applicantInformationStub) {
         if (parentFormsStubs)
           applicantInformationStub = parentFormsStubs.find(form => form.type.endsWith(`.${APPLICANT_INFORMATION}`))        
         if (!applicantInformationStub) return
@@ -828,10 +825,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let resultForm = isCompany ? reportCompany : reportIndividual
       if (!resultForm) return
 
-      let stubs:any = forms && forms.filter(form => formList.indexOf(form.submission[TYPE]) !== -1)
+      let stubs:any = forms && forms.filter(form => formList.indexOf(form.type) !== -1)
       if (!stubs.length  &&  !parentFormsStubs) return
 
-      stubs = stubs.map(s => s.submission)
+      // stubs = stubs.map(s => s.submission)
       if (parentFormsStubs) {
         let pForms = parentFormsStubs.filter(f => formList.indexOf(f.type) !== -1)
         pForms.forEach(f => stubs.push(f))
