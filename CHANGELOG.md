@@ -2,13 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.23](https://github.com/tradle/mycloud/compare/v3.1.1-rc.22...v3.1.1-rc.23) (2022-01-20)
+## [3.1.1-rc.24](https://github.com/tradle/mycloud/compare/v3.1.1-rc.23...v3.1.1-rc.24) (2022-01-21)
+
+
+### Bug Fixes
+
+* missing check for parent existence ([059920c](https://github.com/tradle/mycloud/commit/059920c))
 
 
 ### Features
 
-* 2-phase application e.g for lease quotation ([d1e9b2e](https://github.com/tradle/mycloud/commit/d1e9b2e))
-* new annotation for model 'prerequisiteFor' added to create 2-phase application ([f855d97](https://github.com/tradle/mycloud/commit/f855d97))
+* 2-phase application e.g for lease quotation ([0ab8369](https://github.com/tradle/mycloud/commit/0ab8369))
 
 
 
