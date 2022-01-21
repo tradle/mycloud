@@ -320,7 +320,7 @@ export class ScoringReport {
         continue
       }
       openedAccounts.push(acc)
-      if (!match4(history)) 
+      if (!match4(history))
       // if (hasDigitsBigerThan(history, 4))
         score = 0
       else if (history.indexOf('4') !== -1)
@@ -328,7 +328,7 @@ export class ScoringReport {
       else
         goodAccounts++
       let history12 = history.length > 12 ? history.slice(0, 12) : history
-      if (!match4(history)) 
+      if (!match4(history))
       // if (hasDigitsBigerThan(history12, 4))
         last12monthsScore = 0
       else if (history12.indexOf('4') !== -1)
@@ -347,9 +347,9 @@ export class ScoringReport {
     let {count: closeCnt, accScores: closeAccScores} = this.calcRecentCompanyAccounts(closedAccounts)
     let coef = Math.round(12/(openCnt + closeCnt) * 100)/100
 
-    let openedAccScoresSum = openAccScores.length ? openAccScores.map(acc => acc.percent).reduce((a, b) => a + b, 0) : 0
-    let closedAccScoresSum = closeAccScores.length ? closeAccScores.map(acc => acc.percent).reduce((a, b) => a + b, 0) : 0
-    
+    let openedAccScoresSum = openAccScores && openAccScores.length ? openAccScores.map(acc => acc.percent).reduce((a, b) => a + b, 0) : 0
+    let closedAccScoresSum = closeAccScores && closeAccScores.length ? closeAccScores.map(acc => acc.percent).reduce((a, b) => a + b, 0) : 0
+
     let recentOpenedAccounts = coef * openedAccScoresSum / 100
     let recentClosedAccounts = coef * closedAccScoresSum / 100
     this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'recentOpenedAccounts', score: recentOpenedAccounts, group: CHARACTER_GROUP});
@@ -572,13 +572,13 @@ export class ScoringReport {
     if (!check) {
       const { checks } = item
       let cChecks:any = checks.filter(check => check[TYPE] === CREDIT_REPORT_CHECK)
-      if (!cChecks) return
+      if (!cChecks) return {}
 
       cChecks = await Promise.all(cChecks.map(c => this.bot.getResource(c)))
       cChecks.sort((a, b) => b._time - a._time)
       check = cChecks[0]
       creditReport = check.creditReport  &&  await this.bot.getResource(check.creditReport)
-      if (!creditReport) return
+      if (!creditReport) return {}
     }
 
     let creditBureauScore = 0
@@ -784,8 +784,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         if (!parentFormsStubs) backlinks.push('forms')
         let {checks, forms} = await bot.getResource(parent, {backlinks})
         parentChecks = checks
-        if (forms) 
-          parentFormsStubs = getLatestForms({forms}).filter(f => f.type !== PRODUCT_REQUEST && isSubClassOf(FORM, bot.models[f.type], bot.models))                          
+        if (forms)
+          parentFormsStubs = getLatestForms({forms}).filter(f => f.type !== PRODUCT_REQUEST && isSubClassOf(FORM, bot.models[f.type], bot.models))
       }
       let { formsIndividual, formsCompany, reportIndividual, reportCompany } = products[requestFor]
 
@@ -803,7 +803,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let applicantInformationStub = forms.find(form => form.type.endsWith(`.${APPLICANT_INFORMATION}`))
       if (!applicantInformationStub) {
         if (parentFormsStubs)
-          applicantInformationStub = parentFormsStubs.find(form => form.type.endsWith(`.${APPLICANT_INFORMATION}`))        
+          applicantInformationStub = parentFormsStubs.find(form => form.type.endsWith(`.${APPLICANT_INFORMATION}`))
         if (!applicantInformationStub) return
       }
 
@@ -832,8 +832,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (parentFormsStubs) {
         let pForms = parentFormsStubs.filter(f => formList.indexOf(f.type) !== -1)
         pForms.forEach(f => stubs.push(f))
-      }  
-      
+      }
+
       let applicantInformationStubIdx = stubs.findIndex(form => (form[TYPE] || form.type).endsWith(`.${APPLICANT_INFORMATION}`))
 
       stubs.splice(applicantInformationStubIdx, 1)
@@ -972,8 +972,8 @@ export const validateConf: ValidatePluginConf = async ({
   }
 }
 function match3(history) {
-  return history.replace(/[^0-9 ]/g, '').match(/^[0-3]+$/) 
+  return history.replace(/[^0-9 ]/g, '').match(/^[0-3]+$/)
 }
 function match4(history) {
-  return history.replace(/[^0-9 ]/g, '').match(/^[0-4]+$/) 
+  return history.replace(/[^0-9 ]/g, '').match(/^[0-4]+$/)
 }
