@@ -730,8 +730,19 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!application) return
 
       let { checks } = application
-      if (!checks) return
+      let parentChecks, parentForms
 
+      if (application.parent) {
+        let parentApp = await bot.getResource(application.parent, {backlinks: ['checks']} )
+        parentChecks = parentApp.checks
+        parentForms = parentApp.forms
+      }
+      if (!checks  &&  !parentChecks) return
+      if (!checks)
+        checks = parentChecks
+      else if (parentChecks)
+        checks = [...checks, ...parentChecks]
+        
       let stubs = checks.filter(
         (check) => check[TYPE] === CREDIT_CHECK 
       )
