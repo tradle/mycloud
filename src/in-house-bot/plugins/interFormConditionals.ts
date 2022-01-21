@@ -45,7 +45,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
           if (f.type !== PRODUCT_REQUEST && f.type !== FORM_REQUEST)
             promises.push(bot.objects.get(f.link))
         })
-      let formsCnt = promises.length
       if (application.parent) {
         let parentApp = await bot.getResource(application.parent, {backlinks: ['forms']})
         let parentForms = getLatestForms(parentApp)
@@ -57,13 +56,13 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       
       let forms = {}
       if (promises.length) {
-        let parentForms = []
         try {
           let result = await Promise.all(promises)
           result.forEach((r, i) => {
             forms[r[TYPE]] = r
           })
-          let { parentFormsStubs } = req
+          let parentForms = []
+          let parentFormsStubs = req && req.parentFormsStubs
           if (parentFormsStubs && parentFormsStubs.length) {
             for (let i=0; i<parentFormsStubs.length; i++) {
               let ftype = parentFormsStubs[i].type
