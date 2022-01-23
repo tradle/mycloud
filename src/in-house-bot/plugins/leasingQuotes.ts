@@ -120,7 +120,7 @@ class LeasingQuotesAPI {
       let factorPercentage = mathRound(factor / 100 / 12 * termVal, 4)
 
       let dtID = deliveryTime.id.split('_')[1]
-      let deliveryTermPercentage = qc[dtID]
+      let deliveryTermPercentage = qc[dtID] || 0
       let depositFactor = 0
       let lowDepositFactor
       if (depositPercentage > lowDeposit * 100)

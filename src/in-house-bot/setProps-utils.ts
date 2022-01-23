@@ -3,6 +3,9 @@ import uniq from 'lodash/uniq'
 import { TYPE } from '../constants'
 const ENUM = 'tradle.Enum'
 import { parseStub } from '../utils'
+import { getAssociateResources } from './utils'
+const PRODUCT_REQUEST = 'tradle.ProductRequest'
+const FORM_REQUEST = 'tradle.FormRequest'
 
 export function getForms(formula) {
   let forms = []
@@ -55,11 +58,25 @@ export async function getAllToExecute({ bot, application, settings, model, logge
       allForms.push(additionalFormsFromProps[p])
     }
   }
+  let formsInThisApp = []
   application.forms
     .map(appSub => parseStub(appSub.submission))
     .forEach(f => {
       if (allForms.includes(f.type)) promises.push(bot.objects.get(f.link))
+      formsInThisApp.push(f.type)
     })
+  let needMoreForms = allForms.length && allForms.filter(f => !formsInThisApp.includes(f))  
+  let formCnt = promises.length
+  if (needMoreForms  &&  needMoreForms.length) {
+    if (application.parent) {
+      let parentApp = await bot.getResource(application.parent, {backlinks: ['forms']})
+      parentApp.forms && parentApp.forms
+      .map(appSub => parseStub(appSub.submission))
+      .forEach(f => {
+        if (allForms.includes(f.type)) promises.push(bot.objects.get(f.link))
+      })      
+    }  
+  }
   let forms = {}
   try {
     let result = await Promise.all(promises)

@@ -11,11 +11,12 @@ import {
 } from '../types'
 import { buildResourceStub } from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
+import extend from 'lodash/extend'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
 import { getEnumValueId } from '../../utils'
-import { isPassedCheck } from '../utils'
+import { isPassedCheck, getLatestForms, isSubClassOf } from '../utils'
 
 const CASH_FLOW = 'PersonalCashflow'
 const COMPANY_CASH_FLOW = 'CompanyCashflow'
@@ -25,6 +26,7 @@ const APPLICANT_INFORMATION = 'ApplicantInformation'
 const APPLICANT_ADDRESS = 'ApplicantAddress'
 const APPLICANT_MED_PROFESSION = 'ApplicantMedicalProfession'
 const LEGAL_ENTITY = 'LegalEntity'
+const FORM = 'tradle.Form'
 // const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 // const CP = 'tradle.legal.LegalEntityControllingPerson'
 
@@ -244,12 +246,15 @@ export class ScoringReport {
     this.addToScoreDetails({scoreDetails, form: legalEntity, formProperty: 'ownFacility', property: 'ownFacility', score: ownFacility, group: CHARACTER_GROUP});
 
     let financialDetails = map[COMPANY_FINANCIALS]
-    const companyFinancials:any = this.calculateCompanyFinancials(financialDetails, scoreDetails)
+    let companyFinancials
+    let debtFactor
+    if (financialDetails) {
+      companyFinancials = this.calculateCompanyFinancials(financialDetails, scoreDetails)
 
-    let debtFactor = map[COMPANY_CASH_FLOW]  &&  map[COMPANY_CASH_FLOW][0].extraEquipmentRatio
-    debtFactor = this.calcScore(debtFactor, this.conf.debtFactor)
-    this.addToScoreDetails({scoreDetails, form: map[COMPANY_CASH_FLOW], property: 'debtFactor', formProperty: 'extraEquipmentRatio', score: debtFactor, group: PAYMENT_GROUP});
-
+      debtFactor = map[COMPANY_CASH_FLOW]  &&  map[COMPANY_CASH_FLOW][0].extraEquipmentRatio
+      debtFactor = this.calcScore(debtFactor, this.conf.debtFactor)
+      this.addToScoreDetails({scoreDetails, form: map[COMPANY_CASH_FLOW], property: 'debtFactor', formProperty: 'extraEquipmentRatio', score: debtFactor, group: PAYMENT_GROUP});
+    }
     const {asset, usefulLife, secondaryMarket, relocation, assetType, leaseType} = await this.getCommonScores(map, scoreDetails)
     let { maxScores } = this.conf
 
@@ -265,13 +270,12 @@ export class ScoringReport {
       else if (group === ASSET_GROUP)
         assetScore += score
     })
-    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'paymentScore', score: paymentScore, group: PAYMENT_GROUP, total: true, maxScores});
+    if (financialDetails)
+      this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'paymentScore', score: paymentScore, group: PAYMENT_GROUP, total: true, maxScores});
     this.addToScoreDetails({scoreDetails, form: asset, property: 'characterScore', score: characterScore, group: CHARACTER_GROUP, total: true, maxScores});
     this.addToScoreDetails({scoreDetails, form: asset, property: 'assetScore', score: assetScore, group: ASSET_GROUP, total: true, maxScores});
     let totalScore = characterScore + paymentScore + assetScore
-    let props = {
-      ...companyFinancials,
-      debtFactor,
+    let props:any = {
       ratingInBureau,
       yearsInOperation,
       ownFacility,
@@ -289,7 +293,10 @@ export class ScoringReport {
       totalScore,
       ...recentAccounts
     }
-
+    if (companyFinancials) {
+      props = {...props, ...companyFinancials}
+      props.debtFactor = debtFactor
+    }
     this.addToScoreDetails({scoreDetails, property: 'totalScore', score: props.totalScore, total: true});
 
     let score = await this.bot.draft({ type: resultForm }).set(props).signAndSave()
@@ -313,7 +320,7 @@ export class ScoringReport {
         continue
       }
       openedAccounts.push(acc)
-      if (!match4(history)) 
+      if (!match4(history))
       // if (hasDigitsBigerThan(history, 4))
         score = 0
       else if (history.indexOf('4') !== -1)
@@ -321,7 +328,7 @@ export class ScoringReport {
       else
         goodAccounts++
       let history12 = history.length > 12 ? history.slice(0, 12) : history
-      if (!match4(history)) 
+      if (!match4(history))
       // if (hasDigitsBigerThan(history12, 4))
         last12monthsScore = 0
       else if (history12.indexOf('4') !== -1)
@@ -340,9 +347,9 @@ export class ScoringReport {
     let {count: closeCnt, accScores: closeAccScores} = this.calcRecentCompanyAccounts(closedAccounts)
     let coef = Math.round(12/(openCnt + closeCnt) * 100)/100
 
-    let openedAccScoresSum = openAccScores.length ? openAccScores.map(acc => acc.percent).reduce((a, b) => a + b, 0) : 0
-    let closedAccScoresSum = closeAccScores.length ? closeAccScores.map(acc => acc.percent).reduce((a, b) => a + b, 0) : 0
-    
+    let openedAccScoresSum = openAccScores && openAccScores.length ? openAccScores.map(acc => acc.percent).reduce((a, b) => a + b, 0) : 0
+    let closedAccScoresSum = closeAccScores && closeAccScores.length ? closeAccScores.map(acc => acc.percent).reduce((a, b) => a + b, 0) : 0
+
     let recentOpenedAccounts = coef * openedAccScoresSum / 100
     let recentClosedAccounts = coef * closedAccScoresSum / 100
     this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'recentOpenedAccounts', score: recentOpenedAccounts, group: CHARACTER_GROUP});
@@ -565,13 +572,13 @@ export class ScoringReport {
     if (!check) {
       const { checks } = item
       let cChecks:any = checks.filter(check => check[TYPE] === CREDIT_REPORT_CHECK)
-      if (!cChecks) return
+      if (!cChecks) return {}
 
       cChecks = await Promise.all(cChecks.map(c => this.bot.getResource(c)))
       cChecks.sort((a, b) => b._time - a._time)
       check = cChecks[0]
       creditReport = check.creditReport  &&  await this.bot.getResource(check.creditReport)
-      if (!creditReport) return
+      if (!creditReport) return {}
     }
 
     let creditBureauScore = 0
@@ -757,12 +764,12 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   const scoringReport = new ScoringReport({bot, applications, conf, logger})
   const plugin: IPluginLifecycleMethods = {
     onFormsCollected: async ({ req }: { req: IPBReq }) => {
-      let { application } = req
+      let { application, parentFormsStubs } = req
 
       if (!application) return
       // debugger
       const { products, creditBuroScoreForApplicant, creditBuroScoreForEndorser, capacityToPay } = conf
-      const { requestFor, checks } = application
+      let { requestFor, checks, parent } = application
 
       if (!products                     ||
           !creditBuroScoreForApplicant  ||
@@ -771,40 +778,35 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       const { models } = bot
       if (!products[requestFor]) return
-      // Check if it's the child application that is completed
-      // if (!products[requestFor]) {
-      //   if (!application.parent  ||  !application.checks) return
-      //   let icheck: any = await getLatestCheck({
-      //     type: CREDIT_REPORT_CHECK,
-      //     req,
-      //     application,
-      //     bot
-      //   })
-      //   if (!icheck) return
-      //   let app = await bot.getResource(application.parent)
-      //   const type = app.requestFor
-      //   if (!products[type]) return
-      //   if (!app.creditScore) return
-
-      //   let creditScore = await bot.getResource(app.creditScore)
-      //   let cosignerCreditBureauScore = isPassedCheck(icheck) ? 3 : 0
-      //   await bot.versionAndSave({...creditScore, cosignerCreditBureauScore })
-      //   return
-      // }
+      let parentChecks
+      if (parent) {
+        let backlinks = ['checks']
+        if (!parentFormsStubs) backlinks.push('forms')
+        let {checks, forms} = await bot.getResource(parent, {backlinks})
+        parentChecks = checks
+        if (forms)
+          parentFormsStubs = getLatestForms({forms}).filter(f => f.type !== PRODUCT_REQUEST && isSubClassOf(FORM, bot.models[f.type], bot.models))
+      }
       let { formsIndividual, formsCompany, reportIndividual, reportCompany } = products[requestFor]
 
-      if (!checks) return
+      if (!checks  &&  !parentChecks) return
+      if (!checks)
+        checks = parentChecks
+      else if (parentChecks)
+        extend(checks, parentChecks)
 
-      let { forms } = application
+      let forms = getLatestForms(application)
       if (!forms)
         forms = application.submissions.filter(
           s => bot.models[s.submission[TYPE]].subClassOf === 'tradle.Form'
         )
+      let applicantInformationStub = forms.find(form => form.type.endsWith(`.${APPLICANT_INFORMATION}`))
+      if (!applicantInformationStub) {
+        if (parentFormsStubs)
+          applicantInformationStub = parentFormsStubs.find(form => form.type.endsWith(`.${APPLICANT_INFORMATION}`))
+        if (!applicantInformationStub) return
+      }
 
-      let applicantInformationSubmission = forms.find(form => form.submission[TYPE].endsWith(`.${APPLICANT_INFORMATION}`))
-      if (!applicantInformationSubmission) return
-
-      let applicantInformationStub = applicantInformationSubmission.submission
       const applicantInformation = await bot.getResource(applicantInformationStub)
       const { applicant } = applicantInformation
       let isCompany
@@ -823,11 +825,16 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let resultForm = isCompany ? reportCompany : reportIndividual
       if (!resultForm) return
 
-      let stubs:any = forms && forms.filter(form => formList.indexOf(form.submission[TYPE]) !== -1)
-      if (!stubs.length) return
+      let stubs:any = forms && forms.filter(form => formList.indexOf(form.type) !== -1)
+      if (!stubs.length  &&  !parentFormsStubs) return
 
-      stubs = stubs.map(s => s.submission)
-      let applicantInformationStubIdx = stubs.findIndex(form => form[TYPE].endsWith(`.${APPLICANT_INFORMATION}`))
+      // stubs = stubs.map(s => s.submission)
+      if (parentFormsStubs) {
+        let pForms = parentFormsStubs.filter(f => formList.indexOf(f.type) !== -1)
+        pForms.forEach(f => stubs.push(f))
+      }
+
+      let applicantInformationStubIdx = stubs.findIndex(form => (form[TYPE] || form.type).endsWith(`.${APPLICANT_INFORMATION}`))
 
       stubs.splice(applicantInformationStubIdx, 1)
 
@@ -965,8 +972,8 @@ export const validateConf: ValidatePluginConf = async ({
   }
 }
 function match3(history) {
-  return history.replace(/[^0-9 ]/g, '').match(/^[0-3]+$/) 
+  return history.replace(/[^0-9 ]/g, '').match(/^[0-3]+$/)
 }
 function match4(history) {
-  return history.replace(/[^0-9 ]/g, '').match(/^[0-4]+$/) 
+  return history.replace(/[^0-9 ]/g, '').match(/^[0-4]+$/)
 }

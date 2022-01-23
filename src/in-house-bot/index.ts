@@ -7,6 +7,8 @@ import validateResource from '@tradle/validate-resource'
 import buildResource from '@tradle/build-resource'
 import mergeModels from '@tradle/merge-models'
 import { TYPE, ORG, TYPES } from '@tradle/constants'
+import { buildResourceStub } from '@tradle/build-resource'
+
 const { FORM } = TYPES
 import { Plugins } from './plugins'
 // import { models as onfidoModels } from '@tradle/plugin-onfido'
@@ -32,7 +34,8 @@ import {
   witness,
   didPropChange,
   didPropChangeTo,
-  isSubClassOf
+  isSubClassOf,
+  getAssociateResources
 } from './utils'
 
 import { runWithTimeout, cachifyPromiser, tryAsync } from '../utils'
@@ -571,7 +574,7 @@ export const loadComponentsAndPlugins = ({
           }
         }
       },
-      willRequestForm: ({ formRequest }) => {
+      willRequestForm: ({ formRequest, application }) => {
         const { models } = bot
         const { form } = formRequest
         const model = models[form]
@@ -678,6 +681,14 @@ export const loadComponentsAndPlugins = ({
           if (employeeManager.isEmployee({ user, masterUser })) {
             application.draft = true
           }
+        },
+        didCreateApplication: async ({ req, user, application }) => {
+          // if (application.draft) return
+          let { parentApplication } = req.payload
+          if (!parentApplication) return
+          const { parentApp } = await getAssociateResources({application, bot, applicationOnly: true})
+          application.parent = buildResourceStub({resource: parentApp, models: bot.models})
+          // debugger
         }
       } as PluginLifecycle.Methods,
       true
