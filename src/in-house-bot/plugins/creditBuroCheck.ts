@@ -421,7 +421,8 @@ export class BuroCheckAPI {
           debugger
         }  
       }
-      else resource[p] = value
+      else
+        resource[p] = value.toString()
     }
     return resource
   }
