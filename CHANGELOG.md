@@ -2,13 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.25](https://github.com/tradle/mycloud/compare/v3.1.1-rc.24...v3.1.1-rc.25) (2022-01-21)
-
-
-### Bug Fixes
-
-* when no accounts in CB check ([45b7cfb](https://github.com/tradle/mycloud/commit/45b7cfb))
-* when one setting in quotation configuration is not present ([bb28535](https://github.com/tradle/mycloud/commit/bb28535))
+## [3.1.1-rc.26](https://github.com/tradle/mycloud/compare/v3.1.1-rc.25...v3.1.1-rc.26) (2022-01-24)
 
 
 
