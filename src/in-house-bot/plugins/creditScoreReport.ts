@@ -125,7 +125,7 @@ export class ScoringReport {
     const extraEquipmentFactor = map[CASH_FLOW] && map[CASH_FLOW].extraEquipmentFactor
     let capacityToPay = extraEquipmentFactor && this.calcScore(extraEquipmentFactor, capacityToPayConf) || 0
 
-    let { creditBureauScore, accountsPoints, cbReport } = await this.scoreFromCheckIndividual({ item: application, creditReport, check })
+    let { creditBureauScore=0, accountsPoints, cbReport } = await this.scoreFromCheckIndividual({ item: application, creditReport, check })
     this.addToScoreDetails({scoreDetails, form: cbReport && cbReport.creditScore, formProperty: 'scoreValue', property: 'creditBureauScore', score: creditBureauScore, group: CHARACTER_GROUP});
 
     let specialityCouncil = 0
@@ -151,7 +151,9 @@ export class ScoringReport {
     const assetScore = usefulLife + secondaryMarket + relocation + assetType + leaseType
 
     this.addToScoreDetails({scoreDetails, form: asset, property: 'assetScore', score: assetScore, group: ASSET_GROUP, total: true, maxScores});
-    let { accScore } = accountsPoints
+    let accScore = 0
+    if  (accountsPoints)
+      ({accScore} = accountsPoints)
     let props:any = {
       creditBureauScore,
       existingCustomer,
