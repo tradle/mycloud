@@ -299,6 +299,7 @@ export class ScoringReport {
       props = {...props, ...companyFinancials}
       props.debtFactor = debtFactor
     }
+    props = sanitize(props).sanitized
     this.addToScoreDetails({scoreDetails, property: 'totalScore', score: props.totalScore, total: true});
 
     let score = await this.bot.draft({ type: resultForm }).set(props).signAndSave()
