@@ -36,7 +36,30 @@ interface ISealOpts {
   [x: string]: any
 }
 
+interface IBlockchainTransactor {
+  start: () => void
+  stop: () => void
+  send: (tx: {}) => Promise<void>
+  recharge: ({ address, minBalance, force }) => Promise<void>
+}
+
+interface IBlockchainAddressesAPI {
+  transactions: (addresses: string[], blockHeight?: number) => Promise<any>,
+  balance: (address: string) => Promise<string|number>
+}
+
 interface IBlockchainAdapter {
+  transactor: IBlockchainTransactor
+
+  network: IBlockchainNetwork
+
+  blockchain: {
+    addresses: IBlockchainAddressesAPI
+    info: () => Promise<any>
+  }
+}
+
+interface IBlockchainNetwork {
   blockchain: string
   name: string
   minOutputAmount: BalanceValue
@@ -83,16 +106,13 @@ export default class Blockchain {
   public networkName: string
   public minBalance: string
 
-  private reader: any
-  private network: IBlockchainAdapter
-  private writers = {}
+  private reader: IBlockchainAdapter
+  private network: IBlockchainNetwork
+  private writers: { [privateKey: string]: IBlockchainTransactor } = {}
   private getTxAmount = () => this.network.minOutputAmount
   private logger:Logger
   private identity:Identity
-  public addressesAPI: {
-    transactions: (addresses: string[], blockHeight?: number) => Promise<any>,
-    balance: (address: string) => Promise<string|number>
-  }
+  public addressesAPI: IBlockchainAddressesAPI
 
   public getInfo: () => Promise<any>
   constructor(components:BlockchainOpts) {
@@ -272,13 +292,13 @@ export default class Blockchain {
     return await this.addressesAPI.balance(address)
   }
 
-  private createAdapter = (opts:{ privateKey?: string }={}) => {
+  private createAdapter (opts:{ privateKey?: string }={}): IBlockchainAdapter {
     const { blockchain, networkName } = this
     const create = adapters[blockchain]
     return create({ blockchain, networkName, ...opts })
   }
 
-  private getWriter = (key: IKey) => {
+  private getWriter (key: IKey): IBlockchainTransactor {
     const { fingerprint, priv } = key
     if (!this.writers[fingerprint]) {
       const { transactor } = this.createAdapter({
@@ -291,7 +311,7 @@ export default class Blockchain {
     return this.writers[fingerprint]
   }
 
-  private startOrStop = (method: string) => {
+  private startOrStop = (method: 'start' | 'stop') => {
     Object.keys(this.writers)
       .map(key => this.writers[key])
       .concat(this.reader.blockchain)

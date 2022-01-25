@@ -21,7 +21,7 @@ export = function getNetworkAdapters ({ networkName, privateKey }) {
   let wallet
   let transactor
   if (privateKey) {
-    privateKey = new Buffer(privateKey, 'hex')
+    privateKey = Buffer.from(privateKey, 'hex')
     wallet = Wallet.fromPrivateKey(privateKey)
   }
 

@@ -150,10 +150,11 @@ export const createPlugin: CreatePlugin<Deployment> = (
 
     const link = form._link
     const configuration = Deployment.parseConfigurationForm(form)
+    bot.getMyIdentity()
     const deploymentOpts = {
       ...configuration,
       // backwards compat
-      stackName: `tdl-mycloudbot-ltd-${randomBytes(6).toString('hex')}`,
+      stackName: `tdl-mycloudbot-ltd-${randomBytes(10).toString('hex')}`,
       configurationLink: link
     } as IDeploymentConf
 
