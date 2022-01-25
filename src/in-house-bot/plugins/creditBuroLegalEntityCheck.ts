@@ -488,15 +488,28 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     async onmessage(req: IPBReq) {
       logger.debug('creditBuroLegalEntityCheck called onmessage')
       if (req.skipChecks) return
-      const { user, application, payload } = req
+      const { user, application, payload, parentFormsStubs } = req
       if (!application) return
 
       const params = {}
       if (CONSENT_TYPE === payload[TYPE]) {
         const stubs = getLatestForms(application);
-        const stub = stubs.find(({ type }) => type === LEGAL_ENTITY_TYPE);
+        let stub = stubs.find(({ type }) => type === LEGAL_ENTITY_TYPE);
         if (!stub) {
-          return;
+          if (!application.parent) 
+            return
+          if (!parentFormsStubs) {
+            try {
+              let parentApp = await bot.getResource(application.parent, {backlinks: ['forms']})
+              application.parentFormsStubs = getLatestForms(parentApp)
+            } catch (err) {
+              debugger
+              return
+            }
+          }  
+          stub = application.parentFormsStubs.find(({ type }) => type === LEGAL_ENTITY_TYPE)
+          if (!stub)
+            return
         }
         const legal = await bot.getResource(stub);
 
