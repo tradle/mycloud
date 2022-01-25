@@ -688,6 +688,8 @@ export const loadComponentsAndPlugins = ({
           if (!parentApplication) return
           const { parentApp } = await getAssociateResources({application, bot, applicationOnly: true})
           application.parent = buildResourceStub({resource: parentApp, models: bot.models})
+          parentApp.itemsCount = (parentApp.itemsCount || 0) + 1
+          await bot.versionAndSave(parentApp)
           // debugger
         }
       } as PluginLifecycle.Methods,
