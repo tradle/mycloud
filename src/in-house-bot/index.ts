@@ -770,6 +770,7 @@ export const loadComponentsAndPlugins = ({
       'leasingQuotes',
       'giinCheck',
       'vatCheck',
+      'kycdeepface-checks',
       // 'invoicing'
     ].forEach((name) => attachPlugin({ name }))
       ;[
