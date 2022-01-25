@@ -297,10 +297,13 @@ This project uses TypeScript, which compiles to JavaScript. If you're changing a
 
 ### Inspect / Debugger mode
 
-You can start debugger mode by adding `--inspect` or `--inspect-brk` after the `npm start` script:
+You can start node in debug mode by using the prepared `npm run debug` and `npm run debug-brk` scripts:
 
 ```sh
-npm start --inspect-brk
+# Run debugger in backgroun
+npm run debug
+# Run with break
+npm run debug-brk
 ```
 
 ### serverless.yml
