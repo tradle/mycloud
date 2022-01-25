@@ -652,6 +652,7 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
       if (!application) return
 
       if (payload[TYPE] !== LEGAL_ENTITY) return
+      if (application.processingDataBundle) return
       let { propertyMap, companiesHouseApiKey } = conf
       let map = propertyMap && propertyMap[payload[TYPE]]
       if (map) map = { ...defaultPropMap, ...map }
