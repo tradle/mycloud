@@ -2,18 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.29](https://github.com/tradle/mycloud/compare/v3.1.1-rc.28...v3.1.1-rc.29) (2022-01-25)
-
-
-### Bug Fixes
-
-* when bundle is processing should not be any FormErrorRequests sent to customer ([d0acef0](https://github.com/tradle/mycloud/commit/d0acef0))
-
-
-### Features
-
-* 2-phase application e.g for lease quotation ([538e0f3](https://github.com/tradle/mycloud/commit/538e0f3))
-* dependant application's items count ([752fc03](https://github.com/tradle/mycloud/commit/752fc03))
+## [3.1.1-rc.30](https://github.com/tradle/mycloud/compare/v3.1.1-rc.29...v3.1.1-rc.30) (2022-01-26)
 
 
 
