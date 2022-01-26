@@ -130,7 +130,7 @@ class LeasingQuotesAPI {
       let totalPercentage = mathRound(1 + factorPercentage + deliveryTermPercentage + depositFactor + lowDepositFactor, 4)
 
       let depositVal = depositValue && depositValue.value || 0
-      let monthlyPayment = (priceMx.value - depositVal - (residualValue * priceMx.value/100)/(1 + factorVPdelVR))/(1 + vatRate) * totalPercentage/termVal
+      let monthlyPayment = (priceMx.value - depositVal - (residualValue * priceMx.value)/(1 + factorVPdelVR))/(1 + vatRate) * totalPercentage/termVal
       // let monthlyPaymentPMT = (vatRate/12)/(((1+vatRate/12)**termVal)-1)*(netPriceMx.value*((1+vatRate/12)**termVal)-(netPriceMx.value*residualValue/100))
 
       let insurance = fundedInsurance.value
@@ -177,7 +177,7 @@ class LeasingQuotesAPI {
           currency
         },
         purchaseOptionPrice: priceMx && {
-          value: mathRound(priceMx.value * residualValue/100),
+          value: mathRound(priceMx.value * residualValue),
           currency
         }
       }
