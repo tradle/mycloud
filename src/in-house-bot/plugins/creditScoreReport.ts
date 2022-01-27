@@ -151,9 +151,7 @@ export class ScoringReport {
     const assetScore = usefulLife + secondaryMarket + relocation + assetType + leaseType
 
     this.addToScoreDetails({scoreDetails, form: asset, property: 'assetScore', score: assetScore, group: ASSET_GROUP, total: true, maxScores});
-    let accScore = 0
-    if  (accountsPoints)
-      ({accScore} = accountsPoints)
+    let accScore = accountsPoints ? accountsPoints.accScore : 0
     let props:any = {
       creditBureauScore,
       existingCustomer,
@@ -571,7 +569,7 @@ export class ScoringReport {
   private async scoreFromCheckIndividual({item, isEndorser, check, creditReport}:{item:any, isEndorser?: boolean, check?:any, creditReport?:any}) {
     const { creditBuroScoreForEndorser, creditBuroScoreForApplicant } = this.conf
     const cbScoreMap = isEndorser ? creditBuroScoreForEndorser : creditBuroScoreForApplicant
-    if (item.status !== 'approved'  &&  item.status !== 'completed') return
+    if (item.status !== 'approved'  &&  item.status !== 'completed') return {}
     if (!check) {
       const { checks } = item
       let cChecks:any = checks.filter(check => check[TYPE] === CREDIT_REPORT_CHECK)
@@ -584,7 +582,7 @@ export class ScoringReport {
       if (!creditReport) return {}
     }
 
-    let creditBureauScore = 0
+    let creditBureauScore
     if (creditReport.creditScore && creditReport.creditScore.length) {
       let crCreditScore:any = await this.bot.getResource(creditReport.creditScore[0])
 
@@ -594,7 +592,7 @@ export class ScoringReport {
     if (isEndorser)
       return { creditBureauScore }
     let crAccounts = creditReport.accounts
-    if (!crAccounts  ||  !crAccounts.length) return
+    if (!crAccounts  ||  !crAccounts.length) return {creditBureauScore, cbReport: creditReport }
     let accountsPoints =  await this.calcAccounts(crAccounts)
 
     return { creditBureauScore, accountsPoints, cbReport: creditReport }
