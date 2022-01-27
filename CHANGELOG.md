@@ -2,7 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.30](https://github.com/tradle/mycloud/compare/v3.1.1-rc.29...v3.1.1-rc.30) (2022-01-26)
+## [3.1.1-rc.31](https://github.com/tradle/mycloud/compare/v3.1.1-rc.30...v3.1.1-rc.31) (2022-01-27)
+
+
+### Bug Fixes
+
+* destructuring from undefined ([bc110ee](https://github.com/tradle/mycloud/commit/bc110ee))
 
 
 
