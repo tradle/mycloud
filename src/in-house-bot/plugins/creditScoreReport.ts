@@ -151,9 +151,7 @@ export class ScoringReport {
     const assetScore = usefulLife + secondaryMarket + relocation + assetType + leaseType
 
     this.addToScoreDetails({scoreDetails, form: asset, property: 'assetScore', score: assetScore, group: ASSET_GROUP, total: true, maxScores});
-    let accScore = 0
-    if  (accountsPoints)
-      ({accScore} = accountsPoints)
+    let accScore = accountsPoints ? accountsPoints.accScore : 0
     let props:any = {
       creditBureauScore,
       existingCustomer,
@@ -594,7 +592,7 @@ export class ScoringReport {
     if (isEndorser)
       return { creditBureauScore }
     let crAccounts = creditReport.accounts
-    if (!crAccounts  ||  !crAccounts.length) return
+    if (!crAccounts  ||  !crAccounts.length) return {creditBureauScore, cbReport: creditReport }
     let accountsPoints =  await this.calcAccounts(crAccounts)
 
     return { creditBureauScore, accountsPoints, cbReport: creditReport }
