@@ -571,7 +571,7 @@ export class ScoringReport {
   private async scoreFromCheckIndividual({item, isEndorser, check, creditReport}:{item:any, isEndorser?: boolean, check?:any, creditReport?:any}) {
     const { creditBuroScoreForEndorser, creditBuroScoreForApplicant } = this.conf
     const cbScoreMap = isEndorser ? creditBuroScoreForEndorser : creditBuroScoreForApplicant
-    if (item.status !== 'approved'  &&  item.status !== 'completed') return
+    if (item.status !== 'approved'  &&  item.status !== 'completed') return {}
     if (!check) {
       const { checks } = item
       let cChecks:any = checks.filter(check => check[TYPE] === CREDIT_REPORT_CHECK)
@@ -584,7 +584,7 @@ export class ScoringReport {
       if (!creditReport) return {}
     }
 
-    let creditBureauScore = 0
+    let creditBureauScore
     if (creditReport.creditScore && creditReport.creditScore.length) {
       let crCreditScore:any = await this.bot.getResource(creditReport.creditScore[0])
 
