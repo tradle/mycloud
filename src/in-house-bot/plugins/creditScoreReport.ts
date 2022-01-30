@@ -81,7 +81,7 @@ export class ScoringReport {
     this.applications = applications
     this.logger = logger
   }
-  public async execForIndividual({ applicantInformation, reportForms, resultForm, items, check, application }) {
+  public async execForIndividual({ applicantInformation, reportForms, resultForm, items, check, parentApp, application }) {
     let map = {}
     reportForms.forEach(f => {
       map[f[TYPE].split('.').slice(-1)[0]] = f
@@ -129,7 +129,7 @@ export class ScoringReport {
     this.addToScoreDetails({scoreDetails, form: cbReport && cbReport.creditScore, formProperty: 'scoreValue', property: 'creditBureauScore', score: creditBureauScore, group: CHARACTER_GROUP});
 
     let specialityCouncil = 0
-    let { cCheck, checkPassed } = await this.credentialsCheckPass(application)
+    let { cCheck, checkPassed } = await this.credentialsCheckPass(application, parentApp)
     if (checkPassed) {
       specialityCouncil = 3
       this.addToScoreDetails({scoreDetails, form: cCheck, formProperty: 'status', property: 'specialityCouncil', score: specialityCouncil, group: CHARACTER_GROUP});
@@ -508,16 +508,36 @@ export class ScoringReport {
       leaseType
     }
   }
-  private async credentialsCheckPass(application) {
-    const { checks, checkOverrides } = application
-    let credsChecks = checks.find(check => check[TYPE] === CREDS_CHECK)
+  private async credentialsCheckPass(application, parent) {
+    const { checks, checksOverride } = application
+    const { parentChecks, parentChecksOverride } = parent
+    if (!checks  &&  !parentChecks) return {}
+    let allChecks, allCheckOverrides
+    if (!checks) {
+      allChecks = parentChecks
+      allCheckOverrides = parentChecksOverride
+    }
+    else if (parentChecks) {
+      allChecks = [...checks, ...parentChecks]
+      if (checksOverride) {
+        if (!parentChecksOverride)
+          allCheckOverrides = checksOverride
+        else
+          allCheckOverrides = [...checksOverride, parentChecksOverride]
+      }
+      else
+        allCheckOverrides = parentChecksOverride
+    }
+
+
+    let credsChecks = allChecks.find(check => check[TYPE] === CREDS_CHECK)
     if (!credsChecks || !credsChecks.length)
       return {}
     let cChecks:any = await Promise.all(credsChecks.map(c => this.bot.getResource(c)))
     cChecks.sort((a, b) => b._time - a._time)
     let credsCheck = await this.bot.getResource(credsChecks[0])
-    if (checkOverrides)  {
-      let credsCheckOverride = cChecks.find(co => co[TYPE] === CREDS_CHECK_OVERRIDE)
+    if (allCheckOverrides)  {
+      let credsCheckOverride = allCheckOverrides.find(co => co[TYPE] === CREDS_CHECK_OVERRIDE)
       if (credsCheckOverride)
         return { checkPassed: isPassedCheck({status: credsCheckOverride.status}), cCheck: credsCheckOverride }
     }
@@ -779,13 +799,14 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       const { models } = bot
       if (!products[requestFor]) return
-      let parentChecks
+      let parentApp, parentChecks
       if (parent) {
-        let backlinks = ['checks']
+        let backlinks = ['checks', 'checksOverride']
         if (!parentFormsStubs) backlinks.push('forms')
-        let {checks, forms} = await bot.getResource(parent, {backlinks})
-        parentChecks = checks
-        if (forms)
+        let {checks, forms, checksOverride} = await bot.getResource(parent, {backlinks})
+       parentChecks = checks
+       parentApp = {parentChecks, parentChecksOverride: checksOverride}
+       if (forms)
           parentFormsStubs = getLatestForms({forms}).filter(f => f.type !== PRODUCT_REQUEST && isSubClassOf(FORM, bot.models[f.type], bot.models))
       }
       let { formsIndividual, formsCompany, reportIndividual, reportCompany } = products[requestFor]
@@ -861,7 +882,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (isCompany)
         ({ score, scoreDetails } = await scoringReport.execForCompany({applicantInformation, reportForms, resultForm, items, check, application }))
       else
-        ({ score, scoreDetails } =  await scoringReport.execForIndividual({applicantInformation, reportForms, resultForm, items, check, application }))
+        ({ score, scoreDetails } =  await scoringReport.execForIndividual({applicantInformation, reportForms, resultForm, items, check, parentApp, application }))
 
       if (score) {
         let cr = score.resource
