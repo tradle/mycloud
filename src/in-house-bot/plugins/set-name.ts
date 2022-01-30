@@ -11,15 +11,15 @@ export const name = 'setName'
 export const createPlugin = ({ bot, productsAPI }: { bot: Bot; productsAPI: any }) => {
   const logger = bot.logger.sub('plugin-set-name')
   const productToNameForm = {
-    'nl.tradle.DigitalPassport': 'tradle.PhotoID',
-    'tradle.onfido.CustomerVerification': 'tradle.PhotoID',
-    'tradle.pg.CustomerOnboarding': 'tradle.PhotoID',
-    'tradle.EmployeeOnboarding': 'tradle.PhotoID',
-    'tradle.CurrentAccount': 'tradle.PersonalInfo',
-    'tradle.LifeInsurance': 'tradle.PersonalInfo',
-    'tradle.MortgageProduct': 'tradle.PersonalInfo',
+    // 'nl.tradle.DigitalPassport': 'tradle.PhotoID',
+    // 'tradle.onfido.CustomerVerification': 'tradle.PhotoID',
+    // 'tradle.pg.CustomerOnboarding': 'tradle.PhotoID',
+    // 'tradle.EmployeeOnboarding': 'tradle.PhotoID',
+    // 'tradle.CurrentAccount': 'tradle.PersonalInfo',
+    // 'tradle.LifeInsurance': 'tradle.PersonalInfo',
+    // 'tradle.MortgageProduct': 'tradle.PersonalInfo',
     'tradle.CordaKYC': 'tradle.BusinessInformation',
-    'tradle.CorporateBankAccount': 'tradle.W8BENE1',
+    // 'tradle.CorporateBankAccount': 'tradle.W8BENE1',
     'tradle.cloud.Deployment': 'tradle.cloud.Configuration'
   }
 
@@ -32,6 +32,9 @@ export const createPlugin = ({ bot, productsAPI }: { bot: Bot; productsAPI: any 
     try {
       const name = await getName(req)
       if (name) {
+        // if (application.applicantName)
+        //   application.applicantName += ` ${name}`
+        // else
         application.applicantName = name
       }
     } catch (err) {
@@ -54,7 +57,14 @@ export const createPlugin = ({ bot, productsAPI }: { bot: Bot; productsAPI: any 
     //   logger.debug('applicantName is already set, bye')
     //   return
     // }
-
+    let payloadType = payload[TYPE]
+    const model = bot.models[payloadType]
+    if (model.displayName) {
+      return buildResource.title({
+        models: bot.models,
+        resource: payload
+      })
+    }
     let nameFormType = productToNameForm[requestFor]
     if (!nameFormType) {
       // const { friend } = user
@@ -69,7 +79,6 @@ export const createPlugin = ({ bot, productsAPI }: { bot: Bot; productsAPI: any 
       // const employeeApp = appStubs.find(stub => stub.requestFor === 'tradle.EmployeeOnboarding')
       // // if (employeeApp)
 
-      const model = bot.models[requestFor]
       const { multiEntryForms } = model
       if (multiEntryForms && multiEntryForms.includes(type)) return
       nameFormType = type
