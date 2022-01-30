@@ -2,12 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.33](https://github.com/tradle/mycloud/compare/v3.1.1-rc.32...v3.1.1-rc.33) (2022-01-27)
+## [3.1.1-rc.34](https://github.com/tradle/mycloud/compare/v3.1.1-rc.33...v3.1.1-rc.34) (2022-01-30)
 
 
 ### Bug Fixes
 
-* destructuring from undefined ([bf7f8e3](https://github.com/tradle/mycloud/commit/bf7f8e3))
+* for 'Medical' ([490ec03](https://github.com/tradle/mycloud/commit/490ec03))
+
+
+### Features
+
+* allow 'displayName' on a model that will be used for creating the Application title ([4e1c09d](https://github.com/tradle/mycloud/commit/4e1c09d))
 
 
 
