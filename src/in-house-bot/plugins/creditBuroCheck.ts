@@ -582,7 +582,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       logger.debug('creditBuroCheck called onmessage')
       if (req.skipChecks) return
       const { user, application, payload } = req
-      if (!application) return
+      if (!application || application.draft) return
 
       if (APPLICANT_INFO_TYPE !== payload[TYPE] && APPLICANT_ADDR_TYPE !== payload[TYPE] && CONSENT_TYPE !== payload[TYPE])
         return
@@ -755,6 +755,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if(!result[0].creditReport)
         return
       const report = await bot.getResource(result[0].creditReport, {backlinks: ['creditSummary']})
+      if (!report.creditSummary) return
+
       const creditSummaryStub = report.creditSummary[0]
       const creditSummary = await bot.getResource(creditSummaryStub)
   

@@ -489,7 +489,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       logger.debug('creditBuroLegalEntityCheck called onmessage')
       if (req.skipChecks) return
       const { user, application, payload, parentFormsStubs } = req
-      if (!application) return
+      if (!application || application.draft) return
 
       const params = {}
       if (CONSENT_TYPE === payload[TYPE]) {
