@@ -2,17 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.34](https://github.com/tradle/mycloud/compare/v3.1.1-rc.33...v3.1.1-rc.34) (2022-01-30)
+## [3.1.1-rc.35](https://github.com/tradle/mycloud/compare/v3.1.1-rc.34...v3.1.1-rc.35) (2022-02-01)
 
 
 ### Bug Fixes
 
-* for 'Medical' ([490ec03](https://github.com/tradle/mycloud/commit/490ec03))
-
-
-### Features
-
-* allow 'displayName' on a model that will be used for creating the Application title ([4e1c09d](https://github.com/tradle/mycloud/commit/4e1c09d))
+* don't run when whiteglove draft is creating ([cbad278](https://github.com/tradle/mycloud/commit/cbad278))
 
 
 
