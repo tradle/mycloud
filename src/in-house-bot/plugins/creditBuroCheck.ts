@@ -31,7 +31,8 @@ import { TYPE } from '@tradle/constants'
 import {
   getStatusMessageForCheck,
   hasPropertiesChanged,
-  getLatestForms
+  getLatestForms,
+  isPassedCheck
 } from '../utils'
 
 interface IBuroCheckConf {
@@ -217,7 +218,17 @@ export class BuroCheckAPI {
 
   public repost = async (pendingWork: ITradleObject) => {
     try {
-      const xml = await this.httpRequest(pendingWork.request)
+      let xml
+      if (this.conf.samples) {
+        let parser = new xml2js.Parser({ explicitArray: false, trim: true })
+        let jsonObj = parser.parseStringSync(pendingWork.request)
+        xml = await this.getFileFromS3(samplesS3,
+                                       this.conf.sampleReportsFolder + '/' + jsonObj.consulta.persona.rfc + '.xml',
+                                       this.conf.sampleReportsBucket)   
+      }
+      else 
+        xml = await this.httpRequest(pendingWork.request)
+
       const status = this.handleResponse(xml)
       
       const check = await this.bot.getResource(pendingWork.pendingRef);
@@ -231,9 +242,10 @@ export class BuroCheckAPI {
       else
         check.status = this.FAIL
 
-      await this.updateResource(check)
+      let updatedCheck = await this.updateResource(check)
       
       await this.endPendingWork(pendingWork)
+      return updatedCheck
 
     } catch (err) {
       this.logger.error(`creditBuroCheck repost error: ${err.message}`)
@@ -574,7 +586,8 @@ export class BuroCheckAPI {
   }
 }  
 
-export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
+export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) => {
+  const { bot, applications, conf: botConf } = components
   const buroCheckAPI = new BuroCheckAPI({ bot, conf, applications, logger })
   // debugger
   const plugin: IPluginLifecycleMethods = {
@@ -772,7 +785,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       // expected instance of PendingWork
       if (obj.plugin !== 'creditBuroCheck')
         throw Error(`creditBuroCheck called replay with bad parameter: ${obj}`)
-      await buroCheckAPI.repost(obj)  
+      let check = await buroCheckAPI.repost(obj)  
+      if (!check  ||  !isPassedCheck({status: check.status})) return
+      const pluginModul = await import('./creditScoreReport')
+      const { plugin } = pluginModul.createPlugin( components, { conf, logger })
+      await plugin.genCreditScore(check.application, botConf)
    }
   } 
   return { plugin }
