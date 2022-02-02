@@ -744,6 +744,11 @@ functions:
   #         method: put
   #         cors: ${{self:custom.cors}}
 
+  kycdeepface:
+    image: public.ecr.aws/h7s8u8m7/kycdeepface:latest
+    timeout: 899
+    memorySize: 1024
+
   # 1. generates temporary credentials (STS) for new connections,
   #    and assumes IotClientRole on them
   # 2. creates an unauthenticated session,
