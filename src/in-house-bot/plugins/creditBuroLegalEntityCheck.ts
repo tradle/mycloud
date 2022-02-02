@@ -2,6 +2,7 @@ import xml2js from 'xml2js-parser'
 import nunjucks from 'nunjucks'
 import https from 'https'
 import AWS from 'aws-sdk'
+const creditScoring = require('./creditScoreReport')
 
 import {
   Bot,
@@ -603,8 +604,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
       let check = await buroCheckAPI.repost(obj) 
       // Run credit scoring if check passes 
       if (!check  ||  !isPassedCheck({status: check.status})) return
-      const pluginModul = await import('./creditScoreReport')
-      const { plugin } = pluginModul.createPlugin( components, { conf, logger })
+      const { plugin } = creditScoring.createPlugin( components, { conf, logger })
       await plugin.genCreditScore(check.application, botConf)
     }
   }

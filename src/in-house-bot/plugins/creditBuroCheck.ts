@@ -3,6 +3,7 @@ import nunjucks from 'nunjucks'
 import https from 'https'
 import randomString from 'randomstring'
 import AWS from 'aws-sdk'
+const creditScoring = require('./creditScoreReport')
 
 import {
   Bot,
@@ -787,8 +788,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
         throw Error(`creditBuroCheck called replay with bad parameter: ${obj}`)
       let check = await buroCheckAPI.repost(obj)  
       if (!check  ||  !isPassedCheck({status: check.status})) return
-      const pluginModul = await import('./creditScoreReport')
-      const { plugin } = pluginModul.createPlugin( components, { conf, logger })
+      const { plugin } = creditScoring.createPlugin( components, { conf, logger })
       await plugin.genCreditScore(check.application, botConf)
    }
   } 
