@@ -38,6 +38,8 @@ const CREDS_CHECK_OVERRIDE = 'tradle.CredentialsCheckOverride'
 
 const CREDS_COMPANY_CHECK = 'tradle.CreditReportLegalEntityCheck'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
+const DATA_BUNDLE_SUMBITTED = 'tradle.DataBundleSubmitted'
+
 const APPLICATION = 'tradle.Application'
 const ONE_YEAR_MILLIS = 31556952000 // 60 * 60 * 24 * 365 * 1000
 const ASSET_GROUP = 'assetScore'
@@ -80,6 +82,109 @@ export class ScoringReport {
     this.conf = conf
     this.applications = applications
     this.logger = logger
+  }
+  async genCreditScoring({application, conf, parentFormsStubs}) {
+    const { products, creditBuroScoreForApplicant, creditBuroScoreForEndorser, capacityToPay } = conf
+    let { requestFor, checks, parent } = application
+
+    if (!products                     ||
+        !creditBuroScoreForApplicant  ||
+        !creditBuroScoreForEndorser   ||
+        !capacityToPay) return
+
+    const { models } = this.bot
+    if (!products[requestFor]) return
+    let parentApp, parentChecks
+    if (parent) {
+      let backlinks = ['checks', 'checksOverride']
+    if (!parentFormsStubs) backlinks.push('forms')
+      let {checks, forms, checksOverride} = await this.bot.getResource(parent, {backlinks})
+     parentChecks = checks
+     parentApp = {parentChecks, parentChecksOverride: checksOverride}
+     if (forms)
+        parentFormsStubs = getLatestForms({forms}).filter(f => f.type !== PRODUCT_REQUEST && isSubClassOf(FORM, models[f.type], models))
+    }
+    let { formsIndividual, formsCompany, reportIndividual, reportCompany } = products[requestFor]
+
+    if (!checks  &&  !parentChecks) return
+    if (!checks)
+      checks = parentChecks
+    else if (parentChecks)
+      extend(checks, parentChecks)
+
+    let forms = getLatestForms(application)
+    if (!forms)
+      forms = application.submissions.filter(
+        s => this.bot.models[s.submission[TYPE]].subClassOf === 'tradle.Form'
+      )
+    let applicantInformationStub = forms.find(form => form.type.endsWith(`.${APPLICANT_INFORMATION}`))
+    if (!applicantInformationStub) {
+      if (parentFormsStubs)
+        applicantInformationStub = parentFormsStubs.find(form => form.type.endsWith(`.${APPLICANT_INFORMATION}`))
+      if (!applicantInformationStub) return
+    }
+
+    const applicantInformation = await this.bot.getResource(applicantInformationStub)
+    const { applicant } = applicantInformation
+    let isCompany
+    if (applicant) {
+      const ref = models[applicantInformation[TYPE]].properties.applicant.ref
+      let val = getEnumValueId({
+        model: models[ref],
+        value: applicant
+      })
+      isCompany = val === 'company'
+    }
+
+    let formList = isCompany  ? formsCompany :  formsIndividual
+    if (!formList) return
+
+    let resultForm = isCompany ? reportCompany : reportIndividual
+    if (!resultForm) return
+
+    let stubs:any = forms && forms.filter(form => formList.indexOf(form.type) !== -1)
+    if (!stubs.length  &&  !parentFormsStubs) return
+
+    // stubs = stubs.map(s => s.submission)
+    if (parentFormsStubs) {
+      let pForms = parentFormsStubs.filter(f => formList.indexOf(f.type) !== -1)
+      pForms.forEach(f => stubs.push(f))
+    }
+
+    let applicantInformationStubIdx = stubs.findIndex(form => (form[TYPE] || form.type).endsWith(`.${APPLICANT_INFORMATION}`))
+
+    stubs.splice(applicantInformationStubIdx, 1)
+
+    let checkType = isCompany ? CREDS_COMPANY_CHECK : CREDIT_REPORT_CHECK
+    let cChecks:any = checks.filter(check => check[TYPE] === checkType)
+    if (!cChecks.length) return
+    cChecks = await Promise.all(cChecks.map(c => this.bot.getResource(c)))
+    cChecks.sort((a, b) => b._time - a._time)
+
+    let check = await this.bot.getResource(cChecks[0])
+
+    if (!isPassedCheck({status: check.status})) return
+
+    let reportForms = await Promise.all(stubs.map(s => this.bot.getResource(s)))
+
+    let items = application.items
+    if (!items) {
+      items = await this.getItems(application)
+      // if (!items) return
+    }
+
+    let score, scoreDetails
+    if (isCompany)
+      ({ score, scoreDetails } = await this.execForCompany({applicantInformation, reportForms, resultForm, items, check, application }))
+    else
+      ({ score, scoreDetails } =  await this.execForIndividual({applicantInformation, reportForms, resultForm, items, check, parentApp, application }))
+
+    if (score) {
+      let cr = score.resource
+      application.creditScore = buildResourceStub({ resource: cr, models })
+      if (scoreDetails)
+        application.creditScoreDetails = scoreDetails
+    }
   }
   public async execForIndividual({ applicantInformation, reportForms, resultForm, items, check, parentApp, application }) {
     let map = {}
@@ -784,175 +889,30 @@ export class ScoringReport {
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
   const scoringReport = new ScoringReport({bot, applications, conf, logger})
   const plugin: IPluginLifecycleMethods = {
+    async genCreditScore(application, conf) {
+      if (!application || !conf) return
+      let { checks, forms, parentFormsStubs } = application
+      let app
+      if (!checks && !forms) 
+        app = await bot.getResource(application, {backlinks: ['checks', 'forms']})
+      
+      else app = application
+      await scoringReport.genCreditScoring({application:app, conf: conf.products.plugins.creditScoreReport, parentFormsStubs})
+    },
     onFormsCollected: async ({ req }: { req: IPBReq }) => {
       let { application, parentFormsStubs } = req
 
       if (!application) return
+      await scoringReport.genCreditScoring({application, conf, parentFormsStubs})
       // debugger
-      const { products, creditBuroScoreForApplicant, creditBuroScoreForEndorser, capacityToPay } = conf
-      let { requestFor, checks, parent } = application
-
-      if (!products                     ||
-          !creditBuroScoreForApplicant  ||
-          !creditBuroScoreForEndorser   ||
-          !capacityToPay) return
-
-      const { models } = bot
-      if (!products[requestFor]) return
-      let parentApp, parentChecks
-      if (parent) {
-        let backlinks = ['checks', 'checksOverride']
-        if (!parentFormsStubs) backlinks.push('forms')
-        let {checks, forms, checksOverride} = await bot.getResource(parent, {backlinks})
-       parentChecks = checks
-       parentApp = {parentChecks, parentChecksOverride: checksOverride}
-       if (forms)
-          parentFormsStubs = getLatestForms({forms}).filter(f => f.type !== PRODUCT_REQUEST && isSubClassOf(FORM, bot.models[f.type], bot.models))
-      }
-      let { formsIndividual, formsCompany, reportIndividual, reportCompany } = products[requestFor]
-
-      if (!checks  &&  !parentChecks) return
-      if (!checks)
-        checks = parentChecks
-      else if (parentChecks)
-        extend(checks, parentChecks)
-
-      let forms = getLatestForms(application)
-      if (!forms)
-        forms = application.submissions.filter(
-          s => bot.models[s.submission[TYPE]].subClassOf === 'tradle.Form'
-        )
-      let applicantInformationStub = forms.find(form => form.type.endsWith(`.${APPLICANT_INFORMATION}`))
-      if (!applicantInformationStub) {
-        if (parentFormsStubs)
-          applicantInformationStub = parentFormsStubs.find(form => form.type.endsWith(`.${APPLICANT_INFORMATION}`))
-        if (!applicantInformationStub) return
-      }
-
-      const applicantInformation = await bot.getResource(applicantInformationStub)
-      const { applicant } = applicantInformation
-      let isCompany
-      if (applicant) {
-        const ref = models[applicantInformation[TYPE]].properties.applicant.ref
-        let val = getEnumValueId({
-          model: models[ref],
-          value: applicant
-        })
-        isCompany = val === 'company'
-      }
-
-      let formList = isCompany  ? formsCompany :  formsIndividual
-      if (!formList) return
-
-      let resultForm = isCompany ? reportCompany : reportIndividual
-      if (!resultForm) return
-
-      let stubs:any = forms && forms.filter(form => formList.indexOf(form.type) !== -1)
-      if (!stubs.length  &&  !parentFormsStubs) return
-
-      // stubs = stubs.map(s => s.submission)
-      if (parentFormsStubs) {
-        let pForms = parentFormsStubs.filter(f => formList.indexOf(f.type) !== -1)
-        pForms.forEach(f => stubs.push(f))
-      }
-
-      let applicantInformationStubIdx = stubs.findIndex(form => (form[TYPE] || form.type).endsWith(`.${APPLICANT_INFORMATION}`))
-
-      stubs.splice(applicantInformationStubIdx, 1)
-
-      let checkType = isCompany ? CREDS_COMPANY_CHECK : CREDIT_REPORT_CHECK
-      let cChecks:any = checks.filter(check => check[TYPE] === checkType)
-      if (!cChecks.length) return
-      cChecks = await Promise.all(cChecks.map(c => bot.getResource(c)))
-      cChecks.sort((a, b) => b._time - a._time)
-
-      let check = await bot.getResource(cChecks[0])
-
-      if (!isPassedCheck({status: check.status})) return
-
-      let reportForms = await Promise.all(stubs.map(s => bot.getResource(s)))
-
-      let items = application.items
-      if (!items) {
-        items = await scoringReport.getItems(application)
-        // if (!items) return
-      }
-
-      let score, scoreDetails
-      if (isCompany)
-        ({ score, scoreDetails } = await scoringReport.execForCompany({applicantInformation, reportForms, resultForm, items, check, application }))
-      else
-        ({ score, scoreDetails } =  await scoringReport.execForIndividual({applicantInformation, reportForms, resultForm, items, check, parentApp, application }))
-
-      if (score) {
-        let cr = score.resource
-        application.creditScore = buildResourceStub({ resource: cr, models })
-        if (scoreDetails)
-          application.creditScoreDetails = scoreDetails
-      }
     },
-    // async didApproveApplication(opts: IWillJudgeAppArg, certificate: ITradleObject) {
-    //   let { application, user, req } = opts
-
-    //   if (!application || !req) return
-
-    //   if (!application.parentApplication) return
-
-    //   const { products, creditBuroScoreForApplicant, creditBuroScoreForEndorser, capacityToPay } = conf
-
-    //   if (!products                     ||
-    //       !creditBuroScoreForApplicant  ||
-    //       !creditBuroScoreForEndorser   ||
-    //       !capacityToPay) return
-
-    //   const app = bot.getResource(application.parentApplication, {backlinks: ['forms', 'checks']})
-    //   if (!products[app.requestFor]) return
-    //   let requestFor = app.requestFor
-
-    //   let { forms:formList, resultForm } = products.requestFor
-    //   if (!formList  ||  !resultForm) return
-
-    //   let params = this.getResourcesForScoring(application, formList)
-
-    //   await scoringReport.exec({ ...params, resultForm })
-    // },
-  //   async getResourcesForScoring(application) {
-  //     let checks = application.checks
-  //     if (!checks) return
-
-  //     let cChecks:any = checks.filter(check => check[TYPE] === CREDS_CHECK)
-  //     if (!cChecks) return
-
-  //     cChecks = await Promise.all(cChecks.map(c => bot.getResource(c)))
-  //     cChecks.sort((a, b) => b._time - a._time)
-
-  //     let forms = application.forms
-  //     if (!forms)
-  //       forms = application.submissions.filter(
-  //         s => bot.models[s.submission[TYPE]].subClassOf === 'tradle.Form'
-  //       )
-
-  //     let stubs:any = forms && forms.filter(form => formList.indexOf(form.submission[TYPE]) !== -1)
-  //     if (!stubs.length) return
-
-  //     stubs = stubs.map(s => s.submission)
-
-  //     let check = await bot.getResource(cChecks[0])
-  //     if (check.status.id !== `${CHECK_STATUS}_pass`) return
-
-  //     let reportForms = await Promise.all(stubs.map(s => bot.getResource(s)))
-
-  //     let items = application.items
-  //     if (!items) {
-  //       items = await scoringReport.getItems(application)
-  //       // if (!items) return
-  //     }
-
-  //     let reportResources = await Promise.all(stubs.map(s => bot.getResource(s)))
-  //     return { reportForms, items, check, application }
-  //   }
+    async onmessage(req: IPBReq) {
+      let { application, payload, parentFormsStubs } = req
+      if (payload[TYPE] !== DATA_BUNDLE_SUMBITTED) return
+      debugger
+      await scoringReport.genCreditScoring({application, conf, parentFormsStubs})      
+    }
   }
-
   return { plugin }
 }
 export const validateConf: ValidatePluginConf = async ({
