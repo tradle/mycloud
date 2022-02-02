@@ -2,12 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.35](https://github.com/tradle/mycloud/compare/v3.1.1-rc.34...v3.1.1-rc.35) (2022-02-01)
+## [3.1.1-rc.36](https://github.com/tradle/mycloud/compare/v3.1.1-rc.35...v3.1.1-rc.36) (2022-02-02)
 
 
-### Bug Fixes
+### Features
 
-* don't run when whiteglove draft is creating ([cbad278](https://github.com/tradle/mycloud/commit/cbad278))
+* need the whole conf to be able to call scoring after CB check ([12328ec](https://github.com/tradle/mycloud/commit/12328ec))
+* run credit scoring when pending check updated status to pass; fix: when pending check updated to pass there is no build subject resources ([27a40de](https://github.com/tradle/mycloud/commit/27a40de))
+* run report on DataBundleSubmitted for the case when consent is done by employee; run scoring when CB check changed from pending to pass ([2ff5a2b](https://github.com/tradle/mycloud/commit/2ff5a2b))
 
 
 
