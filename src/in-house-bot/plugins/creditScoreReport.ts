@@ -106,7 +106,10 @@ export class ScoringReport {
     }
     let { formsIndividual, formsCompany, reportIndividual, reportCompany } = products[requestFor]
 
-    if (!checks  &&  !parentChecks) return
+    if (!checks  &&  !parentChecks) {
+      this.logger.debug(`creditScoreReport: no check were found`)
+      return
+    }
     if (!checks)
       checks = parentChecks
     else if (parentChecks)
@@ -121,7 +124,10 @@ export class ScoringReport {
     if (!applicantInformationStub) {
       if (parentFormsStubs)
         applicantInformationStub = parentFormsStubs.find(form => form.type.endsWith(`.${APPLICANT_INFORMATION}`))
-      if (!applicantInformationStub) return
+      if (!applicantInformationStub) {
+        this.logger.debug('creditScoreReport: no ApplicantInformation was found')
+        return
+      }
     }
 
     const applicantInformation = await this.bot.getResource(applicantInformationStub)
@@ -143,7 +149,10 @@ export class ScoringReport {
     if (!resultForm) return
 
     let stubs:any = forms && forms.filter(form => formList.indexOf(form.type) !== -1)
-    if (!stubs.length  &&  !parentFormsStubs) return
+    if (!stubs.length  &&  !parentFormsStubs) {
+      this.logger.debug('creditScoreReport: no forms to make report from were found')
+      return
+    }
 
     // stubs = stubs.map(s => s.submission)
     if (parentFormsStubs) {
@@ -157,13 +166,19 @@ export class ScoringReport {
 
     let checkType = isCompany ? CREDS_COMPANY_CHECK : CREDIT_REPORT_CHECK
     let cChecks:any = checks.filter(check => check[TYPE] === checkType)
-    if (!cChecks.length) return
+    if (!cChecks.length) {
+      this.logger.debug(`creditScoreReport: no ${checkType} check was found`)
+      return
+    }
     cChecks = await Promise.all(cChecks.map(c => this.bot.getResource(c)))
     cChecks.sort((a, b) => b._time - a._time)
 
     let check = await this.bot.getResource(cChecks[0])
 
-    if (!isPassedCheck({status: check.status})) return
+    if (!isPassedCheck({status: check.status})) {
+      this.logger.debug(`creditScoreReport: ${checkType} nor passed`)
+      return
+    }
 
     let reportForms = await Promise.all(stubs.map(s => this.bot.getResource(s)))
 
@@ -406,6 +421,7 @@ export class ScoringReport {
     this.addToScoreDetails({scoreDetails, property: 'totalScore', score: props.totalScore, total: true});
 
     let score = await this.bot.draft({ type: resultForm }).set(props).signAndSave()
+    this.logger.debug('creditScoreReport: created ${resultForm}')
     return { score, scoreDetails }
   }
   private async calcAccountsForCompany(accounts, scoreDetails, generalData) {
@@ -897,18 +913,21 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         app = await bot.getResource(application, {backlinks: ['checks', 'forms']})
       
       else app = application
+      logger.debug('creditScoreReport is called for pending CB check')
       await scoringReport.genCreditScoring({application:app, conf: conf.products.plugins.creditScoreReport, parentFormsStubs})
     },
     onFormsCollected: async ({ req }: { req: IPBReq }) => {
       let { application, parentFormsStubs } = req
 
       if (!application) return
+      logger.debug('creditScoreReport is called onFormsCollected')
       await scoringReport.genCreditScoring({application, conf, parentFormsStubs})
       // debugger
     },
     async onmessage(req: IPBReq) {
       let { application, payload, parentFormsStubs } = req
       if (payload[TYPE] !== DATA_BUNDLE_SUMBITTED) return
+      logger.debug('creditScoreReport is called onmessage')
       debugger
       await scoringReport.genCreditScoring({application, conf, parentFormsStubs})      
     }
