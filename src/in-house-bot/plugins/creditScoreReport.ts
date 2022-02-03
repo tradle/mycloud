@@ -421,7 +421,7 @@ export class ScoringReport {
     this.addToScoreDetails({scoreDetails, property: 'totalScore', score: props.totalScore, total: true});
 
     let score = await this.bot.draft({ type: resultForm }).set(props).signAndSave()
-    this.logger.debug('creditScoreReport: created ${resultForm}')
+    this.logger.debug(`creditScoreReport: created ${resultForm}`)
     return { score, scoreDetails }
   }
   private async calcAccountsForCompany(accounts, scoreDetails, generalData) {
@@ -631,7 +631,9 @@ export class ScoringReport {
   }
   private async credentialsCheckPass(application, parent) {
     const { checks, checksOverride } = application
-    const { parentChecks, parentChecksOverride } = parent
+    let parentChecks, parentChecksOverride
+    if (parent)
+      ({ parentChecks, parentChecksOverride } = parent)
     if (!checks  &&  !parentChecks) return {}
     let allChecks, allCheckOverrides
     if (!checks) {
