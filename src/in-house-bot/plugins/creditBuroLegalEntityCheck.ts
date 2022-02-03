@@ -503,13 +503,15 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
   // debugger
   const plugin: IPluginLifecycleMethods = {
     async onmessage(req: IPBReq) {
-      logger.debug('creditBuroLegalEntityCheck called onmessage')
       if (req.skipChecks) return
       const { user, application, payload, parentFormsStubs } = req
       if (!application || application.draft) return
 
+      if (payload[TYPE] !== CONSENT_TYPE  &&  payload[TYPE] !== LEGAL_ENTITY_TYPE) return  
+
+      logger.debug('creditBuroLegalEntityCheck called onmessage')
+
       const params = {}
-      let r
       if (CONSENT_TYPE === payload[TYPE]) {
         const stubs = getLatestForms(application);
         let stub = stubs.find(({ type }) => type === LEGAL_ENTITY_TYPE);
@@ -548,7 +550,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
 
         logger.debug(`creditBuroLegalEntityCheck called for type ${payload[TYPE]}`)
      
-        r = await buroCheckAPI.lookup({
+        await buroCheckAPI.lookup({
           form: payload,
           params,
           application,
@@ -588,7 +590,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
 
         logger.debug(`creditBuroLegalEntityCheck called for type ${payload[TYPE]}`)
      
-        r = await buroCheckAPI.lookup({
+        await buroCheckAPI.lookup({
           form: payload,
           params,
           application,
