@@ -640,18 +640,20 @@ export class ScoringReport {
       allChecks = parentChecks
       allCheckOverrides = parentChecksOverride
     }
-    else if (parentChecks) {
-      allChecks = [...checks, ...parentChecks]
-      if (checksOverride) {
-        if (!parentChecksOverride)
-          allCheckOverrides = checksOverride
+    else {
+      allChecks = checks
+      if (parentChecks) {
+        allChecks = [...checks, ...parentChecks]
+        if (checksOverride) {
+          if (!parentChecksOverride)
+            allCheckOverrides = checksOverride
+          else
+            allCheckOverrides = [...checksOverride, parentChecksOverride]
+        }
         else
-          allCheckOverrides = [...checksOverride, parentChecksOverride]
+          allCheckOverrides = parentChecksOverride
       }
-      else
-        allCheckOverrides = parentChecksOverride
     }
-
 
     let credsChecks = allChecks.find(check => check[TYPE] === CREDS_CHECK)
     if (!credsChecks || !credsChecks.length)
