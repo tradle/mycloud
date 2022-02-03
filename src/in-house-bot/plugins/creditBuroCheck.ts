@@ -243,6 +243,8 @@ export class BuroCheckAPI {
       else
         check.status = this.FAIL
 
+      await this.addMoreCheckProps(check, status)
+      
       let updatedCheck = await this.updateResource(check)
       
       await this.endPendingWork(pendingWork)
@@ -267,6 +269,14 @@ export class BuroCheckAPI {
       form
     }
 
+    await this.addMoreCheckProps(resource, status)
+
+    this.logger.debug(`${PROVIDER} creating CreditReportIndividualCheck`)
+    const checkWrapper = await this.applications.createCheck(resource, req)
+    this.logger.debug(`${PROVIDER} created CreditReportIndividualCheck`)
+    return checkWrapper.resource
+  }
+  async addMoreCheckProps(resource, status) {
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
     if (status.rawData) {
@@ -274,11 +284,6 @@ export class BuroCheckAPI {
       if (status.status === 'pass')
         resource.creditReport = await this.buildSubjectInfo(resource.rawData)
     }
-
-    this.logger.debug(`${PROVIDER} creating CreditReportIndividualCheck`)
-    const checkWrapper = await this.applications.createCheck(resource, req)
-    this.logger.debug(`${PROVIDER} created CreditReportIndividualCheck`)
-    return checkWrapper.resource
   }
   
   private handleResponse = (xml: string) => {
@@ -593,21 +598,23 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
   // debugger
   const plugin: IPluginLifecycleMethods = {
     async onmessage(req: IPBReq) {
-      logger.debug('creditBuroCheck called onmessage')
       if (req.skipChecks) return
       const { user, application, payload } = req
       if (!application || application.draft) return
 
       if (APPLICANT_INFO_TYPE !== payload[TYPE] && APPLICANT_ADDR_TYPE !== payload[TYPE] && CONSENT_TYPE !== payload[TYPE])
         return
+      logger.debug('creditBuroCheck called onmessage')
       
       const params = {}
 
       if (CONSENT_TYPE === payload[TYPE]) {
         const stubs = getLatestForms(application);
         const infoStub = stubs.find(({ type }) => type === APPLICANT_INFO_TYPE);
-        if (!infoStub)
+        if (!infoStub) {
+          logger.debug(`creditBuroCheck: there is no ApplicantInfo found; current type ${CONSENT_TYPE}`)
           return
+        }
         const info = await bot.getResource(infoStub);
         const applicantType =  info[APPLICANT]
         if (!applicantType)
@@ -618,6 +625,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
           return
         const addrStub = stubs.find(({ type }) => type === APPLICANT_ADDR_TYPE);
         if (!addrStub) {
+          logger.debug(`creditBuroCheck: there is no ApplicantAddress found; current type ${CONSENT_TYPE}`)
           return;
         }
         const addr = await bot.getResource(addrStub);
@@ -637,8 +645,10 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
       }
       else if (APPLICANT_INFO_TYPE === payload[TYPE]) {
         const applicantType =  payload[APPLICANT]
-        if (!applicantType)
+        if (!applicantType) {
+          logger.debug(`creditBuroCheck: there is no applicant type in ApplicantInfo`)
           return
+        }
         const applicantTypeId = applicantType.id.split('_')[1]
         // handle only individual 
         if (applicantTypeId !== 'individual')
@@ -658,12 +668,14 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
         
         const consentStub = stubs.find(({ type }) => type === CONSENT_TYPE);
         if (!consentStub) {
-            return;
+          logger.debug(`creditBuroCheck: there is no Consent form found; current type ${APPLICANT_INFO_TYPE}`)
+          return;
         }
 
         const stub = stubs.find(({ type }) => type === APPLICANT_ADDR_TYPE);
         if (!stub) {
-            return;
+          logger.debug(`creditBuroCheck: there is no ApplicantAddr found; current type ${APPLICANT_INFO_TYPE}`)
+          return;
         }
         const addr = await bot.getResource(stub);
 
@@ -694,16 +706,21 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
 
         const consentStub = stubs.find(({ type }) => type === CONSENT_TYPE);
         if (!consentStub) {
-            return;
+          logger.debug(`creditBuroCheck: there is no Consent form found; current type ${APPLICANT_ADDR_TYPE}`)
+          return;
         }
 
         const stub = stubs.find(({ type }) => type === APPLICANT_INFO_TYPE);
-        if (!stub)
+        if (!stub) {
+          logger.debug(`creditBuroCheck: there is no ApplicantInfo form found; current type ${APPLICANT_ADDR_TYPE}`)
           return
+        }
         const info = await bot.getResource(stub);
         const applicantType =  info[APPLICANT]
-        if (!applicantType)
+        if (!applicantType) {
+          logger.debug(`creditBuroCheck: there is no Applicant type found`)
           return
+        }
         const applicantTypeId = applicantType.id.split('_')[1]
         // handle only individual 
         if (applicantTypeId !== 'individual')
