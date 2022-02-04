@@ -388,7 +388,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
 
       if (!payload[subject.check]) return
       let corpCheck: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, application, bot })
-      if (!corpCheck || isPassedCheck(corpCheck.status)) return
+      if (!corpCheck || !isPassedCheck(corpCheck.status)) return
 
       if (payload._prevlink) {
         let dbRes = await bot.objects.get(payload._prevlink)
