@@ -84,7 +84,8 @@ export type PublicInfo = {
   locale?: string
   optionalPairing?: boolean,
   requireDeviceLocalAuth?: boolean,
-  allowedMimeTypes?:string[]
+  allowedMimeTypes?:string[],
+  templates?: []
 }
 
 const MINUTE = 3600000
@@ -316,7 +317,16 @@ export class Conf {
     // TODO: get via info.get()
     // return await this.calcPublicInfo()
     try {
-      return await this.info.get()
+      let info = await this.info.get()
+      if (info.templates && info.templates.length)
+        info.templates = info.templates.map(template => {
+          return {
+            title: template.title,
+            applicationFor: template.applicationFor,
+            template: template.template.Body.data //Buffer.from(report.template.Body.data, 'utf-8').toString()
+          }
+      })
+      return info
     } catch (err) {
       Errors.ignoreNotFound(err)
       return await this.calcPublicInfo()
@@ -333,12 +343,26 @@ export class Conf {
       ].map(toPromise)
     )
 
-    return this.assemblePublicInfo({
+    let publicInfo = this.assemblePublicInfo({
       identity: omitVirtual(identity),
       org,
       style,
       bot
     })
+    let { templates } = publicInfo
+    if (!templates.length) return publicInfo
+    let templatesInfo
+    let files = await Promise.all(templates.map((template:any) => this.privateConfBucket.get(`templates/${template.html}`)))
+    templatesInfo = templates.map((template:any, i) => {
+      return {
+        title: template.title,
+        applicationFor: template.applicationFor,
+        template: files[i]
+      }
+    })
+    publicInfo.templates = templatesInfo
+
+    return publicInfo
   }
 
   public recalcPublicInfo = async (infoInput: Partial<IInfoInput> = {}): Promise<boolean> => {
@@ -356,6 +380,7 @@ export class Conf {
     const optionalPairing = _.get(bot, 'optionalPairing')
     const allowedMimeTypes = _.get(bot, 'allowedMimeTypes')
     const requireDeviceLocalAuth = _.get(bot, 'requireDeviceLocalAuth')
+    const templates = _.get(bot, 'templates')
     debugger
     return {
       sandbox: bot.sandbox,
@@ -375,7 +400,8 @@ export class Conf {
       requireDeviceLocalAuth,
       currency,
       locale,
-      tour
+      tour,
+      templates
     }
   }
 
