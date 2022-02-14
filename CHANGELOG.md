@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.39](https://github.com/tradle/mycloud/compare/v3.1.1-rc.38...v3.1.1-rc.39) (2022-02-03)
+## [3.1.1-rc.40](https://github.com/tradle/mycloud/compare/v3.1.1-rc.39...v3.1.1-rc.40) (2022-02-14)
 
 
-### Bug Fixes
+### Features
 
-* minor change ([e4cb0e3](https://github.com/tradle/mycloud/commit/e4cb0e3))
+* dashboard templates ([052b4fd](https://github.com/tradle/mycloud/commit/052b4fd))
 
 
 
