@@ -139,7 +139,7 @@ export class ScoringReport {
         model: models[ref],
         value: applicant
       })
-      isCompany = val === 'company'
+      isCompany = val === 'company' || val === 'medical'
     }
 
     let formList = isCompany  ? formsCompany :  formsIndividual
