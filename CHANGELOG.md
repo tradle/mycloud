@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.40](https://github.com/tradle/mycloud/compare/v3.1.1-rc.39...v3.1.1-rc.40) (2022-02-14)
+## [3.1.1-rc.41](https://github.com/tradle/mycloud/compare/v3.1.1-rc.40...v3.1.1-rc.41) (2022-02-15)
 
 
-### Features
+### Bug Fixes
 
-* dashboard templates ([052b4fd](https://github.com/tradle/mycloud/commit/052b4fd))
+* scoring for medical ([1892796](https://github.com/tradle/mycloud/commit/1892796))
 
 
 
