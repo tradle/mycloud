@@ -17,10 +17,16 @@ WebSockets gives us bidirectional communication line between the client and the 
 ### Warm up lambda 
 ## Plugins 
 ### House bot
+Tradle MyCloud allows to implement many different kind of bots, which is described elsewhere. For the purposes of e-policies, used in KYC, onbparding, leasing, Tax (FATCA/CRS) and other similar scenarios we use one bot, which we call house bot. This bot implemenents a piepeline mechanism which executes all the plugins, that registered to receive events in it.
 ### Plugins in various Lambdas
+The following lambdas support plugins: onMessage, onUpdate.
+To register plugin for onMessage Lambda, do this: xxx
+To register plugin for onUpdate  Lambda, do this: xxx
+
 ### Security on creation or edit of resources
 ### Security on reading resources
 ### How to write a plugin 
+See this 
 ## GraphQL
 Standard [GraphQL](https://graphql.org/code/) is supported for queries. GraphQL Mutations are not supported. Instead we are using our own reliable messaging mechanism for sending data from mobile and web clients to the server. 
 You can use an open source Graphiql tool to view all resources in MyCloud. 
@@ -31,6 +37,8 @@ This code maps automatically to GraphQL schema.
 ### GraphQL resolvers
 those are plugins to the GraphQL queries
 ## Data models
+See https://github.com/tradle/mycloud/docs/dataModelingSyntax.md
+
 ## DB api 
 ## Engine API
 ## Scheduled jobs
@@ -74,9 +82,10 @@ Multiple temlpates are used due to the limitation of maximum of 200 resources pe
 # Client
 Documented at https://github.com/tradle/tim
 
-## Third party integarions
+## Client-side third-party integarions
 ### Regula
 ### Branch
+### Analytics for mobile app
 
 # Dependency on third-party services
 ## AWS
@@ -84,4 +93,7 @@ Documented at https://github.com/tradle/tim
 ## Etherscan
 ## Google push notifications service
 ## Apple push notifications service
-## Analytics for mobile app
+
+# Development environment 
+We use localstack to emulate AWS on developer stations to enable development and debugging xxx
+tradle/mycloud/docs/local-dev.md
