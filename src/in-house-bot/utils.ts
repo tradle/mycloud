@@ -547,8 +547,11 @@ export const getLatestChecks = async ({ application, bot }) => {
 
   const checksSorted: ITradleCheck[] = checks.sort((a, b) => b._time - a._time)
 
-  let latestChecks: ITradleCheck[] = _.uniqBy(checksSorted, (check: any) =>
-    [check.form._permalink, check.propertyName, check[TYPE], check.provider].join(',')
+  let latestChecks: ITradleCheck[] = _.uniqBy(checksSorted, (check: any) => {
+      if (check.form)
+        return [check.form._permalink, check.propertyName, check[TYPE], check.provider].join(',')
+      return check._t  
+    }
   )
 
   return { latestChecks, checks }
