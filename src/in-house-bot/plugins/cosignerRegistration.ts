@@ -10,7 +10,6 @@ import {
   Logger,
   CreatePlugin,
   Applications,
-  ISMS,
   IPBApp,
   IPluginLifecycleMethods,
   ValidatePluginConf,
@@ -21,12 +20,9 @@ import {
 import * as Templates from '../templates'
 import Errors from '../../errors'
 import { TYPE } from '../../constants'
-// import { useRealSES } from '../../aws/config'
-import { hasPropertiesChanged, getEnumValueId } from '../utils'
+import { hasPropertiesChanged } from '../utils'
 import { appLinks } from '../../app-links'
-
-// import { SMSBasedVerifier } from '../sms-based-verifier'
-// import { compare } from '@tradle/dynamodb/lib/utils'
+import { setPropsFromAssociatedResource } from '../setProps-utils'
 
 const SHORT_TO_LONG_URL_MAPPING = 'tradle.ShortToLongUrlMapping'
 const NEXT_FORM_REQUEST = 'tradle.NextFormRequest'
@@ -41,9 +37,6 @@ const unitCoefMap = {
 }
 const DEFAULT_MAX_NOTIFY = 5000
 const DEAR_CUSTOMER = 'Dear Customer'
-const DEFAULT_SMS_GATEWAY = 'sns'
-type SMSGatewayName = 'sns'
-
 const COSIGNER_MESSAGE = 'Cosigner onboarding'
 
 const DEFAULT_MESSAGE = 'Click below to complete your onboarding'
@@ -81,19 +74,6 @@ interface ICosignerRegistrationConf {
     maxNotifications: number
     messages?: []
   }
-}
-const getSMSClient = ({
-  bot,
-  gateway = DEFAULT_SMS_GATEWAY
-}: {
-  bot: Bot
-  gateway: SMSGatewayName
-}): ISMS => {
-  if (gateway.toLowerCase() === 'sns') {
-    return bot.snsUtils
-  }
-
-  throw new Errors.InvalidInput(`SMS gateway "${gateway}" not found`)
 }
 
 export const renderConfirmationEmail = (data: ConfirmationEmailTemplateData) =>
@@ -389,43 +369,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       // if (payload.emailAddress) {
       if (!rules)
         await cosignerAPI.sendConfirmationEmail({ resource: payload, application })
-    },
-    // async willRequestForm({ application, formRequest }) {
-    //   const { associatedResource, parent } = application
-    //   if (!associatedResource) return
-    //   const { form } = formRequest
-
-    //   const { products } = conf
-    //   if (products) return
-    //   const { requestFor } = application
-    //   let parentApplication
-    //   let found
-    //   for (let p in products) {
-    //     let product = products[p]
-    //     for (let pp in product) {
-    //       if (products[pp].onboardingApplication !== requestFor) continue
-    //       // Add 'form' in configuration
-    //       if (products[pp].form !== form) continue
-    //       if (!parentApplication)
-    //         parentApplication = await bot.getResource(parent)
-    //       if (parentApplication[TYPE] !== p) continue
-    //       found = true
-    //       break
-    //     }
-    //     if (found) break
-    //   }
-      
-    //   if (!found) return
-    //   const cosigner = await bot.getResource(associatedResource)
-    //   const { paternalName, maternalName, firstName, secondName, email } = cosigner
-    //   let prefill = {
-    //     paternalName, maternalName, firstName, secondName, email
-    //   }
-
-    //   if (!formRequest.prefill) formRequest.prefill = { [TYPE]: form }
-    //   formRequest.prefill = sanitize({...formRequest.prefill, ...prefill}).sanitized
-    //   formRequest.message = `Please review and correct the data below`    
-    // }
+    }
   }
   return {
     plugin

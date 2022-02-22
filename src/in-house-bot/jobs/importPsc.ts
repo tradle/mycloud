@@ -12,22 +12,18 @@ import { appLinks } from '../../app-links'
 import {
   Bot,
   Logger,
-  ISMS,
   Applications,
   IOrganization
 } from '../types'
 
-import { enumValue, buildResourceStub } from '@tradle/build-resource'
+import { enumValue } from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
 const accessKeyId = ''
 const secretAccessKey = ''
-const region = 'us-east-1'
 
-//const BUCKET = 'jacob.gins.athena'
-//const ATHENA_DB = 'adv'
 const ATHENA_OUTPUT = 'temp/athena'
 const ORIGIN_PREFIX = 'temp/refdata/gb/psc_origin/'
 const NEXT_BUCKETED_PREFIX = 'temp/refdata/gb/psc_next_bucketed/'
@@ -51,8 +47,6 @@ const PROVIDER = 'PSC registry'
 const CLIENT_ACTION_REQUIRED_CHECK = 'tradle.ClientActionRequiredCheck'
 
 const DEAR_CUSTOMER = 'Dear Customer'
-const DEFAULT_SMS_GATEWAY = 'sns'
-type SMSGatewayName = 'sns'
 
 const SENDER_EMAIL = 'jacob.gins@lablz.com' // TODO
 
@@ -78,20 +72,6 @@ const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
   ],
   signature: '-{{orgName}} Team'
 }
-const getSMSClient = ({
-  bot,
-  gateway = DEFAULT_SMS_GATEWAY
-}: {
-  bot: Bot
-  gateway: SMSGatewayName
-}): ISMS => {
-  if (gateway.toLowerCase() === 'sns') {
-    return bot.snsUtils
-  }
-
-  throw new Errors.InvalidInput(`SMS gateway "${gateway}" not found`)
-}
-
 const renderConfirmationEmail = (data: ConfirmationEmailTemplateData) =>
   Templates.email.action(Templates.renderData(CONFIRMATION_EMAIL_DATA_TEMPLATE, data))
 
