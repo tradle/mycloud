@@ -15,7 +15,8 @@ import {
   ITradleObject,
   IPBApp,
   IPBReq,
-  Logger
+  Logger,
+  ITradleCheck
 } from '../types'
 
 import Errors from '../../errors'
@@ -60,14 +61,13 @@ const UTF8 = 'utf-8'
 const PENDING_WORK_TYPE = 'tradle.PendingWork'
 const STATUS = 'tradle.Status'
 
-const CONSENT_TYPE = 'com.leaseforu.ApplicantConsent'
-
-const  CASHFLOW = 'com.leaseforu.PersonalCashflow'
-
+const CONSENT_TYPE = 'tradle.legal.CreditReportIndividualConsent'
 const CREDIT_CHECK = 'tradle.CreditReportIndividualCheck'
+
 const SUMMARY = 'com.leaseforu.CreditBureauIndividualCreditSummary'
 const APPLICANT_INFO_TYPE = 'com.leaseforu.ApplicantInformation'
 const APPLICANT_ADDR_TYPE = 'com.leaseforu.ApplicantAddress'
+const  CASHFLOW = 'com.leaseforu.PersonalCashflow'
 
 const CB_SUBJECT = "com.leaseforu.CreditBureauIndividualSubject"
 const CB_ADDRESS = "com.leaseforu.CreditBureauIndividualAddresses"
@@ -87,7 +87,6 @@ const NUMBER = 'number'
 const CITY = 'city'
 const STATE = 'state'
 const ZIP = 'zip'
-const NAME = 'name'
 const RFC = 'rfc'
 
 const PATERNAL_NAME = 'paternalName'
@@ -601,49 +600,20 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
       if (req.skipChecks) return
       const { user, application, payload } = req
       if (!application || application.draft) return
+      // if (!application) return
+      const payloadType = payload[TYPE]
 
-      if (APPLICANT_INFO_TYPE !== payload[TYPE] && APPLICANT_ADDR_TYPE !== payload[TYPE] && CONSENT_TYPE !== payload[TYPE])
+      if (APPLICANT_INFO_TYPE !== payloadType && APPLICANT_ADDR_TYPE !== payloadType && CONSENT_TYPE !== payloadType)
         return
       logger.debug('creditBuroCheck called onmessage')
       
       const params = {}
-
-      if (CONSENT_TYPE === payload[TYPE]) {
-        const stubs = getLatestForms(application);
-        const infoStub = stubs.find(({ type }) => type === APPLICANT_INFO_TYPE);
-        if (!infoStub) {
-          logger.debug(`creditBuroCheck: there is no ApplicantInfo found; current type ${CONSENT_TYPE}`)
-          return
-        }
-        const info = await bot.getResource(infoStub);
-        const applicantType =  info[APPLICANT]
-        if (!applicantType)
-          return
-        const applicantTypeId = applicantType.id.split('_')[1]
-        // handle only individual 
-        if (applicantTypeId !== 'individual')
-          return
-        const addrStub = stubs.find(({ type }) => type === APPLICANT_ADDR_TYPE);
-        if (!addrStub) {
-          logger.debug(`creditBuroCheck: there is no ApplicantAddress found; current type ${CONSENT_TYPE}`)
-          return;
-        }
-        const addr = await bot.getResource(addrStub);
-        
-        params[STREET] = addr.street? addr.street : ''
-        params[NUMBER] = addr.number? addr.number : ''
-        params[NEIGHBORHOOD] = addr.neighborhood? addr.neighborhood : ''
-        params[CITY] = addr.city? addr.city : ''
-        params[STATE] = addr.state? addr.state : ''
-        params[ZIP] = addr.zip? addr.zip : ''
-        
-        params[PATERNAL_NAME] = info.paternalName? info.paternalName : ''
-        params[MATERNAL_NAME] = info.maternalName? info.maternalName : ''
-        params[FIRST_NAME] = info.firstName? info.firstName : ''
-        params[SECOND_NAME] = info.secondName? info.secondName : ''
-        params[RFC] = info.rfc? info.rfc : ''
+      let info, addr
+      if (CONSENT_TYPE === payloadType) {
+        addr = payload
+        info = payload
       }
-      else if (APPLICANT_INFO_TYPE === payload[TYPE]) {
+      else if (APPLICANT_INFO_TYPE === payloadType) {
         const applicantType =  payload[APPLICANT]
         if (!applicantType) {
           logger.debug(`creditBuroCheck: there is no applicant type in ApplicantInfo`)
@@ -663,7 +633,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
         if (!changed) {
           return
         }
-       
+        info = payload
         const stubs = getLatestForms(application);
         
         const consentStub = stubs.find(({ type }) => type === CONSENT_TYPE);
@@ -677,22 +647,10 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
           logger.debug(`creditBuroCheck: there is no ApplicantAddr found; current type ${APPLICANT_INFO_TYPE}`)
           return;
         }
-        const addr = await bot.getResource(stub);
-
-        params[STREET] = addr.street? addr.street : ''
-        params[NUMBER] = addr.number? addr.number : ''
-        params[NEIGHBORHOOD] = addr.neighborhood? addr.neighborhood : ''
-        params[CITY] = addr.city? addr.city : ''
-        params[STATE] = addr.state? addr.state : ''
-        params[ZIP] = addr.zip? addr.zip : ''
-        
-        params[PATERNAL_NAME] = payload.paternalName? payload.paternalName : ''
-        params[MATERNAL_NAME] = payload.maternalName? payload.maternalName : ''
-        params[FIRST_NAME] = payload.firstName? payload.firstName : ''
-        params[SECOND_NAME] = payload.secondName? payload.secondName : ''
-        params[RFC] = payload.rfc? payload.rfc : ''
+        addr = await bot.getResource(stub);
       }
-      else if (APPLICANT_ADDR_TYPE === payload[TYPE]) {
+      else if (APPLICANT_ADDR_TYPE === payloadType) {
+        addr = payload
         let changed = await hasPropertiesChanged({
             resource: payload,
             bot,
@@ -715,7 +673,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
           logger.debug(`creditBuroCheck: there is no ApplicantInfo form found; current type ${APPLICANT_ADDR_TYPE}`)
           return
         }
-        const info = await bot.getResource(stub);
+        info = await bot.getResource(stub);
         const applicantType =  info[APPLICANT]
         if (!applicantType) {
           logger.debug(`creditBuroCheck: there is no Applicant type found`)
@@ -724,27 +682,27 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
         const applicantTypeId = applicantType.id.split('_')[1]
         // handle only individual 
         if (applicantTypeId !== 'individual')
-          return
-        
-        params[STREET] = payload.street? payload.street : ''
-        params[NUMBER] = payload.number? payload.number : ''
-        params[NEIGHBORHOOD] = payload.neighborhood? payload.neighborhood : ''
-        params[CITY] = payload.city? payload.city : ''
-        params[STATE] = payload.state? payload.state : ''
-        params[ZIP] = payload.zip? payload.zip : ''
-        
-        params[PATERNAL_NAME] = info.paternalName? info.paternalName : ''
-        params[MATERNAL_NAME] = info.maternalName? info.maternalName : ''
-        params[FIRST_NAME] = info.firstName? info.firstName : ''
-        params[SECOND_NAME] = info.secondName? info.secondName : ''
-        params[RFC] = info.rfc? info.rfc : ''
+          return        
       }
+      params[STREET] = payload.street? payload.street : ''
+      params[NUMBER] = payload.number? payload.number : ''
+      params[NEIGHBORHOOD] = payload.neighborhood? payload.neighborhood : ''
+      params[CITY] = payload.city? payload.city : ''
+      params[STATE] = payload.state? payload.state : ''
+      params[ZIP] = payload.zip? payload.zip : ''
+      
+      params[PATERNAL_NAME] = info.paternalName? info.paternalName : ''
+      params[MATERNAL_NAME] = info.maternalName? info.maternalName : ''
+      params[FIRST_NAME] = info.firstName? info.firstName : ''
+      params[SECOND_NAME] = info.secondName? info.secondName : ''
+      params[RFC] = info.individualTaxId? info.individualTaxId : ''
 
       if (params[STATE]) {
         params[STATE] = params[STATE].id.split('_')[1]
       }
-
-      logger.debug(`creditBuroCheck called for type ${payload[TYPE]}`)
+      // if (!checkValues(params))
+      //   return
+      logger.debug(`creditBuroCheck called for type ${payloadType}`)
      
       let r = await buroCheckAPI.lookup({
         form: payload,
@@ -770,12 +728,13 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
         parentForms = parentApp.forms
       }
       if (!checks  &&  !parentChecks) return
+      let allChecks:ITradleCheck[]
       if (!checks)
-        checks = parentChecks
+        allChecks = [...parentChecks]
       else if (parentChecks)
-        checks = [...checks, ...parentChecks]
+        allChecks = [...checks, ...parentChecks]
         
-      let stubs = checks.filter(
+      let stubs = allChecks.filter(
         (check) => check[TYPE] === CREDIT_CHECK 
       )
       if (!stubs.length) return
@@ -833,4 +792,12 @@ export const validateConf: ValidatePluginConf = async ({
   if (!pluginConf.path || typeof pluginConf.path !== 'string') {
     throw new Errors.InvalidInput(`property 'path' is not set`)
   }
+}
+const checkValues = (obj: any): boolean => {
+  for (const key of Object.keys(obj)) {
+    if (!obj[key]) {
+      return false  // empty value
+    }
+  }
+  return true
 }
