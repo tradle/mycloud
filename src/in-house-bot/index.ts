@@ -686,8 +686,10 @@ export const loadComponentsAndPlugins = ({
           // if (application.draft) return
           let { parentApplication } = req.payload
           if (!parentApplication) return
-          const { parentApp } = await getAssociateResources({application, bot, applicationOnly: true})
+          const { parentApp, associatedRes } = await getAssociateResources({application, bot})
           application.parent = buildResourceStub({resource: parentApp, models: bot.models})
+          if (associatedRes)
+            application.associatedResource = buildResourceStub({resource: associatedRes, models: bot.models})
           parentApp.itemsCount = (parentApp.itemsCount || 0) + 1
           await bot.versionAndSave(parentApp)
           // debugger
@@ -770,6 +772,7 @@ export const loadComponentsAndPlugins = ({
       'sme-auto-approve',
       'attestation',
       'leasingQuotes',
+      'leasingSignoff',
       'giinCheck',
       'vatCheck',
       // 'invoicing'
