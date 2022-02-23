@@ -22,7 +22,6 @@ import Errors from '../../errors'
 import { TYPE } from '../../constants'
 import { hasPropertiesChanged } from '../utils'
 import { appLinks } from '../../app-links'
-import { setPropsFromAssociatedResource } from '../setProps-utils'
 
 const SHORT_TO_LONG_URL_MAPPING = 'tradle.ShortToLongUrlMapping'
 const NEXT_FORM_REQUEST = 'tradle.NextFormRequest'
