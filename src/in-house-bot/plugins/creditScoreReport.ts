@@ -7,7 +7,8 @@ import {
   ValidatePluginConf,
   ITradleObject,
   Applications,
-  Logger
+  Logger,
+  ITradleCheck
 } from '../types'
 import { buildResourceStub } from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
@@ -97,11 +98,11 @@ export class ScoringReport {
     let parentApp, parentChecks
     if (parent) {
       let backlinks = ['checks', 'checksOverride']
-    if (!parentFormsStubs) backlinks.push('forms')
-      let {checks, forms, checksOverride} = await this.bot.getResource(parent, {backlinks})
-     parentChecks = checks
-     parentApp = {parentChecks, parentChecksOverride: checksOverride}
-     if (forms)
+      if (!parentFormsStubs) backlinks.push('forms')
+        let {checks, forms, checksOverride} = await this.bot.getResource(parent, {backlinks})
+      parentChecks = checks
+      parentApp = {parentChecks, parentChecksOverride: checksOverride}
+      if (forms)
         parentFormsStubs = getLatestForms({forms}).filter(f => f.type !== PRODUCT_REQUEST && isSubClassOf(FORM, models[f.type], models))
     }
     let { formsIndividual, formsCompany, reportIndividual, reportCompany } = products[requestFor]
@@ -110,10 +111,13 @@ export class ScoringReport {
       this.logger.debug(`creditScoreReport: no check were found`)
       return
     }
+    let allChecks: ITradleCheck[]
     if (!checks)
-      checks = parentChecks
+      allChecks = [...parentChecks]
     else if (parentChecks)
-      extend(checks, parentChecks)
+      allChecks = [...checks, ...parentChecks]
+    else
+      allChecks = [...checks]  
 
     let forms = getLatestForms(application)
     if (!forms)
@@ -165,7 +169,7 @@ export class ScoringReport {
     stubs.splice(applicantInformationStubIdx, 1)
 
     let checkType = isCompany ? CREDS_COMPANY_CHECK : CREDIT_REPORT_CHECK
-    let cChecks:any = checks.filter(check => check[TYPE] === checkType)
+    let cChecks:any = allChecks.filter(check => check[TYPE] === checkType)
     if (!cChecks.length) {
       this.logger.debug(`creditScoreReport: no ${checkType} check was found`)
       return
@@ -923,7 +927,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     onFormsCollected: async ({ req }: { req: IPBReq }) => {
       let { application, parentFormsStubs } = req
 
-      if (!application) return
+      if (!application || application.draft) return
       logger.debug('creditScoreReport is called onFormsCollected')
       await scoringReport.genCreditScoring({application, conf, parentFormsStubs})
       // debugger
