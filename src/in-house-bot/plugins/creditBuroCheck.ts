@@ -700,8 +700,6 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
       if (params[STATE]) {
         params[STATE] = params[STATE].id.split('_')[1]
       }
-      // if (!checkValues(params))
-      //   return
       logger.debug(`creditBuroCheck called for type ${payloadType}`)
      
       let r = await buroCheckAPI.lookup({
@@ -792,12 +790,4 @@ export const validateConf: ValidatePluginConf = async ({
   if (!pluginConf.path || typeof pluginConf.path !== 'string') {
     throw new Errors.InvalidInput(`property 'path' is not set`)
   }
-}
-const checkValues = (obj: any): boolean => {
-  for (const key of Object.keys(obj)) {
-    if (!obj[key]) {
-      return false  // empty value
-    }
-  }
-  return true
 }
