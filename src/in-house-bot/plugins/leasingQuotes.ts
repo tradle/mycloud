@@ -17,6 +17,8 @@ import { getLatestForms } from '../utils'
 const { sanitize } = validateResource.utils
 const QUOTATION = 'quotation'
 const AMORTIZATION = 'amortization'
+const COST_OF_CAPITAL = 'tradle.credit.CostOfCapital'
+
 interface AmortizationItem {
   [TYPE]: string
   period: number,
@@ -48,7 +50,7 @@ class LeasingQuotesAPI {
     this.logger = logger
     this.conf = conf
   }
-  public async quotationPerTerm(application, formRequest) {
+  public async quotationPerTerm({application, formRequest, costOfCapital}) {
     const stubs = getLatestForms(application)
     let qiStub = stubs.find(({ type }) => type.endsWith('QuotationInformation'))
     if (!qiStub) return
@@ -56,66 +58,53 @@ class LeasingQuotesAPI {
     let {
       factor,
       netPrice,
-      assetName,
-      quotationConfiguration,
+      commissionFee,
+      asset,
       exchangeRate,
       depositPercentage = 0,
       deliveryTime,
       netPriceMx,
-      vat,
+      vatRate,
       priceMx,
       depositValue,
-      annualInsurance,
       fundedInsurance
     } = quotationInfo
-
-    if (!factor || !netPrice || !quotationConfiguration || !exchangeRate || !deliveryTime ||
+ 
+    if (!factor || !netPrice || !exchangeRate || !deliveryTime ||
         !netPriceMx || !priceMx || !fundedInsurance) {
       this.logger.debug('quotation: Some numbers are missing')
       return {}
     }
 
-    let configuration = await this.bot.getResource(quotationConfiguration)
-    if (!configuration) return
-    let configurationItems = configuration.items
-    // let { quotationConfiguration } = conf
-    // if (!quotationConfiguration) {
-      // try {
-      //   let qc = await bot.db.findOne({
-      //     filter: {
-      //       EQ: {
-      //         [TYPE]: QUOTATION_CONFIGURATION,
-      //         configuration: quotationConfiguration
-      //       }
-      //     }
-      //   })
-      //   configurationItems = qc.items
-      // } catch (err) {
-      //   return
-      // }
-    // }
+    // let configuration = await this.bot.getResource(quotationConfiguration)
+    // if (!configuration) return
+    // let configurationItems = configuration.items
 
     let quotationDetails = []
-    let defaultQC = configurationItems[0]
     let ftype = formRequest.form
-    configurationItems.forEach(quotConf => {
+    const {
+      deliveryFactor: configurationItems,
+      minimumDeposit: lowDeposit,
+      lowDepositFactor: lowDepositPercent,
+      // presentValueFactor: factorVPdelVR,
+    } = costOfCapital
+    let { residualValue } = await this.bot.getResource(asset)
+    // let configurationItems = await Promise.all(deliveryFactor.map(df => this.bot.getResource(df)))
+    let defaultQC = configurationItems[0]
+
+    configurationItems.forEach((quotConf:any, i) => {
       let qc = cloneDeep(defaultQC)
       for (let p in quotConf)
         qc[p] = quotConf[p]
       let {
         term,
-        // dt1,
-        // dt2,
-        // dt3,
-        // dt4,
-        residualValue,
-        vatRate,
-        commissionFee,
-        factorVPdelVR,
-        minIRR,
-        lowDeposit,
-        lowDepositPercent
-      } = qc
+        factor: factorVPdelVR
+      } = quotConf
+  
+      let residualValuePerTerm = residualValue.find(rv => {
+        return rv.term.id === term.id
+      })
+      residualValuePerTerm = residualValuePerTerm && residualValuePerTerm.rv / 100
       let termVal = term.title.split(' ')[0]
       let factorPercentage = mathRound(factor / 100 / 12 * termVal, 4)
 
@@ -130,7 +119,10 @@ class LeasingQuotesAPI {
       let totalPercentage = mathRound(1 + factorPercentage + deliveryTermPercentage + depositFactor + lowDepositFactor, 4)
 
       let depositVal = depositValue && depositValue.value || 0
-      let monthlyPayment = (priceMx.value - depositVal - (residualValue * priceMx.value)/(1 + factorVPdelVR))/(1 + vatRate) * totalPercentage/termVal
+
+      // let factorVPdelVR = deliveryFactor.find(df => df.term === term)
+
+      let monthlyPayment = (priceMx.value - depositVal - (residualValuePerTerm * priceMx.value)/(1 + factorVPdelVR))/(1 + vatRate) * totalPercentage/termVal
       // let monthlyPaymentPMT = (vatRate/12)/(((1+vatRate/12)**termVal)-1)*(netPriceMx.value*((1+vatRate/12)**termVal)-(netPriceMx.value*residualValue/100))
 
       let insurance = fundedInsurance.value
@@ -177,7 +169,7 @@ class LeasingQuotesAPI {
           currency
         },
         purchaseOptionPrice: priceMx && {
-          value: mathRound(priceMx.value * residualValue),
+          value: mathRound(priceMx.value * residualValuePerTerm),
           currency
         }
       }
@@ -189,7 +181,7 @@ class LeasingQuotesAPI {
       terms: quotationDetails
     }
   }
-  public async amortizationPerMonth(application, formRequest) {
+  public async amortizationPerMonth({application, formRequest}) {
     const stubs = getLatestForms(application)
     let qiStub = stubs.find(({ type }) => type.endsWith('QuotationInformation'))
     if (!qiStub) return
@@ -269,11 +261,20 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let model = bot.models[ftype]
       if (!model) return
 
+      let costOfCapital = await bot.db.findOne({
+        filter: {
+          EQ: {
+            [TYPE]: COST_OF_CAPITAL,
+          }
+        }
+      })
+      if (!costOfCapital) return
+     
       let prefill = {}
       if (action === QUOTATION)
-        prefill = await leasingQuotes.quotationPerTerm(application, formRequest)
+        prefill = await leasingQuotes.quotationPerTerm({application, formRequest, costOfCapital})
       else if (action === AMORTIZATION)
-        prefill = await leasingQuotes.amortizationPerMonth(application, formRequest)
+        prefill = await leasingQuotes.amortizationPerMonth({application, formRequest})
 
       if (!size(prefill)) return
       if (!formRequest.prefill) {
