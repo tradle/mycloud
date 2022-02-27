@@ -2,12 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.41](https://github.com/tradle/mycloud/compare/v3.1.1-rc.40...v3.1.1-rc.41) (2022-02-15)
+## [3.1.1-rc.42](https://github.com/tradle/mycloud/compare/v3.1.1-rc.41...v3.1.1-rc.42) (2022-02-24)
 
 
 ### Bug Fixes
 
-* scoring for medical ([1892796](https://github.com/tradle/mycloud/commit/1892796))
+* bad case of overrifing checks on application ([3ac3a43](https://github.com/tradle/mycloud/commit/3ac3a43))
+* some checks might not have form property like signoff checks ([247852f](https://github.com/tradle/mycloud/commit/247852f))
+
+
+### Features
+
+* allow attestation be in the subordinate application anywhere in the application ([60b05bb](https://github.com/tradle/mycloud/commit/60b05bb))
+* creates signoff checks for different parties to sign before application can be approved ([483ccf4](https://github.com/tradle/mycloud/commit/483ccf4))
+* leasingSignoff plugin added; fix: associated resource has to be set on application ([7414acd](https://github.com/tradle/mycloud/commit/7414acd))
+* moving consent for into common model; fix: bad case of overrifing checks on application ([b984a28](https://github.com/tradle/mycloud/commit/b984a28))
+* prefill any props with props from  associatedResource if there is one ([4c2a025](https://github.com/tradle/mycloud/commit/4c2a025))
 
 
 
