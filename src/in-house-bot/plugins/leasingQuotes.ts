@@ -50,10 +50,21 @@ class LeasingQuotesAPI {
     this.logger = logger
     this.conf = conf
   }
-  public async quotationPerTerm({application, formRequest, costOfCapital}) {
+  public async quotationPerTerm({application, formRequest}) {
     const stubs = getLatestForms(application)
     let qiStub = stubs.find(({ type }) => type.endsWith('QuotationInformation'))
     if (!qiStub) return
+
+    let costOfCapital = await this.bot.db.findOne({
+      filter: {
+        EQ: {
+          [TYPE]: COST_OF_CAPITAL,
+          current: true
+        }
+      }
+    })
+    if (!costOfCapital) return
+   
     const quotationInfo = await this.bot.getResource(qiStub)
     let {
       factor,
@@ -261,18 +272,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let model = bot.models[ftype]
       if (!model) return
 
-      let costOfCapital = await bot.db.findOne({
-        filter: {
-          EQ: {
-            [TYPE]: COST_OF_CAPITAL,
-          }
-        }
-      })
-      if (!costOfCapital) return
-     
       let prefill = {}
       if (action === QUOTATION)
-        prefill = await leasingQuotes.quotationPerTerm({application, formRequest, costOfCapital})
+        prefill = await leasingQuotes.quotationPerTerm({application, formRequest})
       else if (action === AMORTIZATION)
         prefill = await leasingQuotes.amortizationPerMonth({application, formRequest})
 
