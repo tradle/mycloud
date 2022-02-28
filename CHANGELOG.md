@@ -2,18 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.43](https://github.com/tradle/mycloud/compare/v3.1.1-rc.42...v3.1.1-rc.43) (2022-02-28)
-
-
-### Bug Fixes
-
-* no need to build tree always ([a28a9d8](https://github.com/tradle/mycloud/commit/a28a9d8))
+## [3.1.1-rc.44](https://github.com/tradle/mycloud/compare/v3.1.1-rc.43...v3.1.1-rc.44) (2022-02-28)
 
 
 ### Features
 
-* leasing project ([9c1fe0c](https://github.com/tradle/mycloud/commit/9c1fe0c))
-* leasing quotation project ([54c842b](https://github.com/tradle/mycloud/commit/54c842b))
+* use CostOfCapital that is marked as current ([a32f5bb](https://github.com/tradle/mycloud/commit/a32f5bb))
 
 
 
