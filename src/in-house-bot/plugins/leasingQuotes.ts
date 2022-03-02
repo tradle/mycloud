@@ -95,9 +95,9 @@ class LeasingQuotesAPI {
     let ftype = formRequest.form
     const {
       deliveryFactor: configurationItems,
-      minimumDeposit: lowDeposit,
+      minimumDeposit,
       lowDepositFactor: lowDepositPercent,
-      // presentValueFactor: factorVPdelVR,
+      presentValueFactor,
     } = costOfCapital
     let { residualValue } = await this.bot.getResource(asset)
     // let configurationItems = await Promise.all(deliveryFactor.map(df => this.bot.getResource(df)))
@@ -109,7 +109,7 @@ class LeasingQuotesAPI {
         qc[p] = quotConf[p]
       let {
         term,
-        factor: factorVPdelVR
+        // factor: factorVPdelVR
       } = quotConf
   
       let residualValuePerTerm = residualValue.find(rv => {
@@ -123,16 +123,15 @@ class LeasingQuotesAPI {
       let deliveryTermPercentage = qc[dtID] || 0
       let depositFactor = 0
       let lowDepositFactor
-      if (depositPercentage > lowDeposit * 100)
-        lowDepositFactor = 0
+      if (depositPercentage < minimumDeposit)
+        lowDepositFactor = termVal/12 * lowDepositPercent/100
       else
-        lowDepositFactor = lowDepositPercent
+        lowDepositFactor = 0
       let totalPercentage = mathRound(1 + factorPercentage + deliveryTermPercentage + depositFactor + lowDepositFactor, 4)
 
       let depositVal = depositValue && depositValue.value || 0
 
-      // let factorVPdelVR = deliveryFactor.find(df => df.term === term)
-
+      let factorVPdelVR = termVal/12 * presentValueFactor/100
       let monthlyPayment = (priceMx.value - depositVal - (residualValuePerTerm * priceMx.value)/(1 + factorVPdelVR))/(1 + vatRate) * totalPercentage/termVal
       // let monthlyPaymentPMT = (vatRate/12)/(((1+vatRate/12)**termVal)-1)*(netPriceMx.value*((1+vatRate/12)**termVal)-(netPriceMx.value*residualValue/100))
 
@@ -147,7 +146,7 @@ class LeasingQuotesAPI {
         factorPercentage,
         deliveryTermPercentage,
         // depositFactor:
-        lowDepositFactor: depositPercentage > lowDeposit && 0 || lowDepositPercent,
+        lowDepositFactor,
         term,
         commissionFee: {
           value: mathRound(commissionFeeCalculated),
