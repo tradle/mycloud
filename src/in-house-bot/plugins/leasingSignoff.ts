@@ -1,3 +1,4 @@
+import uniqBy from 'lodash/uniqBy'
 import {
   CreatePlugin,
   Bot,
@@ -50,7 +51,7 @@ class LeasingSignoffAPI {
       checksOverride = await Promise.all(checksOverride.map(o => bot.getResource(o)))
     let { latestChecks } = checks &&  await getLatestChecks({ application, bot })
 
-    for (let j=0; j<latestChecks.length; j++) {  
+    for (let j=0; j<latestChecks.length; j++) {
       let check = latestChecks[j]
       let checkType = check[TYPE]
       let status = getEnumValueId({model: models[STATUS], value: check.status})
@@ -61,14 +62,14 @@ class LeasingSignoffAPI {
         logger.debug(`No check override for failed ${models[checkType].title}`)
         return
       }
-      if (getEnumValueId({model: models[OVERRIDE_STATUS], value: override.status}) !== 'pass') return         
+      if (getEnumValueId({model: models[OVERRIDE_STATUS], value: override.status}) !== 'pass') return
     }
     return await this.createSignoffChecks({application, signoffChecks, checks, latestChecks})
   }
   async createSignoffChecks({application, signoffChecks, checks, latestChecks}:{
-    application: IPBApp, 
-    signoffChecks:any, 
-    checks?:ITradleCheck[], 
+    application: IPBApp,
+    signoffChecks:any,
+    checks?:ITradleCheck[],
     latestChecks?:ITradleCheck[]}
     ) {
 
@@ -82,7 +83,7 @@ class LeasingSignoffAPI {
         aspects: signoffChecks[checkId],
       }
       this.logger.debug(`creating ${checkId}`)
-      soChecks.push(this.applications.createCheck(resource, {application, checks, latestChecks}))                
+      soChecks.push(this.applications.createCheck(resource, {application, checks, latestChecks}))
     }
     return await Promise.all(soChecks)
   }
@@ -97,40 +98,41 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (application.processingDataBundle ||
           application.draft) return
 
-      await leasingSignoff.checkAndCreate({application})     
+      await leasingSignoff.checkAndCreate({application})
     },
-    async onResourceChange({ old, value }) {
-      const { models } = bot
-      if (!isSubClassOf('tradle.CheckOverride', models[value[TYPE]], models)) return
-      if (getEnumValueId({model: models[OVERRIDE_STATUS], value: value.status}) !== 'pass') return         
-      
-      let application = await bot.getResource(value.application, {backlinks: ['checks', 'checksOverride']})
-      let { requestFor } = application
-      if (!conf[requestFor]) return
-      const productConf = conf[requestFor]
-      if (!productConf) return  
-      await leasingSignoff.checkAndCreate({application})     
-    },
-    // async didApproveApplication (opts: IWillJudgeAppArg, certificate: ITradleObject) {
+    // async willApproveApplication (opts: IWillJudgeAppArg) {
     //   const { application } = opts
     //   let { checksOverride, requestFor } = application
-    //   if (!checksOverride) return
-    //   const productConf = conf[requestFor]
-    //   if (!productConf) return
-  
+    //   throw new Error('tada')
+    // },
+    // async onMessage (req) {
+    //   const { application, payload } = req
+    //   if (!isSubClassOf('tradle.CheckOverride', models[payload[TYPE]], models)) return
+    //   if (getEnumValueId({model: models[OVERRIDE_STATUS], value: payload.status}) !== 'pass') return
+
+    //   let { checksOverride, requestFor } = application
+    //   const productConf = conf.products && conf.products[requestFor]
+    //   if (!productConf) return 
+
     //   let { signoffChecks } = productConf
     //   if (!signoffChecks) return
-    //   let signOffChecksOverrideTypes =  Object.keys(signoffChecks).map(sc => sc[TYPE] === `${sc}Override`)
+
+    //   if (!checksOverride) return 
+
+    //   let signOffChecksOverrideTypes =  Object.keys(signoffChecks).map(sc => `${sc}Override`)
     //   let signOffChecksOverrideTypesCount = signOffChecksOverrideTypes.length
 
     //   let signoffChecksOverride = checksOverride.filter(co => signOffChecksOverrideTypes.indexOf(co[TYPE]) !== -1)
     //   if (signoffChecksOverride.length < signOffChecksOverrideTypesCount) return
-      
+
     //   const { models } = bot
     //   signoffChecksOverride = await Promise.all(signoffChecksOverride.map(so => bot.getResource(so)))
-    //   signoffChecksOverride = signoffChecksOverride.filter(so => getEnumValueId({model: models[OVERRIDE_STATUS], value: so.status}) !== 'pass')         
+    //   signoffChecksOverride.sort((a, b) => b._time - a._time)
+    //   signoffChecksOverride = uniqBy(signoffChecksOverride, TYPE)
+
+    //   signoffChecksOverride = signoffChecksOverride.filter(so => getEnumValueId({model: models[OVERRIDE_STATUS], value: so.status}) !== 'pass')
     //   if (!signoffChecksOverride.length)
-    //     await this.applications.approve({ application })   
+    //     await applications.approve({ application })
     // }
   }
   return {
