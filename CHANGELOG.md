@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.45](https://github.com/tradle/mycloud/compare/v3.1.1-rc.44...v3.1.1-rc.45) (2022-03-02)
+## [3.1.1-rc.46](https://github.com/tradle/mycloud/compare/v3.1.1-rc.45...v3.1.1-rc.46) (2022-03-04)
 
 
-### Bug Fixes
+### Features
 
-* leasing quotes ([d00c464](https://github.com/tradle/mycloud/commit/d00c464))
+* placeholder for auto-approve ([939ffa3](https://github.com/tradle/mycloud/commit/939ffa3))
 
 
 
