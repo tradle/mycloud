@@ -545,8 +545,7 @@ export const getLatestChecks = async ({ application, bot }) => {
     application.checks.map((stub) => bot.getLatestResource(stub))
   )
 
-  const checksSorted: ITradleCheck[] = checks.sort((a, b) => b._time - a._time)
-
+  const checksSorted: ITradleCheck[] = checks.filter(c => !c.isInactive && !c.nextCheck).sort((a, b) => b._time - a._time)
   let latestChecks: ITradleCheck[] = _.uniqBy(checksSorted, (check: any) => {
       if (check.form)
         return [check.form._permalink, check.propertyName, check[TYPE], check.provider].join(',')
