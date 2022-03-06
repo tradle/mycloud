@@ -195,7 +195,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       let approved = await autoApproveAPI.checkAndAutoapprove({ application, ...productConf })
       if (!approved) {
-        throw new Errors.AbortError('Something is not yet resolved')
+        throw new Error('Something is not yet resolved')
         // if (req)
         //   await bot.sendSimpleMessage({ to: req.user, message: 'Not all conditions are met for approval' })
       }
