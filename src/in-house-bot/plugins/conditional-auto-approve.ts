@@ -3,7 +3,7 @@
 import { TYPE } from '@tradle/constants'
 import { isPassedCheck, isSubClassOf } from '../utils'
 import { getEnumValueId, getLatestChecks } from '../utils'
-
+import Errors from '../../errors'
 import {
   Bot,
   CreatePlugin,
@@ -48,12 +48,12 @@ export class ConditionalAutoApprove {
     this.applications = applications
     this.logger = logger
   }
-  public async checkAndAutoapprove({req, forms, checkTypes}) {
-    const { application } = req
+  public async checkAndAutoapprove({application, forms, checkTypes}) {
     if (forms) {
       for (let ff in forms) {
-        let [f, p] = ff.split('^')
-        let form = application.forms.find(stub => stub.submission[TYPE] === f)
+        // let [f, p] = ff.split('^')
+        let p = forms[ff]
+        let form = application.forms.find(stub => stub.submission[TYPE] === ff)
         if (!form) return false
         form = await this.bot.getResource(form.submission)
         if (!form[p]) return false
@@ -62,8 +62,9 @@ export class ConditionalAutoApprove {
     let { checksOverride: checkOverridesStubs } = application
     let checkOverrides
     // if (checkTypes.length) {
-    let latestChecks: any = req.latestChecks
-    if (!latestChecks) ({ latestChecks } = await getLatestChecks({ application, bot: this.bot }))
+    // let latestChecks: any = req.latestChecks
+    // if (!latestChecks) ({ latestChecks } = await getLatestChecks({ application, bot: this.bot }))
+    const { latestChecks } = await getLatestChecks({ application, bot: this.bot })
     if (!latestChecks) return
     let foundChecks = 0
     for (let i = 0; i < latestChecks.length; i++) {
@@ -88,7 +89,6 @@ export class ConditionalAutoApprove {
     if (checkTypes) {
       if (foundChecks !== checkTypes.length) return false
     }
-    await this.applications.approve({ application })  
     return true
   }
   // public checkTheChecks = async ({ check }) => {
@@ -167,7 +167,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let productConf = conf.products[application.requestFor]
       if (!productConf) return
 
-      await autoApproveAPI.checkAndAutoapprove({ req, ...productConf })
+      if (await autoApproveAPI.checkAndAutoapprove({ application, ...productConf }))
+        await applications.approve({ req, application })  
     },
     onmessage: async function(req) {
       if (req.skipChecks) {
@@ -181,20 +182,22 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let productConf = conf.products[application.requestFor]
       if (!productConf) return
 
-      await autoApproveAPI.checkAndAutoapprove({ req, ...productConf })
+      if (await autoApproveAPI.checkAndAutoapprove({ application, ...productConf }))
+        await applications.approve({ req, application })  
     },
     async willApproveApplication (opts: IWillJudgeAppArg) {
       const { req, application } = opts
       if (!application || application.draft || application.status === 'approved') return
-        let { requestFor } = application
+      let { requestFor } = application
 
       const productConf = conf.products[requestFor]
       if (!productConf) return 
 
-      let approved = await autoApproveAPI.checkAndAutoapprove({ req, ...productConf })
+      let approved = await autoApproveAPI.checkAndAutoapprove({ application, ...productConf })
       if (!approved) {
-        if (req)
-          await bot.sendSimpleMessage({ to: req.user, message: 'Not all conditions are met for approval' })
+        throw new Errors.AbortError('Something is not yet resolved')
+        // if (req)
+        //   await bot.sendSimpleMessage({ to: req.user, message: 'Not all conditions are met for approval' })
       }
         
     }
@@ -221,10 +224,9 @@ export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }
     if (!forms) forms = {}
     if (Object.keys(forms).length > 1) throw new Error(`Only one property should be an indicator for auto-approve`)
     for (let ff in forms) {
-      let [f, p] = ff.split('^')
-      let m = models[f]
-      if (!m) throw new Error(`missing model: ${f}`)
-      
+      let m = models[ff]
+      if (!m) throw new Error(`missing model: ${ff}`)
+      let p = forms[ff] 
       if (!m[p]) throw new Error(`missing property ${p} in model ${ff}`)
     }
   }

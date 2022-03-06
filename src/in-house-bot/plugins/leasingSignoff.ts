@@ -100,40 +100,42 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       await leasingSignoff.checkAndCreate({application})
     },
-    // async willApproveApplication (opts: IWillJudgeAppArg) {
-    //   const { application } = opts
-    //   let { checksOverride, requestFor } = application
-    //   throw new Error('tada')
-    // },
-    // async onMessage (req) {
-    //   const { application, payload } = req
-    //   if (!isSubClassOf('tradle.CheckOverride', models[payload[TYPE]], models)) return
-    //   if (getEnumValueId({model: models[OVERRIDE_STATUS], value: payload.status}) !== 'pass') return
+    async willApproveApplication (opts: IWillJudgeAppArg) {
+      const { application } = opts
+      
+      if (application.status === 'approved') return
+     
+      let { requestFor } = application
 
-    //   let { checksOverride, requestFor } = application
-    //   const productConf = conf.products && conf.products[requestFor]
-    //   if (!productConf) return 
+      const productConf = conf.products && conf.products[requestFor]
+      if (!productConf) return 
 
-    //   let { signoffChecks } = productConf
-    //   if (!signoffChecks) return
+      let { signoffChecks } = productConf
+      if (!signoffChecks) return
+      let message = 'Application should be completed before approval'
+      if (application.status !== 'completed') 
+        throw new Error(message)
+      // let message = 'All credit committee checks should be overwritten before application can be approved'
+        // if (!checksOverride) 
+      //   throw new Error(message) 
 
-    //   if (!checksOverride) return 
+      // let signOffChecksOverrideTypes =  Object.keys(signoffChecks).map(sc => `${sc}Override`)
+      // let signOffChecksOverrideTypesCount = signOffChecksOverrideTypes.length
 
-    //   let signOffChecksOverrideTypes =  Object.keys(signoffChecks).map(sc => `${sc}Override`)
-    //   let signOffChecksOverrideTypesCount = signOffChecksOverrideTypes.length
+      // let signoffChecksOverride = checksOverride.filter(co => signOffChecksOverrideTypes.indexOf(co[TYPE]) !== -1)
+      // if (signoffChecksOverride.length < signOffChecksOverrideTypesCount) return
 
-    //   let signoffChecksOverride = checksOverride.filter(co => signOffChecksOverrideTypes.indexOf(co[TYPE]) !== -1)
-    //   if (signoffChecksOverride.length < signOffChecksOverrideTypesCount) return
+      // const { models } = bot
+      // signoffChecksOverride = await Promise.all(signoffChecksOverride.map(so => bot.getResource(so)))
+      // signoffChecksOverride.sort((a, b) => b._time - a._time)
+      // signoffChecksOverride = uniqBy(signoffChecksOverride, TYPE)
 
-    //   const { models } = bot
-    //   signoffChecksOverride = await Promise.all(signoffChecksOverride.map(so => bot.getResource(so)))
-    //   signoffChecksOverride.sort((a, b) => b._time - a._time)
-    //   signoffChecksOverride = uniqBy(signoffChecksOverride, TYPE)
-
-    //   signoffChecksOverride = signoffChecksOverride.filter(so => getEnumValueId({model: models[OVERRIDE_STATUS], value: so.status}) !== 'pass')
-    //   if (!signoffChecksOverride.length)
-    //     await applications.approve({ application })
-    // }
+      // signoffChecksOverride = signoffChecksOverride.filter(so => getEnumValueId({model: models[OVERRIDE_STATUS], value: so.status}) !== 'pass')
+      // if (!signoffChecksOverride.length) return
+      // if (req)
+      //   await bot.sendSimpleMessage({ to: user, message })
+      // throw new Error(message)
+    }
   }
   return {
     plugin
