@@ -1,9 +1,9 @@
 // import _ from 'lodash'
 // import validateResource from '@tradle/validate-resource'
 import { TYPE } from '@tradle/constants'
-import { isPassedCheck } from '../utils'
+import { isPassedCheck, isSubClassOf } from '../utils'
 import { getEnumValueId, getLatestChecks } from '../utils'
-
+import Errors from '../../errors'
 import {
   Bot,
   CreatePlugin,
@@ -12,32 +12,34 @@ import {
   ITradleCheck,
   IPBApp,
   Applications,
-  Logger
+  Logger,
+  IWillJudgeAppArg
 } from '../types'
+import { uniqBy } from 'lodash'
+import models from '../../models'
 
 // const { parseStub } = validateResource.utils
 
 // export const name = 'conditional-auto-approve'
-const STATUS = 'tradle.Status'
+const CHECK_OVERRIDE = 'tradle.CheckOverride'
+const OVERRIDE_STATUS = 'tradle.OverrideStatus'
 
-const getResourceType = resource => resource[TYPE]
-
-interface IConditionalAutoApproveConf {
-  [product: string]: {
-    [targetCheck: string]: string[]
-  }
-}
+// interface IConditionalAutoApproveConf {
+//   [product: string]: {
+//     [targetCheck: string]: string[]
+//   }
+// }
 
 type ConditionalAutoApproveOpts = {
   bot: Bot
-  conf: IConditionalAutoApproveConf
+  conf: any
   applications: Applications
   logger: Logger
 }
 
 export class ConditionalAutoApprove {
   private bot: Bot
-  private conf: IConditionalAutoApproveConf
+  private conf: any //IConditionalAutoApproveConf
   private applications: Applications
   private logger: Logger
   constructor({ bot, conf, applications, logger }: ConditionalAutoApproveOpts) {
@@ -46,102 +48,158 @@ export class ConditionalAutoApprove {
     this.applications = applications
     this.logger = logger
   }
+  public async checkAndAutoapprove({application, forms, checkTypes}) {
+    if (forms) {
+      for (let ff in forms) {
+        // let [f, p] = ff.split('^')
+        let p = forms[ff]
+        let form = application.forms.find(stub => stub.submission[TYPE] === ff)
+        if (!form) return false
+        form = await this.bot.getResource(form.submission)
+        if (!form[p]) return false
+      }
+    }
+    let { checksOverride: checkOverridesStubs } = application
+    let checkOverrides
+    // if (checkTypes.length) {
+    // let latestChecks: any = req.latestChecks
+    // if (!latestChecks) ({ latestChecks } = await getLatestChecks({ application, bot: this.bot }))
+    const { latestChecks } = await getLatestChecks({ application, bot: this.bot })
+    if (!latestChecks) return
+    let foundChecks = 0
+    for (let i = 0; i < latestChecks.length; i++) {
+      let c = latestChecks[i]
+      if (checkTypes  &&  !checkTypes.includes(c[TYPE])) continue
+      
+      foundChecks++
+      if (c.status === undefined || isPassedCheck({status: c.status})) continue
 
-  public checkTheChecks = async ({ check }) => {
-    this.logger.debug('checking if all checks passed')
-    const application = await this.bot.getResource(check.application, { backlinks: ['forms'] })
-    if (application.draft) return
-    const product = application.requestFor
+      if (!checkOverridesStubs) return false
+      if (!checkOverrides) 
+        checkOverrides = await Promise.all(checkOverridesStubs.map(stub => this.bot.getResource(stub)))
 
-    const checksToCheck = this.conf.products[product]
-    if (!checksToCheck) {
-      this.logger.debug(`not configured for product: ${product}`)
-      return
+      let checkOverride = checkOverrides.find(co => co.check._link === c._link)
+      if (!checkOverride) return false
+      
+      let checkOverrideType = `${c[TYPE]}Override`
+      let co = checkOverrides.find(co => co[TYPE] === checkOverrideType)
+      if (!co || getEnumValueId({ model: this.bot.models[OVERRIDE_STATUS], value: co.status }) !== 'pass') return     
     }
 
-    const thisCheckType = check[TYPE]
-    if (checksToCheck.length && !checksToCheck.includes(thisCheckType)) {
-      this.logger.debug(`ignoring check ${thisCheckType}, not relevant for auto-approve`)
-      return
+    if (checkTypes) {
+      if (foundChecks !== checkTypes.length) return false
     }
-
-    // Check if all forms submitted
-    const productForms = this.bot.models[product].forms
-    let formsSubmitted = []
-    let forms = application.submissions.filter(f => {
-      if (productForms.include(f[TYPE]) && !formsSubmitted.includes(f[TYPE]))
-        formsSubmitted.push(f[TYPE])
-    })
-    if (forms.length !== productForms.length) return
-    let { latestChecks } = await getLatestChecks({ application, bot: this.bot })
-    // check that just passed may not have had correponding ApplicationSubmission created yet
-    // and so may not be in the result
-    const idx = latestChecks.findIndex((c: any) => c._permalink === check._permalink)
-    if (idx === -1) {
-      latestChecks.push(check)
-    } else {
-      latestChecks[idx] = check
-    }
-
-    const foundChecks = latestChecks.filter((check: any) => {
-      return isPassedCheck(check) && checksToCheck.includes(check[TYPE])
-    })
-
-    if (foundChecks.length !== checksToCheck.length) {
-      this.logger.debug('not ready to auto-approve', {
-        product,
-        passed: foundChecks.map(getResourceType),
-        required: checksToCheck.map(getResourceType)
-      })
-
-      return
-    }
-
-    this.logger.debug('auto-approving application')
-    await this.applications.approve({ application })
+    return true
   }
+  // public checkTheChecks = async ({ check }) => {
+  //   this.logger.debug('checking if all checks passed')
+  //   const application = await this.bot.getResource(check.application, { backlinks: ['forms'] })
+  //   if (application.draft) return
+  //   const product = application.requestFor
+
+  //   const checksToCheck = this.conf.products[product]
+  //   if (!checksToCheck) {
+  //     this.logger.debug(`not configured for product: ${product}`)
+  //     return
+  //   }
+
+  //   const thisCheckType = check[TYPE]
+  //   if (checksToCheck.length && !checksToCheck.includes(thisCheckType)) {
+  //     this.logger.debug(`ignoring check ${thisCheckType}, not relevant for auto-approve`)
+  //     return
+  //   }
+
+  //   // Check if all forms submitted
+  //   const productForms = this.bot.models[product].forms
+  //   let formsSubmitted = []
+  //   let forms = application.submissions.filter(f => {
+  //     if (productForms.include(f[TYPE]) && !formsSubmitted.includes(f[TYPE]))
+  //       formsSubmitted.push(f[TYPE])
+  //   })
+  //   if (forms.length !== productForms.length) return
+  //   let { latestChecks } = await getLatestChecks({ application, bot: this.bot })
+  //   // check that just passed may not have had correponding ApplicationSubmission created yet
+  //   // and so may not be in the result
+  //   const idx = latestChecks.findIndex((c: any) => c._permalink === check._permalink)
+  //   if (idx === -1) {
+  //     latestChecks.push(check)
+  //   } else {
+  //     latestChecks[idx] = check
+  //   }
+
+  //   const foundChecks = latestChecks.filter((check: any) => {
+  //     return isPassedCheck(check) && checksToCheck.includes(check[TYPE])
+  //   })
+
+  //   if (foundChecks.length !== checksToCheck.length) {
+  //     this.logger.debug('not ready to auto-approve', {
+  //       product,
+  //       passed: foundChecks.map(getResourceType),
+  //       required: checksToCheck.map(getResourceType)
+  //     })
+
+  //     return
+  //   }
+
+  //   this.logger.debug('auto-approving application')
+  //   await this.applications.approve({ application })
+  // }
 }
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
   const autoApproveAPI = new ConditionalAutoApprove({ bot, conf, applications, logger })
   const plugin: IPluginLifecycleMethods = {
-    onCheckStatusChanged: async (check: ITradleCheck) => {
-      // check only if check changed not for new check
-      if (!check._prevlink || !isPassedCheck(check)) return
+    // onCheckStatusChanged: async (check: ITradleCheck) => {
+    //   // check only if check changed not for new check
+    //   if (!check._prevlink || !isPassedCheck(check)) return
 
-      // debugger
-      await autoApproveAPI.checkTheChecks({ check })
-    },
+    //   // debugger
+    //   await autoApproveAPI.checkTheChecks({ check })
+    // },
     onFormsCollected: async function({ req }) {
       if (req.skipChecks) {
         logger.debug('skipped, skipChecks=true')
         return
       }
       const { application } = req
-      if (!application || application.draft) {
-        logger.debug('skipped, no application')
+      if (!application || application.draft || application.status === 'approved') return
+
+      let productConf = conf.products[application.requestFor]
+      if (!productConf) return
+
+      if (await autoApproveAPI.checkAndAutoapprove({ application, ...productConf }))
+        await applications.approve({ req, application })  
+    },
+    onmessage: async function(req) {
+      if (req.skipChecks) {
+        logger.debug('skipped, skipChecks=true')
         return
       }
-      let checkTypes = conf.products[application.requestFor]
-      if (!checkTypes) return
-      // debugger
+      const { application, payload } = req
+      if (!application || application.draft || application.status === 'approved') return
+      if (!isSubClassOf(CHECK_OVERRIDE, bot.models[payload[TYPE]], bot.models)) return
 
-      if (checkTypes.length) {
-        let latestChecks: any = req.latestChecks
-        if (!latestChecks) ({ latestChecks } = await getLatestChecks({ application, bot }))
-        if (!latestChecks) return
-        let foundChecks = 0
-        for (let i = 0; i < latestChecks.length; i++) {
-          let c = latestChecks[i]
-          if (!checkTypes.includes(c[TYPE])) continue
-          foundChecks++
+      let productConf = conf.products[application.requestFor]
+      if (!productConf) return
 
-          if (getEnumValueId({ model: bot.models[STATUS], value: c.status }) !== 'pass') return
-          // if (c.status.title.toLowerCase() !== 'pass') return
-        }
-        if (foundChecks === checkTypes.length) await applications.approve({ application })
-      } else if (await applications.haveAllChecksPassed({ application }))
-        await applications.approve({ application })
+      if (await autoApproveAPI.checkAndAutoapprove({ application, ...productConf }))
+        await applications.approve({ req, application })  
+    },
+    async willApproveApplication (opts: IWillJudgeAppArg) {
+      const { req, application } = opts
+      if (!application || application.draft || application.status === 'approved') return
+      let { requestFor } = application
+
+      const productConf = conf.products[requestFor]
+      if (!productConf) return 
+
+      let approved = await autoApproveAPI.checkAndAutoapprove({ application, ...productConf })
+      if (!approved) {
+        throw new Error('Something is not yet resolved')
+        // if (req)
+        //   await bot.sendSimpleMessage({ to: req.user, message: 'Not all conditions are met for approval' })
+      }
+        
     }
   }
 
@@ -151,8 +209,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
   const { models } = bot
   // debugger
-  for (let appType in <IConditionalAutoApproveConf>pluginConf) {
-    let checks = pluginConf[appType]
+  for (let appType in pluginConf) {
+    let { checks, forms } = pluginConf[appType]
+    if (!checks  &&  !forms) return
+    if (!checks) checks = {}
     for (let target in checks) {
       if (!models[target]) throw new Error(`missing model: ${target}`)
 
@@ -160,6 +220,14 @@ export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }
       sources.forEach(source => {
         if (!models[source]) throw new Error(`missing model: ${source}`)
       })
+    }
+    if (!forms) forms = {}
+    if (Object.keys(forms).length > 1) throw new Error(`Only one property should be an indicator for auto-approve`)
+    for (let ff in forms) {
+      let m = models[ff]
+      if (!m) throw new Error(`missing model: ${ff}`)
+      let p = forms[ff] 
+      if (!m[p]) throw new Error(`missing property ${p} in model ${ff}`)
     }
   }
 }

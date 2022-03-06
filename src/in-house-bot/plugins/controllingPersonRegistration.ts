@@ -22,8 +22,6 @@ import { enumValue } from '@tradle/build-resource'
 
 import { hasPropertiesChanged, getEnumValueId } from '../utils'
 import { appLinks } from '../../app-links'
-// import { SMSBasedVerifier } from '../sms-based-verifier'
-// import { compare } from '@tradle/dynamodb/lib/utils'
 
 const REUSE_CHECK = 'tradle.ReuseOfDataCheck'
 const REUSE_CHECK_OVERRIDE = 'tradle.ReuseOfDataCheckOverride'
@@ -108,19 +106,6 @@ interface IControllingPersonRegistrationConf {
       unit: string
     }
   }
-}
-const getSMSClient = ({
-  bot,
-  gateway = DEFAULT_SMS_GATEWAY
-}: {
-  bot: Bot
-  gateway: SMSGatewayName
-}): ISMS => {
-  if (gateway.toLowerCase() === 'sns') {
-    return bot.snsUtils
-  }
-
-  throw new Errors.InvalidInput(`SMS gateway "${gateway}" not found`)
 }
 
 export const renderConfirmationEmail = (data: ConfirmationEmailTemplateData) =>

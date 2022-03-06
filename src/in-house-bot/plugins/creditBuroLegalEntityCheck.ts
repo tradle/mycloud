@@ -64,7 +64,7 @@ const ASPECTS = 'Credit validity'
 
 const CREDIT_CHECK = 'tradle.CreditReportLegalEntityCheck'
 const LEGAL_ENTITY_TYPE = 'tradle.legal.LegalEntity'
-const CONSENT_TYPE = 'com.leaseforu.ApplicantLegalEntityConsent'
+const CONSENT_TYPE = 'tradle.legal.CreditReportLegalEntityConsent'
 
 const CB_SUBJECT = 'com.leaseforu.CreditBureauLegalEntitySubject'
 

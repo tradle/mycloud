@@ -6,16 +6,13 @@ import {
   Logger,
   CreatePlugin,
   Applications,
-  ISMS,
   IPluginLifecycleMethods,
-  ApplicationSubmission
 } from '../types'
 import * as Templates from '../templates'
 import Errors from '../../errors'
 import { TYPE } from '../../constants'
 
 import { buildResourceStub } from '@tradle/build-resource'
-import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 
 import { appLinks } from '../../app-links'
@@ -29,9 +26,6 @@ const ASPECTS = 'New BO simulation'
 const PROVIDER = 'PSC registry'
 
 const DEAR_CUSTOMER = 'Dear Customer'
-const DEFAULT_SMS_GATEWAY = 'sns'
-type SMSGatewayName = 'sns'
-
 const BO_ONBOARD_MESSAGE = 'New BO onboarding'
 
 const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
@@ -53,19 +47,6 @@ const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
     }
   ],
   signature: '-{{orgName}} Team'
-}
-const getSMSClient = ({
-  bot,
-  gateway = DEFAULT_SMS_GATEWAY
-}: {
-  bot: Bot
-  gateway: SMSGatewayName
-}): ISMS => {
-  if (gateway.toLowerCase() === 'sns') {
-    return bot.snsUtils
-  }
-
-  throw new Errors.InvalidInput(`SMS gateway "${gateway}" not found`)
 }
 
 export const renderConfirmationEmail = (data: ConfirmationEmailTemplateData) =>

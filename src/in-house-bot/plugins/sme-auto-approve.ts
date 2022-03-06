@@ -208,7 +208,9 @@ export class TreeBuilder {
   public async findAndInsertTreeNode({ req, isInit }) {
     let { application, payload } = req
     let { top, parent, associatedResource } = application
-
+    
+    if (!top) return
+    
     let topApp = await this.bot.getLatestResource(top)
     if (!topApp.tree) return
  
