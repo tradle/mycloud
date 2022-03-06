@@ -276,7 +276,8 @@ export class BuroCheckAPI {
     this.logger.debug(`${PROVIDER} created CreditReportIndividualCheck`)
     return checkWrapper.resource
   }
-  async addMoreCheckProps(resource, status) {
+  
+  private addMoreCheckProps = async (resource, status) => {
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
     if (status.rawData) {
@@ -291,26 +292,26 @@ export class BuroCheckAPI {
     let jsonObj = parser.parseStringSync(xml)
     if (this.conf.trace)
       this.logger.debug(JSON.stringify(jsonObj, null, 2))
-    const rawData: any = jsonObj["soapenv:Envelope"]["soapenv:Body"]["ns2:consultaXMLResponse"].return.Personas.Persona
-    if (rawData.Error) {
-      if (rawData.Error.UR.PasswordOClaveErronea || 
-          rawData.Error.UR.ErrorSistemaBuroCredito)
+    const ret = jsonObj["soapenv:Envelope"]["soapenv:Body"]["ns2:consultaXMLResponse"].return
+    if (ret.Error) {
+      if (ret.Error.UR.PasswordOClaveErronea || 
+          ret.Error.UR.ErrorSistemaBuroCredito)
         return {
             status: 'error',
-            rawData,
+            rawData: ret,
             message: 'username or password error'
         }
-        else   
+      else   
           return {
             status: 'fail',
-            rawData,
+            rawData: ret,
             message: 'no match found'
           }
     } else {
       return {
         status: 'pass',
         message: 'match found',
-        rawData
+        rawData: ret.Personas.Persona
       }
     }
   }
@@ -551,6 +552,7 @@ export class BuroCheckAPI {
       done: false,
       attempts: 1,
       lastAttempt: Date.now(),
+      created: Date.now(), 
       frequency: 5*60*1000,
       message,
       pendingRef
@@ -564,6 +566,8 @@ export class BuroCheckAPI {
   private updatePendingWork = async (pendingWork: ITradleObject, message: string) => {
     pendingWork.lastAttempt = Date.now();
     pendingWork.attempts += 1
+    if (pendingWork.attempts >= 72) 
+      pendingWork.done = true
     pendingWork.message = message
     if (this.conf.trace)
       this.logger.debug(`creditBuroCheck updatePendingWork: ${JSON.stringify(pendingWork)}`)
@@ -762,7 +766,8 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
       if (!application) return
 
       let { checks } = application
-      let parentChecks, parentForms
+      let parentChecks
+      let parentForms
 
       if (application.parent) {
         let parentApp = await bot.getResource(application.parent, {backlinks: ['checks']} )
