@@ -2,12 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.46](https://github.com/tradle/mycloud/compare/v3.1.1-rc.45...v3.1.1-rc.46) (2022-03-04)
+## [3.1.1-rc.47](https://github.com/tradle/mycloud/compare/v3.1.1-rc.46...v3.1.1-rc.47) (2022-03-06)
+
+
+### Bug Fixes
+
+* latest checks ([88e838a](https://github.com/tradle/mycloud/commit/88e838a))
+* minor change ([dfaf09e](https://github.com/tradle/mycloud/commit/dfaf09e))
 
 
 ### Features
 
-* placeholder for auto-approve ([939ffa3](https://github.com/tradle/mycloud/commit/939ffa3))
+* approve upon satisfying conditions ([7622256](https://github.com/tradle/mycloud/commit/7622256))
+* conditional auto-approval ([81f3b00](https://github.com/tradle/mycloud/commit/81f3b00))
+* conditional auto-approval ([b52f137](https://github.com/tradle/mycloud/commit/b52f137))
 
 
 
