@@ -113,7 +113,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let { signoffChecks } = productConf
       if (!signoffChecks) return
       let message = 'Application should be completed before approval'
-      if (application.status !== 'completed') 
+      if (application.status === 'started') 
         throw new Error(message)
       // let message = 'All credit committee checks should be overwritten before application can be approved'
         // if (!checksOverride) 
