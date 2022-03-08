@@ -38,6 +38,7 @@ type SmeVerifierOpts = {
 interface ISmeConf {
   parent: string
   child: string
+  associatedResource?: string
 }
 
 export class SmeVerifier {
@@ -52,7 +53,7 @@ export class SmeVerifier {
     this.logger = logger
   }
 
-  public async checkCPs (application: IPBApp, childProduct?:string) {
+  public async checkCPs ({application, childProduct, associatedResource}:{application: IPBApp, childProduct?:string, associatedResource?:string}) {
     let aApp,
       checkIfAllFormsSubmitted = true
     if (application.parent) {
@@ -82,8 +83,8 @@ export class SmeVerifier {
         return
       }
     }
-
-    let cp = submissions.filter(f => f.submission[TYPE] === CP)
+    let associatedResourceType = associatedResource || CP
+    let cp = submissions.filter(f => f.submission[TYPE] === associatedResourceType)
     if (!cp.length) return
 
     let { items } = await this.bot.db.find({
@@ -145,8 +146,11 @@ export class SmeVerifier {
       return
     }
     this.logger.debug('auto-approving application')
-
-    await this.applications.approve({ application: aApp })
+    try {
+      await this.applications.approve({ application: aApp })
+    } catch (err) {
+      this.logger.debug(err.message)
+    }
   }
   public async checkAndUpdateNotification(application) {
     let { parent, associatedResource } = application
@@ -416,6 +420,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!pairs.length) return
 
       let childProduct = makeMyProductModelID(pairs[0].child)
+      let associatedResource = pairs[0].associatedResource
       // debugger
       if (certificate[TYPE] === childProduct) {
         await treeBuilderAPI.findAndInsertTreeNode({
@@ -426,7 +431,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         logger.debug(
           'New child application was approved. Check if parent application can be auto-approved'
         )
-        await smeVerifierAPI.checkCPs(application, childProduct)
+        await smeVerifierAPI.checkCPs({application, childProduct, associatedResource})
       }
     },
     // check if auto-approve ifvapplication Legal entity product was submitted
@@ -441,7 +446,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       // debugger
       if (pairs.length) {
         logger.debug('Parent application was submitted. Check if all child applications checked in')
-        await smeVerifierAPI.checkCPs(application)
+        let associatedResource = pairs[0].associatedResource
+        await smeVerifierAPI.checkCPs({application, associatedResource})
         return
       }
       pairs = conf.filter(pair => requestFor === pair.child && pair.parent !== pair.child)
@@ -548,13 +554,15 @@ export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }
   if (!pluginConf.length) throw new Error(`'pairs' is empty in conf`)
   pluginConf.forEach(pair => {
     for (let appType in pair as ISmeConf) {
-      let child = pair.child
+      let { child, parent, associatedResource } = pair
       if (!child) throw new Error('missing child')
       if (!models[child]) throw new Error(`there is no model: ${child}`)
 
-      let parent = pair.parent
       if (!parent) throw new Error('missing parent')
       if (!models[parent]) throw new Error(`there is no model: ${parent}`)
+
+      if (associatedResource) 
+        if (!models[associatedResource]) throw new Error(`there is no model: ${associatedResource}`)
     }
   })
 }
