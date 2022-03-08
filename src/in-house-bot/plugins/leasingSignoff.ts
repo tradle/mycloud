@@ -15,6 +15,7 @@ import {
 import { TYPE } from '@tradle/constants'
 import { getEnumValueId } from '../../utils'
 import { getLatestChecks, isSubClassOf } from '../utils'
+import { Errors } from '../..'
 const STATUS = 'tradle.Status'
 const OVERRIDE_STATUS = 'tradle.OverrideStatus'
 
@@ -114,7 +115,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!signoffChecks) return
       let message = 'Application should be completed before approval'
       if (application.status === 'started') 
-        throw new Error(message)
+        throw new Errors.AbortError(message)
       // let message = 'All credit committee checks should be overwritten before application can be approved'
         // if (!checksOverride) 
       //   throw new Error(message) 
