@@ -17,11 +17,7 @@ const { FORM } = TYPES
 
 const ATTESTATION = 'tradle.Attestation'
 const ATTESTATION_ITEM = 'tradle.AttestationItem'
-const ATTESTATION_CHECK = 'tradle.AttestationCheck'
 const FORM_REQUEST = 'tradle.FormRequest'
-const PHOTO_ID = 'tradle.PhotoID'
-const PERSONAL_INFO = 'tradle.PersonalInfo'
-const ASPECTS = 'Attestation'
 
 export const name = 'attestation'
 const exclude = [
@@ -99,7 +95,8 @@ class AttestationsAPI {
     }
 
     // forms.sort((a, b) => b._time - a._time)
-    forms = forms.map(f => f.submission)
+    forms = forms.map(f => f.submission).filter(f => isSubClassOf(FORM, models[f[TYPE]], models))
+    
     forms = _.uniqBy(forms, '_permalink')
 
     forms = await Promise.all(forms.map(f => this.bot.getResource(f)))
