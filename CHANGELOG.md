@@ -2,18 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.48](https://github.com/tradle/mycloud/compare/v3.1.1-rc.47...v3.1.1-rc.48) (2022-03-08)
-
-
-### Bug Fixes
-
-* attestation bundle has resources that should not be there ([1ecf890](https://github.com/tradle/mycloud/commit/1ecf890))
-* bundle can have only forms ([0e26c64](https://github.com/tradle/mycloud/commit/0e26c64))
-
-
-### Features
-
-* auto-approve application if subApplications approved ([dc84d5d](https://github.com/tradle/mycloud/commit/dc84d5d))
+## [3.1.1-rc.49](https://github.com/tradle/mycloud/compare/v3.1.1-rc.48...v3.1.1-rc.49) (2022-03-08)
 
 
 
