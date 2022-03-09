@@ -222,8 +222,9 @@ export class BuroCheckAPI {
       if (this.conf.samples) {
         let parser = new xml2js.Parser({ explicitArray: false, trim: true })
         let jsonObj = parser.parseStringSync(pendingWork.request)
+        let rfc = jsonObj["soapenv:Envelope"]["soapenv:Body"]["bean:consultaXML"].Consulta.Personas.Persona.Nombre.RFC
         xml = await this.getFileFromS3(samplesS3,
-                                       this.conf.sampleReportsFolder + '/' + jsonObj.consulta.persona.rfc + '.xml',
+                                       this.conf.sampleReportsFolder + '/' + rfc + '.xml',
                                        this.conf.sampleReportsBucket)   
       }
       else 
