@@ -1,7 +1,8 @@
 import cloneDeep from 'lodash/cloneDeep'
 import size from 'lodash/size'
 import extend from 'lodash/extend'
-
+const { xirr, convertRate } = require('node-irr')
+import dateformat from 'dateformat'
 import {
   CreatePlugin,
   Bot,
@@ -102,7 +103,7 @@ class LeasingQuotesAPI {
     let { residualValue } = await this.bot.getResource(asset)
     // let configurationItems = await Promise.all(deliveryFactor.map(df => this.bot.getResource(df)))
     let defaultQC = configurationItems[0]
-
+   
     configurationItems.forEach((quotConf:any, i) => {
       let qc = cloneDeep(defaultQC)
       for (let p in quotConf)
@@ -183,6 +184,27 @@ class LeasingQuotesAPI {
           currency
         }
       }
+      let payPerMonth = qd.monthlyPayment.value*(1 + vatRate)
+      let initPayment = depositValue.value > 0 ? qd.totalInitialPayment.value : payPerMonth
+      let d = new Date()
+      let date = dateformat(d.getTime(), 'yyyy-mm-dd')
+
+      let data = [
+        {amount: -priceMx.value, date}, 
+        {amount: initPayment, date}
+      ]
+      let m = d.getMonth()
+      for (let j=0; j<termVal - 1; j++) {
+        this.nextMonth(d)          
+        let md = dateformat(d.getTime(), 'yyyy-mm-dd')
+        data.push({amount: payPerMonth, date: md})
+      }
+      this.nextMonth(d)
+      data.push({amount: payPerMonth + qd.purchaseOptionPrice.value, date: dateformat(d.getTime(), 'yyyy-mm-dd')})
+
+      const {rate} = xirr(data)
+      qd.xirr = Math.round(convertRate(rate, 365) * 100 * 100)/100
+      
       qd = sanitize(qd).sanitized
       quotationDetails.push(qd)
     })
@@ -190,6 +212,15 @@ class LeasingQuotesAPI {
       type: ftype,
       terms: quotationDetails
     }
+  }
+  private nextMonth(date) {
+    let m = date.getMonth() + 1
+    if (m && m % 12 === 0) {
+      m = 0
+      date.setFullYear(date.getFullYear() + 1)
+    }
+
+    date.setMonth(m)
   }
   public async amortizationPerMonth({application, formRequest}) {
     const stubs = getLatestForms(application)
