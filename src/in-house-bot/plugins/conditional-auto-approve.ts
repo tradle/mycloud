@@ -15,15 +15,15 @@ import {
   Logger,
   IWillJudgeAppArg
 } from '../types'
-import { uniqBy } from 'lodash'
-import models from '../../models'
-
-// const { parseStub } = validateResource.utils
 
 // export const name = 'conditional-auto-approve'
 const CHECK_OVERRIDE = 'tradle.CheckOverride'
 const OVERRIDE_STATUS = 'tradle.OverrideStatus'
-
+const EXCLUDE_CHECKS = [
+  'tradle.EmailCheck',
+  'tradle.PhoneCheck',
+  'tradle.ClientEditsCheck'
+]
 // interface IConditionalAutoApproveConf {
 //   [product: string]: {
 //     [targetCheck: string]: string[]
@@ -48,7 +48,7 @@ export class ConditionalAutoApprove {
     this.applications = applications
     this.logger = logger
   }
-  public async checkAndAutoapprove({application, forms, checkTypes}) {
+  public async checkAndAutoapprove({application, forms, checks}) {
     if (forms) {
       for (let ff in forms) {
         // let [f, p] = ff.split('^')
@@ -69,8 +69,8 @@ export class ConditionalAutoApprove {
     let foundChecks = 0
     for (let i = 0; i < latestChecks.length; i++) {
       let c = latestChecks[i]
-      if (checkTypes  &&  !checkTypes.includes(c[TYPE])) continue
-      
+      if (checks  &&  !checks.includes(c[TYPE])) continue
+      if (EXCLUDE_CHECKS.includes(c[TYPE])) continue
       foundChecks++
       if (c.status === undefined || isPassedCheck({status: c.status})) continue
 
@@ -86,8 +86,8 @@ export class ConditionalAutoApprove {
       if (!co || getEnumValueId({ model: this.bot.models[OVERRIDE_STATUS], value: co.status }) !== 'pass') return     
     }
 
-    if (checkTypes) {
-      if (foundChecks !== checkTypes.length) return false
+    if (checks) {
+      if (foundChecks !== checks.length) return false
     }
     return true
   }
