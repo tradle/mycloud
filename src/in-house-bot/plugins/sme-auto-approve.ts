@@ -53,7 +53,7 @@ export class SmeVerifier {
     this.logger = logger
   }
 
-  public async checkCPs ({application, childProduct, associatedResource}:{application: IPBApp, childProduct?:string, associatedResource?:string}) {
+  public async checkCPs ({application, childProduct, associatedResource, req}:{application: IPBApp, childProduct?:string, associatedResource?:string, req: IPBReq}) {
     let aApp,
       checkIfAllFormsSubmitted = true
     if (application.parent) {
@@ -147,7 +147,7 @@ export class SmeVerifier {
     }
     this.logger.debug('auto-approving application')
     try {
-      await this.applications.approve({ application: aApp })
+      await this.applications.approve({ application: aApp, req })
     } catch (err) {
       this.logger.debug(err.message)
     }
@@ -405,7 +405,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
   // debugger
   const plugin: IPluginLifecycleMethods = {
     didApproveApplication: async (opts: IWillJudgeAppArg, certificate: ITradleObject) => {
-      let { application } = opts
+      let { application, req, user } = opts
       if (!application || !conf.length) return
       let parent = application.parent
       if (!parent) return
@@ -431,7 +431,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         logger.debug(
           'New child application was approved. Check if parent application can be auto-approved'
         )
-        await smeVerifierAPI.checkCPs({application, childProduct, associatedResource})
+        await smeVerifierAPI.checkCPs({application, childProduct, associatedResource, req})
       }
     },
     // check if auto-approve ifvapplication Legal entity product was submitted
@@ -447,7 +447,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (pairs.length) {
         logger.debug('Parent application was submitted. Check if all child applications checked in')
         let associatedResource = pairs[0].associatedResource
-        await smeVerifierAPI.checkCPs({application, associatedResource})
+        await smeVerifierAPI.checkCPs({application, associatedResource, req})
         return
       }
       pairs = conf.filter(pair => requestFor === pair.child && pair.parent !== pair.child)
