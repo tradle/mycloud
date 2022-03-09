@@ -258,6 +258,7 @@
     "nkey-ethereum": "^1.0.1",
     "node-fetch": "^2.6.1",
     "node-gs": "^0.1.1",
+    "node-irr": "^2.0.3",
     "nodecredstash": "github:tradle/credstash",
     "nunjucks": "^3.2.3",
     "pify": "^2.3.0",
