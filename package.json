@@ -1,6 +1,6 @@
 {
   "name": "@tradle/mycloud",
-  "version": "3.1.1-rc.47",
+  "version": "3.1.1-rc.50",
   "main": "index.js",
   "private": true,
   "repository": "https://github.com/tradle/mycloud",
@@ -258,6 +258,7 @@
     "nkey-ethereum": "^1.0.1",
     "node-fetch": "^2.6.1",
     "node-gs": "^0.1.1",
+    "node-irr": "^2.0.3",
     "nodecredstash": "github:tradle/credstash",
     "nunjucks": "^3.2.3",
     "pify": "^2.3.0",

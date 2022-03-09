@@ -17,12 +17,8 @@ const { FORM } = TYPES
 
 const ATTESTATION = 'tradle.Attestation'
 const ATTESTATION_ITEM = 'tradle.AttestationItem'
-const ATTESTATION_CHECK = 'tradle.AttestationCheck'
 const FORM_REQUEST = 'tradle.FormRequest'
-const PHOTO_ID = 'tradle.PhotoID'
-const PERSONAL_INFO = 'tradle.PersonalInfo'
-const ASPECTS = 'Attestation'
-
+const CHECK_OVERRIDE = 'tradle.CheckOverride'
 export const name = 'attestation'
 const exclude = [
   'tradle.ProductRequest',
@@ -90,6 +86,7 @@ class AttestationsAPI {
     let { models } = this.bot
     forms = forms.filter(f => !exclude.includes(f.submission[TYPE])  &&
                         f.submission[TYPE] !== associatedResource[TYPE] &&
+                        !isSubClassOf(CHECK_OVERRIDE, models[f.submission[TYPE]], models) &&
                         isSubClassOf(FORM, models[f.submission[TYPE]], models))
     const { properties } = this.bot.models[associatedResource[TYPE]]
     // HACK for CO
@@ -99,7 +96,8 @@ class AttestationsAPI {
     }
 
     // forms.sort((a, b) => b._time - a._time)
-    forms = forms.map(f => f.submission)
+    forms = forms.map(f => f.submission) //.filter(f => isSubClassOf(FORM, models[f[TYPE]], models))
+    
     forms = _.uniqBy(forms, '_permalink')
 
     forms = await Promise.all(forms.map(f => this.bot.getResource(f)))
@@ -166,7 +164,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
     //   if (!items.length) return
       // debugger
     // },
-    async willRequestForm({ application, formRequest, req }) {
+    async willRequestForm({ application, formRequest }) {
       if (!application) return
 
       let { requestFor, parent, associatedResource } = application
@@ -182,76 +180,26 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       let item = await attestationAPI.createAndSendAttestation({application})
       _.extend(formRequest, item)
     },
-    async didApproveApplication(opts: IWillJudgeAppArg, certificate: ITradleObject) {
-      let { application, user, req } = opts
+    // async didApproveApplication(opts: IWillJudgeAppArg, certificate: ITradleObject) {
+    //   let { application, user, req } = opts
 
-      if (!application || !req) return
+    //   if (!application || !req) return
 
-      let { requestFor, parent, associatedResource } = application
-      if (!parent || !associatedResource) return
+    //   let { requestFor, parent, associatedResource } = application
+    //   if (!parent || !associatedResource) return
 
-      let { products } = conf
-      if (!products || !products.includes(requestFor)) return
+    //   let { products } = conf
+    //   if (!products || !products.includes(requestFor)) return
+    //   let item = await attestationAPI.createAndSendAttestation({application})
 
-      if (!parent.forms)
-        parent = await bot.getResource(parent, { backlinks: ['forms', 'notifications'] })
-      debugger
-      let { forms } = parent
-      let { models } = bot
-      forms = forms.filter(f => !exclude.includes(f.submission[TYPE])  &&
-                           f.submission[TYPE] !== associatedResource[TYPE] &&
-                           isSubClassOf(FORM, models[f.submission[TYPE]], models))
-      const { properties } = bot.models[associatedResource[TYPE]]
-      // HACK for CO
-      if (properties.isSeniorManager) {
-        associatedResource = await bot.getLatestResource(associatedResource)
-        if (!associatedResource.isSeniorManager) return
-      }
-
-      // forms.sort((a, b) => b._time - a._time)
-      forms = forms.map(f => f.submission)
-      forms = _.uniqBy(forms, '_permalink')
-
-      forms = await Promise.all(forms.map(f => bot.getResource(f)))
-
-      let item = {
-        [TYPE]: FORM_REQUEST,
-        form: ATTESTATION,
-        product: parent.requestFor,
-        message: 'Please review and confirm',
-        prefill: {
-          [TYPE]: ATTESTATION,
-          application,
-          parentApplication: parent,
-          items: forms.map(resource => {
-            let props = bot.models[resource[TYPE]].properties
-            let r: any = {}
-
-            for (let p in resource) {
-              if (props[p]) r[p] = resource[p]
-            }
-            r[TYPE] = resource[TYPE]
-            // r._link = resource._link
-            r._permalink = resource._permalink
-            delete r.top
-            delete r.parent
-            return {
-              [TYPE]: ATTESTATION_ITEM,
-              // itemPermalink: resource._permalink,
-              // itemLink: resource._link,
-              item: r
-            }
-          })
-        }
-      }
-      await applications.requestItem({
-        item,
-        application,
-        req,
-        user,
-        message: 'Please review and confirm'
-      })
-    }
+    //   await applications.requestItem({
+    //     item,
+    //     application,
+    //     req,
+    //     user,
+    //     message: 'Please review and confirm'
+    //   })
+    // }
   }
   return {
     plugin

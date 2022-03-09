@@ -2,20 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.47](https://github.com/tradle/mycloud/compare/v3.1.1-rc.46...v3.1.1-rc.47) (2022-03-06)
+## [3.1.1-rc.50](https://github.com/tradle/mycloud/compare/v3.1.1-rc.49...v3.1.1-rc.50) (2022-03-09)
 
 
 ### Bug Fixes
 
-* latest checks ([88e838a](https://github.com/tradle/mycloud/commit/88e838a))
-* minor change ([dfaf09e](https://github.com/tradle/mycloud/commit/dfaf09e))
+* not enouph info to approve ([306031c](https://github.com/tradle/mycloud/commit/306031c))
+* some checks don't have to be checked for auto-approval; fix: typo in parsing conf ([8771e13](https://github.com/tradle/mycloud/commit/8771e13))
 
 
 ### Features
 
-* approve upon satisfying conditions ([7622256](https://github.com/tradle/mycloud/commit/7622256))
-* conditional auto-approval ([81f3b00](https://github.com/tradle/mycloud/commit/81f3b00))
-* conditional auto-approval ([b52f137](https://github.com/tradle/mycloud/commit/b52f137))
+* calculate xirr for leasing ([ab6e0e8](https://github.com/tradle/mycloud/commit/ab6e0e8))
+* new package node-irr ([979f549](https://github.com/tradle/mycloud/commit/979f549))
 
 
 
