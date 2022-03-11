@@ -136,7 +136,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       const productConf = conf.products[requestFor]
       if (!productConf) return 
-
+      if (req.conditionalApproval) return
       let approved = await autoApproveAPI.checkAndAutoapprove({ application, ...productConf })
       if (!approved) {
         throw new Errors.AbortError('Something is not yet resolved')
