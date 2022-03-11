@@ -165,6 +165,7 @@ export interface IPBReq {
   providerConfiguration?: any
   parentFormsStubs?:any
   parentForms?:ITradleObject
+  conditionalApproval?: boolean
 }
 
 export type VerifiedItem = {
