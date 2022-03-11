@@ -1,8 +1,5 @@
-import cloneDeep from 'lodash/cloneDeep'
 import size from 'lodash/size'
 import extend from 'lodash/extend'
-const { xirr, convertRate } = require('node-irr')
-import dateformat from 'dateformat'
 import {
   CreatePlugin,
   Bot,
@@ -12,13 +9,8 @@ import {
   ValidatePluginConf
 } from '../types'
 import { TYPE } from '@tradle/constants'
-import validateResource from '@tradle/validate-resource'
 import { getLatestForms } from '../utils'
 // @ts-ignore
-const { sanitize } = validateResource.utils
-const QUOTATION = 'quotation'
-const AMORTIZATION = 'amortization'
-const COST_OF_CAPITAL = 'tradle.credit.CostOfCapital'
 
 interface AmortizationItem {
   [TYPE]: string
@@ -51,188 +43,15 @@ class LeasingQuotesAPI {
     this.logger = logger
     this.conf = conf
   }
-  public async quotationPerTerm({application, formRequest}) {
+  public async amortizationPerMonth({application, formRequest, form}) {
     const stubs = getLatestForms(application)
-    let qiStub = stubs.find(({ type }) => type.endsWith('QuotationInformation'))
+    let qiStub = stubs.find(({ type }) => type === form)
     if (!qiStub) return
-
-    let costOfCapital = await this.bot.db.findOne({
-      filter: {
-        EQ: {
-          [TYPE]: COST_OF_CAPITAL,
-          current: true
-        }
-      }
-    })
-    if (!costOfCapital) return
-   
-    const quotationInfo = await this.bot.getResource(qiStub)
-    let {
-      factor,
-      netPrice,
-      commissionFee,
-      asset,
-      exchangeRate,
-      depositPercentage = 0,
-      deliveryTime,
-      netPriceMx,
-      vatRate,
-      priceMx,
-      depositValue,
-      fundedInsurance
-    } = quotationInfo
- 
-    if (!factor || !netPrice || !exchangeRate || !deliveryTime ||
-        !netPriceMx || !priceMx || !fundedInsurance) {
-      this.logger.debug('quotation: Some numbers are missing')
-      return {}
-    }
-
-    // let configuration = await this.bot.getResource(quotationConfiguration)
-    // if (!configuration) return
-    // let configurationItems = configuration.items
-
-    let quotationDetails = []
-    let ftype = formRequest.form
-    const {
-      deliveryFactor: configurationItems,
-      minimumDeposit,
-      lowDepositFactor: lowDepositPercent,
-      presentValueFactor,
-    } = costOfCapital
-    let { residualValue } = await this.bot.getResource(asset)
-    // let configurationItems = await Promise.all(deliveryFactor.map(df => this.bot.getResource(df)))
-    let defaultQC = configurationItems[0]
-   
-    configurationItems.forEach((quotConf:any, i) => {
-      let qc = cloneDeep(defaultQC)
-      for (let p in quotConf)
-        qc[p] = quotConf[p]
-      let {
-        term,
-        // factor: factorVPdelVR
-      } = quotConf
-  
-      let residualValuePerTerm = residualValue.find(rv => {
-        return rv.term.id === term.id
-      })
-      residualValuePerTerm = residualValuePerTerm && residualValuePerTerm.rv / 100
-      let termVal = term.title.split(' ')[0]
-      let factorPercentage = mathRound(factor / 100 / 12 * termVal, 4)
-
-      let dtID = deliveryTime.id.split('_')[1]
-      let deliveryTermPercentage = qc[dtID] || 0
-      let depositFactor = 0
-      let lowDepositFactor
-      if (depositPercentage < minimumDeposit)
-        lowDepositFactor = termVal/12 * lowDepositPercent/100
-      else
-        lowDepositFactor = 0
-      let totalPercentage = mathRound(1 + factorPercentage + deliveryTermPercentage + depositFactor + lowDepositFactor, 4)
-
-      let depositVal = depositValue && depositValue.value || 0
-
-      let factorVPdelVR = termVal/12 * presentValueFactor/100
-      let monthlyPayment = (priceMx.value - depositVal - (residualValuePerTerm * priceMx.value)/(1 + factorVPdelVR))/(1 + vatRate) * totalPercentage/termVal
-      // let monthlyPaymentPMT = (vatRate/12)/(((1+vatRate/12)**termVal)-1)*(netPriceMx.value*((1+vatRate/12)**termVal)-(netPriceMx.value*residualValue/100))
-
-      let insurance = fundedInsurance.value
-      let initialPayment = depositPercentage === 0 && monthlyPayment + insurance ||  depositVal / (1 + vatRate)
-      let commissionFeeCalculated = commissionFee * priceMx.value
-      let initialPaymentVat = (initialPayment + commissionFeeCalculated) * vatRate
-      let currency = netPriceMx.currency
-      let vatQc =  mathRound((monthlyPayment + insurance) * vatRate)
-      let qd:any = {
-        [TYPE]: ftype,
-        factorPercentage,
-        deliveryTermPercentage,
-        // depositFactor:
-        lowDepositFactor,
-        term,
-        commissionFee: {
-          value: mathRound(commissionFeeCalculated),
-          currency
-        },
-        initialPayment: initialPayment && {
-          value: mathRound(initialPayment),
-          currency
-        },
-        initialPaymentVat: initialPaymentVat && {
-          value: mathRound(initialPaymentVat),
-          currency
-        },
-        totalPercentage,
-        totalInitialPayment: initialPayment && {
-          value: mathRound(commissionFeeCalculated + initialPayment + initialPaymentVat),
-          currency
-        },
-        monthlyPayment: monthlyPayment  &&  {
-          value: mathRound(monthlyPayment),
-          currency
-        },
-        monthlyInsurance: fundedInsurance,
-        vat: monthlyPayment && {
-          value: vatQc,
-          currency
-        },
-        totalPayment: monthlyPayment && {
-          value: mathRound(monthlyPayment + insurance + vatQc),
-          currency
-        },
-        purchaseOptionPrice: priceMx && {
-          value: mathRound(priceMx.value * residualValuePerTerm),
-          currency
-        }
-      }
-      let payPerMonth = qd.monthlyPayment.value*(1 + vatRate)
-      let initPayment = depositValue.value > 0 ? qd.totalInitialPayment.value : payPerMonth
-      let d = new Date()
-      let date = dateformat(d.getTime(), 'yyyy-mm-dd')
-
-      let data = [
-        {amount: -priceMx.value, date}, 
-        {amount: initPayment, date}
-      ]
-      let m = d.getMonth()
-      for (let j=0; j<termVal - 1; j++) {
-        this.nextMonth(d)          
-        let md = dateformat(d.getTime(), 'yyyy-mm-dd')
-        data.push({amount: payPerMonth, date: md})
-      }
-      this.nextMonth(d)
-      data.push({amount: payPerMonth + qd.purchaseOptionPrice.value, date: dateformat(d.getTime(), 'yyyy-mm-dd')})
-
-      const {rate} = xirr(data)
-      qd.xirr = Math.round(convertRate(rate, 365) * 100 * 100)/100
-      
-      qd = sanitize(qd).sanitized
-      quotationDetails.push(qd)
-    })
-    return {
-      type: ftype,
-      terms: quotationDetails
-    }
-  }
-  private nextMonth(date) {
-    let m = date.getMonth() + 1
-    if (m && m % 12 === 0) {
-      m = 0
-      date.setFullYear(date.getFullYear() + 1)
-    }
-
-    date.setMonth(m)
-  }
-  public async amortizationPerMonth({application, formRequest}) {
-    const stubs = getLatestForms(application)
-    let qiStub = stubs.find(({ type }) => type.endsWith('QuotationInformation'))
-    if (!qiStub) return
-    let qdStub = stubs.find(({ type }) => type.endsWith('QuotationDetails'))
-    if (!qdStub) return
     const quotationInfo = await this.bot.getResource(qiStub)
     const {
       netPriceMx
     } = quotationInfo
-    const quotationDetail = await this.bot.getResource(qdStub)
+    const quotationDetail = quotationInfo
 
     const {
       monthlyPayment,
@@ -293,20 +112,16 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       let productConf = conf[requestFor]
 
-      if (!productConf) return
-
       let ftype = formRequest.form
-      let action = productConf[ftype]
-      if (!action) return
+      if (!productConf || !productConf[ftype]) return
+
+      let { form } = productConf[ftype]
+      if (!form) return
 
       let model = bot.models[ftype]
       if (!model) return
 
-      let prefill = {}
-      if (action === QUOTATION)
-        prefill = await leasingQuotes.quotationPerTerm({application, formRequest})
-      else if (action === AMORTIZATION)
-        prefill = await leasingQuotes.amortizationPerMonth({application, formRequest})
+      let prefill = await leasingQuotes.amortizationPerMonth({application, formRequest, form})
 
       if (!size(prefill)) return
       if (!formRequest.prefill) {
