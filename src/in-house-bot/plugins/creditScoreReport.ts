@@ -21,8 +21,8 @@ import { isPassedCheck, getLatestForms, isSubClassOf } from '../utils'
 
 const CASH_FLOW = 'PersonalCashflow'
 const COMPANY_CASH_FLOW = 'CompanyCashflow'
-const QUOTATION_INFORMATION = 'QuotationInformation'
-const QUOTATION_DETAILS = 'QuotationDetails'
+const QUOTE = 'Quote'
+
 const APPLICANT_INFORMATION = 'ApplicantInformation'
 const APPLICANT_ADDRESS = 'ApplicantAddress'
 const APPLICANT_MED_PROFESSION = 'ApplicantMedicalProfession'
@@ -577,21 +577,16 @@ export class ScoringReport {
     }
   }
   private async getCommonScores(map, scoreDetails) {
-    let qi = map[QUOTATION_INFORMATION]
-    if (qi  &&  Array.isArray(qi))
-      qi = qi[0]
-    let qd = map[QUOTATION_DETAILS]
-    if (qd  &&  Array.isArray(qd))
-      qd = qd[0]
+    let quote = map[QUOTE]
     let asset, usefulLife = 0, secondaryMarket = 0, relocation = 0, assetType = 0, leaseType = 0
-    if (qi && qi.asset) {
-      asset = await this.bot.getResource(qi.asset)
+    if (quote && quote.asset) {
+      asset = await this.bot.getResource(quote.asset)
       // const { usefulLife, secondaryMarket, relocationTime, assetType, leaseType } = asset
 
       let val = this.getEnumValue(asset, 'usefulLife')
       if (val) {
         // let term = this.getEnumValue(qd, 'term', qd.term)
-        let term = parseInt(qd.term.title.split(' ')[0]) / 12
+        let term = parseInt(quote.term.title.split(' ')[0]) / 12
         if (val.years > term)
           usefulLife = 7
         else if (val.years === term)
@@ -618,10 +613,10 @@ export class ScoringReport {
         assetType = val.score
       }
       this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'assetType', property: 'assetType', score: assetType, group: ASSET_GROUP});
-      val = this.getEnumValue(qi, 'leaseType')
+      val = this.getEnumValue(quote, 'leaseType')
       if (val) {
         leaseType = val.score
-        this.addToScoreDetails({scoreDetails, form: qi, formProperty: 'leaseType', property: 'leaseType', score: leaseType, group: ASSET_GROUP});
+        this.addToScoreDetails({scoreDetails, form: quote, formProperty: 'leaseType', property: 'leaseType', score: leaseType, group: ASSET_GROUP});
       }
     }
     return {
