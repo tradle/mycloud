@@ -2,13 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.51](https://github.com/tradle/mycloud/compare/v3.1.1-rc.50...v3.1.1-rc.51) (2022-03-11)
+## [3.1.1-rc.52](https://github.com/tradle/mycloud/compare/v3.1.1-rc.51...v3.1.1-rc.52) (2022-03-13)
 
 
 ### Bug Fixes
 
-* attempt not to check if ready for approval 2 times ([2eceee4](https://github.com/tradle/mycloud/commit/2eceee4))
-* don't check conditionce twice ([fea2e7c](https://github.com/tradle/mycloud/commit/fea2e7c))
+* no to OTP form in bundle ([6f28121](https://github.com/tradle/mycloud/commit/6f28121))
 
 
 
