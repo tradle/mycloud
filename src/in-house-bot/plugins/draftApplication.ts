@@ -14,6 +14,7 @@ const exclude = [
   'tradle.FormError',
   'tradle.ApplicationSubmitted',
   'tradle.Verification',
+  'tradle.OTP',
   'tradle.NextFormRequest'
 ]
 const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
@@ -77,7 +78,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         .map(submission => submission.submission)
         .filter(form => !exclude.includes(form[TYPE]))
 
-      let f = forms.find(form => productMap[form[TYPE]])  
+      let f = forms.find(form => productMap[form[TYPE]])
       let emailAddress
 
       if (!f && payload.parent) {
@@ -86,8 +87,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         let parentForms = parent.forms
         .map(submission => submission.submission)
         .filter(form => !exclude.includes(form[TYPE]))
-    
-        f = parentForms.find(form => productMap[form[TYPE]])  
+
+        f = parentForms.find(form => productMap[form[TYPE]])
         f = await bot.getResource(f)
         emailAddress = f[productMap[f[TYPE]]]
       }
@@ -123,7 +124,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         }
       })
       if (!emailAddress) return
-      
+
       const requestFor = payload.requestFor
       let bundle = await bot
         .draft({
@@ -135,7 +136,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         })
         .signAndSave()
 
-      const { parentApp, associatedRes } = await getAssociateResources({application: payload, bot})  
+      const { parentApp, associatedRes } = await getAssociateResources({application: payload, bot})
       let extraQueryParams = {
         bundleId: bundle.link
       }
