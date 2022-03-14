@@ -350,7 +350,7 @@ export class Conf {
       bot
     })
     let { templates } = publicInfo
-    if (!templates.length) return publicInfo
+    if (!templates  || !templates.length) return publicInfo
     let templatesInfo
     let files = await Promise.all(templates.map((template:any) => this.privateConfBucket.get(`templates/${template.html}`)))
     templatesInfo = templates.map((template:any, i) => {
