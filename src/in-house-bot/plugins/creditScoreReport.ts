@@ -579,7 +579,8 @@ export class ScoringReport {
   private async getCommonScores(map, scoreDetails) {
     let quote = map[QUOTE]
     let asset, usefulLife = 0, secondaryMarket = 0, relocation = 0, assetType = 0, leaseType = 0
-    if (quote && quote.asset) {
+    if (quote && quote.length) {
+      quote = quote[0]
       asset = await this.bot.getResource(quote.asset)
       // const { usefulLife, secondaryMarket, relocationTime, assetType, leaseType } = asset
 
