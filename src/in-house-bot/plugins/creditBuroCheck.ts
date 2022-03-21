@@ -604,7 +604,6 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
     async onmessage(req: IPBReq) {
       if (req.skipChecks) return
       const { user, application, payload } = req
-      // if (!application || application.draft) return
       if (!application) return
       const payloadType = payload[TYPE]
 

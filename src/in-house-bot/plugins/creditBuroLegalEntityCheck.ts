@@ -14,8 +14,7 @@ import {
   ITradleObject,
   IPBApp,
   IPBReq,
-  Logger,
-  Objects
+  Logger
 } from '../types'
 
 import Errors from '../../errors'
@@ -505,7 +504,6 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
     async onmessage(req: IPBReq) {
       if (req.skipChecks) return
       const { user, application, payload, parentFormsStubs } = req
-      // if (!application || application.draft) return
       if (!application) return
 
       if (payload[TYPE] !== CONSENT_TYPE  &&  payload[TYPE] !== LEGAL_ENTITY_TYPE) return
