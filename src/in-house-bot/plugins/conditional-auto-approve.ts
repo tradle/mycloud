@@ -75,15 +75,15 @@ export class ConditionalAutoApprove {
       if (c.status === undefined || isPassedCheck({status: c.status})) continue
 
       if (!checkOverridesStubs) return false
-      if (!checkOverrides) 
+      if (!checkOverrides)
         checkOverrides = await Promise.all(checkOverridesStubs.map(stub => this.bot.getResource(stub)))
 
       let checkOverride = checkOverrides.find(co => co.check._link === c._link)
       if (!checkOverride) return false
-      
+
       let checkOverrideType = `${c[TYPE]}Override`
       let co = checkOverrides.find(co => co[TYPE] === checkOverrideType)
-      if (!co || getEnumValueId({ model: this.bot.models[OVERRIDE_STATUS], value: co.status }) !== 'pass') return     
+      if (!co || getEnumValueId({ model: this.bot.models[OVERRIDE_STATUS], value: co.status }) !== 'pass') return
     }
 
     if (checks) {
@@ -102,14 +102,14 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         return
       }
       const { application } = req
-      if (!application || application.draft || application.status === 'approved') return
+      if (!application  ||  /* application.draft  || */  application.status === 'approved') return
 
       let productConf = conf.products[application.requestFor]
       if (!productConf) return
 
       if (await autoApproveAPI.checkAndAutoapprove({ application, ...productConf })) {
         req.conditionalApproval = true
-        await applications.approve({ req, application })  
+        await applications.approve({ req, application })
       }
     },
     onmessage: async function(req) {
@@ -126,16 +126,16 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       if (await autoApproveAPI.checkAndAutoapprove({ application, ...productConf })) {
         req.conditionalApproval = true
-        await applications.approve({ req, application })  
+        await applications.approve({ req, application })
       }
     },
     async willApproveApplication (opts: IWillJudgeAppArg) {
       const { req, application } = opts
-      if (!application || application.draft || application.status === 'approved') return
+      if (!application || /* application.draft ||*/ application.status === 'approved') return
       let { requestFor } = application
 
       const productConf = conf.products[requestFor]
-      if (!productConf) return 
+      if (!productConf) return
       if (req.conditionalApproval) return
       let approved = await autoApproveAPI.checkAndAutoapprove({ application, ...productConf })
       if (!approved) {
@@ -143,7 +143,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         // if (req)
         //   await bot.sendSimpleMessage({ to: req.user, message: 'Not all conditions are met for approval' })
       }
-        
     }
   }
 
@@ -170,7 +169,7 @@ export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }
     for (let ff in forms) {
       let m = models[ff]
       if (!m) throw new Error(`missing model: ${ff}`)
-      let p = forms[ff] 
+      let p = forms[ff]
       if (!m[p]) throw new Error(`missing property ${p} in model ${ff}`)
     }
   }

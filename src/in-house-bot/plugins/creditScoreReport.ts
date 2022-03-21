@@ -305,7 +305,7 @@ export class ScoringReport {
         if (newCapacityToPay)
           capacityToPay = newCapacityToPay
       } catch (err) {
-        debugger
+         debugger
       }
     }
 
@@ -923,7 +923,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     onFormsCollected: async ({ req }: { req: IPBReq }) => {
       let { application, parentFormsStubs } = req
 
-      if (!application || application.draft) return
+      // if (!application || application.draft) return
+      if (!application) return
       logger.debug('creditScoreReport is called onFormsCollected')
       await scoringReport.genCreditScoring({application, conf, parentFormsStubs})
       // debugger

@@ -181,22 +181,22 @@ export class BuroCheckAPI {
   public lookup = async ({ form, params, application, req, user }) => {
     const input = {
       username: this.conf.username,
-      password: this.conf.password, 
-      reference: randomString.generate({length: 25, charset: 'hex' }),  
+      password: this.conf.password,
+      reference: randomString.generate({length: 25, charset: 'hex' }),
       params
     }
 
     const data: string = nunjucks.renderString(TEMPLATE, input)
     if (this.conf.trace)
       this.logger.debug(data)
-    
+
     let status: any
     try {
       let xml: string
       if (this.conf.samples) {
         xml = await this.getFileFromS3(samplesS3,
                                        this.conf.sampleReportsFolder + '/' + params[RFC] + '.xml',
-                                       this.conf.sampleReportsBucket)   
+                                       this.conf.sampleReportsBucket)
       }
       else {
         xml = await this.httpRequest(data)
@@ -225,13 +225,13 @@ export class BuroCheckAPI {
         let rfc = jsonObj["soapenv:Envelope"]["soapenv:Body"]["bean:consultaXML"].Consulta.Personas.Persona.Nombre.RFC
         xml = await this.getFileFromS3(samplesS3,
                                        this.conf.sampleReportsFolder + '/' + rfc + '.xml',
-                                       this.conf.sampleReportsBucket)   
+                                       this.conf.sampleReportsBucket)
       }
-      else 
+      else
         xml = await this.httpRequest(pendingWork.request)
 
       const status = this.handleResponse(xml)
-      
+
       const check = await this.bot.getResource(pendingWork.pendingRef);
 
       check.resultDetails = status.message
@@ -244,9 +244,9 @@ export class BuroCheckAPI {
         check.status = this.FAIL
 
       await this.addMoreCheckProps(check, status)
-      
+
       let updatedCheck = await this.updateResource(check)
-      
+
       await this.endPendingWork(pendingWork)
       return updatedCheck
 
@@ -276,7 +276,7 @@ export class BuroCheckAPI {
     this.logger.debug(`${PROVIDER} created CreditReportIndividualCheck`)
     return checkWrapper.resource
   }
-  
+
   private addMoreCheckProps = async (resource, status) => {
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
@@ -286,7 +286,7 @@ export class BuroCheckAPI {
         resource.creditReport = await this.buildSubjectInfo(resource.rawData)
     }
   }
-  
+
   private handleResponse = (xml: string) => {
     let parser = new xml2js.Parser({ explicitArray: false, trim: true })
     let jsonObj = parser.parseStringSync(xml)
@@ -294,14 +294,14 @@ export class BuroCheckAPI {
       this.logger.debug(JSON.stringify(jsonObj, null, 2))
     const ret = jsonObj["soapenv:Envelope"]["soapenv:Body"]["ns2:consultaXMLResponse"].return
     if (ret.Error) {
-      if (ret.Error.UR.PasswordOClaveErronea || 
+      if (ret.Error.UR.PasswordOClaveErronea ||
           ret.Error.UR.ErrorSistemaBuroCredito)
         return {
             status: 'error',
             rawData: ret,
             message: 'username or password error'
         }
-      else   
+      else
           return {
             status: 'fail',
             rawData: ret,
@@ -321,7 +321,7 @@ export class BuroCheckAPI {
     const subject = this.createResources(name, CB_SUBJECT)[0]
     const savedSubject = await this.saveResource(CB_SUBJECT, subject)
     const topStub = buildResourceStub({ resource: savedSubject.resource })
-    
+
     const promises = []
     const addresses: any[] = rawData.Domicilios.Domicilio
     const addrs: any[] = this.createResources(addresses, CB_ADDRESS)
@@ -329,7 +329,7 @@ export class BuroCheckAPI {
       obj[SUBJECT] = topStub
       promises.push(this.saveResource(CB_ADDRESS, obj))
     }
- 
+
     const accounts: any[] = rawData.Cuentas.Cuenta
     const accs: any[] = this.createResources(accounts, CB_ACCOUNT)
     for (const obj of accs) {
@@ -339,7 +339,7 @@ export class BuroCheckAPI {
     const sum: any = this.createSummary(accs)
     sum[SUBJECT] = topStub
     promises.push(this.saveResource(SUMMARY, sum))
-  
+
     if (rawData.Empleos) {
       const employments: any[] = rawData.Empleos.Empleo
       const empl = this.createResources(employments, CB_EMPLOYMENT)
@@ -348,7 +348,7 @@ export class BuroCheckAPI {
         promises.push(this.saveResource(CB_EMPLOYMENT, obj))
       }
     }
-      
+
     if (rawData.ConsultasEfectuadas) {
       const inquires: any[] = rawData.ConsultasEfectuadas.ConsultaEfectuada
       const inqrs: any[] = this.createResources(inquires, CB_INQUIRY)
@@ -357,16 +357,16 @@ export class BuroCheckAPI {
         promises.push(this.saveResource(CB_INQUIRY, obj))
       }
     }
-    
+
     if (rawData.ResumenReporte) {
-      const report: any = rawData.ResumenReporte.ResumenReporte 
+      const report: any = rawData.ResumenReporte.ResumenReporte
       const rep = this.createResources(report, CB_REPORT)
       for (const obj of rep) {
         obj[SUBJECT] = topStub
         promises.push(this.saveResource(CB_REPORT, obj))
       }
     }
-    
+
     if (rawData.HawkAlertBD) {
       const alertBD: any = rawData.HawkAlertBD.HawkAlertBD
       const alsBD: any[] = this.createResources(alertBD, CB_HAWKALERT)
@@ -375,7 +375,7 @@ export class BuroCheckAPI {
         promises.push(this.saveResource(CB_HAWKALERT, obj))
       }
     }
-    
+
     if (rawData.HawkAlertConsulta) {
       const alerts: any = rawData.HawkAlertConsulta.HawkAlertC
       const alsC = this.createResources(alerts, CB_VALIDATION)
@@ -393,7 +393,7 @@ export class BuroCheckAPI {
         promises.push(this.saveResource(CB_SCORE, obj))
       }
     }
-    
+
     try {
       await Promise.all(promises)
     } catch (err) {
@@ -407,11 +407,11 @@ export class BuroCheckAPI {
     if (!something || typeof something === 'string') return resources
 
     let props = this.bot.models[fromType].properties;
-    
+
     if (something instanceof Array) {
       for (const from of something) {
         resources.push(this.createResource(from, fromType, props))
-      } 
+      }
     } else {
       resources.push(this.createResource(something, fromType, props))
     }
@@ -424,7 +424,7 @@ export class BuroCheckAPI {
       if (props[p].type === 'array') continue // skip backlink
       const value = from[props[p].description]
       if (!value) continue
-      
+
       if (props[p].type === 'object') {
         resource[p] = { value: this.convertToNumber(value), currency: 'MXN' }
       }
@@ -438,24 +438,24 @@ export class BuroCheckAPI {
           resource[p] = Date.parse(value.substring(0,4) + '-' + value.substring(4) + '-01')
         if (isNaN(resource[p])) {
           debugger
-        }  
+        }
       }
       else
         resource[p] = value.toString()
     }
     return resource
   }
-  
+
   private convertToNumber = (value: string) : number => {
     let val = parseInt(value, 10)
-    // can have format like 2345+ or 123- or 234 
+    // can have format like 2345+ or 123- or 234
     if (isNaN(val)) {
       const sign = value.charAt(value.length-1)
       val = parseInt(value.substring(0, value.length-1), 10)
       if (sign === '-') val = -val
-    }  
-    return val    
-  } 
+    }
+    return val
+  }
 
   private createSummary = (accounts: any[]): any => {
     const sum = {
@@ -552,7 +552,7 @@ export class BuroCheckAPI {
       done: false,
       attempts: 1,
       lastAttempt: Date.now(),
-      created: Date.now(), 
+      created: Date.now(),
       frequency: 5*60*1000,
       message,
       pendingRef
@@ -566,13 +566,13 @@ export class BuroCheckAPI {
   private updatePendingWork = async (pendingWork: ITradleObject, message: string) => {
     pendingWork.lastAttempt = Date.now();
     pendingWork.attempts += 1
-    if (pendingWork.attempts >= 72) 
+    if (pendingWork.attempts >= 72)
       pendingWork.done = true
     pendingWork.message = message
     if (this.conf.trace)
       this.logger.debug(`creditBuroCheck updatePendingWork: ${JSON.stringify(pendingWork)}`)
     const res = await this.updateResource(pendingWork)
-    return res  
+    return res
   }
 
   private endPendingWork = async (pendingWork: ITradleObject) => {
@@ -582,7 +582,7 @@ export class BuroCheckAPI {
     if (this.conf.trace)
       this.logger.debug(`creditBuroCheck endPendingWork: ${JSON.stringify(pendingWork)}`)
     const res = await this.updateResource(pendingWork)
-    return res  
+    return res
   }
 
   private saveResource = (resourceType: string, resource: any) => {
@@ -594,7 +594,7 @@ export class BuroCheckAPI {
   private updateResource = (resource: any) => {
     return this.bot.versionAndSave(resource)
   }
-}  
+}
 
 export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) => {
   const { bot, applications, conf: botConf } = components
@@ -604,14 +604,14 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
     async onmessage(req: IPBReq) {
       if (req.skipChecks) return
       const { user, application, payload } = req
-      if (!application || application.draft) return
-      // if (!application) return
+      // if (!application || application.draft) return
+      if (!application) return
       const payloadType = payload[TYPE]
 
       if (APPLICANT_INFO_TYPE !== payloadType && APPLICANT_ADDR_TYPE !== payloadType && CONSENT_TYPE !== payloadType)
         return
       logger.debug('creditBuroCheck called onmessage')
-      
+
       const params = {}
       let info, addr
       if (CONSENT_TYPE === payloadType) {
@@ -625,10 +625,10 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
           return
         }
         const applicantTypeId = applicantType.id.split('_')[1]
-        // handle only individual 
+        // handle only individual
         if (applicantTypeId !== 'individual')
           return
-          
+
         let changed = await hasPropertiesChanged({
             resource: payload,
             bot,
@@ -640,7 +640,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
         }
         info = payload
         const stubs = getLatestForms(application);
-        
+
         const consentStub = stubs.find(({ type }) => type === CONSENT_TYPE);
         if (!consentStub) {
           logger.debug(`creditBuroCheck: there is no Consent form found; current type ${APPLICANT_INFO_TYPE}`)
@@ -664,7 +664,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
         })
         if (!changed)
           return
-       
+
         const stubs = getLatestForms(application);
 
         const consentStub = stubs.find(({ type }) => type === CONSENT_TYPE);
@@ -685,9 +685,9 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
           return
         }
         const applicantTypeId = applicantType.id.split('_')[1]
-        // handle only individual 
+        // handle only individual
         if (applicantTypeId !== 'individual')
-          return        
+          return
       }
       params[STREET] = payload.street? payload.street : ''
       params[NUMBER] = payload.number? payload.number : ''
@@ -695,7 +695,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
       params[CITY] = payload.city? payload.city : ''
       params[STATE] = payload.state? payload.state : ''
       params[ZIP] = payload.zip? payload.zip : ''
-      
+
       params[PATERNAL_NAME] = info.paternalName? info.paternalName : ''
       params[MATERNAL_NAME] = info.maternalName? info.maternalName : ''
       params[FIRST_NAME] = info.firstName? info.firstName : ''
@@ -706,7 +706,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
         params[STATE] = params[STATE].id.split('_')[1]
       }
       logger.debug(`creditBuroCheck called for type ${payloadType}`)
-     
+
       let r = await buroCheckAPI.lookup({
         form: payload,
         params,
@@ -737,15 +737,15 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
         allChecks = [...parentChecks]
       else if (parentChecks)
         allChecks = [...checks, ...parentChecks]
-        
+
       let stubs = allChecks.filter(
-        (check) => check[TYPE] === CREDIT_CHECK 
+        (check) => check[TYPE] === CREDIT_CHECK
       )
       if (!stubs.length) return
       logger.debug('found ' + stubs.length + ' checks')
       let result = await Promise.all(stubs.map((check) => bot.getResource(check)))
       result.sort((a, b) => b._time - a._time)
-      
+
       if(!result[0].creditReport)
         return
       const report = await bot.getResource(result[0].creditReport, {backlinks: ['creditSummary']})
@@ -753,25 +753,25 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
 
       const creditSummaryStub = report.creditSummary[0]
       const creditSummary = await bot.getResource(creditSummaryStub)
-  
+
       if (!formRequest.prefill) {
         formRequest.prefill = {
           [TYPE]: CASHFLOW,
-          expensesInBureau: { value: creditSummary.openPayable, currency: 'MXN' } 
+          expensesInBureau: { value: creditSummary.openPayable, currency: 'MXN' }
         }
       }
-      else formRequest.prefill.expensesInBureau = { value: creditSummary.openPayable, currency: 'MXN' }  
+      else formRequest.prefill.expensesInBureau = { value: creditSummary.openPayable, currency: 'MXN' }
     },
     async replay(obj: ITradleObject) {
       // expected instance of PendingWork
       if (obj.plugin !== 'creditBuroCheck')
         throw Error(`creditBuroCheck called replay with bad parameter: ${obj}`)
-      let check = await buroCheckAPI.repost(obj)  
+      let check = await buroCheckAPI.repost(obj)
       if (!check  ||  !isPassedCheck({status: check.status})) return
       const { plugin } = creditScoring.createPlugin( components, { conf, logger })
       await plugin.genCreditScore(check.application, botConf)
    }
-  } 
+  }
   return { plugin }
 }
 
