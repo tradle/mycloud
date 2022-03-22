@@ -579,46 +579,49 @@ export class ScoringReport {
   private async getCommonScores(map, scoreDetails) {
     let quote = map[QUOTE]
     let asset, usefulLife = 0, secondaryMarket = 0, relocation = 0, assetType = 0, leaseType = 0
-    if (quote && quote.length) {
+    if (!quote)
+      return {}
+    if (Array.isArray(quote)) {
+      if (!quote.length) return {}
       quote = quote[0]
-      asset = await this.bot.getResource(quote.asset)
-      // const { usefulLife, secondaryMarket, relocationTime, assetType, leaseType } = asset
+    }
+    asset = await this.bot.getResource(quote.asset)
+    // const { usefulLife, secondaryMarket, relocationTime, assetType, leaseType } = asset
 
-      let val = this.getEnumValue(asset, 'usefulLife')
-      if (val) {
-        // let term = this.getEnumValue(qd, 'term', qd.term)
-        let term = parseInt(quote.term.title.split(' ')[0]) / 12
-        if (val.years > term)
-          usefulLife = 7
-        else if (val.years === term)
-          usefulLife = 5
-        else
-          usefulLife = 0
-      }
-      this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'usefulLife', property: 'usefulLife', score: usefulLife, group: ASSET_GROUP});
+    let val = this.getEnumValue(asset, 'usefulLife')
+    if (val) {
+      // let term = this.getEnumValue(qd, 'term', qd.term)
+      let term = parseInt(quote.term.title.split(' ')[0]) / 12
+      if (val.years > term)
+        usefulLife = 7
+      else if (val.years === term)
+        usefulLife = 5
+      else
+        usefulLife = 0
+    }
+    this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'usefulLife', property: 'usefulLife', score: usefulLife, group: ASSET_GROUP});
 
-      val = this.getEnumValue(asset, 'secondaryMarket')
-      if (val) {
-        secondaryMarket = val.score
-      }
-      this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'secondaryMarket', property: 'secondaryMarket', score: secondaryMarket, group: ASSET_GROUP});
+    val = this.getEnumValue(asset, 'secondaryMarket')
+    if (val) {
+      secondaryMarket = val.score
+    }
+    this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'secondaryMarket', property: 'secondaryMarket', score: secondaryMarket, group: ASSET_GROUP});
 
-      val = this.getEnumValue(asset, 'relocationTime')
-      if (val) {
-        relocation = val.score
-      }
-      this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'relocation', property: 'relocation', score: relocation, group: ASSET_GROUP});
+    val = this.getEnumValue(asset, 'relocationTime')
+    if (val) {
+      relocation = val.score
+    }
+    this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'relocation', property: 'relocation', score: relocation, group: ASSET_GROUP});
 
-      val = this.getEnumValue(asset, 'assetType')
-      if (val) {
-        assetType = val.score
-      }
-      this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'assetType', property: 'assetType', score: assetType, group: ASSET_GROUP});
-      val = this.getEnumValue(quote, 'leaseType')
-      if (val) {
-        leaseType = val.score
-        this.addToScoreDetails({scoreDetails, form: quote, formProperty: 'leaseType', property: 'leaseType', score: leaseType, group: ASSET_GROUP});
-      }
+    val = this.getEnumValue(asset, 'assetType')
+    if (val) {
+      assetType = val.score
+    }
+    this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'assetType', property: 'assetType', score: assetType, group: ASSET_GROUP});
+    val = this.getEnumValue(quote, 'leaseType')
+    if (val) {
+      leaseType = val.score
+      this.addToScoreDetails({scoreDetails, form: quote, formProperty: 'leaseType', property: 'leaseType', score: leaseType, group: ASSET_GROUP});
     }
     return {
       asset,
