@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.57](https://github.com/tradle/mycloud/compare/v3.1.1-rc.56...v3.1.1-rc.57) (2022-03-22)
+## [3.1.1-rc.58](https://github.com/tradle/mycloud/compare/v3.1.1-rc.57...v3.1.1-rc.58) (2022-03-22)
 
 
 ### Features
 
-* allow to override check not once ([02c3a56](https://github.com/tradle/mycloud/commit/02c3a56))
+* convert draft to real application ([16ee1a0](https://github.com/tradle/mycloud/commit/16ee1a0))
 
 
 
