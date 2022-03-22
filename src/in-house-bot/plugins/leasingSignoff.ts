@@ -18,6 +18,7 @@ import { getLatestChecks, isSubClassOf } from '../utils'
 import { Errors } from '../..'
 const STATUS = 'tradle.Status'
 const OVERRIDE_STATUS = 'tradle.OverrideStatus'
+const CHECK_OVERRIDE = 'tradle.CheckOverride'
 
 class LeasingSignoffAPI {
   private bot: Bot
@@ -96,10 +97,38 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     async onFormsCollected({ req }) {
       const { application } = req
       if (!application ||  application.status === 'approved') return
-      if (application.processingDataBundle ||
-          application.draft) return
+      if (application.processingDataBundle) return
 
       await leasingSignoff.checkAndCreate({application})
+    },
+    async onmessage(req) {
+      const { application, payload } = req
+      if (!application) return
+      let { requestFor } = application
+
+      const productConf = conf.products && conf.products[requestFor]
+      if (!productConf) return 
+
+      let { signoffChecks } = productConf
+      if (!signoffChecks) return
+
+      const ptype = payload[TYPE]
+      const { models } = bot
+      if (!isSubClassOf(CHECK_OVERRIDE, models[ptype], models)) return
+      if (getEnumValueId({model: models[OVERRIDE_STATUS], value: payload.status}) !== 'fail') return
+      
+      let checkId = ptype.slice(0, -8)
+      if (!signoffChecks[checkId]) return
+
+      let resource: any = {
+        [TYPE]: checkId,
+        status: 'pending',
+        application,
+        dateChecked: new Date().getTime(),
+        aspects: signoffChecks[checkId],
+      }
+      logger.debug(`creating ${checkId}`)
+      await applications.createCheck(resource, {application})     
     },
     async willApproveApplication (opts: IWillJudgeAppArg) {
       const { application } = opts
