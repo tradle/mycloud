@@ -25,6 +25,7 @@ import { appLinks } from '../../app-links'
 
 const SHORT_TO_LONG_URL_MAPPING = 'tradle.ShortToLongUrlMapping'
 const NEXT_FORM_REQUEST = 'tradle.NextFormRequest'
+const APPLICATION_COMPLETED = 'tradle.ApplicationCompleted'
 const NOTIFICATION = 'tradle.Notification'
 const APPLICANT_INFORMATION = 'ApplicantInformation'
 const NOTIFICATION_PROVIDER = 'Tradle'
@@ -329,9 +330,19 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let { models } = bot
       let ptype = payload[TYPE]
 
-      if (rules && ptype === NEXT_FORM_REQUEST) {
-        let ftype = payload.after
-        if (products[productId][ftype])
+      if (rules) {
+        let form
+        if (ptype === NEXT_FORM_REQUEST) {
+          let ftype = payload.after
+          form = products[productId][ftype]
+        }
+        else if (ptype === APPLICATION_COMPLETED) {
+          for (let t in products[productId]) {
+            form = application.submissions.find(sub => sub.submission[TYPE] === t)
+            if (form) break
+          }
+        }
+        if (form)
           await cosignerAPI.checkRules({ application, forms: products[productId], rules })
         return
       }
