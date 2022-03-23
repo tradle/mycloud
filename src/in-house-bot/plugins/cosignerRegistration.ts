@@ -48,12 +48,6 @@ const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
     { body: '{{message}}' }, // 'Click below to complete your onboarding' },
     {
       action: {
-        text: 'On Mobile',
-        href: '{{mobileUrl}}'
-      }
-    },
-    {
-      action: {
         text: 'On Web',
         href: '{{webUrl}}'
       }
@@ -99,7 +93,8 @@ export const genConfirmationEmail = ({
     })
   })
 
-  return renderConfirmationEmail({ name, mobileUrl, webUrl, orgName, message })
+  return renderConfirmationEmail({ name, webUrl, orgName, message })
+  // return renderConfirmationEmail({ name, mobileUrl, webUrl, orgName, message })
 }
 
 interface GenConfirmationEmailOpts {
@@ -114,7 +109,7 @@ interface GenConfirmationEmailOpts {
 
 interface ConfirmationEmailTemplateData {
   name: string
-  mobileUrl: string
+  mobileUrl?: string
   webUrl: string
   orgName: string
   message?: string
