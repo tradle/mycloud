@@ -510,12 +510,15 @@ const hasPropertiesChanged = async ({
       dbRes = await bot.objects.get(resource._prevlink)
     } catch (err) {
       bot.logger.debug(
-        `not found previous version for the resource - check if this was refresh: ${JSON.stringify(
-          resource,
-          null,
-          2
-        )}`
+        `not found previous version for the resource - check if this was refresh: type: ${resource._t} _link: ${resource._link}`
       )
+      // bot.logger.debug(
+      //   `not found previous version for the resource - check if this was refresh: ${JSON.stringify(
+      //     resource,
+      //     null,
+      //     2
+      //   )}`
+      // )
       debugger
       return true
     }

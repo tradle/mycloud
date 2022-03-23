@@ -7,6 +7,8 @@ import validateResource from '@tradle/validate-resource'
 import buildResource from '@tradle/build-resource'
 import mergeModels from '@tradle/merge-models'
 import { TYPE, ORG, TYPES } from '@tradle/constants'
+import { buildResourceStub } from '@tradle/build-resource'
+
 const { FORM } = TYPES
 import { Plugins } from './plugins'
 // import { models as onfidoModels } from '@tradle/plugin-onfido'
@@ -32,7 +34,8 @@ import {
   witness,
   didPropChange,
   didPropChangeTo,
-  isSubClassOf
+  isSubClassOf,
+  getAssociateResources
 } from './utils'
 
 import { runWithTimeout, cachifyPromiser, tryAsync } from '../utils'
@@ -156,6 +159,13 @@ export const loadConfAndComponents = async (opts: ConfigureLambdaOpts): Promise<
     error: () => new Errors.Timeout(`timed out loading conf after ${Date.now() - start}ms`),
     millis: LOAD_CONF_TIMEOUT
   })
+
+  const { blockchainApiKey} = botConf
+  if (blockchainApiKey) {
+    bot.blockchain.setAdapterOpts({
+      apiKey: blockchainApiKey
+    })
+  }
 
   logger.debug('loaded in-house bot conf components')
 
@@ -564,7 +574,7 @@ export const loadComponentsAndPlugins = ({
           }
         }
       },
-      willRequestForm: ({ formRequest }) => {
+      willRequestForm: ({ formRequest, application }) => {
         const { models } = bot
         const { form } = formRequest
         const model = models[form]
@@ -671,6 +681,18 @@ export const loadComponentsAndPlugins = ({
           if (employeeManager.isEmployee({ user, masterUser })) {
             application.draft = true
           }
+        },
+        didCreateApplication: async ({ req, user, application }) => {
+          // if (application.draft) return
+          let { parentApplication } = req.payload
+          if (!parentApplication) return
+          const { parentApp, associatedRes } = await getAssociateResources({application, bot})
+          application.parent = buildResourceStub({resource: parentApp, models: bot.models})
+          if (associatedRes)
+            application.associatedResource = buildResourceStub({resource: associatedRes, models: bot.models})
+          parentApp.itemsCount = (parentApp.itemsCount || 0) + 1
+          await bot.versionAndSave(parentApp)
+          // debugger
         }
       } as PluginLifecycle.Methods,
       true
@@ -702,12 +724,14 @@ export const loadComponentsAndPlugins = ({
       'smart-prefill',
       'lens',
       'required-forms',
+      'ruesCheck',
       'doctorCheck',
       'creditBuroCheck',
       'creditBuroLegalEntityCheck',
       'facturapi-job',
       'czechCheck',
       'openCorporates',
+      // 'limit-applications',
       'complyAdvantage',
       // 'controllingPersonRegistration',
       'centrix',
@@ -748,6 +772,7 @@ export const loadComponentsAndPlugins = ({
       'sme-auto-approve',
       'attestation',
       'leasingQuotes',
+      'leasingSignoff',
       'giinCheck',
       'vatCheck',
       // 'invoicing'
@@ -965,11 +990,12 @@ const banter = (components: IBotComponents) => {
       to: user,
       object: {
         [TYPE]: 'tradle.SimpleMessage',
-        message: `Sorry, I'm not that smart yet!
+        message: 'Thank you for your message! Customer representative will be with you shortly!'
+//         message: `Sorry, I'm not that smart yet!
 
-If you start a product application, I'll see if I can get someone to help you.
+// If you start a product application, I'll see if I can get someone to help you.
 
-${PRODUCT_LIST_MENU_MESSAGE}`
+// ${PRODUCT_LIST_MENU_MESSAGE}`
       }
     })
   }
@@ -988,7 +1014,8 @@ ${PRODUCT_LIST_MENU_MESSAGE}`
 
   return {
     'onmessage:tradle.SimpleMessage': handleSimpleMessage,
-    'onmessage:tradle.DataBundleSubmitted': handleDataBundleSubmitted
+    'onmessage:tradle.DataBundleSubmitted': handleDataBundleSubmitted,
+    'onmessage:tradle.ShareRequestSubmitted': handleDataBundleSubmitted,
   }
 }
 

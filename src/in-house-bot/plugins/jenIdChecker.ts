@@ -309,7 +309,7 @@ export class JenIdCheckerAPI {
     this.logger.debug(`Created ${PROVIDER} check for ${ASPECTS}`)
   }
 
-  public createVerification = async ({ application, form, rawData, req }) => {
+  public createVerification = async ({ application, form, rawData, req, org }) => {
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
@@ -325,11 +325,12 @@ export class JenIdCheckerAPI {
       .draft({ type: VERIFICATION })
       .set({
         document: form,
+        checkType: DOCUMENT_CHECKER_CHECK,
         method
       })
       .toJSON()
 
-    await this.applications.createVerification({ application, verification })
+    await this.applications.createVerification({ application, verification, org })
     this.logger.debug(`Created ${PROVIDER} verification for ${ASPECTS}`)
     if (application.checks)
       await this.applications.deactivateChecks({
@@ -433,9 +434,11 @@ export class JenIdCheckerAPI {
 export const name = 'jenIdChecker'
 
 export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
-  { bot, applications },
+  components,
   { conf, logger }
 ) => {
+  const { bot, applications } = components
+  const { org } = components.conf
   const documentChecker = new JenIdCheckerAPI({ bot, applications, conf, logger })
   const plugin: IPluginLifecycleMethods = {
     validateForm: async ({ req }) => {
@@ -504,7 +507,8 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
             application,
             form,
             rawData: status.rawData,
-            req
+            req,
+            org
           })
 
           let prefill: any = {}
@@ -588,7 +592,8 @@ export const createPlugin: CreatePlugin<JenIdCheckerAPI> = (
           application,
           form,
           rawData: status.rawData,
-          req
+          req,
+          org
         })
       }
     }

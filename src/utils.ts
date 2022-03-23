@@ -1048,14 +1048,14 @@ export const logResponseBody = (logger: Logger) => (req, res, next) => {
   const oldEnd = res.end
   const chunks: Buffer[] = []
 
-  res.write = (chunk) => {
+  res.write = function (chunk) {
     chunks.push(chunk)
 
     // @ts-ignore
     oldWrite.apply(res, arguments)
   }
 
-  res.end = (chunk) => {
+  res.end = function (chunk) {
     if (chunk) chunks.push(chunk)
 
     const body = Buffer.concat(chunks).toString('utf8')

@@ -26,6 +26,7 @@ const PHOTO_ID = 'tradle.PhotoID'
 const DATA_SOURCE_REFRESH = 'tradle.DataSourceRefresh'
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const SHARE_REQUEST = 'tradle.ShareRequest'
+const SHARE_REQUEST_SUBMITTED = 'tradle.ShareRequestSubmitted'
 
 interface IValidityCheck {
   rawData: any
@@ -44,10 +45,15 @@ class ClientEditsAPI {
   }
 
   public async checkEdits({ req, sourceOfData, distance }) {
-    let { user, payload, application } = req
-    let formRequest = await this.bot.getResource(sourceOfData)
-
-    let prefill = formRequest.prefill
+    let { payload, application } = req
+    let prefill
+    try {
+      let formRequest = await this.bot.getResource(sourceOfData)
+      prefill = formRequest.prefill
+    } catch (err) {
+      this.logger.debug(`Source of data is probably from a different provider`)
+      return
+    }
     if (!prefill || !size(prefill)) return
     let createCheck = await doesCheckNeedToBeCreated({
       bot: this.bot,
@@ -85,7 +91,7 @@ class ClientEditsAPI {
     debugger
     let propName, author
     if (shareFrom) {
-      propName = 'from' 
+      propName = 'from'
       author = resource._org
       // author = await this.bot.identities.byPermalink(resource._org)
       // if (!author) {
@@ -129,8 +135,8 @@ class ClientEditsAPI {
   private async getSharedResources(resource, author) {
     debugger
     let { formStubs, verificationStubs} = resource
-    if (formStubs) return formStubs 
-    
+    if (formStubs) return formStubs
+
     if (resource.verificationStubs) {
       let verifications = await Promise.all(verificationStubs.map(v => this.bot.getResource(v)))
       return verifications
@@ -248,7 +254,14 @@ class ClientEditsAPI {
   }) => {
     const { payload } = req
 
-    let prevResource = payload._p && (await this.bot.objects.get(payload._p))
+    let prevResource
+    if (payload._p) {
+      try {
+        prevResource = (await this.bot.objects.get(payload._p))
+      } catch (err) {
+        debugger
+      }
+    }
 
     let isInitialSubmission, prefill
     if (payload._sourceOfData) {
@@ -357,7 +370,13 @@ class ClientEditsAPI {
     const { payload } = req
     const sourceOfData = payload._sourceOfData
     let dataLineage, prefill
-    if (sourceOfData) ({ dataLineage, prefill } = await this.bot.getResource(sourceOfData))
+    if (sourceOfData) {
+      try {
+        ({ dataLineage, prefill } = await this.bot.getResource(sourceOfData))
+      } catch (err) {
+        debugger
+      }
+    }
     else if (payload[TYPE] !== PHOTO_ID || !payload.scanJson) return
     else {
       let { address, personal, document } = payload.scanJson
@@ -436,23 +455,24 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
       // if (req.skipChecks) return
       const { payload, application } = req
       if (!payload._link) return
+      if (payload[TYPE] === SHARE_REQUEST_SUBMITTED) {
+        debugger
+        return
+      }  
 
       if (payload[TYPE] === SHARE_REQUEST) {
+        let { formStubs, verificationStubs} = payload
+        if (!formStubs && !verificationStubs)
+          return
         let myIdentity = await bot.getMyIdentity()
         let { with:sharedWith } = payload
         if (sharedWith.find(w => w._link === myIdentity._link))
           await clientEdits.handleShareRequest({resource: payload, shareFrom: true})
         else
           await clientEdits.handleShareRequest({resource: payload})
-
-        // if (sharedWith.find(w => w._link === myIdentity._link))
-        //   await clientEdits.handleShareFromRequest(payload)
-        // else
-        //   await clientEdits.handleShareWithRequest(payload)
       }
       if (!application)
         return
-      const isEmployee = employeeManager.isEmployee(req)
       const { models } = bot
       if (!isSubClassOf(FORM, models[payload[TYPE]], models)) return
       const sourceOfData = payload._sourceOfData

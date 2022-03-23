@@ -42,7 +42,7 @@ const API_BASED_VERIFIED_METHOD = 'tradle.APIBasedVerificationMethod'
 const CH_URL = 'https://beta.companieshouse.gov.uk'
 
 const CZECH_COUNTRY_ID = 'CZ' // handled by czechCheck
-
+const COLOMBIA_COUNTRY_CODE = 'CO' // handled by ruesCheck
 interface IOpenCorporatesConf {
   products: any
   propertyMap: any
@@ -59,6 +59,8 @@ const defaultPropMap = {
 
 const BASE_URL = 'https://api.opencorporates.com/'
 const DISPLAY_NAME = 'Open Corporates'
+const ASPECTS = 'Company existence'
+
 const test = {
   api_version: '0.4.7',
   results: {
@@ -233,8 +235,8 @@ class OpenCorporatesAPI {
           !alternative_names.length ||
           !alternative_names.filter(name => name.toLowerCase === companyName)
         ) {
-          let rParts = cName.split(' ')
-          let fParts = name.toLowerCase().split(' ')
+          let rParts = cName.replace(/[^\w\s]/gi, '').split(' ')
+          let fParts = name.replace(/[^\w\s]/gi, '').toLowerCase().split(' ')
           let commonParts = rParts.filter(p => fParts.includes(p))
           rightCompanyName = name
           if (!commonParts.length) return false
@@ -248,16 +250,16 @@ class OpenCorporatesAPI {
     if (!companies.length) {
       if (!foundNumber && rightNumber) {
         message = `No matches for company name "${companyName}" `
-        if (registrationNumber) message += `with the registration number "${registrationNumber}" `
+        if (registrationNumber) message += `with registration number "${registrationNumber}" `
         message += 'were found'
       } else if (!foundDate && rightDate)
-        message = `The company with the name "${companyName}" and registration number "${registrationNumber}" has a different registration date: ${rightDate}`
+        message = `The company "${companyName}" with registration number "${registrationNumber}" has registration date ${rightDate} while customer entered ${toISODateString(registrationDate)}`
       else if (!foundCountry && rightCountry)
-        message = `The company with the name "${companyName}" and registration number "${registrationNumber}" registered on ${toISODateString(
+        message = `The company "${companyName}" with registration number "${registrationNumber}" registered on ${toISODateString(
           registrationDate
         )} was not found in "${country}"`
       else if (!foundCompanyName && rightCompanyName)
-        message = `The company name "${companyName}" is different from the found one ${rightCompanyName} which corresponds to registration number "${registrationNumber}"`
+        message = `The company "${companyName}" is different from the found one ${rightCompanyName} which corresponds to registration number "${registrationNumber}"`
     } else {
       if ((foundDate && registrationDate) || foundCountry)
         message = 'The following aspects matched:\n'
@@ -298,7 +300,7 @@ class OpenCorporatesAPI {
       application,
       dateChecked: Date.now(),
       shareUrl: url,
-      aspects: 'Company existence',
+      aspects: ASPECTS,
       form
     }
     checkR = sanitize(checkR).sanitized
@@ -328,15 +330,15 @@ class OpenCorporatesAPI {
     return check.toJSON()
   }
 
-  public createVerification = async ({ application, form, rawData, req }) => {
+  public createVerification = async ({ application, form, rawData, req, org, provider }) => {
     // debugger
     const method: any = {
       [TYPE]: API_BASED_VERIFIED_METHOD,
       api: {
         [TYPE]: API,
-        name: OPEN_CORPORATES
+        name: provider
       },
-      aspect: 'company existence',
+      aspect: ASPECTS,
       reference: [{ queryId: 'report:' + rawData.company_number }],
       rawData
     }
@@ -345,13 +347,15 @@ class OpenCorporatesAPI {
       .draft({ type: VERIFICATION })
       .set({
         document: form,
+        checkType: CORPORATION_EXISTS,
         method
       })
       .toJSON()
 
     await this.applications.createVerification({
       application,
-      verification
+      verification,
+      org
     })
     // debugger
 
@@ -505,7 +509,9 @@ class OpenCorporatesAPI {
   }
 }
 
-export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger, conf }) => {
+export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) => {
+  const { bot, applications } = components
+  const { org } = components.conf
   const openCorporates = new OpenCorporatesAPI({ bot, conf, applications, logger })
   const plugin: IPluginLifecycleMethods = {
     name: 'open-corporates',
@@ -539,7 +545,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         return
       }
 
-      if (payload[map.country].id.split('_')[1] === CZECH_COUNTRY_ID)
+      if (payload[map.country].id.split('_')[1] === CZECH_COUNTRY_ID ||
+          payload[map.country].id.split('_')[1] === COLOMBIA_COUNTRY_CODE)
         return
 
       let { resource, error } = await getCheckParameters({
@@ -577,7 +584,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         logger.error('No api_token provided')
         return
       }
-
+      let willRequirePrefill = payload[TYPE] === LEGAL_ENTITY && !payload[map.registrationDate]
       let r: {
         rawData: object
         message?: string
@@ -625,13 +632,15 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
           req
         })
       )
-      if (hasVerification)
+      if (hasVerification  &&  !willRequirePrefill)
         pchecks.push(
           openCorporates.createVerification({
             application,
             form: payload,
             rawData: hits[0].company,
-            req
+            provider,
+            req,
+            org
           })
         )
       // })
@@ -643,6 +652,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       if (!application) return
 
       if (payload[TYPE] !== LEGAL_ENTITY) return
+      
       let { propertyMap, companiesHouseApiKey } = conf
       let map = propertyMap && propertyMap[payload[TYPE]]
       if (map) map = { ...defaultPropMap, ...map }
@@ -652,7 +662,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         logger.debug('skipping prefill"')
         return
       }
-      if (payload[map.country].id.split('_')[1] === CZECH_COUNTRY_ID)
+      if (payload[map.country].id.split('_')[1] === CZECH_COUNTRY_ID ||
+          payload[map.country].id.split('_')[1] === COLOMBIA_COUNTRY_CODE)
         return
 
       if (payload._prevlink && payload.registrationDate) return
@@ -740,14 +751,15 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
           return
         }
         let error = ''
+        let errValue = 'Above is from the primary data source. Please confirm or correct.'
         if (wrongName) {
           error = 'Is it your company?'
-          errors = [{ name: 'companyName', error: 'Is it your company?' }]
+          errors = [{ name: 'companyName', error: errValue, oldValue: payload.companyName }]
         }
         if (wrongNumber) {
           if (!error) error = 'Is it your company?'
           if (!errors) errors = []
-          errors.push({ name: 'registrationNumber', error: 'Is it your company?' })
+          errors.push({ name: 'registrationNumber', error: errValue, oldValue: payload.registrationNumber })
         }
         message = `${error} Please review and correct the data below for **${name}**`
       }

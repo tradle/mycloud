@@ -40,6 +40,10 @@ import validateResource from '@tradle/validate-resource'
 const { sanitize } = validateResource.utils
 import remapKeys from 'remap-keys'
 
+const IMPORT_REFDATA_JOB = 'importRefdata'
+const JOBS = 'jobs'
+const BOT_CONF = 'botConf'
+
 const POLL_INTERVAL = 500
 const ATHENA_OUTPUT = 'temp/athena'
 
@@ -92,6 +96,8 @@ export class RegulatorRegistrationAPI {
   private logger: Logger
   private athena: AWS.Athena
   private athenaHelper: AthenaHelper
+  private s3: AWS.S3
+  private refDataBucket: string
 
   constructor({ bot, conf, applications, logger }) {
     this.bot = bot
@@ -99,8 +105,80 @@ export class RegulatorRegistrationAPI {
     this.applications = applications
     this.logger = logger
     this.athena = new AWS.Athena() //{ region, accessKeyId, secretAccessKey })
+    this.s3 = new AWS.S3()    //{ accessKeyId, secretAccessKey, region })
+ 
     this.athenaHelper = new AthenaHelper(bot, logger, this.athena, 'regulatorRegistration')
+    this.refDataBucket = this.bot.buckets.PrivateConf.id //BUCKET //
   }
+
+  private select = async (sql: string, delimiter: string, file: string) => {
+    let output: any
+    try {
+      output = await this.s3.selectObjectContent({
+        Bucket: this.refDataBucket,
+        Key: file,
+        ExpressionType: 'SQL',
+        Expression: sql,
+        InputSerialization: {
+          CSV: {
+            FileHeaderInfo: 'USE',
+            FieldDelimiter: delimiter? delimiter : ',',
+            QuoteCharacter: ''
+          },
+          CompressionType: 'GZIP'
+        },
+        OutputSerialization: {
+          JSON: {}
+        }
+      }).promise()
+    } catch (err) {
+      this.logger.error(err.message, err)
+      return
+    }
+  
+    let res = await new Promise((resolve, reject) => {
+      let list: any[] = []
+      // @ts-ignore
+      output.Payload.on('data', (event) => {
+        if (event.Records) {
+          // THIS IS OUR RESULT
+          let buffer = event.Records.Payload;
+          const out = buffer.toString()
+          const records = out.split('\n')
+          for (let i in records) {
+            const single = records[i].replace('\\n', '')
+            if (single) {
+              try {
+                list.push(JSON.parse(single))
+              } catch (err) {
+                this.logger.error('regulatorRegistration parse error', err)
+              }
+            }
+          }
+        }
+        else if (event.End) {
+          resolve(list)
+        }
+      })
+      output.Payload.on('error', (err) => {
+        this.logger.error('regulatorRegistration error', err)
+        reject(err)
+      })
+    })
+    return res
+  }
+
+  private queryS3File = async (sql: string, delimiter: string, file: string, map: any) => {
+    this.logger.debug(`regulatorRegistration queryS3File called with sql ${sql} for file ${file}`)
+    try {
+      let list = await this.select(sql, delimiter, file)
+      this.logger.debug('athena query result', list)
+      return { status: true, error: null, data: list }
+    } catch (err) {
+      return { status: false, error: err, data: null }
+    }
+  }  
+  
 
   private getDataSource = async (id: string) => {
     return await this.bot.db.findOne({
@@ -161,12 +239,13 @@ export class RegulatorRegistrationAPI {
     }
     return null
   }
-  public async check({ subject, form, application, req, user }) {
+  public async check({ subject, form, application, req, user, org }) {
     let status
     let formRegistrationNumber = form[subject.check]
     this.logger.debug(`regulatorRegistration check() called with number ${formRegistrationNumber}`)
     let sql = util.format(subject.query, formRegistrationNumber)
-    let find = subject.test ? subject.test : await this.queryAthena(sql, subject.map)
+    //let find = subject.test ? subject.test : await this.queryAthena(sql, subject.map)
+    let find = subject.test ? subject.test : await this.queryS3File(sql, subject.delimiter, subject.file, subject.map)
     let rawData
     let prefill
     if (!find.status) {
@@ -207,7 +286,7 @@ export class RegulatorRegistrationAPI {
     await this.createCheck({ application, status, form, dataSourceLink, rawData, req, aspects })
 
     if (status.status === 'pass') {
-      await this.createVerification({ application, form, req, aspects })
+      await this.createVerification({ application, form, req, aspects, org })
 
       prefill = sanitize(prefill).sanitized
       const payloadClone = _.cloneDeep(form)
@@ -257,7 +336,7 @@ export class RegulatorRegistrationAPI {
     this.logger.debug(`${PROVIDER} Created RegulatorRegistrationCheck`)
   }
 
-  public createVerification = async ({ application, form, req, aspects }) => {
+  public createVerification = async ({ application, form, req, aspects, org }) => {
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
@@ -272,11 +351,12 @@ export class RegulatorRegistrationAPI {
       .draft({ type: VERIFICATION })
       .set({
         document: form,
+        checkType: REGULATOR_REGISTRATION_CHECK,
         method
       })
       .toJSON()
 
-    await this.applications.createVerification({ application, verification, req })
+    await this.applications.createVerification({ application, verification, req, org })
     if (application.checks)
       await this.applications.deactivateChecks({
         application,
@@ -287,8 +367,11 @@ export class RegulatorRegistrationAPI {
   }
 }
 
-export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
+export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) => {
+  const { bot, applications } = components
+  const { org } = components.conf
   const regulatorRegistrationAPI = new RegulatorRegistrationAPI({ bot, conf, applications, logger })
+
   // debugger
   const plugin: IPluginLifecycleMethods = {
     async validateForm({ req }) {
@@ -305,7 +388,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       if (!payload[subject.check]) return
       let corpCheck: any = await getLatestCheck({ type: CORPORATION_EXISTS, req, application, bot })
-      if (!corpCheck || isPassedCheck(corpCheck.status)) return
+      if (!corpCheck || !isPassedCheck(corpCheck.status)) return
 
       if (payload._prevlink) {
         let dbRes = await bot.objects.get(payload._prevlink)
@@ -333,7 +416,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         form: payload,
         application,
         req,
-        user
+        user,
+        org
       })
     }
   }
@@ -349,6 +433,14 @@ export const validateConf: ValidatePluginConf = async ({
   conf: IConfComponents
   pluginConf: IRegulatorRegistrationConf
 }) => {
+  let jobs: any = conf[BOT_CONF][JOBS]
+  if (!jobs)
+    throw new Errors.InvalidInput('no active jobs including importRefdata')
+  if (jobs) {
+    let jobConf = jobs[IMPORT_REFDATA_JOB]
+    if (!jobConf || !jobConf.active)
+      throw new Errors.InvalidInput('job importRefdata is not active')
+  }
   const { models } = bot
   if (!pluginConf.athenaMaps) throw new Errors.InvalidInput('athena maps are not found')
   pluginConf.athenaMaps.forEach(subject => {

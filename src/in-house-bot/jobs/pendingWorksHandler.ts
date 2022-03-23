@@ -45,7 +45,7 @@ export class PendingWorksHandler {
       const conf = this.botConf[PRODUCTS][PLUGINS][work.plugin]
       this.logger.debug(`pendingWorkHandler work plugin conf: ${conf}`)
       const pluginModul = await import('../plugins/' + work.plugin)
-      const { plugin } = pluginModul.createPlugin({ bot: this.bot, applications : this.applications },
+      const { plugin } = pluginModul.createPlugin({ bot: this.bot, applications : this.applications, conf: this.botConf },
                                                   { conf, logger: this.logger })
       this.logger.debug('pendingWorkHandler calling plugin replay')                                            
       await plugin.replay(work, this.applications) 

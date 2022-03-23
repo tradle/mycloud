@@ -370,7 +370,7 @@ export class CIBICheckerAPI {
         this.logger.debug(`Created ${provider} check for ${aspect}`);
     }
 
-    createVerification = async ({ application, form, rawData, provider, aspect, type, req }) => {
+    createVerification = async ({ application, form, rawData, provider, aspect, type, req, org }) => {
         const method:any = {
           [TYPE]: 'tradle.APIBasedVerificationMethod',
           api: {
@@ -389,13 +389,13 @@ export class CIBICheckerAPI {
            })
            .toJSON()
 
-        await this.applications.createVerification({ application, verification })
+        await this.applications.createVerification({ application, verification, org })
         this.logger.debug(`Created ${provider} verification for ${aspect}`);
         if (application.checks)
           await this.applications.deactivateChecks({ application, type, form, req })
     }
 
-    createAddressVerification = async ({ application, form, rawData, provider, aspect, req }) => {
+    createAddressVerification = async ({ application, form, rawData, provider, aspect, req, org }) => {
         const method:any = {
           [TYPE]: 'tradle.APIBasedVerificationMethod',
           api: {
@@ -414,7 +414,7 @@ export class CIBICheckerAPI {
            })
            .toJSON()
 
-        await this.applications.createVerification({ application, verification })
+        await this.applications.createVerification({ application, verification, org })
         this.logger.debug(`Created ${provider} verification for ${aspect}`);
         if (application.checks)
             await this.applications.deactivateChecks({ application, type: ADDRESS_CHECK, form, req })
@@ -423,7 +423,9 @@ export class CIBICheckerAPI {
 
 export const name = 'cibiChecker'
 
-export const createPlugin: CreatePlugin<CIBICheckerAPI> = ({ bot, applications }, { conf, logger }) => {
+export const createPlugin: CreatePlugin<CIBICheckerAPI> = (components, { conf, logger }) => {
+  const { bot, applications } = components
+  const { org } = components.conf
   const documentChecker = new CIBICheckerAPI({ bot, applications, conf, logger })
   const plugin:IPluginLifecycleMethods = {
     onFormsCollected: async ({req}) => {
@@ -458,7 +460,7 @@ debugger
                                             ,aspect: NEGREC_ASPECTS, type: NEGREC_CHECK, req })
           if (negrecStatus.status === 'pass') {
               await documentChecker.createVerification({ application, form, rawData: negrecStatus.rawData
-                                                       ,provider: PROVIDER_CREDIT_BUREAU, aspect: NEGREC_ASPECTS, type: NEGREC_CHECK, req })
+                                                       ,provider: PROVIDER_CREDIT_BUREAU, aspect: NEGREC_ASPECTS, type: NEGREC_CHECK, req, org })
           }
       }
 
@@ -481,7 +483,7 @@ debugger
                                           ,aspect: IDENTITY_ASPECTS, type : DOCUMENT_CHECKER_CHECK, req})
         if (identityStatus.status === 'pass') {
             await documentChecker.createVerification({ application, form, rawData: identityStatus.rawData, provider: PROVIDER_CREDIT_BUREAU
-                                                     ,aspect: IDENTITY_ASPECTS, type: DOCUMENT_CHECKER_CHECK, req })
+                                                     ,aspect: IDENTITY_ASPECTS, type: DOCUMENT_CHECKER_CHECK, req, org })
         }
 
         if (!address.unparsed)
@@ -524,7 +526,7 @@ debugger
         await documentChecker.createCheck({application, status: cibiIdentityStatus, form, provider: PROVIDER_CREDIT_BUREAU
                                           ,aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK, req})
         await documentChecker.createVerification({ application, form, rawData: cibiIdentityStatus.rawData, provider: PROVIDER_CREDIT_BUREAU
-                                                 ,aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK, req })
+                                                 ,aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK, req, org })
         return
       }
 
@@ -575,7 +577,7 @@ debugger
       await documentChecker.createCheck({application, status: cibiIdentityStatus, form: addressForm, provider: PROVIDER_CREDIT_BUREAU
                                         ,aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK, req})
       await documentChecker.createVerification({ application, form: addressForm, rawData: cibiIdentityStatus.rawData
-                                               ,provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK, req })
+                                               ,provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS, type: ADDRESS_CHECK, req, org })
 
     }
   }

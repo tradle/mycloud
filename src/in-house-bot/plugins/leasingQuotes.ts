@@ -1,7 +1,5 @@
-import cloneDeep from 'lodash/cloneDeep'
 import size from 'lodash/size'
 import extend from 'lodash/extend'
-
 import {
   CreatePlugin,
   Bot,
@@ -11,13 +9,11 @@ import {
   ValidatePluginConf
 } from '../types'
 import { TYPE } from '@tradle/constants'
-import validateResource from '@tradle/validate-resource'
 import { getLatestForms } from '../utils'
 // @ts-ignore
-const { sanitize } = validateResource.utils
-const QUOTATION = 'quotation'
-const AMORTIZATION = 'amortization'
+
 interface AmortizationItem {
+  [TYPE]: string
   period: number,
   principal: {
     value: number,
@@ -47,158 +43,15 @@ class LeasingQuotesAPI {
     this.logger = logger
     this.conf = conf
   }
-  public async quotationPerTerm(application, formRequest) {
+  public async amortizationPerMonth({application, formRequest, form}) {
     const stubs = getLatestForms(application)
-    let qiStub = stubs.find(({ type }) => type.endsWith('QuotationInformation'))
+    let qiStub = stubs.find(({ type }) => type === form)
     if (!qiStub) return
-    const quotationInfo = await this.bot.getResource(qiStub)
-    let {
-      factor,
-      netPrice,
-      assetName,
-      quotationConfiguration,
-      exchangeRate,
-      depositPercentage,
-      deliveryTime,
-      netPriceMx,
-      vat,
-      priceMx,
-      depositValue,
-      annualInsurance,
-      fundedInsurance
-    } = quotationInfo
-
-    if (!factor || !netPrice || !quotationConfiguration || !exchangeRate || !depositPercentage || !deliveryTime ||
-        !netPriceMx || !priceMx || !depositValue || !fundedInsurance) {
-      this.logger.debug('quotation: Some numbers are missing')
-      return {}
-    }
-
-    let configuration = await this.bot.getResource(quotationConfiguration)
-    if (!configuration) return
-    let configurationItems = configuration.items
-    // let { quotationConfiguration } = conf
-    // if (!quotationConfiguration) {
-      // try {
-      //   let qc = await bot.db.findOne({
-      //     filter: {
-      //       EQ: {
-      //         [TYPE]: QUOTATION_CONFIGURATION,
-      //         configuration: quotationConfiguration
-      //       }
-      //     }
-      //   })
-      //   configurationItems = qc.items
-      // } catch (err) {
-      //   return
-      // }
-    // }
-
-    let quotationDetails = []
-    let defaultQC = configurationItems[0]
-    let ftype = formRequest.form
-    configurationItems.forEach(quotConf => {
-      let qc = cloneDeep(defaultQC)
-      for (let p in quotConf)
-        qc[p] = quotConf[p]
-      let {
-        term,
-        // dt1,
-        // dt2,
-        // dt3,
-        // dt4,
-        residualValue,
-        vatRate,
-        commissionFee,
-        factorVPdelVR,
-        minIRR,
-        lowDeposit,
-        lowDepositPercent
-      } = qc
-      let termVal = term.title.split(' ')[0]
-      let factorPercentage = mathRound(factor / 100 / 12 * termVal, 4)
-
-      let dtID = deliveryTime.id.split('_')[1]
-      let deliveryTermPercentage = qc[dtID]
-      let depositFactor = 0
-      let lowDepositFactor
-      if (depositPercentage > lowDeposit * 100)
-        lowDepositFactor = 0
-      else
-        lowDepositFactor = lowDepositPercent
-      let totalPercentage = mathRound(1 + factorPercentage + deliveryTermPercentage + depositFactor + lowDepositFactor, 4)
-
-      let depositVal = depositValue && depositValue.value || 0
-      let monthlyPayment = (priceMx.value - depositVal - (residualValue * priceMx.value/100)/(1 + factorVPdelVR))/(1 + vatRate) * totalPercentage/termVal
-      // let monthlyPaymentPMT = (vatRate/12)/(((1+vatRate/12)**termVal)-1)*(netPriceMx.value*((1+vatRate/12)**termVal)-(netPriceMx.value*residualValue/100))
-
-      let insurance = fundedInsurance.value
-      let initialPayment = depositPercentage === 0 && monthlyPayment + insurance || depositValue.value / (1 + vatRate)
-      let commissionFeeCalculated = commissionFee * priceMx.value
-      let initialPaymentVat = (initialPayment + commissionFeeCalculated) * vatRate
-      let currency = netPriceMx.currency
-      let vatQc =  mathRound((monthlyPayment + insurance) * vatRate)
-      let qd:any = {
-        [TYPE]: ftype,
-        factorPercentage,
-        deliveryTermPercentage,
-        // depositFactor:
-        lowDepositFactor: depositPercentage > lowDeposit && 0 || lowDepositPercent,
-        term,
-        commissionFee: commissionFeeCalculated  &&  {
-          value: mathRound(commissionFeeCalculated),
-          currency
-        },
-        initialPayment: initialPayment && {
-          value: mathRound(initialPayment),
-          currency
-        },
-        initialPaymentVat: initialPaymentVat && {
-          value: mathRound(initialPaymentVat),
-          currency
-        },
-        totalPercentage,
-        totalInitialPayment: initialPayment && {
-          value: mathRound(commissionFeeCalculated + initialPayment + initialPaymentVat),
-          currency
-        },
-        monthlyPayment: monthlyPayment  &&  {
-          value: mathRound(monthlyPayment),
-          currency
-        },
-        monthlyInsurance: fundedInsurance,
-        vat: monthlyPayment && {
-          value: vatQc,
-          currency
-        },
-        totalPayment: monthlyPayment && {
-          value: mathRound(monthlyPayment + insurance + vatQc),
-          currency
-        },
-        purchaseOptionPrice: priceMx && {
-          value: mathRound(priceMx.value * residualValue/100),
-          currency
-        }
-      }
-      qd = sanitize(qd).sanitized
-      quotationDetails.push(qd)
-    })
-    return {
-      type: ftype,
-      terms: quotationDetails
-    }
-  }
-  public async amortizationPerMonth(application, formRequest) {
-    const stubs = getLatestForms(application)
-    let qiStub = stubs.find(({ type }) => type.endsWith('QuotationInformation'))
-    if (!qiStub) return
-    let qdStub = stubs.find(({ type }) => type.endsWith('QuotationDetails'))
-    if (!qdStub) return
     const quotationInfo = await this.bot.getResource(qiStub)
     const {
       netPriceMx
     } = quotationInfo
-    const quotationDetail = await this.bot.getResource(qdStub)
+    const quotationDetail = quotationInfo
 
     const {
       monthlyPayment,
@@ -259,20 +112,16 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       let productConf = conf[requestFor]
 
-      if (!productConf) return
-
       let ftype = formRequest.form
-      let action = productConf[ftype]
-      if (!action) return
+      if (!productConf || !productConf[ftype]) return
+
+      let { form } = productConf[ftype]
+      if (!form) return
 
       let model = bot.models[ftype]
       if (!model) return
 
-      let prefill = {}
-      if (action === QUOTATION)
-        prefill = await leasingQuotes.quotationPerTerm(application, formRequest)
-      else if (action === AMORTIZATION)
-        prefill = await leasingQuotes.amortizationPerMonth(application, formRequest)
+      let prefill = await leasingQuotes.amortizationPerMonth({application, formRequest, form})
 
       if (!size(prefill)) return
       if (!formRequest.prefill) {

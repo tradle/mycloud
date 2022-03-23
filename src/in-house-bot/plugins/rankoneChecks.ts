@@ -272,7 +272,7 @@ export class RankOneCheckAPI {
     return check.toJSON()
   }
 
-  public createVerification = async ({ user, application, photoID, req }) => {
+  public createVerification = async ({ user, application, photoID, req, org }) => {
     const method: any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: _.clone(RANKONE_API_RESOURCE),
@@ -283,11 +283,12 @@ export class RankOneCheckAPI {
       .draft({ type: VERIFICATION })
       .set({
         document: photoID,
+        checkType: FACIAL_RECOGNITION,
         method
       })
       .toJSON()
 
-    await this.applications.createVerification({ application, verification })
+    await this.applications.createVerification({ application, verification, org })
     if (application.checks)
       await this.applications.deactivateChecks({
         application,
@@ -300,6 +301,7 @@ export class RankOneCheckAPI {
 
 export const createPlugin: CreatePlugin<RankOneCheckAPI> = (components, pluginOpts) => {
   const { bot, applications } = components
+  const { org } = components.conf
   let { logger, conf = {} } = pluginOpts
 
   // if (bot.isLocal && !bot.s3Utils.publicFacingHost) {
@@ -355,7 +357,7 @@ export const createPlugin: CreatePlugin<RankOneCheckAPI> = (components, pluginOp
       })
       const pchecks = [promiseCheck]
       if (status === true) {
-        const promiseVerification = rankOne.createVerification({ user, application, photoID, req })
+        const promiseVerification = rankOne.createVerification({ user, application, photoID, req, org })
         pchecks.push(promiseVerification)
       }
 

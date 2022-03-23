@@ -163,6 +163,9 @@ export interface IPBReq {
   latestChecks?: ITradleCheck[]
   previousPayloadVersion?: ITradleObject
   providerConfiguration?: any
+  parentFormsStubs?:any
+  parentForms?:ITradleObject
+  conditionalApproval?: boolean
 }
 
 export type VerifiedItem = {

@@ -446,7 +446,7 @@ export const getCheckParameters = async ({
   try {
     dbRes = resource._prevlink && (await bot.objects.get(resource._prevlink))
   } catch (error) {
-    console.log('getCheckParameters ', error)
+    console.log('getCheckParameters ', `${error.name} ${error.message}`)
   }
   let runCheck = !dbRes
   let r: any = {}
@@ -545,10 +545,12 @@ export const getLatestChecks = async ({ application, bot }) => {
     application.checks.map((stub) => bot.getLatestResource(stub))
   )
 
-  const checksSorted: ITradleCheck[] = checks.sort((a, b) => b._time - a._time)
-
-  let latestChecks: ITradleCheck[] = _.uniqBy(checksSorted, (check: any) =>
-    [check.form._permalink, check.propertyName, check[TYPE], check.provider].join(',')
+  const checksSorted: ITradleCheck[] = checks.filter(c => !c.isInactive && !c.nextCheck).sort((a, b) => b._time - a._time)
+  let latestChecks: ITradleCheck[] = _.uniqBy(checksSorted, (check: any) => {
+      if (check.form)
+        return [check.form._permalink, check.propertyName, check[TYPE], check.provider].join(',')
+      return check._t  
+    }
   )
 
   return { latestChecks, checks }
@@ -624,12 +626,15 @@ export const getChangedProperties = async ({
       dbRes = await bot.objects.get(resource._prevlink)
     } catch (err) {
       bot.logger.debug(
-        `not found previous version for the resource - check if this was refresh: ${JSON.stringify(
-          resource,
-          null,
-          2
-        )}`
+        `not found previous version for the resource - check if this was refresh: type: ${resource._t} _link: ${resource._link}`
       )
+      // bot.logger.debug(
+      //   `not found previous version for the resource - check if this was refresh: ${JSON.stringify(
+      //     resource,
+      //     null,
+      //     2
+      //   )}`
+      // )
       debugger
       return { needsCheck: true }
     }
@@ -882,7 +887,7 @@ export const getAssociateResources = async ({
   applicationOnly,
   resourceOnly
 }: {
-  application: IPBApp
+  application: any
   bot: Bot
   applicationOnly?: boolean
   resourceOnly?: boolean
@@ -892,7 +897,7 @@ export const getAssociateResources = async ({
   if (!parentApplication) return {}
   let parentApp
   if (!resourceOnly)
-    parentApp = await bot.getResource({ type: APPLICATION, permalink: parentApplication })
+    parentApp = await bot.getResource({ type: APPLICATION, permalink: parentApplication, backlinks: ['forms'] })
   if (applicationOnly) return { parentApp }
   let [type, hash] = associatedResource.split('_')
   let associatedRes = await bot.getResource({ type, permalink: hash })

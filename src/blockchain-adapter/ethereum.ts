@@ -13,7 +13,7 @@ const FAUCET_BASE_URL = 'http://faucet.ropsten.be:3001/donate'
 // MAX_PRICE_IN_WEI is 15 * GWEI * GAS_LIMIT
 const MAX_PRICE_IN_WEI = new BN('315000000000000', 10)
 
-export = function getNetworkAdapters ({ networkName, privateKey }) {
+export = function getNetworkAdapters ({ networkName, privateKey, apiKey }) {
   if (!networkName) {
     throw new Errors.InvalidInput('expected string "networkName"')
   }
@@ -33,6 +33,7 @@ export = function getNetworkAdapters ({ networkName, privateKey }) {
       pollingInterval: 10000,
       etherscan: {
         maxRequestsPerSecond: 5,
+        apiKey,
       },
       autostart: false,
       maxPriceInWei: MAX_PRICE_IN_WEI,

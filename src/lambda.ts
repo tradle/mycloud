@@ -123,7 +123,7 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
   public containerId: string
   public accountId: string
   public requestCounter: number
-  public xraySegment?: AWS.XRay.Segment
+  public xraySegment?: AWSXray.SegmentLike
   private breakingContext: string
   private middleware: Middleware<Ctx>[]
   private initPromise: Promise<void>
@@ -330,7 +330,11 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
   public finishRun = async (err?, result?) => {
     if (this.done) {
       throw new Error(`finishRun can only be called once per lambda invocation!
-Previous exit stack: ${this.lastExitStack}`)
+Previous exit stack: ${this.lastExitStack}
+${err
+  ? `Current exit stack: ${err.stack}`
+  : `Current result: ${result}`
+}`)
     }
 
     this.lastExitStack = getCurrentCallStack()
@@ -549,8 +553,9 @@ Previous exit stack: ${this.lastExitStack}`)
 
           // lambda should not fail!
           // it should return a failure status code but succeed
-          if (typeof err.status === 'number') {
-            ctx.status = err.status
+          const status = err.status
+          if (typeof status === 'number') {
+            ctx.status = status
             ctx.body = { message: err.message }
           } else if (!ctx.body && ctx.status === 404) {
             // koa defaults to 404
@@ -636,7 +641,7 @@ Previous exit stack: ${this.lastExitStack}`)
 
   private _initCloudWatchLogs = () => {
     this.use(async (ctx, next) => {
-      ctx.gzippedEvent = new Buffer(ctx.event.awslogs.data, 'base64')
+      (ctx as any).gzippedEvent = Buffer.alloc(ctx.event.awslogs.data, 'base64')
       const str = zlib.gunzipSync(ctx.gzippedEvent).toString('utf8')
       ctx.event = JSON.parse(str)
 

@@ -1,16 +1,20 @@
 import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
 import { CreatePlugin, IPluginLifecycleMethods } from '../types'
+import { getAssociateResources, isSubClassOf } from '../utils'
 
 const DEFAULT_CONF = require('../../../data/in-house-bot/form-prefills.json')
-
+const FORM = 'tradle.Form'
 export const name = 'prefill-form'
+const PREFILL_NOT = ['tradle.Attestation']
 export const createPlugin: CreatePlugin<void> = (components, { conf = DEFAULT_CONF, logger }) => {
   const plugin: IPluginLifecycleMethods = {}
-  plugin.willRequestForm = ({ user, application, formRequest }) => {
+  const { bot } = components
+  plugin.willRequestForm = async ({ user, application, formRequest }) => {
+    let { form, prefill } = formRequest
+    if (prefill || PREFILL_NOT.includes(form)) return
+
     const appSpecific = application && conf[application.requestFor]
-    const { form, prefill } = formRequest
-    if (prefill) return
 
     let values
     if (appSpecific) {
@@ -30,9 +34,40 @@ export const createPlugin: CreatePlugin<void> = (components, { conf = DEFAULT_CO
         values
       )
     }
+    const { associatedResource } = application
+    const { models } = bot
+    if (!associatedResource  ||  !isSubClassOf(FORM, models[associatedResource[TYPE]], models)) return
+
+    let prefillFromAssociatedResource = await setPropsFromAssociatedResource({bot, application, form})
+    if (prefillFromAssociatedResource) {
+      if (!formRequest.prefill)
+        formRequest.prefill = {[TYPE]: form}
+      _.extend(formRequest.prefill, prefillFromAssociatedResource)
+    }
+    if (!formRequest.prefill) formRequest.prefill = { [TYPE]: form }
   }
 
   return {
     plugin
   }
 }
+async function setPropsFromAssociatedResource({bot, application, form}) {
+  if (!application) return
+
+  let { associatedRes } = await getAssociateResources({
+    application,
+    bot,
+    resourceOnly: true
+  })
+  if (!associatedRes) return
+
+  const { properties } = bot.models[form]
+
+  let prefill = {}
+  for (let p in properties) {
+    if (p.charAt(0) !== '_'  &&  associatedRes[p])
+      prefill[p] = associatedRes[p]
+  }
+  return prefill
+}
+

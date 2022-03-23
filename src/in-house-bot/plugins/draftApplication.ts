@@ -1,13 +1,12 @@
 import _ from 'lodash'
-import { Bot, Logger, CreatePlugin, IPluginLifecycleMethods } from '../types'
+import { CreatePlugin, IPluginLifecycleMethods } from '../types'
 import { TYPE } from '@tradle/constants'
 import { sendConfirmationEmail } from '../email-utils'
-
+import { getAssociateResources } from '../utils'
 export const name = 'draftApplication'
 
 const APPLICATION = 'tradle.Application'
 const PRODUCT_BUNDLE = 'tradle.ProductBundle'
-const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 
 const exclude = [
   'tradle.ProductRequest',
@@ -15,6 +14,7 @@ const exclude = [
   'tradle.FormError',
   'tradle.ApplicationSubmitted',
   'tradle.Verification',
+  'tradle.OTP',
   'tradle.NextFormRequest'
 ]
 const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
@@ -40,7 +40,7 @@ const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
 
 export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
   let { bot } = components
-  let { logger, conf } = pluginOpts
+  let { conf } = pluginOpts
   const senderEmail = conf.senderEmail || components.conf.bot.senderEmail
 
   const plugin: IPluginLifecycleMethods = {
@@ -49,9 +49,15 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
       if (!application.forms || application.forms.length <= 1) {
         let pr = await bot.getResource(application.request)
-        if (pr.bundleId) {
-          // debugger
-          return [PRODUCT_BUNDLE].concat(bot.models[pr.requestFor].forms)
+        const { bundleId } = pr
+        if (bundleId) {
+          try {
+            let bundle  = await bot.getResource({_link: bundleId, _permalink: bundleId, _t: PRODUCT_BUNDLE})
+            if (bundle)
+              return [PRODUCT_BUNDLE].concat(bot.models[pr.requestFor].forms)
+          } catch (err) {
+            debugger
+          }
         }
       }
     },
@@ -65,7 +71,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (!productMap) return
 
       let applicationWithForms = await bot.getResource(payload, { backlinks: ['forms'] })
-      debugger
       let { forms } = applicationWithForms
       if (!forms.length) return
       let models = bot.models
@@ -73,7 +78,20 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         .map(submission => submission.submission)
         .filter(form => !exclude.includes(form[TYPE]))
 
-      let f = forms.find(form => productMap[form[TYPE]])  
+      let f = forms.find(form => productMap[form[TYPE]])
+      let emailAddress
+
+      if (!f && payload.parent) {
+      // HACK -  need to send in chat not email when parent is known
+        let parent = await bot.getResource(payload.parent, {backlinks: ['forms']})
+        let parentForms = parent.forms
+        .map(submission => submission.submission)
+        .filter(form => !exclude.includes(form[TYPE]))
+
+        f = parentForms.find(form => productMap[form[TYPE]])
+        f = await bot.getResource(f)
+        emailAddress = f[productMap[f[TYPE]]]
+      }
       if (!f) return
 
       forms = await Promise.all(forms.map(form => bot.getResource(form)))
@@ -81,15 +99,13 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let keepProperties = ['_t']
       forms = _.uniqBy(forms, '_permalink')
 
-      let emailAddress
-
       forms.sort((a, b) => a._time - b._time)
+
       forms.forEach(form => {
         let type = form[TYPE]
         if (exclude.includes(type)) return
-        let emailProp = productMap[type]
+        let emailProp = !emailAddress  &&  productMap[type]
         if (emailProp  &&  !emailAddress) {
-          debugger
           emailAddress = form[emailProp]
         }
         let properties = models[type].properties
@@ -108,7 +124,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         }
       })
       if (!emailAddress) return
-      debugger
+
       const requestFor = payload.requestFor
       let bundle = await bot
         .draft({
@@ -120,6 +136,16 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         })
         .signAndSave()
 
+      const { parentApp, associatedRes } = await getAssociateResources({application: payload, bot})
+      let extraQueryParams = {
+        bundleId: bundle.link
+      }
+      if (parentApp && associatedRes) {
+        _.extend(extraQueryParams, {
+          associatedResource: `${associatedRes[TYPE]}_${associatedRes._permalink}`,
+          parentApplication: parentApp._permalink
+        })
+      }
       await sendConfirmationEmail({
         emailAddress,
         senderEmail,
@@ -128,16 +154,15 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         product: requestFor,
         subject: `Please review and complete the application for ${models[requestFor].title}`,
         name: 'Customer',
-        extraQueryParams: {
-          bundleId: bundle.link
-        },
+        extraQueryParams,
         message: '',
         template: CONFIRMATION_EMAIL_DATA_TEMPLATE
       })
-      debugger
     },
     async willRequestForm({ application, formRequest }) {
       if (!application || formRequest.form !== PRODUCT_BUNDLE) return
+      let productMap = conf[application.requestFor]
+      if (!productMap) return
       let pr = await bot.getResource(application.request)
       if (!pr.bundleId) return
       let bundle = await bot.db.findOne({

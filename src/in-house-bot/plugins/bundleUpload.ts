@@ -3,6 +3,8 @@ import { TYPE } from '@tradle/constants'
 
 const DATA_BUNDLE = 'tradle.DataBundle'
 const DATA_BUNDLE_SUBMITTED = 'tradle.DataBundleSubmitted'
+const SHARE_REQUEST = 'tradle.ShareRequest'
+const SHARE_REQUEST_SUBMITTED = 'tradle.ShareRequestSubmitted'
 
 export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
   const plugin: IPluginLifecycleMethods = {
@@ -20,6 +22,18 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
         application.processingDataBundle = false
         return
       }
+      if (payload[TYPE] === SHARE_REQUEST) {
+        let { formStubs, verificationStubs} = payload
+        if (!formStubs  &&  !verificationStubs) {
+          application.processingDataBundle = true
+          return
+        }
+      }
+      if (payload[TYPE] === SHARE_REQUEST_SUBMITTED) {
+        application.processingDataBundle = false
+        return
+      }  
+
       if (application.dataBundle) return
       let props = bot.models[type].properties
       for (let p in payload) {

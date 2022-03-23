@@ -48,13 +48,6 @@ ARGS_1=
 ARGS_2=
 PART=0
 
-# Util to append a string to another with a space but allows the first string to be empty
-# Example usage:
-#
-#    foo=
-#    foo=$(append $foo "bar") # foo="bar"
-#    foo=$(append $foo "baz") # foo="bar baz"
-#
 function append () {
   result=""
   for part in $@; do

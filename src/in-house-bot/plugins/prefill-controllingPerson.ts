@@ -3,14 +3,14 @@ import extend from 'lodash/extend'
 import size from 'lodash/size'
 import cleanco from 'cleanco'
 
-import { Bot, Logger, CreatePlugin, IPluginLifecycleMethods } from '../types'
+import { Bot, Logger, CreatePlugin, IPluginLifecycleMethods, IPBReq } from '../types'
 
 import { TYPE } from '../../constants'
 import validateResource from '@tradle/validate-resource'
 import { enumValue } from '@tradle/build-resource'
 import { regions } from '@tradle/aws-s3-client'
 import { getEnumValueId } from '../../utils'
-import { isSubClassOf } from '../utils'
+import { isSubClassOf, getCheckParameters } from '../utils'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
@@ -26,6 +26,10 @@ const TYPE_OF_OWNERSHIP = 'tradle.legal.TypeOfOwnership'
 const COUNTRY = 'tradle.Country'
 const COMPANIES_HOUSE = 'Companies House'
 const OPEN_CORPORATES = 'Open Corporates'
+const REFRESH_PRODUCT = 'tradle.RefreshProduct'
+const FORM_REQUEST = 'tradle.FormRequest'
+const DATA_BUNDLE_SUBMITTED = 'tradle.DataBundleSubmitted'
+const DATA_BUNDLE = 'tradle.DataBundle'
 
 const companyKeywords = {
   DE: ['GmbH', 'HRB'],
@@ -38,9 +42,64 @@ const countryMap = {
 }
 
 export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
-  let { bot } = components
-  let { logger, conf } = pluginOpts
+  const { bot, applications } = components
+  const { logger, conf } = pluginOpts
   const plugin: IPluginLifecycleMethods = {
+    async onmessage(req: IPBReq) {
+      if (req.skipChecks) return
+      const { user, application, payload } = req
+      if (!application  ||  application.requestFor !== REFRESH_PRODUCT) return
+
+      let ptype = payload[TYPE]
+      let isDataBundleSubmitted = ptype === DATA_BUNDLE_SUBMITTED
+      if (!isDataBundleSubmitted && ptype !== CONTROLLING_PERSON) return
+
+      const { submissions } = application
+      if (!submissions.find(sub => sub.submission[TYPE] === LEGAL_ENTITY)) return
+      let dataBundleLink
+      if (ptype === CONTROLLING_PERSON) {
+        let dbs = submissions.find(sub => sub.submission[TYPE] === DATA_BUNDLE_SUBMITTED)
+        if (!dbs) return
+        dbs = await bot.getResource(dbs.submission)
+        dataBundleLink = dbs.dataBundle
+      }
+      else
+        dataBundleLink = payload.dataBundle
+      if (!dataBundleLink) return
+      let dataBundle = await bot.db.findOne({
+        filter: {
+          EQ: {
+            [TYPE]: DATA_BUNDLE,
+            _permalink: dataBundleLink
+          }
+        }
+      })
+      let { items } = dataBundle
+      if (!items || !items.length) return
+      let cpInBundleCount = items.reduce((n, item) => item[TYPE] === CONTROLLING_PERSON ? n + 1 : n, 0)
+      if (cpInBundleCount) {
+        let cpInAppCount = submissions.reduce((n, item) => item.submission[TYPE] === CONTROLLING_PERSON ? n + 1 : n, 0)
+        if (!isDataBundleSubmitted)
+          cpInAppCount++
+        if (cpInBundleCount > cpInAppCount) return
+      }
+      let formRequest:any = {[TYPE]: FORM_REQUEST, form: CONTROLLING_PERSON, product: REFRESH_PRODUCT}
+      await this.getCP({ application, formRequest, req: !isDataBundleSubmitted && req })
+      if (!formRequest.prefill) {
+        await bot.sendSimpleMessage({
+          to: user,
+          message: 'You submitted all of the Controlling Entities'
+        });
+        return
+      }
+      await applications.requestItem({
+        item: formRequest,
+        application,
+        req,
+        user,
+        message: 'Please review and confirm'
+      })
+    },
     async willRequestForm({ application, formRequest }) {
       let { form } = formRequest
       if (form !== CONTROLLING_PERSON) return
@@ -51,6 +110,11 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let { checks } = application
       if (!checks) return
 
+      if (application.requestFor !== REFRESH_PRODUCT)
+        await this.getCP({ application, formRequest })
+    },
+    async getCP({ application, formRequest, req }) {
+      let checks = application.checks
       let stubs = checks.filter(
         (check) =>
           check[TYPE] === CORPORATION_EXISTS ||
@@ -59,7 +123,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       )
       if (!stubs.length) return
       logger.debug('found ' + stubs.length + ' checks')
-      let result = await Promise.all(stubs.map((check) => bot.getResource(check)))
+      let result:any = await Promise.all(stubs.map((check) => bot.getResource(check)))
       result = result.filter((check) => !check.isInactive)
       result.sort((a, b) => b._time - a._time)
 
@@ -67,8 +131,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         [r.form._permalink, r.propertyName, r[TYPE], r.provider].join(',')
       )
 
-      let legalEntity = application.forms.find((f) => f.submission[TYPE] === LEGAL_ENTITY)
-      let legalEntityPermalink = legalEntity.submission._permalink
+      let legalEntity = application.forms.find((f) => f.submission[TYPE] === LEGAL_ENTITY).submission
+      let legalEntityPermalink = legalEntity._permalink
       let check = result.find(
         (c) => c[TYPE] === CORPORATION_EXISTS && c.form._permalink === legalEntityPermalink
       )
@@ -86,8 +150,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let carCheck = result.find((c) => c[TYPE] === CLIENT_ACTION_REQUIRED_CHECK)
       const statusM = bot.models[CHECK_STATUS]
       let forms = application.forms.filter((form) => form.submission[TYPE] === CONTROLLING_PERSON)
-      let officers, items
       if (!check) return
+      let officers, items
       if (check.status.id !== `${CHECK_STATUS}_pass`) {
         if (pscCheck && pscCheck.status.id === `${CHECK_STATUS}_pass`)
           await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
@@ -124,6 +188,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         officer = officers.length && officers[0].officer
       } else {
         items = await Promise.all(forms.map((f) => bot.getResource(f.submission)))
+        if (req)
+          items.push(req.payload)
         if (items.length) {
           for (let i = 0; i < officers.length && !officer; i++) {
             let o = officers[i].officer
@@ -139,6 +205,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           }
         }
       }
+      legalEntity = await bot.getResource(legalEntity)
       let dataSource
       if (!officer) {
         if (await this.doSkipBO(application)) return
@@ -150,7 +217,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
             forms,
             officers,
             formRequest,
-            pscCheck
+            pscCheck,
+            legalEntity
           })
           dataSource = 'psc'
           this.addRefDataSource({ dataSource, formRequest, currenPrefill })
@@ -161,7 +229,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
             forms,
             officers,
             formRequest,
-            pscCheck: carCheck
+            pscCheck: carCheck,
+            legalEntity
           })
           dataSource = 'clientAction'
           // this.addRefDataSource({ dataSource: 'clientAction', formRequest, currenPrefill })
@@ -178,7 +247,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
             forms,
             officers,
             formRequest,
-            pscCheck: pitchbookCheck
+            pscCheck: pitchbookCheck,
+            legalEntity
           })
           this.addRefDataSource({ dataSource, formRequest, currenPrefill })
         }
@@ -209,10 +279,9 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (!date_of_birth && !country_of_residence) {
         if (identification && identification.registration_number) isCompany = true
         else {
-          let le = await bot.getResource(legalEntity.submission)
           isCompany = this.isCompany({
             name,
-            country: le.country
+            country: legalEntity.country
           })
         }
       }
@@ -229,7 +298,10 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           }
         }
         logger.debug('prefill = ' + formRequest.prefill)
-        formRequest.message = `Please review and correct the data below **for ${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+        if (formRequest.product === REFRESH_PRODUCT)
+          formRequest.message = `Your company’s profile is missing the following controlling person, found in a primary data source **${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+        else
+          formRequest.message = `Please review and correct the data below **for ${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
         return
       }
       if (country_of_residence) {
@@ -237,9 +309,9 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         if (country) prefill.controllingEntityCountryOfResidence = country
       }
       if (nationality) {
-        nationality = this.getNationality(nationality, prefill.controllingEntityCountryOfResidence)
-        if (nationality)
-          prefill.nationality = nationality
+        let nationalityCountry = this.getNationality(nationality, prefill.controllingEntityCountryOfResidence)
+        if (nationalityCountry)
+          prefill.nationality = nationalityCountry
         else if (country_of_residence)
           prefill.nationality = prefill.controllingEntityCountryOfResidence
       }
@@ -342,7 +414,11 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           id: 'tradle.legal.TypeOfControllingEntity_person'
         }
       }
-      formRequest.message = `Please review and correct the data below **for ${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+      if (formRequest.product === REFRESH_PRODUCT)
+        formRequest.message = `Your company’s profile is missing the following controlling person, found in a primary data source **${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+      else
+        formRequest.message = `Please review and correct the data below **for ${officer.name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+
     },
     isCompany({ name, country }) {
       let tokens = name.replace(/[^\w\s]/gi, '').split(' ')
@@ -487,9 +563,9 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         }
       }
       if (nationality) {
-        nationality = this.getNationality(nationality, prefill.controllingEntityCountryOfResidence)
-        if (nationality)
-          prefill.nationality = nationality
+        let nationalityCountry = this.getNationality(nationality, prefill.controllingEntityCountryOfResidence)
+        if (nationalityCountry)
+          prefill.nationality = nationalityCountry
       }
       if (name_elements) {
         let { firstName, lastName } = prefill
@@ -517,7 +593,11 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       else {
         let cid = getEnumValueId({ model: bot.models[COUNTRY], value: countryOfResidence })
         let item = items.find((item) => item.id === cid)
-        return enumValue({ model, value: item.id }) 
+        if (!item) {
+          if (nationality === 'American')
+            item = items.find(item => item.cca3 === 'USA')
+        }
+        return enumValue({ model, value: item.id })
       }
     },
     prefillCompany(prefill, bo) {
@@ -567,7 +647,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           title: natureOfControl.title
         }
     },
-    async prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck }) {
+    async prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck, legalEntity }) {
       if (!items) items = await Promise.all(forms.map((f) => bot.getResource(f.submission)))
       if (!pscCheck) return
 
@@ -591,7 +671,6 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         )
         beneficialOwners = uniqBy(beneficialOwners, 'data.name')
       }
-      let legalEntity
       for (let i = 0; i < beneficialOwners.length; i++) {
         let bene = beneficialOwners[i]
         let { data } = bene
@@ -610,6 +689,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
             if (officers.find((o) => this.compare(o.officer.name, bene))) continue
           }
         } else if (!kind.startsWith('corporate-')) return
+        else if (bene['company_number'] === legalEntity.registrationNumber)
+          debugger
         let prefill: any = {
           name,
           prefilledName: name
@@ -633,7 +714,10 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           }
         }
         logger.debug('prefill = ' + formRequest.prefill)
-        formRequest.message = `Please review and correct the data below **for ${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+        if (formRequest.product === REFRESH_PRODUCT)
+          formRequest.message = `Your company’s profile is missing the following controlling person, found in a primary data source **${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+        else
+          formRequest.message = `Please review and correct the data below **for ${name}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
         return true
       }
     },
@@ -663,73 +747,3 @@ function getCountryByTitle(country, models) {
     }
   )
 }
-// const beneTest = [
-//   {
-//     company_number: '06415759',
-//     data: {
-//       address: {
-//         address_line_1: '1 Goose Green',
-//         country: 'England',
-//         locality: 'Altrincham',
-//         postal_code: 'WA14 1DW',
-//         premises: 'Corpacq House'
-//       },
-//       etag: 'e5e6a05c5484ce25fca9884bb833d47c1fb1e0b4',
-//       identification: {
-//         country_registered: 'England',
-//         legal_authority: 'Companies Act 2006',
-//         legal_form: 'Private Company Limited By Shares',
-//         place_registered: 'Register Of Companies For England And Wales',
-//         registration_number: '11090838'
-//       },
-//       kind: 'corporate-entity-person-with-significant-control',
-//       links: {
-//         self:
-//           '/company/06415759/persons-with-significant-control/corporate-entity/c3JdMtrhD9Z17jLydOWsp6YVh9w'
-//       },
-//       name: 'Beyondnewcol Limited',
-//       natures_of_control: [
-//         'ownership-of-shares-75-to-100-percent',
-//         'voting-rights-75-to-100-percent',
-//         'right-to-appoint-and-remove-directors'
-//       ],
-//       notified_on: '2019-06-27'
-//     }
-//   },
-//   {
-//     company_number: '12134701',
-//     data: {
-//       address: {
-//         address_line_1: 'Bell Yard',
-//         country: 'United Kingdom',
-//         locality: 'London',
-//         postal_code: 'WC2A 2JR',
-//         premises: '7'
-//       },
-//       country_of_residence: 'United Kingdom',
-//       date_of_birth: {
-//         month: 3,
-//         year: 1966
-//       },
-//       etag: 'a46e27e4284b75c2a6a2b6a122df6b1abee4e13d',
-//       kind: 'individual-person-with-significant-control',
-//       links: {
-//         self:
-//           '/company/12134701/persons-with-significant-control/individual/fXEREOeTBLPNqrAK3ylzPr3w73Q'
-//       },
-//       name: 'Miss Joana Castellet',
-//       name_elements: {
-//         forename: 'Joana',
-//         surname: 'Castellet',
-//         title: 'Miss'
-//       },
-//       nationality: 'Spanish',
-//       natures_of_control: [
-//         'ownership-of-shares-75-to-100-percent',
-//         'voting-rights-75-to-100-percent',
-//         'right-to-appoint-and-remove-directors'
-//       ],
-//       notified_on: '2019-08-01'
-//     }
-//   }
-// ]
