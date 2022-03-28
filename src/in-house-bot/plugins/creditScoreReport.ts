@@ -117,7 +117,7 @@ export class ScoringReport {
     else if (parentChecks)
       allChecks = [...checks, ...parentChecks]
     else
-      allChecks = [...checks]  
+      allChecks = [...checks]
 
     let forms = getLatestForms(application)
     if (!forms)
@@ -246,8 +246,15 @@ export class ScoringReport {
       this.addToScoreDetails({scoreDetails, form: applicantAddress, formProperty: 'yearsAtResidence', property: 'yearsAtResidence', score: yearsAtResidence, group: CHARACTER_GROUP});
     }
     const capacityToPayConf = this.conf.capacityToPay
+
     const extraEquipmentFactor = map[CASH_FLOW] && map[CASH_FLOW].extraEquipmentFactor
-    let capacityToPay = extraEquipmentFactor && this.calcScore(extraEquipmentFactor, capacityToPayConf) || 0
+    let capacityToPayFactor
+    if (applicantInformation.medical)
+      capacityToPayFactor = map[CASH_FLOW] && map[CASH_FLOW].extraEquipmentFactor
+    else
+      capacityToPayFactor = map[CASH_FLOW] && map[CASH_FLOW].verifiableFactor
+
+    let capacityToPay = capacityToPayFactor && this.calcScore(capacityToPayFactor, capacityToPayConf) || 0
 
     let { creditBureauScore=0, accountsPoints, cbReport } = await this.scoreFromCheckIndividual({ item: application, creditReport, check })
     this.addToScoreDetails({scoreDetails, form: cbReport && cbReport.creditScore, formProperty: 'scoreValue', property: 'creditBureauScore', score: creditBureauScore, group: CHARACTER_GROUP});
@@ -310,8 +317,8 @@ export class ScoringReport {
     }
 
     if (capacityToPay) {
-      this.addToScoreDetails({scoreDetails, form: map[CASH_FLOW], formProperty: 'extraEquipmentFactor', property: 'capacityToPay', score: capacityToPay, group: PAYMENT_GROUP});
-      this.addToScoreDetails({scoreDetails, form: map[CASH_FLOW], formProperty: 'extraEquipmentFactor', property: 'paymentScore', score: capacityToPay, group: PAYMENT_GROUP, total: true, maxScores});
+      this.addToScoreDetails({scoreDetails, form: map[CASH_FLOW], formProperty: 'capacityToPayFactor', property: 'capacityToPay', score: capacityToPay, group: PAYMENT_GROUP});
+      this.addToScoreDetails({scoreDetails, form: map[CASH_FLOW], formProperty: 'capacityToPayFactor', property: 'paymentScore', score: capacityToPay, group: PAYMENT_GROUP, total: true, maxScores});
     }
     props.capacityToPay = capacityToPay
     props.paymentScore = capacityToPay
@@ -916,9 +923,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!application || !conf) return
       let { checks, forms, parentFormsStubs } = application
       let app
-      if (!checks && !forms) 
+      if (!checks && !forms)
         app = await bot.getResource(application, {backlinks: ['checks', 'forms']})
-      
+
       else app = application
       logger.debug('creditScoreReport is called for pending CB check')
       await scoringReport.genCreditScoring({application:app, conf: conf.products.plugins.creditScoreReport, parentFormsStubs})
@@ -937,7 +944,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (payload[TYPE] !== DATA_BUNDLE_SUMBITTED) return
       logger.debug('creditScoreReport is called onmessage')
       debugger
-      await scoringReport.genCreditScoring({application, conf, parentFormsStubs})      
+      await scoringReport.genCreditScoring({application, conf, parentFormsStubs})
     }
   }
   return { plugin }
