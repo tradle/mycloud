@@ -188,7 +188,7 @@ export class ScoringReport {
 
     let items = application.items
     if (!items) {
-      items = await this.getItems(application)
+      // items = await this.getItems(application)
       // if (!items) return
     }
 
