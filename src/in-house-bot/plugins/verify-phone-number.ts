@@ -199,7 +199,11 @@ export const createPlugin: CreatePlugin<SMSBasedVerifier> = (
     if (EXEC_ASYNC) return
 
     const checkJson = check.toJSON({ validate: false }) as PhoneCheck
-    await execPhoneCheck(checkJson)
+    try {
+      await execPhoneCheck(checkJson)
+    } catch (err) {
+      logger.error('failed to verify phone', err)
+    }
   }
 
   const plugin = {
