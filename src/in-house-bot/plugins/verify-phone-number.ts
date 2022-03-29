@@ -194,11 +194,7 @@ export const createPlugin: CreatePlugin<SMSBasedVerifier> = (
     if (EXEC_ASYNC) return
 
     const checkJson = check.toJSON({ validate: false }) as PhoneCheck
-    try {
-      await execPhoneCheck(checkJson)
-    } catch (err) {
-      logger.error('failed to verify phone', err)
-    }
+    await execPhoneCheck(checkJson)
   }
 
   const plugin = {
@@ -238,23 +234,28 @@ export const createPlugin: CreatePlugin<SMSBasedVerifier> = (
         status: 'pass'
       }
     }
-    await smsBasedVerifier.confirmAndExec({
-      smsOpts: {
-        phoneNumber: check.phone.number.replace(/\D/g,''),
-        message: `confirmation code: ${confirmationCode}`,
-        senderId: conf.org.name
-      },
-      deferredCommand: {
-        dateExpires: check.dateExpires,
-        confirmationCode,
-        // ttl: 1, // 1 second
-        command: {
-          component: 'applications',
-          method: 'updateCheck',
-          params: passCheckParams
+
+    try {
+      await smsBasedVerifier.confirmAndExec({
+        smsOpts: {
+          phoneNumber: check.phone.number.replace(/\D/g,''),
+          message: `confirmation code: ${confirmationCode}`,
+          senderId: conf.org.name
+        },
+        deferredCommand: {
+          dateExpires: check.dateExpires,
+          confirmationCode,
+          // ttl: 1, // 1 second
+          command: {
+            component: 'applications',
+            method: 'updateCheck',
+            params: passCheckParams
+          }
         }
-      }
-    })
+      })
+    } catch (err) {
+      logger.error('failed to verify phone', err)
+    }
   }
 
   if (EXEC_ASYNC) {
