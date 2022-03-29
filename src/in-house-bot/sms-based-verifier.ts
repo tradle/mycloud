@@ -63,7 +63,7 @@ export class SMSBasedVerifier {
     return code
   }
 
-  public sendSMS = async ({ smsOpts }) => {
+  public sendSMS = async ({ smsOpts }: { smsOpts: ISendSMSOpts }) => {
     this.logger.debug('sending link via SMS to onboard agent')
     await this.sms.sendSMS(smsOpts)
   }
