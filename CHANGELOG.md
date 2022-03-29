@@ -2,13 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.63](https://github.com/tradle/mycloud/compare/v3.1.1-rc.62...v3.1.1-rc.63) (2022-03-29)
+## [3.1.1-rc.64](https://github.com/tradle/mycloud/compare/v3.1.1-rc.63...v3.1.1-rc.64) (2022-03-29)
 
 
 ### Bug Fixes
 
-* catch sms send error to prevent crashing the request and log it ([c16ffb0](https://github.com/tradle/mycloud/commit/c16ffb0))
-* for medical individual ([81b6567](https://github.com/tradle/mycloud/commit/81b6567))
+* duplicate product certificates fix ([d93104a](https://github.com/tradle/mycloud/commit/d93104a))
 
 
 
