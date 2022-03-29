@@ -150,7 +150,7 @@
   },
   "dependencies": {
     "@aws/dynamodb-expressions": "^0.4.0",
-    "@tradle/aws-client-factory": "^2.0.0",
+    "@tradle/aws-client-factory": "^2.2.2",
     "@tradle/aws-cloudformation-client": "^2.0.0",
     "@tradle/aws-cloudwatch-client": "^2.0.0",
     "@tradle/aws-combo": "^2.0.0",
@@ -158,7 +158,7 @@
     "@tradle/aws-iam-client": "^2.0.0",
     "@tradle/aws-lambda-client": "^2.0.0",
     "@tradle/aws-s3-client": "^2.0.0",
-    "@tradle/aws-sns-client": "^2.0.0",
+    "@tradle/aws-sns-client": "^2.0.4",
     "@tradle/bitcoin-adapter": "github:tradle/bitcoin-adapter",
     "@tradle/biz-plugins": "github:tradle/biz-plugins",
     "@tradle/bot-employee-manager": "github:tradle/bot-employee-manager",
