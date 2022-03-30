@@ -21,7 +21,6 @@ import buildResource from '@tradle/build-resource'
 
 const PHONE_CHECK = 'tradle.PhoneCheck'
 const OTP = 'tradle.OTP'
-const SMS_OTP_PROMPT = `Please enter your SMS confirmation code when you receive it`
 const INVALID_OTP = `invalid confirmation code, try again?`
 const ASPECTS = 'Phone verification'
 const PROVIDER = 'Tradle'
@@ -96,7 +95,6 @@ export const createPlugin: CreatePlugin<SMSBasedVerifier> = (
 ) => {
   const { logger } = pluginOpts
   const pluginConf = pluginOpts.conf as ISMSPluginConf
-  const { products } = pluginConf
   if (!smsBasedVerifier) {
     const sms: ISMS = getSMSClient({ bot, gateway: pluginConf.gateway })
     smsBasedVerifier = new SMSBasedVerifier({
@@ -138,7 +136,6 @@ export const createPlugin: CreatePlugin<SMSBasedVerifier> = (
 
   const maybeRequestPhoneCheck = async (opts: RequestPhoneCheckOpts) => {
     const { user, phone } = opts
-    // const keepGoing = true || (await shouldCreateCheck({ user, phoneNumber: phone.number }))
     const keepGoing = await shouldCreateCheck({
       user,
       phoneNumber: typeof phone === 'string' ? phone : phone.number
@@ -182,9 +179,7 @@ export const createPlugin: CreatePlugin<SMSBasedVerifier> = (
       user: user.identity,
       dateExpires: Date.now() + TTL.ms
     }
-    debugger
 
-    // resource.message = getStatusMessageForCheck({ models: bot.models, check: resource })
     const createCheck = applications.createCheck(resource, req)
 
     const requestConfirmationCode = await applications.requestItem({
@@ -283,8 +278,7 @@ export const createPlugin: CreatePlugin<SMSBasedVerifier> = (
 }
 
 export const validateConf: ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
-  const { products = {}, gateway } = pluginConf as ISMSPluginConf
-  const sms: ISMS = getSMSClient({ bot, gateway: pluginConf.gateway })
+  const { products = {} } = pluginConf as ISMSPluginConf
   for (let product in products) {
     let pConf = products[product]
     for (let form in pConf) {
