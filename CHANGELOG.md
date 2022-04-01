@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.64](https://github.com/tradle/mycloud/compare/v3.1.1-rc.63...v3.1.1-rc.64) (2022-03-29)
+## [3.1.1-rc.65](https://github.com/tradle/mycloud/compare/v3.1.1-rc.64...v3.1.1-rc.65) (2022-04-01)
 
 
-### Bug Fixes
+### Features
 
-* duplicate product certificates fix ([d93104a](https://github.com/tradle/mycloud/commit/d93104a))
+* strip phone number of any characters other than digits before verifying ([4f1de74](https://github.com/tradle/mycloud/commit/4f1de74))
 
 
 
