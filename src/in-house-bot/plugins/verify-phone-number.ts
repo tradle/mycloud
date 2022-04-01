@@ -243,10 +243,9 @@ export const createPlugin: CreatePlugin<SMSBasedVerifier> = (
         status: 'pass'
       }
     }
-
     await smsBasedVerifier.confirmAndExec({
       smsOpts: {
-        phoneNumber: check.phone.number,
+        phoneNumber: check.phone.number.replace(/\D/g,''),
         message: `confirmation code: ${confirmationCode}`,
         senderId: conf.org.name
       },
