@@ -1,6 +1,5 @@
 import https from 'https'
 import AWS from 'aws-sdk'
-import { HTTPOptions } from 'aws-sdk/lib/config'
 import { AWSConfig, getLocalstackConfig } from '@tradle/aws-common-utils'
 import merge from 'lodash/merge'
 import { Bot } from '../types'
