@@ -2,12 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.1.1-rc.65](https://github.com/tradle/mycloud/compare/v3.1.1-rc.64...v3.1.1-rc.65) (2022-04-01)
-
-
-### Features
-
-* strip phone number of any characters other than digits before verifying ([4f1de74](https://github.com/tradle/mycloud/commit/4f1de74))
+# [3.2.0](https://github.com/tradle/mycloud/compare/v3.1.1-rc.65...v3.2.0) (2022-04-06)
 
 
 
