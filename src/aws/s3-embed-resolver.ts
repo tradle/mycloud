@@ -34,7 +34,7 @@ export const createResolver = (opts: CreateResolverOpts): EmbedResolver => new S
 
 export class S3EmbedResolver implements EmbedResolver {
   constructor(private opts: CreateResolverOpts) {}
-  public replaceDataUrls = (object: ITradleObject): S3EmbedInfo[] =>
+  public replaceDataUrls = (object: ITradleObject): Embed.Replacement[] =>
     Embed.replaceDataUrls({
       region: this.opts.region,
       bucket: this.opts.bucket,

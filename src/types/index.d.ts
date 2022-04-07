@@ -50,6 +50,7 @@ import { Events, EventTopic } from '../events'
 import { Mailer } from '../mailer'
 import { MiddlewareContainer } from '../middleware-container'
 import { TYPE, ORG_SIG } from '@tradle/constants'
+import { Replacement } from '@tradle/embed'
 
 export { KeyValueStore, KeyValueStoreExtended, ClientCache, ClientCache as AwsApis }
 
@@ -992,7 +993,7 @@ export interface ParsedRelocatedEmbedUrl {
 
 export interface EmbedResolver {
   // dataUrls => embedUrls
-  replaceDataUrls: <T>(object: T) => ParsedMediaEmbed[]
+  replaceDataUrls: <T>(object: T) => Replacement[]
   // extract dataUrls to embed storage
   replaceEmbeddedMedia: <T>(object: T) => Promise<void>
   presignEmbeddedMedia: <T>(opts: PresignEmbeddedMediaOpts<T>) => T

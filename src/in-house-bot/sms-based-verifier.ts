@@ -1,37 +1,27 @@
 import buildResource from '@tradle/build-resource'
 import { TYPE } from '@tradle/constants'
 import {
-  IMailer,
   Commander,
   IDeferredCommandParams,
   IPBUser,
   Logger,
-  SNSUtils,
   DB,
   ISendSMSOpts,
   ISMS
 } from './types'
 
-import * as Templates from './templates'
 import Errors from '../errors'
 import baseModels from '../models'
 
 const STATUS = 'tradle.Status'
 const PHONE_CHECK = 'tradle.PhoneCheck'
 const STATUS_MODEL = baseModels[STATUS]
-const PHONE_CHECK_MODEL = baseModels[PHONE_CHECK]
 
 type SMSBasedVerifierOpts = {
   db: DB
   sms: ISMS
   commands: Commander
   logger: Logger
-}
-
-interface IResultPageOpts {
-  title: string
-  body: string
-  signature?: string
 }
 
 interface IsPhoneCheckPendingOpts {
@@ -73,7 +63,7 @@ export class SMSBasedVerifier {
     return code
   }
 
-  public sendSMS = async ({ smsOpts }) => {
+  public sendSMS = async ({ smsOpts }: { smsOpts: ISendSMSOpts }) => {
     this.logger.debug('sending link via SMS to onboard agent')
     await this.sms.sendSMS(smsOpts)
   }
@@ -165,8 +155,6 @@ export class SMSBasedVerifier {
     }
   }
 }
-
-const textToBlocks = str => str.split('\n').map(body => ({ body }))
 
 const getStatusId = value =>
   buildResource.enumValue({

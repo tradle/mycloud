@@ -1,4 +1,4 @@
-import { regions as REGIONS } from '@tradle/aws-s3-client'
+import { info, Region } from '@tradle/aws-common-utils'
 import Errors from '../errors'
 import { S3Client, Logger, ClientCache, IAMClient } from '../types'
 import { sha256 } from '../crypto'
@@ -169,14 +169,18 @@ const getRegionalBucket = ({ bucket, region, buckets }) => {
   if (buckets.includes(regionalName)) return regionalName
 }
 
-const getRegionalBucketSuffix = ({ bucket, region }: { bucket: string; region: string }) => {
-  const idx = REGIONS.indexOf(region)
-  if (idx === -1) throw new Errors.InvalidInput(`s3 region not supported: ${region}`)
-
-  return '-' + idx.toString(36)
+function getRegionalBucketSuffixByCode (regionCode: string): string {
+  const region: Region | undefined = info.regionByCode[regionCode]
+  if (region === undefined)
+    throw new Errors.InvalidInput(`s3 region not supported: ${regionCode}`)
+  return getRegionalBucketSuffix(region)
 }
 
-export const getRegionalBucketName = ({ bucket, region }) => {
+function getRegionalBucketSuffix (region: Region): string {
+  return `-${region.idx}`
+}
+
+export const getRegionalBucketName = ({ bucket, region }: { bucket: string, region: string }) => {
   if (isRegionalBucketName(bucket)) {
     // remove regional suffix
     bucket = bucket
@@ -185,10 +189,7 @@ export const getRegionalBucketName = ({ bucket, region }) => {
       .join('-')
   }
 
-  const idx = REGIONS.indexOf(region)
-  if (idx === -1) throw new Errors.InvalidInput(`s3 region not supported: ${region}`)
-
-  const suffix = getRegionalBucketSuffix({ bucket, region })
+  const suffix = getRegionalBucketSuffixByCode(region)
   const name = `${bucket}${suffix}`
   if (name.length > MAX_BUCKET_NAME_LENGTH) {
     const hash = sha256(bucket, 'hex').slice(0, 6)
@@ -201,7 +202,7 @@ export const getRegionalBucketName = ({ bucket, region }) => {
 }
 
 export const isRegionalBucketName = (bucket: string) => {
-  return REGIONS.some(region => bucket.endsWith(getRegionalBucketSuffix({ bucket, region })))
+  return info.regions.some(region => bucket.endsWith(getRegionalBucketSuffix(region)))
 }
 
 export const createRegionalS3Client = (opts: RegionalS3ClientOpts) => new RegionalS3Client(opts)
