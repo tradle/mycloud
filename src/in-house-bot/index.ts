@@ -483,19 +483,19 @@ export const loadComponentsAndPlugins = ({
       send
     })
 
-    const bizPlugins = require('@tradle/biz-plugins')
-    bizPlugins.forEach((plugin) =>
-      productsAPI.plugins.use(
-        plugin({
-          bot,
-          get models() {
-            return bot.modelStore.models
-          },
-          productsAPI
-        }),
-        true
-      )
-    ) // prepend
+    // const bizPlugins = require('@tradle/biz-plugins')
+    // bizPlugins.forEach((plugin) =>
+    //   productsAPI.plugins.use(
+    //     plugin({
+    //       bot,
+    //       get models() {
+    //         return bot.modelStore.models
+    //       },
+    //       productsAPI
+    //     }),
+    //     true
+    //   )
+    // ) // prepend
 
     if (conf.style) {
       const keepStylesFresh = keepFreshPlugin({
