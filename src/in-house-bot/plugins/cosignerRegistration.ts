@@ -255,7 +255,7 @@ class CosignerRegistrationAPI {
       .signAndSave()
   }
 
-  private async doNotify({ notifyArr, application, rules }) {
+  public async doNotify({ notifyArr, application, rules }) {
     let { messages, interval } = rules
 
     if (!notifyArr.length) {
@@ -328,14 +328,31 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       if (rules) {
         let form
         if (ptype === NEXT_FORM_REQUEST) {
-          let ftype = payload.after
-          form = products[productId][ftype]
+          if (!application.filledForCustomer) {
+            let ftype = payload.after
+            form = products[productId][ftype]
+          }
         }
         else if (ptype === APPLICATION_COMPLETED) {
           for (let t in products[productId]) {
             form = application.submissions.find(sub => sub.submission[TYPE] === t)
             if (form) break
           }
+        }
+        else if (application.filledForCustomer) {
+          const pconf = products[productId][payload[TYPE]]
+          let needToNotify = payload._link === payload._permalink
+          if (pconf  &&  !needToNotify) {
+            needToNotify = await hasPropertiesChanged({
+              resource: payload,
+              bot,
+              propertiesToCheck: [payload.emailAddress],
+              req
+            })
+          }
+          if (needToNotify) 
+            await cosignerAPI.doNotify({ notifyArr: [payload], rules, application })
+          return
         }
         if (form)
           await cosignerAPI.checkRules({ application, forms: products[productId], rules })
