@@ -1,6 +1,4 @@
 import _ from 'lodash'
-import { createClient as wrapCloudwatchClient } from '@tradle/aws-cloudwatch-client'
-import { updateLambdaEnvironmentsForStack, services } from '@tradle/aws-combo'
 import { getLink, getIdentitySpecs, getChainKey, genIdentity } from './crypto'
 
 import { ensureTimestamped } from './utils'

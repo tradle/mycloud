@@ -8,7 +8,6 @@ import { Bot, Logger, CreatePlugin, IPluginLifecycleMethods, IPBReq } from '../t
 import { TYPE } from '../../constants'
 import validateResource from '@tradle/validate-resource'
 import { enumValue } from '@tradle/build-resource'
-import { regions } from '@tradle/aws-s3-client'
 import { getEnumValueId } from '../../utils'
 import { isSubClassOf, getCheckParameters } from '../utils'
 // @ts-ignore

@@ -8,8 +8,7 @@ import { wrapBucket, Bucket } from '@tradle/aws-s3-client'
 
 import { S3Client } from '@tradle/aws-s3-client'
 import {
-  genSetDeliveryPolicyParams,
-  genCrossAccountPublishPermission
+  genSetDeliveryPolicyParams
 } from '@tradle/aws-sns-client'
 import {
   getResourcesByType,

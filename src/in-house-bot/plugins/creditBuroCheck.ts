@@ -110,7 +110,7 @@ const TEMPLATE = `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/so
         <Encabezado>
           <Version>13</Version>
           <NumeroReferenciaOperador>{{reference}}</NumeroReferenciaOperador>
-          <ProductoRequerido>001</ProductoRequerido>
+          <ProductoRequerido>007</ProductoRequerido>
           <ClavePais>MX</ClavePais>
           <IdentificadorBuro>0000</IdentificadorBuro>
           <ClaveUsuario>{{username}}</ClaveUsuario>
