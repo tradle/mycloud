@@ -1,7 +1,6 @@
 import _ from 'lodash'
 import querystring from 'querystring'
 import FormData from 'form-data'
-import Embed from '@tradle/embed'
 import buildResource from '@tradle/build-resource'
 import constants from '@tradle/constants'
 import {

@@ -1,5 +1,5 @@
 import pick from 'lodash/pick'
-import Embed from '@tradle/embed'
+import * as Embed from '@tradle/embed'
 import { S3Client } from '@tradle/aws-s3-client'
 import {
   EmbedResolver,
