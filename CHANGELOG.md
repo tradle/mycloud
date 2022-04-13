@@ -2,20 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.2.1-rc.0](https://github.com/tradle/mycloud/compare/v3.2.0...v3.2.1-rc.0) (2022-04-12)
+## [3.2.1-rc.1](https://github.com/tradle/mycloud/compare/v3.2.1-rc.0...v3.2.1-rc.1) (2022-04-13)
 
 
 ### Bug Fixes
 
-* adjusting types after update of [@tradle](https://github.com/tradle)/embed ([f298cd9](https://github.com/tradle/mycloud/commit/f298cd9))
-* the try/catch block needs to go around the confirmAndExec block as it execPhoneCheck may be called async. ([701ed24](https://github.com/tradle/mycloud/commit/701ed24))
-* using correct import ([a038ca9](https://github.com/tradle/mycloud/commit/a038ca9))
-
-
-### Features
-
-* send notification to cosigner if thru additional forms ([34c946d](https://github.com/tradle/mycloud/commit/34c946d))
-* updating aws-* for features and reduced complexity ([e09ab52](https://github.com/tradle/mycloud/commit/e09ab52))
+* applicationApproved were not accumulated on user ([803c8c9](https://github.com/tradle/mycloud/commit/803c8c9))
+* tradle/embed imports ([e4b5551](https://github.com/tradle/mycloud/commit/e4b5551))
 
 
 
