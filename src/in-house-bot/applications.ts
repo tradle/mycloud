@@ -307,7 +307,7 @@ export class Applications implements IHasModels {
     const { bot, productsAPI } = this
     application = (await productsAPI.getApplication(application)) as IPBApp
 
-    const user = await this._getApplicantFromApplication(application)
+    const user = req.applicant // await this._getApplicantFromApplication(application)
     let judge
     if (req && this._isSenderEmployee(req)) {
       judge = req.user
