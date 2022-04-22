@@ -2,13 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [3.2.1-rc.1](https://github.com/tradle/mycloud/compare/v3.2.1-rc.0...v3.2.1-rc.1) (2022-04-13)
-
-
-### Bug Fixes
-
-* applicationApproved were not accumulated on user ([803c8c9](https://github.com/tradle/mycloud/commit/803c8c9))
-* tradle/embed imports ([e4b5551](https://github.com/tradle/mycloud/commit/e4b5551))
+## [3.2.1-rc.2](https://github.com/tradle/mycloud/compare/v3.2.1-rc.1...v3.2.1-rc.2) (2022-04-22)
 
 
 
