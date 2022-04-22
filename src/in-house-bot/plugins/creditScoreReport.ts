@@ -28,8 +28,6 @@ const APPLICANT_ADDRESS = 'ApplicantAddress'
 const APPLICANT_MED_PROFESSION = 'ApplicantMedicalProfession'
 const LEGAL_ENTITY = 'LegalEntity'
 const FORM = 'tradle.Form'
-// const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
-// const CP = 'tradle.legal.LegalEntityControllingPerson'
 
 const COMPANY_FINANCIALS = 'CompanyFinancialDetails'
 
@@ -47,26 +45,6 @@ const ASSET_GROUP = 'assetScore'
 const CHARACTER_GROUP = 'characterScore'
 const PAYMENT_GROUP = 'paymentScore'
 
-// const REPORT_PROPS = {
-//   CreditBureauIndividualCreditScore: ['scoreValue'],
-//   ApplicantInformation: [ ['existingCustomerRating', 'score']] ,
-//   CredentialsCheck: ['status'],
-//   ApplicantMedicalProfession: [
-//     ['yearsAtWork', 'score']
-//   ],
-//   ApplicantAddress: [
-//     ['timeAtResidence', 'score']
-//   ],
-//   CreditBureauIndividualAccounts: ['totalMop2', 'totalMop3', 'totalMop4', 'totalMop5', 'accountClosingDate'],
-//   PersonalCashflow: ['extraEquipmentFactor'],
-//   QuotationInformation: [
-//     ['asset', 'usefulLife', 'years'],
-//     ['secondaryMarket', 'score'],
-//     ['relocationTime', 'score'],
-//     ['assetType', 'score'],
-//     ['leaseType', 'score'],
-//   ]
-// }
 type ScoringReportOpts = {
   bot: Bot
   conf: any
