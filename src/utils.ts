@@ -1283,7 +1283,10 @@ export const extendTradleObject = (a, b) => {
 }
 
 export const getStubsByType = (stubs: ResourceStub[], type: string): ParsedResourceStub[] => {
-  return stubs.map(parseStub).filter((parsed) => parsed.type === type)
+  return stubs.map(parseStub)
+    .filter(parsed => {
+      return (parsed as any).type === type
+    })
 }
 
 export const isUnsignedType = (modelId) => UNSIGNED_TYPES.includes(modelId)

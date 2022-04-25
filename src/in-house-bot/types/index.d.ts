@@ -27,6 +27,8 @@ import {
   Registry
 } from '../../types'
 import { TradleServicesStack } from '../tradle-services-stack'
+import { PluginDefinitions } from '@tradle/lambda-plugins'
+import { DYNAMIC_PLUGIN_CONF, REGISTRY_TOKEN_CONF } from '../dynamic-plugins'
 
 export * from '../plugin-types'
 export * from '../../types'
@@ -45,6 +47,15 @@ export {
 export type StringToNumMap = {
   [key: string]: number
 }
+export interface IDynamicPluginConf {
+  [packageName: string]: {
+    version: string
+    [key: string]: any
+  }
+}
+export interface IRegistryTokenConf {
+  [registry: string]: string
+}
 
 export interface IProductsConf {
   enabled: string[]
@@ -52,6 +63,8 @@ export interface IProductsConf {
   approveAllEmployees?: boolean
   maximumApplications?: StringToNumMap
   plugins?: any
+  [DYNAMIC_PLUGIN_CONF]?: IDynamicPluginConf
+  [REGISTRY_TOKEN_CONF]?: IRegistryTokenConf
 }
 
 export interface ITours {

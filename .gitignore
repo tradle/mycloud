@@ -1,6 +1,7 @@
 node_modules
 DynamoDBLocal/
 .env
+.stfolder
 *.log
 *.zip
 .serverless*

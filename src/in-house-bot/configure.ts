@@ -10,6 +10,9 @@ import { getLogo } from './image-utils'
 import baseModels from '../models'
 import { CacheableBucketItem } from '../cacheable-bucket-item'
 import Errors from '../errors'
+// Note: This likely exposes a bit too much to plugins.
+//       See also the same use in ./configure.ts
+import * as utils from './utils'
 import { allSettled, RESOLVED_PROMISE, omitVirtual, toPromise } from '../utils'
 import { toggleDomainVsNamespace } from '../model-store'
 import {
@@ -25,7 +28,9 @@ import {
   IMyDeploymentConf,
   IOrganization,
   ValidatePluginConfOpts,
-  UpdatePluginConfOpts
+  UpdatePluginConfOpts,
+  IPlugin,
+  IProductsConf
 } from './types'
 
 import { DEFAULT_WARMUP_EVENT, TYPE } from '../constants'
@@ -33,6 +38,7 @@ import { DEFAULT_WARMUP_EVENT, TYPE } from '../constants'
 import { PRIVATE_CONF_BUCKET, TYPES } from './constants'
 
 import { defaultConf } from './default-conf'
+import { getDynamicPlugins, getPluginDefinitions, DynamicPlugin, DYNAMIC_PLUGIN_CONF, REGISTRY_TOKEN_CONF, getRegistryTokens } from './dynamic-plugins'
 
 const { DEPLOYMENT_PRODUCT, ORGANIZATION, STYLES_PACK } = TYPES
 const parseJSON = JSON.parse.bind(JSON)
@@ -210,16 +216,14 @@ export class Conf {
     // load all models
     await this.modelStore.loadModelsPacks()
 
-    const { products, logging } = value
-    const { plugins = {}, enabled = [] } = products || {}
-    if (_.size(plugins)) {
-      await this.validatePluginConf({ components, plugins })
-    }
+    const { products = { enabled: [] }, logging } = value
+
+    await this.validatePluginConf({ products, components })
 
     // if (logging) {
     //   const logProcessor
     // }
-
+    const { enabled = [], plugins = {} } = products
     if (enabled.includes(DEPLOYMENT_PRODUCT) && !plugins.deployment) {
       throw new Errors.InvalidInput(
         `product ${DEPLOYMENT_PRODUCT} is enabled. Expected a configuration for the "deployment" plugin`
@@ -239,13 +243,14 @@ export class Conf {
   }
 
   public validatePluginConf = async ({
-    components,
-    plugins
+    products,
+    components
   }: {
-    plugins: any
+    products: IProductsConf
     components: Partial<IConfComponents>
   }) => {
     const conf = await this.load(components)
+    const { plugins = {} } = products
     await Promise.all(
       Object.keys(plugins).map(async (name) => {
         const plugin = Plugins.get(name)
@@ -269,7 +274,53 @@ export class Conf {
           this.logger.debug(`plugin "${name}" is misconfigured`, err)
           throw new Errors.InvalidInput(`plugin "${name}" is misconfigured: ${err.message}`)
         }
-      })
+      }).concat(
+        (async () => {
+          try {
+            await getPluginDefinitions(products)
+          } catch (err) {
+            Errors.rethrow(err, 'developer')
+            this.logger.debug(`${DYNAMIC_PLUGIN_CONF} is misconfigured`, err)
+            throw new Errors.InvalidInput(`${DYNAMIC_PLUGIN_CONF} is misconfigured: ${err.message}`)
+          }
+          try {
+            await getRegistryTokens(products)
+          } catch (err) {
+            Errors.rethrow(err, 'developer')
+            this.logger.debug(`${REGISTRY_TOKEN_CONF} is misconfigured`, err)
+            throw new Errors.InvalidInput(`${REGISTRY_TOKEN_CONF} is misconfigured: ${err.message}`)
+          }
+          let dynamicPlugins: DynamicPlugin[]
+          try {
+            dynamicPlugins = await getDynamicPlugins(products)
+          } catch (err) {
+            Errors.rethrow(err, 'developer')
+            this.logger.debug(`plugins loaded through ${DYNAMIC_PLUGIN_CONF} can not be installed`, err)
+            throw new Errors.InvalidInput(`plugins loaded through ${DYNAMIC_PLUGIN_CONF} can not be installed: ${err.message}`)
+          }
+          await Promise.all(dynamicPlugins.map(async dynamicPlugin => {
+            const name = dynamicPlugin.name
+            try {
+              const plugin: IPlugin<any> = await dynamicPlugin.load()
+              const validateOpts: ValidatePluginConfOpts = {
+                bot: this.bot,
+                conf,
+                pluginConf: dynamicPlugin.conf,
+                utils,
+                errors: Errors
+              }
+              await plugin.validateConf(validateOpts)
+              if (plugin.updateConf) {
+                await plugin.updateConf(validateOpts)
+              }
+            } catch (err) {
+              Errors.rethrow(err, 'developer')
+              this.logger.debug(`dynamic-plugin "${name}" is misconfigured`, err)
+              throw new Errors.InvalidInput(`dynamic-plugin "${name}" is misconfigured: ${err.message}`)
+            }
+          }))
+        })()
+      )
     )
   }
 
