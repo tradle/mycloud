@@ -524,6 +524,16 @@ provider:
 
     - Effect: Allow
       Action:
+        - organizations:*
+      Resource: "*"
+
+    - Effect: Allow
+      Action:
+        - sts:AssumeRole
+      Resource: "arn:aws:iam::*:role/OrganizationAccountAccessRole"
+
+    - Effect: Allow
+      Action:
         - s3:PutObject
         # needed to create an object with public-read
         - s3:PutObjectAcl
@@ -1203,12 +1213,12 @@ functions:
 
   logProcessor:
     handler: lib/in-house-bot/lambda/log-processor.handler
-    reservedConcurrency: 1
+    reservedConcurrency: 51
     # events added in compile phase
 
   logAlertProcessor:
     handler: lib/in-house-bot/lambda/log-alert-processor.handler
-    reservedConcurrency: 2
+    reservedConcurrency: 51
     # events added at runtime
 
   # shortToLongUrlMapping:

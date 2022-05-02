@@ -127,7 +127,11 @@ test('_doQueueMessage', loudAsync(async (t) => {
   // }
 
   let stoleSeq
-  const stubPutSave = sandbox.stub(messages, 'save').callsFake(async (message) => {
+  let stubPutCb
+  const stubPutDone = new Promise<undefined>(resolve => {
+    stubPutCb = resolve
+  })
+  const stubPutSave = sandbox.stub(messages, 'save').callsFake(async message => {
     typeforce(types.message, message)
     t.notOk(message._inbound)
     t.equal(message[SEQ], nextSeq)
@@ -137,11 +141,10 @@ test('_doQueueMessage', loudAsync(async (t) => {
       stoleSeq = true
       throw new Errors.Duplicate('stolen seq', prevMsgLink)
     }
-
-    t.end()
+    stubPutCb()
   })
 
-  const event = await _doQueueMessage({
+  await _doQueueMessage({
     time: Date.now(),
     author: alice,
     recipient: bob.identity._permalink,
@@ -153,6 +156,10 @@ test('_doQueueMessage', loudAsync(async (t) => {
   t.equal(stubPutSave.callCount, 2)
   t.equal(stubLastSeqAndLink.callCount, 2)
   sandbox.restore()
+
+  await stubPutDone
+
+  t.end()
 
   // Events.putEvent = putEvent
 

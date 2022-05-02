@@ -43,6 +43,7 @@ const ADDRESS = 'tradle.Address'
 const BUSINESS_INFORMATION = 'tradle.BusinessInformation'
 const IDENTIFICATION_OF_BENEFICIAL_OWNER = 'tradle.W8BENE1'
 const DEPLOYMENT_CONFIGURATION = 'tradle.cloud.Configuration'
+const TMP_DEPLOYMENT_CONFIGURATION = 'tradle.cloud.TmpConfiguration'
 const CHECK_STATUS = 'tradle.Status'
 const HAND_SIGNATURE = 'tradle.HandSignature'
 const APPLICATION = 'tradle.Application'
@@ -173,6 +174,7 @@ export const getFormattedNameFromForm = (form: any): string | void => {
     case BUSINESS_INFORMATION:
       return form.companyName
     case IDENTIFICATION_OF_BENEFICIAL_OWNER:
+    case TMP_DEPLOYMENT_CONFIGURATION:
     case DEPLOYMENT_CONFIGURATION:
       return form.name
     default:

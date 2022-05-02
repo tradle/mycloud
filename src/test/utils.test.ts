@@ -33,6 +33,7 @@ import {
   timeoutIn,
   batchProcess,
   allSettled,
+  allSettledReject,
   runWithBackoffWhile,
   runWithTimeout
 } from '../utils'
@@ -613,9 +614,9 @@ test(
 
     const result = await firstSuccess(pending.concat(failed).concat(resolved))
     t.equal(result, 100)
-    failed.forEach(promise => t.equal(promise.isRejected(), true))
-    resolved.forEach(promise => t.equal(promise.isResolved(), true))
-    pending.forEach(promise => t.equal(promise.isPending(), true))
+    failed.forEach((promise, index) => t.equal(promise.isRejected(), true, `failed#${index} is not rejected.`))
+    resolved.forEach((promise, index) => t.equal(promise.isResolved(), true, `resolved#${index} is not resolved.`))
+    pending.forEach((promise, index) => t.equal(promise.isPending(), true, `pending#${index} is not pending.`))
 
     try {
       await firstSuccess([
@@ -683,6 +684,30 @@ test(
     t.end()
   })
 )
+
+test('allSettledReject (reject)', async t => {
+  let slowResolved = false
+  try {
+    await allSettledReject([
+      Promise.reject(new Error('quick')),
+      new Promise(resolve => setTimeout(() => {
+        slowResolved = true
+        resolve()
+      }, 30))
+    ])
+    t.fail('unexpected resolve without error')
+  } catch (err) {
+    t.equals(err.message, 'quick', 'the quick promises error was recorded')
+  }
+  t.equals(slowResolved, true, 'the slow promise was resolved as well')
+})
+
+test('allSettledReject (resolve)', async t => {
+  t.deepEquals(await allSettledReject([
+    Promise.resolve('a'),
+    Promise.resolve('b')
+  ]), ['a', 'b'])
+})
 
 test(
   'batchProcess',

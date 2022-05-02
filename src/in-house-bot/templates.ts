@@ -57,6 +57,10 @@ export const email:Templates = {
   action: (data:IActionEmailArgs) => env.email.render('action.html', data)
 }
 
+export function renderEmailBody({ template, data, values }) {
+  return email[template](renderData(data, values))
+}
+
 export const page:Templates = {
   confirmation: (data:IConfirmationPageArgs) => env.page.render('confirmation.html', data)
 }

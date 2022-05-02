@@ -7,7 +7,10 @@ const lambda = bot.lambdas.info()
 lambda.use(async (ctx, next) => {
   const result = await conf.getPublicInfo()
   if (!ctx.body) ctx.body = {}
-  Object.assign(ctx.body, result)
+  Object.assign(ctx.body, {
+    optionalPairing: true,
+    ...result
+  })
 })
 
 export const handler = lambda.handler

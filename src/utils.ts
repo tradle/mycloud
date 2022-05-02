@@ -53,7 +53,10 @@ import {
   Bot,
   Seal,
   StackStatusEvent,
-  GetPNSTopicOpts
+  GetPNSTopicOpts,
+  ISettled,
+  ISettleResult,
+  ISettleError
 } from './types'
 
 import * as types from './typeforce-types'
@@ -152,19 +155,40 @@ export const runWithTimeout = async <T>(fn: () => Promise<T>, opts: ITimeoutOpts
 export const settle = <T>(promise: Promise<T>): ISettledPromise<T> => {
   return promise
     .then(value => ({
-      isFulfilled: true,
-      isRejected: false,
-      value
+        isFulfilled: true,
+        isRejected: false,
+        value
     }))
     .catch(reason => ({
-      isFulfilled: false,
-      isRejected: true,
-      reason
+        isFulfilled: false,
+        isRejected: true,
+        reason
     }))
 }
 
 export const allSettled = <T>(promises: Promise<T>[]): Promise<ISettledPromise<T>[]> => {
   return Promise.all(promises.map(promise => settle(promise)))
+}
+
+export const isSettleError = (result: ISettled<any>): result is ISettleError => {
+  return result.isRejected
+}
+
+export const isSettleResult = <T>(result: ISettled<T>): result is ISettleResult<T> => {
+  return result.isFulfilled
+}
+
+export const allSettledReject = <T extends Promise[]> (promises: T): T => {
+  return allSettled(promises).then((settleResults: ISettled<T>[]) => {
+    const results = []
+    for (const entry of settleResults) {
+      if (isSettleError(entry)) {
+        return Promise.reject(entry.reason)
+      }
+      results.push(entry.value)
+    }
+    return results
+  })
 }
 
 export const toPathValuePairs = obj => {
@@ -1283,7 +1307,7 @@ export const extendTradleObject = (a, b) => {
 }
 
 export const getStubsByType = (stubs: ResourceStub[], type: string): ParsedResourceStub[] => {
-  return stubs.map(parseStub).filter((parsed) => parsed.type === type)
+  return stubs.map(parseStub).filter(parsed => (parsed as ParsedResourceStub).type === type)
 }
 
 export const isUnsignedType = (modelId) => UNSIGNED_TYPES.includes(modelId)

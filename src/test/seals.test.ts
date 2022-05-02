@@ -264,7 +264,7 @@ test(
       .post(uri => uri.startsWith('/item'))
       .reply(function(url, body) {
         body = QS.parse(body)
-        t.same(body, {
+        t.deepEqual({...body}, {
           link: sealOpts.link,
           partyTmpId: sealOpts.counterparty
         })

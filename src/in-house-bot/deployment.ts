@@ -7,9 +7,7 @@ import buildResource from '@tradle/build-resource'
 import { wrapBucket, Bucket } from '@tradle/aws-s3-client'
 
 import { S3Client } from '@tradle/aws-s3-client'
-import {
-  genSetDeliveryPolicyParams
-} from '@tradle/aws-sns-client'
+import { genSetDeliveryPolicyParams } from '@tradle/aws-sns-client'
 import {
   getResourcesByType,
   getLambdaS3Keys,
@@ -20,15 +18,12 @@ import { TYPE, SIG, ORG, unitToMillis } from '../constants'
 import { TRADLE } from './constants'
 import { randomStringWithLength } from '../crypto'
 import baseModels from '../models'
-import { Alerts } from './alerts'
 import { createRegionalS3Client, RegionalS3Client } from './serverless-regional-s3'
 import {
-  Env,
   Bot,
   SNSUtils,
   Logger,
   ITradleObject,
-  IIdentity,
   IDeploymentConf,
   IMyDeploymentConf,
   IDeploymentConfForm,
@@ -76,7 +71,6 @@ const LAUNCH_MESSAGE = 'Launch your Tradle MyCloud'
 const ONLINE_MESSAGE = 'Your Tradle MyCloud is online!'
 const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
 const PARENT_DEPLOYMENT = 'tradle.cloud.ParentDeployment'
-const CONFIGURATION = 'tradle.cloud.Configuration'
 const AWS_REGION = 'tradle.cloud.AWSRegion'
 const TMP_SNS_TOPIC = 'tradle.cloud.TmpSNSTopic'
 const VERSION_INFO = 'tradle.cloud.VersionInfo'
@@ -104,7 +98,6 @@ const DEFAULT_LAUNCH_TEMPLATE_OPTS = {
       }
     ],
     signature: '{{fromOrg.name}} Team'
-    // twitter: 'tradles'
   }
 }
 
@@ -118,11 +111,8 @@ const DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS = {
       { body: 'Give <a href="{{employeeOnboarding}}">this link</a> to employees' }
     ],
     signature: '{{fromOrg.name}} Team'
-    // twitter: 'tradles'
   }
 }
-
-const ALERT_BRANCHES = ['master']
 
 // generated in AWS console
 const UPDATE_STACK_TOPIC_DELIVERY_POLICY = {
@@ -165,36 +155,68 @@ const createMappingsForUpdate = (adminEmail?: string) => ({
   })
 })
 
+export async function getCurrentAdminEmail (bot: Bot): Promise<string> {
+  const { aws, stackUtils } = bot
+  const resources = await stackUtils.getStackResources()
+  const { PhysicalResourceId } = resources.find((r) => {
+    return r.ResourceType === 'AWS::SNS::Topic' && r.LogicalResourceId === 'AwsAlertsAlarm'
+  })
+
+  const { Subscriptions } = await aws.sns
+    .listSubscriptionsByTopic({
+      TopicArn: PhysicalResourceId
+    })
+    .promise()
+
+  const emails = Subscriptions.filter((s) => s.Protocol === 'email')
+  if (emails.length) {
+    return emails[0].Endpoint
+  }
+
+  const params = await stackUtils.getStackParameterValues()
+  return params.OrgAdminEmail
+}
+
+function genLaunchedEmail (conf, values) {
+  const renderConf = _.get(conf, 'templates.launched')
+  const opts = _.defaults(renderConf, DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS)
+  return {
+    subject: ONLINE_MESSAGE,
+    body: Templates.renderEmailBody({ ...opts, values })
+  }
+}
+
+async function notifyConfigurer (bot: Bot, {
+  configurer,
+  links
+}: {
+  links: IAppLinkSet
+  configurer: string
+}) {
+  const configurerUser = await bot.users.get(configurer)
+
+  let message
+  if (isEmployee({ user: configurerUser })) {
+    const someLinks = _.omit(links, 'employeeOnboarding')
+    message = `The MyCloud you drafted has been launched\n\n${getAppLinksInstructions(someLinks)}`
+  } else {
+    message = `${ONLINE_MESSAGE}\n\n${getAppLinksInstructions(links)}`
+  }
+
+  await bot.sendSimpleMessage({
+    to: configurerUser,
+    message
+  })
+}
+
 type CodeLocation = {
   bucket: Bucket
   keys: string[]
 }
 
-enum StackOperationType {
-  create,
-  update
-}
-
-type UpdateDeploymentConf = {
-  adminEmail: string
-}
-
 type ChildStackIdentifier = {
   stackOwner: string
   stackId: string
-}
-
-// interface IUpdateChildDeploymentOpts {
-//   apiUrl?: string
-//   deploymentUUID?: string
-//   identity?: ResourceStub
-//   stackId?: string
-// }
-
-interface INotifyCreatorsOpts {
-  configuration: ITradleObject
-  apiUrl: string
-  identity: ResourceStub
 }
 
 interface DeploymentCtorOpts {
@@ -203,11 +225,6 @@ interface DeploymentCtorOpts {
   conf?: IDeploymentPluginConf
   org?: IOrganization
   disableCallHome?: boolean
-}
-
-interface UpdateRequest extends ITradleObject {
-  provider: ResourceStub
-  tag: string
 }
 
 interface GenUpdatePackageForStackWithVersionOpts {
@@ -224,13 +241,20 @@ interface GenUpdatePackageForStackOpts {
   region?: string
 }
 
+export interface LaunchPackage {
+  template: MyCloudLaunchTemplate
+  url: string
+  stackName: string
+  templateUrl: string
+  region: string
+}
+
 const BlockchainNetworkModel = baseModels['tradle.BlockchainNetwork']
 
 export class Deployment {
   // exposed for testing
   private bot: Bot
   private snsUtils: SNSUtils
-  private env: Env
   private deploymentBucket: Bucket
   private logger: Logger
   private conf?: IDeploymentPluginConf
@@ -314,20 +338,17 @@ export class Deployment {
   }
 
   private callHomeDisabled: boolean
-  private opts: DeploymentCtorOpts
   constructor(opts: DeploymentCtorOpts) {
     const { bot, logger, conf, org, disableCallHome } = opts
 
     this.bot = bot
     this.snsUtils = bot.snsUtils
-    this.env = bot.env
     this.logger = logger
     this.deploymentBucket = bot.buckets.ServerlessDeployment
     this.conf = conf
     this.org = org
     this.isTradle = org && isProbablyTradle({ org })
     this.callHomeDisabled = this.isTradle || !!disableCallHome
-    this.opts = opts
     this.regionalS3 = createRegionalS3Client({
       clients: bot.aws,
       iamClient: bot.iamClient,
@@ -338,35 +359,11 @@ export class Deployment {
     })
   }
 
-  // const onForm = async ({ bot, user, type, wrapper, currentApplication }) => {
-  //   if (type !== CONFIGURATION) return
-  //   if (!currentApplication || currentApplication.requestFor !== DEPLOYMENT_PRODUCT) return
-
-  //   const { object } = wrapper.payload
-  //   const { domain } = object
-  //   try {
-  //     await getLogo({ domain })
-  //   } catch (err) {
-  //     const message = `couldn't process your logo!`
-  //     await bot.requestEdit({
-  //       user,
-  //       item: object,
-  //       message,
-  //       errors: [
-  //         {
-  //           name: 'domain',
-  //           error: message
-  //         }
-  //       ]
-  //     })
-  //   }
-  // }
-
-  public genLaunchPackage = async (configuration: IDeploymentConf) => {
+  public genLaunchPackage = async (configuration: IDeploymentConf): Promise<LaunchPackage> => {
     const { stackUtils, s3Utils } = this.bot
     const { region } = configuration
     const [versionInfo, bucket] = await Promise.all([
-      this.getLatestStableVersionInfo(),
+      this.getBestVersionInfo(),
       this.getDeploymentBucketForRegion(region)
     ])
 
@@ -386,13 +383,9 @@ export class Deployment {
     const stage = template.Parameters.Stage.Default
     this.logger.debug('generated cloudformation template for child deployment')
     const { deploymentUUID } = template.Mappings.deployment.init
-    // const promiseTmpTopic = this._setupStackStatusAlerts({
-    //   id: deploymentUUID,
-    //   type: StackOperationType.create
-    // })
 
     const configuredBy = await this.bot.identities.byPermalink(configuration._author)
-    const childDeploymentRes = await this.bot
+    await this.bot
       .draft({ type: CHILD_DEPLOYMENT })
       .set({
         configuration,
@@ -401,15 +394,17 @@ export class Deployment {
       })
       .signAndSave()
 
-    // this.logger.debug('generated deployment tracker for child deployment', { uuid })
+    const stackName = Deployment.expandStackName({ stackName: configuration.stackName, stage })
     return {
       template,
+      stackName,
+      templateUrl,
+      region,
       url: stackUtils.getLaunchStackUrl({
-        stackName: Deployment.expandStackName({ stackName: configuration.stackName, stage }),
-        region: configuration.region,
+        stackName,
+        region,
         templateUrl
       })
-      // snsTopic: (await promiseTmpTopic).topic
     }
   }
 
@@ -456,7 +451,6 @@ export class Deployment {
     }
 
     const result = await this.genUpdatePackageForStack({
-      // deployment: childDeployment,
       stackOwner: childDeployment.identity._permalink,
       stackId: stackId || childDeployment.stackId,
       parentTemplateUrl: versionInfo.templateUrl
@@ -506,7 +500,7 @@ export class Deployment {
       bucket
     })
 
-    const { templateUrl, code } = await this._saveTemplateAndCode({
+    const { templateUrl } = await this._saveTemplateAndCode({
       parentTemplate,
       template,
       bucket,
@@ -716,7 +710,7 @@ export class Deployment {
       apiUrl: this.bot.apiBaseUrl,
       org,
       identity,
-      stackId: this._thisStackArn,
+      stackId: this.bot.stackUtils.thisStackId,
       version: this.bot.version,
       adminEmail
     }) as ICallHomePayload
@@ -738,7 +732,6 @@ export class Deployment {
   }
 
   public handleStackUpdate = async (opts?: StackDeploymentInfo) => {
-    const { bot, logger, conf } = this
     if (this.isTradle) {
       await this._handleStackUpdateTradle()
       return
@@ -858,112 +851,63 @@ export class Deployment {
       .signAndSave()
   }
 
-  public notifyConfigurer = async ({
-    configurer,
-    links
-  }: {
-    links: IAppLinkSet
-    configurer: string
-  }) => {
-    const configurerUser = await this.bot.users.get(configurer)
-
-    let message
-    if (isEmployee({ user: configurerUser })) {
-      const someLinks = _.omit(links, 'employeeOnboarding')
-      message = `The MyCloud you drafted has been launched
-
-${this.genUsageInstructions(someLinks)}`
-    } else {
-      message = `${ONLINE_MESSAGE}
-
-${this.genUsageInstructions(links)}`
-    }
-
-    await this.bot.sendSimpleMessage({
-      to: configurerUser,
-      message
-    })
-  }
-
   public notifyCreatorsOfChildDeployment = async (childDeployment) => {
     const { apiUrl, identity } = childDeployment
-    const configuration = await this.bot.getResource(childDeployment.configuration)
-    // stall till 10000 before time's up
-    await this.bot.stall({ buffer: 10000 })
-    await this.notifyCreators({ configuration, apiUrl, identity })
-  }
+    const { bot, logger, conf, org } = this
 
-  public notifyCreators = async ({ configuration, apiUrl, identity }: INotifyCreatorsOpts) => {
-    this.logger.debug('attempting to notify of stack launch')
+    const configuration = await bot.getResource(childDeployment.configuration)
+    // stall till 10000 before time's up
+    await bot.stall({ buffer: 10000 })
+
+    logger.debug('attempting to notify of stack launch')
     const { hrEmail, adminEmail, _author } = configuration as IDeploymentConfForm
 
-    const botPermalink = buildResource.permalink(identity)
-    const links = this.getAppLinks({ host: apiUrl, permalink: botPermalink })
-    const notifyConfigurer = this.notifyConfigurer({
+    const links = getAppLinks({ bot, host: apiUrl, permalink: buildResource.permalink(identity) })
+
+    await utils.allSettledReject([
+      notify(),
+      sendEmail()
+    ])
+
+    async function notify () {
+      try {
+        await notifyConfigurer(bot, {
       configurer: _author,
       links
-    }).catch((err) => {
-      this.logger.error('failed to send message to creator', err)
-      Errors.rethrow(err, 'developer')
     })
-
-    let emailAdmin
-    if (this.conf.senderEmail) {
-      emailAdmin = this.bot.mailer
-        .send({
-          from: this.conf.senderEmail,
-          to: _.uniq([hrEmail, adminEmail]),
-          format: 'html',
-          ...this.genLaunchedEmail({ ...links, fromOrg: this.org })
-        })
-        .catch((err) => {
-          this.logger.error('failed to email creators', err)
-          Errors.rethrow(err, 'developer')
-        })
-    } else {
-      emailAdmin = Promise.resolve()
-      this.logger.debug(NO_SENDER_EMAIL)
+      } catch (err) {
+        logger.error('failed to send message to creator', err)
+        Errors.rethrow(err, 'developer')
+      }
     }
 
-    const results = await utils.allSettled([notifyConfigurer, emailAdmin])
-    const firstErr = results.find((result) => result.reason)
-    if (firstErr) throw firstErr
+    async function sendEmail() {
+      if (!conf.senderEmail) {
+        logger.debug(NO_SENDER_EMAIL)
+        return
+      }
+      try {
+        await bot.mailer.send({
+          from: conf.senderEmail,
+          to: _.uniq([hrEmail, adminEmail]),
+          format: 'html',
+          ...genLaunchedEmail(conf, { ...links, fromOrg: org })
+        })
+      } catch (err) {
+        logger.error('failed to email creators', err)
+          Errors.rethrow(err, 'developer')
+    }
+    }
   }
 
-  public getAppLinks = ({ host, permalink }) =>
-    getAppLinks({
-      bot: this.bot,
-      host,
-      permalink
-    })
-
-  public genLaunchEmailBody = (values) => {
-    const renderConf = _.get(this.conf || {}, 'templates.launch') || {}
+  public genLaunchEmail (values) {
+    const renderConf = _.get(this.conf, 'templates.launch')
     const opts = _.defaults(renderConf, DEFAULT_LAUNCH_TEMPLATE_OPTS)
-    return this.genEmailBody({ ...opts, values })
+    return {
+      subject: LAUNCH_MESSAGE,
+      body: Templates.renderEmailBody({ ...opts, values })
+    }
   }
-
-  public genLaunchedEmailBody = (values) => {
-    const renderConf = _.get(this.conf || {}, 'templates.launched') || {}
-    const opts = _.defaults(renderConf, DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS)
-    return this.genEmailBody({ ...opts, values })
-  }
-
-  public genEmailBody = ({ template, data, values }) => {
-    return Templates.email[template](Templates.renderData(data, values))
-  }
-
-  public genLaunchEmail = (opts) => ({
-    subject: LAUNCH_MESSAGE,
-    body: this.genLaunchEmailBody(opts)
-  })
-
-  public genLaunchedEmail = (opts) => ({
-    subject: ONLINE_MESSAGE,
-    body: this.genLaunchedEmailBody(opts)
-  })
-
-  public genUsageInstructions = getAppLinksInstructions
 
   public customizeTemplateForLaunch = async ({
     template,
@@ -974,7 +918,7 @@ ${this.genUsageInstructions(links)}`
     configuration: IDeploymentConf
     bucket: string
   }): Promise<MyCloudLaunchTemplate> => {
-    let { name, domain, logo, stackName, adminEmail, blockchain } = configuration
+    let { name, domain, stackName, adminEmail, blockchain } = configuration
 
     if (!(name && domain)) {
       throw new Errors.InvalidInput('expected "name" and "domain"')
@@ -984,7 +928,7 @@ ${this.genUsageInstructions(links)}`
     template.Description = `MyCloud, by Tradle`
     domain = utils.normalizeDomain(domain)
 
-    const { Resources, Mappings, Parameters } = template
+    const { Mappings } = template
     const { deployment } = Mappings
     const logoPromise = getLogo(configuration).catch((err) => {
       this.logger.warn('failed to get logo', { domain })
@@ -1007,7 +951,6 @@ ${this.genUsageInstructions(links)}`
     })
 
     Deployment.ensureInitLogIsRetained(template)
-    // this._setLambdaCodePointers({ template, bucket })
     return template
   }
 
@@ -1035,7 +978,6 @@ ${this.genUsageInstructions(links)}`
     })
 
     Deployment.ensureInitLogIsRetained(template)
-    // this._setLambdaCodePointers({ template, bucket })
     return template
   }
 
@@ -1134,16 +1076,12 @@ ${this.genUsageInstructions(links)}`
       .version()
       .signAndSave()
 
-    // if (status === 'CREATE_COMPLETE' || status === 'UPDATE_COMPLETE') {
-    //   await this.snsUtils.unsubscribe(subscriptionArn)
-    // }
-
     return updated
   }
 
   // if you change this, change relevant lambda IAM role statements in serverless-uncompiled.yml
   // look for -deploymentbucket-*
-  public getDeploymentBucketLogicalName = () => `${this._thisStackName}-deploymentbucket`
+  public getDeploymentBucketLogicalName = () => `${this.bot.stackUtils.thisStackName}-deploymentbucket`
 
   public getRegionalBucketName = (region: string) =>
     this.regionalS3.getRegionalBucketName({
@@ -1152,7 +1090,7 @@ ${this.genUsageInstructions(links)}`
     })
 
   public getDeploymentBucketForRegion = async (region: string) => {
-    if (region === this._thisRegion) {
+    if (region === this.bot.env.AWS_REGION) {
       return this.deploymentBucket.id
     }
 
@@ -1236,7 +1174,6 @@ ${this.genUsageInstructions(links)}`
   }) => {
     let keys: string[] = Deployment.getS3DependencyKeys(template)
 
-    // const source = this.deploymentBucket
     const source = this._bucket(this.deploymentBucket.id, region)
     if (bucket === source.id) {
       // TODO:
@@ -1247,7 +1184,7 @@ ${this.genUsageInstructions(links)}`
 
     const target = this._bucket(bucket, region)
     const exists = await Promise.all(keys.map((key) => target.exists(key)))
-    keys = keys.filter((key, i) => !exists[i])
+    keys = keys.filter((_key, i) => !exists[i])
 
     if (!keys.length) {
       this.logger.debug('target bucket already has s3 dependencies')
@@ -1264,7 +1201,6 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _saveTemplateAndCode = async ({
-    parentTemplate,
     template,
     bucket,
     region
@@ -1299,29 +1235,6 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  // public updateOwnStack = async ({
-  //   templateUrl,
-  //   notificationTopics = []
-  // }: {
-  //   templateUrl: string
-  //   notificationTopics?: string[]
-  // }) => {
-  //   await this.bot.lambdaUtils.invoke({
-  //     name: 'updateStack',
-  //     arg: { templateUrl, notificationTopics }
-  //   })
-  // }
-
-  // public requestUpdate = async () => {
-  //   const parent = await this.getParentDeployment()
-  //   return this.requestUpdateFromProvider({
-  //     provider: parent.parentIdentity._permalink,
-  //     version: {
-  //       tag: 'latest'
-  //     }
-  //   })
-  // }
-
   public requestUpdateFromTradle = async (
     {
       tag
@@ -1340,7 +1253,7 @@ ${this.genUsageInstructions(links)}`
     provider: ResourceStub
     tag: string
   }) => {
-    const adminEmail = await this.getCurrentAdminEmail()
+    const adminEmail = await getCurrentAdminEmail(this.bot)
     const updateReq = this.draftUpdateRequest({
       adminEmail,
       tag,
@@ -1356,11 +1269,6 @@ ${this.genUsageInstructions(links)}`
   public draftUpdateRequest = (opts) => {
     utils.requireOpts(opts, ['tag', 'provider'])
 
-    // if (parent[TYPE] !== PARENT_DEPLOYMENT) {
-    //   throw new Errors.InvalidInput(`expected "parent" to be tradle.MyCloudFriend`)
-    // }
-
-    // const { parentIdentity } = parent
     const { env } = this.bot
     return this.bot
       .draft({ type: UPDATE_REQUEST })
@@ -1368,8 +1276,8 @@ ${this.genUsageInstructions(links)}`
         utils.pickNonNull({
           service: 'tradle',
           stage: env.STACK_STAGE,
-          region: this._thisRegion,
-          stackId: this._thisStackArn,
+          region: env.AWS_REGION,
+          stackId: this.bot.stackUtils.thisStackId,
           blockchain: Deployment.encodeBlockchainEnumValue(this.bot.blockchain.toString()),
           ...opts
         })
@@ -1384,19 +1292,7 @@ ${this.genUsageInstructions(links)}`
       )
     }
 
-    // if (utils.compareTags(req.tag, '2.0.0') < 0) {
-    //   this.logger.debug('using deployment-v1 to generate template')
-    //   const { createDeployment } = require('./deployment-v1')
-    //   const v1 = createDeployment(this.opts)
-    //   return v1.handleUpdateRequest({ req, from })
-    // }
-
     utils.requireOpts(req, ['stackId', 'tag'])
-
-    // if (req.currentCommit === this.bot.version.commit) {
-    //   this.logger.debug('child is up to date')
-    //   throw new Errors.Exists(`already up to date`)
-    // }
 
     const [versionInfo, myPermalink] = await Promise.all([
       this.getVersionInfoByTag(req.tag),
@@ -1451,9 +1347,15 @@ ${this.genUsageInstructions(links)}`
     return results[0]
   }
 
-  public getLatestStableVersionInfo = async (): Promise<VersionInfo> => {
-    this.logger.debug('looking up latest stable version')
-    return await this._getLatestStableVersionInfoNew()
+  private async getBestVersionInfo () {
+    try {
+      this.logger.debug('looking up latest stable version')
+      return await this._getLatestVersionInfoNew('stable')
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+    }
+    this.logger.debug('no stable version found, looking latest release candidate')
+    return await this._getLatestVersionInfoNew('releasecandidate')
   }
 
   public getLatestVersionInfo = async (): Promise<VersionInfo> => {
@@ -1591,7 +1493,7 @@ ${this.genUsageInstructions(links)}`
 
   public listAvailableUpdates = async (providerPermalink?: string) => {
     if (!providerPermalink) {
-      providerPermalink = TRADLE.PERMALINK // await this.getTradleBotPermalink()
+      providerPermalink = TRADLE.PERMALINK
     }
 
     const { items } = await this.bot.db.find({
@@ -1615,7 +1517,7 @@ ${this.genUsageInstructions(links)}`
 
   public listDownloadedUpdates = async (providerPermalink?: string) => {
     if (!providerPermalink) {
-      providerPermalink = TRADLE.PERMALINK // await this.getTradleBotPermalink()
+      providerPermalink = TRADLE.PERMALINK
     }
 
     const { items } = await this.bot.db.find({
@@ -1662,29 +1564,7 @@ ${this.genUsageInstructions(links)}`
     return true
   }
 
-  public getCurrentAdminEmail = async (): Promise<string> => {
-    const { aws, stackUtils } = this.bot
-    const resources = await stackUtils.getStackResources()
-    const { PhysicalResourceId } = resources.find((r) => {
-      return r.ResourceType === 'AWS::SNS::Topic' && r.LogicalResourceId === 'AwsAlertsAlarm'
-    })
-
-    const { Subscriptions } = await aws.sns
-      .listSubscriptionsByTopic({
-        TopicArn: PhysicalResourceId
-      })
-      .promise()
-
-    const emails = Subscriptions.filter((s) => s.Protocol === 'email')
-    if (emails.length) {
-      return emails[0].Endpoint
-    }
-
-    const params = await stackUtils.getStackParameterValues()
-    return params.OrgAdminEmail
-  }
-
-  private _getLatestStableVersionInfoNew = async (): Promise<VersionInfo> => {
+  private _getLatestVersionInfoNew = async (channel: string): Promise<VersionInfo> => {
     return await this.bot.db.findOne({
       orderBy: {
         property: 'sortableTag',
@@ -1696,7 +1576,7 @@ ${this.genUsageInstructions(links)}`
           [ORG]: await this.bot.getMyPermalink(),
           'releaseChannel.id': buildResource.enumValue({
             model: baseModels['tradle.cloud.ReleaseChannel'],
-            value: 'stable'
+            value: channel
           }).id
         }
       }
@@ -1708,7 +1588,7 @@ ${this.genUsageInstructions(links)}`
       ...opts,
       org: opts.org || this.org,
       identity: opts.identity || this.bot.getMyIdentity(),
-      adminEmail: opts.adminEmail || this.getCurrentAdminEmail()
+      adminEmail: opts.adminEmail || getCurrentAdminEmail(this.bot)
     })
   }
 
@@ -1802,7 +1682,7 @@ ${this.genUsageInstructions(links)}`
   private _subscribeToChildStackLoggingAlerts = async (topic: string) => {
     const lambda = this.bot.env.getLambdaArn(LOG_ALERTS_PROCESSOR_LAMBDA_NAME)
     const subscribe = this._subscribeLambdaToTopic({ topic, lambda })
-    const allow = this._allowSNSToCallLambda({ topic, lambda })
+    const allow = this._allowSNSToCallLambda({ lambda })
     const [subscription] = await Promise.all([subscribe, allow])
     return {
       lambda,
@@ -1811,7 +1691,7 @@ ${this.genUsageInstructions(links)}`
     }
   }
 
-  private _allowSNSToCallLambda = async ({ topic, lambda }) => {
+  private _allowSNSToCallLambda = async ({ lambda }) => {
     if (this.bot.isTesting) return
 
     const exists = await this.bot.lambdaUtils.canSNSInvokeLambda(lambda)
@@ -1821,14 +1701,6 @@ ${this.genUsageInstructions(links)}`
     }
 
     await this.bot.lambdaUtils.allowSNSToInvoke(lambda)
-  }
-
-  private _subscribeEmailToTopic = async ({ email, topic }) => {
-    return await this.snsUtils.subscribeIfNotSubscribed({
-      topic,
-      protocol: 'email',
-      target: email
-    })
   }
 
   private _subscribeLambdaToTopic = async ({ lambda, topic }) => {
@@ -1876,7 +1748,6 @@ ${this.genUsageInstructions(links)}`
 
   private _saveDeploymentVersionInfo = async (info: VersionInfo) => {
     const { bot, logger } = this
-    const botPermalink = await bot.getMyPermalink()
 
     let versionInfo
     try {
@@ -1928,7 +1799,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _handleStackUpdateTradle = async () => {
-    const monitorSelf = this._setupLoggingAlerts({ stackId: this._thisStackArn })
+    const monitorSelf = this._setupLoggingAlerts({ stackId: this.bot.stackUtils.thisStackId })
     if (this.bot.version.commitsSinceTag > 0) {
       this.logger.debug(`not saving deployment version as I'm between versions`, this.bot.version)
       await monitorSelf
@@ -1943,20 +1814,7 @@ ${this.genUsageInstructions(links)}`
     await Promise.all([this._saveMyDeploymentVersionInfo(), this.callHome(opts)])
   }
 
-  private get _thisStackArn() {
-    return this.bot.stackUtils.thisStackId
-  }
-
-  private get _thisStackName() {
-    return this.bot.stackUtils.thisStackName
-  }
-
-  private get _thisRegion() {
-    return this.env.REGION
-  }
-
   private _bucket = (name: string, region: string) => {
-    // const { bot } = this
     const { env } = this.bot
     this.logger.debug(`bucket class instance for region: ${region}`)
     const config = createConfig({
@@ -1969,12 +1827,10 @@ ${this.genUsageInstructions(links)}`
     })
     return wrapBucket({
       bucket: name,
-      client: s3Client // bot.s3Utils
+      client: s3Client
     })
   }
 }
-
-const getArnRegion = (arn: string) => utils.parseArn(arn).region
 
 export const getCrossAccountLambdaRole = ({
   stackId,
@@ -1994,7 +1850,6 @@ const getStackUpdateTopicName = ({ stackOwner, stackId }: ChildStackIdentifier) 
   return `${name}-stack-status-${stackOwner.slice(0, 10)}`
 }
 
-// const getTmpTopicExpirationDate = () => Date.now() + TMP_SNS_TOPIC_TTL
 const getStackUpdateTopicExpirationDate = () => Date.now() + UPDATE_TOPIC_TTL
 const getLogAlertsTopicExpirationDate = () => Date.now() + LOG_TOPIC_TTL
 

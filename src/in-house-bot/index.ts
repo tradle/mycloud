@@ -79,7 +79,7 @@ const FORM_REQUEST = 'tradle.FormRequest'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const HELP_REQUEST = 'tradle.RequestForAssistance'
 const DEPLOYMENT = 'tradle.cloud.Deployment'
-const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
+const TMP_DEPLOYMENT = 'tradle.cloud.Deployment'
 const APPLICATION = 'tradle.Application'
 const VERSION_INFO = 'tradle.cloud.VersionInfo'
 const CUSTOMER_APPLICATION = 'tradle.products.CustomerApplication'
@@ -89,6 +89,7 @@ const PRODUCT_LIST_MENU_MESSAGE = 'Choose Apply for Product from the menu'
 const ALL_HIDDEN_PRODUCTS = [
   // CONTROLLING_PERSON_ONBOARDING,
   // DEPLOYMENT,
+  TMP_DEPLOYMENT,
   EMPLOYEE_ONBOARDING
 ]
 
