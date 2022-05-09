@@ -38,10 +38,12 @@ class ClientEditsAPI {
   private bot: Bot
   private logger: Logger
   private applications: Applications
-  constructor({ bot, applications, logger }) {
+  private productsAPI: any
+  constructor({ bot, applications, logger, productsAPI }) {
     this.bot = bot
     this.applications = applications
     this.logger = logger
+    this.productsAPI = productsAPI
   }
 
   public async checkEdits({ req, sourceOfData, distance }) {
@@ -109,9 +111,7 @@ class ClientEditsAPI {
     let modifications = []
     for (let i=0; i<resources.length; i++) {
       let isVerification = resources[i][TYPE] === VERIFICATION
-      modifications.push(this.bot
-        .draft({ type: MODIFICATION })
-        .set({
+      let mod:any = {
             dateModified: Date.now(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
             form: isVerification ? resources[i].document : resources[i],
             modifications: {
@@ -120,7 +120,12 @@ class ClientEditsAPI {
                 isVerification
               }
             }
-        })
+        }
+      if (resource._authorOrg)
+        mod._authorOrg = resource._authorOrg  
+      modifications.push(this.bot
+        .draft({ type: MODIFICATION })
+        .set(mod)
         .signAndSave()
       )
     }
@@ -252,7 +257,7 @@ class ClientEditsAPI {
     check: any
     checks?: any
   }) => {
-    const { payload } = req
+    const { payload, application } = req
 
     let prevResource
     if (payload._p) {
@@ -361,13 +366,14 @@ class ClientEditsAPI {
       modifications
     }
 
+    await this.productsAPI._exec('willCreateModification', { application, resource })
     return await this.bot
       .draft({ type: MODIFICATION })
       .set(resource)
       .signAndSave()
   }
   public createDataLineageModification = async ({ req, checks }: { req: IPBReq; checks?: any }) => {
-    const { payload } = req
+    const { payload, application } = req
     const sourceOfData = payload._sourceOfData
     let dataLineage, prefill
     if (sourceOfData) {
@@ -437,7 +443,7 @@ class ClientEditsAPI {
       form: payload,
       modifications
     }
-
+    await this.productsAPI.exec('willCreateModification', { application, resource })
     return {
       modification: await this.bot
         .draft({ type: MODIFICATION })
@@ -449,7 +455,7 @@ class ClientEditsAPI {
 }
 export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) => {
   const { bot, productsAPI, employeeManager, applications } = components
-  const clientEdits = new ClientEditsAPI({ bot, applications, logger })
+  const clientEdits = new ClientEditsAPI({ bot, applications, logger, productsAPI })
   const plugin = {
     async onmessage(req: IPBReq) {
       // if (req.skipChecks) return

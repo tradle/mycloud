@@ -1,7 +1,9 @@
 import _ from 'lodash'
 import { difference, defaultsDeep } from 'lodash'
-import { TYPE } from '@tradle/constants'
-
+import { TYPE, TYPES } from '@tradle/constants'
+const {
+  IDENTITY
+} = TYPES
 import {
   Model,
   Models,
@@ -23,6 +25,11 @@ import { toStreamItems } from './test/utils'
 const { getRef, isDescendantOf } = validateModels.utils
 const { isInstantiable } = validateResource.utils
 const SHARE_REQUEST = 'tradle.ShareRequest'
+const EXCLUDED_TYPES = [
+  'tradle.PubKey',
+  IDENTITY,
+  'tradle.credit.CostOfCapital'
+]
 type PropertyInfo = {
   propertyName: string
   model: Model
@@ -207,14 +214,22 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
       return listBacklink(opts)
     }
 
-    let { model, select, filter, orderBy, limit, checkpoint } = opts
+    let { model, select, filter, orderBy, limit, checkpoint, context } = opts
+
+    let counterparty
+    if (EXCLUDED_TYPES.indexOf(model.id) === -1 && opts.context)
+      counterparty = opts.context.counterparty
 
     if (!filter) filter = { EQ: {} }
     if (!filter.EQ) filter.EQ = {}
     filter.EQ[TYPE] = model.id
-
+    
+    if (counterparty)  {
+      if (!filter.EQ._permalink || filter.EQ._permalink !== counterparty._permalink)
+        filter.EQ['_authorOrg'] = counterparty._permalink
+    }  
     const conf = opts.context && opts.context.components && opts.context.components.conf || []
-
+    
     return db.find({
       allowScan: true,
       select,

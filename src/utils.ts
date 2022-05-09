@@ -1440,11 +1440,13 @@ export const toBotMessageEvent = ({
   bot,
   user,
   masterUser,
+  counterparty,
   allUsers,
   message
 }: {
   bot: Bot
   user: any
+  counterparty?: any
   masterUser?: any
   allUsers?: any
   message: any
@@ -1460,6 +1462,7 @@ export const toBotMessageEvent = ({
     object,
     type,
     masterUser,
+    counterparty,
     allUsers,
     link: object._link,
     permalink: object._permalink

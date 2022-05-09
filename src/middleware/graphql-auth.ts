@@ -4,6 +4,7 @@ import constants from '../constants'
 import Errors from '../errors'
 import { ITradleObject, Bot, Logger, IUser } from '../types'
 import { isPromise } from '../utils'
+import { isMaster } from 'cluster'
 
 const { TYPE, SIG, SIGNATURE_FRESHNESS_LEEWAY } = constants
 const FORBIDDEN_MESSAGE = 'forbidden'
@@ -78,7 +79,7 @@ export const createHandler = (
       return
     }
 
-    let { user } = ctx
+    let { user, components } = ctx
     if (auth && !user) {
       logger.debug('looking up query author')
       try {
@@ -91,6 +92,7 @@ export const createHandler = (
 
         ctx.user = user = users[0]
         ctx.masterUser = users[1]
+        ctx.counterparty = await getCounterparty(bot, ctx)
       } catch (err) {
         Errors.rethrow(err, 'system')
         if (Errors.isNotFound(err) || Errors.matches(err, Errors.UnknownAuthor)) {
@@ -113,6 +115,33 @@ export const createHandler = (
     logger.debug('allowing')
     await next()
   }
+}
+const getCounterparty = async (bot, {user, masterUser, components}) => {
+  if (!components)
+    debugger
+  let userPermalink
+  if (components.employeeManager.isEmployee({user, masterUser})) {
+    userPermalink = masterUser && masterUser.identity._permalink || user.identity._permalink
+  }
+  // if (masterUser  &&  masterUser.roles) {
+  //   if (masterUser.roles.find(r => r.id.endsWith('_employee')))
+  //   userPermalink = masterUser.identity._permalink
+  // }
+  // else {
+  //   if (user.roles.find(r => r.id.endsWith('_employee')))
+  //   userPermalink = user.identity._permalink
+  // }
+  if (!userPermalink) 
+    return
+  const cert = await bot.db.findOne({
+    filter: {
+      EQ: {
+        [TYPE]: 'tradle.MyEmployeeOnboarding',
+        'owner._permalink': userPermalink
+      }
+    }
+  })
+  return cert.counterparty
 }
 
 const getDrift = (time: number) => {

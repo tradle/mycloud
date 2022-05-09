@@ -1396,8 +1396,20 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
             this.logger.debug(`Failed to get allUsers for master identity ${uid}`)
             if (!allUsers) allUsers = [user]
           }
+          let counterparty
+          if (user.roles  &&  user.roles.find(r => r.id.endsWith('_employee'))) {
+            const cert = await this.db.findOne({
+              filter: {
+                EQ: {
+                  [TYPE]: 'tradle.MyEmployeeOnboarding',
+                  'owner._permalink': user.identity._permalink
+                }
+              }
+            })
+            counterparty = cert.counterparty
+          }
           const batch = messages.map((message) =>
-            toBotMessageEvent({ bot: this, user, masterUser, allUsers, message })
+            toBotMessageEvent({ bot: this, user, masterUser, counterparty, allUsers, message })
           )
           this.logger.debug(`feeding ${messages.length} messages to business logic`)
           if (async) {

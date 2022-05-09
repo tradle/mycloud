@@ -206,6 +206,8 @@ export class Applications implements IHasModels {
 
   public createCheck = async (props, req) => {
     const { bot, productsAPI } = this
+    await this.productsAPI._exec('willCreateCheck', { check: props })
+
     const { models } = bot
     const type = props[TYPE]
     if (!(type && props.application)) {
@@ -622,6 +624,7 @@ export class Applications implements IHasModels {
     application: IPBApp
     submission: ITradleObject
   }) => {
+    await this.productsAPI._exec('willCreateApplicationSubmission', { application, submission })
     const resource = await this.bot
       .draft({ type: APPLICATION_SUBMISSION })
       .set({

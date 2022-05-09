@@ -148,6 +148,7 @@ export interface IPBUser extends IUser {
 export interface IPBReq {
   user: IPBUser
   masterUser?: IPBUser
+  counterparty?: ResourceStub
   message: ITradleMessage
   payload: ITradleObject
   // alias for "payload"

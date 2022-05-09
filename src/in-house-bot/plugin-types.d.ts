@@ -30,6 +30,10 @@ declare namespace PluginLifecycle {
   export type getRequiredForms = (opts: IGetRequiredFormsArg) => Promise<void|string[]>
   export type validateForm = (opts: IValidateFormArg) => Promise<void|IValidateFormOutput>
 
+  export type willCreateApplicationSubmission = (opts) => Promise<void>
+  export type willCreateCheck = (opts) => Promise<void>
+  export type willCreateModification = (opts) => Promise<void>
+
   export type replay = (obj: ITradleObject, applications: Applications) => Promise<void>
 
   // asynchronous, attach conditioned on runAsyncHandlers
