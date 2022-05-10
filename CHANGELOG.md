@@ -2,13 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [4.0.0](https://github.com/tradle/mycloud/compare/v3.2.1-rc.6...v4.0.0) (2022-05-10)
+## [4.0.1-rc.0](https://github.com/tradle/mycloud/compare/v4.0.0...v4.0.1-rc.0) (2022-05-10)
 
 
 ### Features
 
-* attempt to remove unused parameters and vars ([aee30e5](https://github.com/tradle/mycloud/commit/aee30e5))
-* vendor portal project ([dbf7d9b](https://github.com/tradle/mycloud/commit/dbf7d9b))
+* allow white glove for employees for any product ([9bca9a1](https://github.com/tradle/mycloud/commit/9bca9a1))
 
 
 
