@@ -206,14 +206,14 @@ export class Applications implements IHasModels {
 
   public createCheck = async (props, req) => {
     const { bot, productsAPI } = this
-    await this.productsAPI._exec('willCreateCheck', { check: props })
+    let { application, latestChecks, checks } = req
+    await this.productsAPI._exec('willCreateCheck', { check: props, application })
 
     const { models } = bot
     const type = props[TYPE]
     if (!(type && props.application)) {
       throw new Error('expected type and "application"')
     }
-    let { application, latestChecks, checks } = req
 
     let checkModel = models[type]
     if (checkModel.properties.top) {
