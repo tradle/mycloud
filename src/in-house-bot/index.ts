@@ -774,7 +774,7 @@ export const loadComponentsAndPlugins = ({
       'leasingQuotes',
       'leasingSignoff',
       'giinCheck',
-      'vatCheck',      
+      'vatCheck',
       // 'invoicing'
     ].forEach((name) => attachPlugin({ name }))
       ;[
@@ -834,10 +834,10 @@ export const loadComponentsAndPlugins = ({
   attachPlugin({ name: 'conditional-auto-approve' })
   attachPlugin({ name: 'set-authorOrg', requiresConf: false })
   attachPlugin({ name: 'application-reports', requiresConf: false })
-  if (plugins['limit-applications']) {
-    productsAPI.removeDefaultHandler('onRequestForExistingProduct')
-    attachPlugin({ name: 'limit-applications' })
-  }
+  // if (plugins['limit-applications']) {
+  //   productsAPI.removeDefaultHandler('onRequestForExistingProduct')
+  //   attachPlugin({ name: 'limit-applications' })
+  // }
 
   logger.debug('using plugins', usedPlugins)
   logger.debug('ignoring plugins', ignoredPlugins)
