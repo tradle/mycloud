@@ -2,17 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.1-rc.1](https://github.com/tradle/mycloud/compare/v4.0.1-rc.0...v4.0.1-rc.1) (2022-05-10)
-
-
-### Bug Fixes
-
-* function call is wrong ([f58266e](https://github.com/tradle/mycloud/commit/f58266e))
-
-
-### Features
-
-* vendor portal project ([1231948](https://github.com/tradle/mycloud/commit/1231948))
+## [4.0.1](https://github.com/tradle/mycloud/compare/v4.0.1-rc.1...v4.0.1) (2022-05-10)
 
 
 
