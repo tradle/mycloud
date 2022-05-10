@@ -20,6 +20,7 @@ import Errors from './errors'
 
 const { MESSAGE, SEAL_STATE, DELIVERY_ERROR } = TYPES
 const ORG_OR_AUTHOR = '_orgOrAuthor'
+const AUTHOR_ORG = '_authorOrg'
 const ARTIFICIAL_PROPS = [ORG_OR_AUTHOR]
 const VERSION_INFO = 'tradle.cloud.VersionInfo'
 const UPDATE = 'tradle.cloud.Update'
@@ -46,6 +47,11 @@ const isListable = ({ type, sortedByDB }) => {
 }
 
 const defaultIndexes = [
+  {
+    // default for all tradle.Object resources
+    hashKey: AUTHOR_ORG,
+    rangeKey: ['_t', '_time']
+  },
   {
     // default for all tradle.Object resources
     hashKey: ORG_OR_AUTHOR,
