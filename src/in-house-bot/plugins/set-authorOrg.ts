@@ -6,6 +6,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI, employeeMan
       if (application._authorOrg)
         formRequest._authorOrg = application._authorOrg
     },
+    willCreateApplication: async ({ req, user, application }) => {
+      const { payload } = req
+      if (payload._authorOrg) 
+        application._authorOrg = payload._authorOrg      
+    },
     willCreateApplicationSubmission: async ({ application, submission }) => {
       if (application._authorOrg)
         submission._authorOrg = application._authorOrg
@@ -22,10 +27,10 @@ export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI, employeeMan
       if (application._authorOrg)
         notification._authorOrg = application._authorOrg
     },
-    onRequestForExistingProduct: async(req) => {
-      if (employeeManager.isEmployee(req))
-        await productsAPI.addApplication({ req })
-    }
+    // onRequestForExistingProduct: async(req) => {
+    //   if (employeeManager.isEmployee(req))
+    //     await productsAPI.addApplication({ req })
+    // }
   }
 
   return { plugin }
