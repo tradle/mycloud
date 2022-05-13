@@ -249,13 +249,14 @@ export default class Backlinks {
         } else {
           this.logger.warn('missing _time', submission)
         }
+        if (submission._authorOrg)
+          appSub.set({_authorOrg: submission._authorOrg})
 
         return appSub.toJSON()
       })
       .filter(_.identity)
 
     if (!applicationSubmissions.length) return []
-
     const results = await Promise.all(
       applicationSubmissions.map(async object => {
         object = await this.identity.sign({ object })
