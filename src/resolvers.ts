@@ -25,10 +25,11 @@ import { toStreamItems } from './test/utils'
 const { getRef, isDescendantOf } = validateModels.utils
 const { isInstantiable } = validateResource.utils
 const SHARE_REQUEST = 'tradle.ShareRequest'
+const BOOKMARK = 'tradle.Bookmark'
 const EXCLUDED_TYPES = [
   'tradle.PubKey',
   IDENTITY,
-  'tradle.credit.CostOfCapital'
+  // 'tradle.credit.CostOfCapital'
 ]
 type PropertyInfo = {
   propertyName: string
@@ -214,7 +215,7 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
       return listBacklink(opts)
     }
 
-    let { model, select, filter, orderBy, limit, checkpoint, context } = opts
+    let { model, select, filter, orderBy, limit, checkpoint, context, args } = opts
 
     let counterparty
     if (EXCLUDED_TYPES.indexOf(model.id) === -1 && opts.context)
@@ -225,9 +226,15 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
     filter.EQ[TYPE] = model.id
     
     if (counterparty)  {
-      if (!filter.EQ._permalink || filter.EQ._permalink !== counterparty._permalink)
+      let isAllowed = args.allow === model.id
+      if (!isAllowed  &&  (!filter.EQ._permalink || filter.EQ._permalink !== counterparty._permalink))
         filter.EQ['_authorOrg'] = counterparty._permalink
     }  
+    else if (model.id === BOOKMARK)  {
+      if (!filter.NULL)
+        filter.NULL = {}
+      filter.NULL['_authorOrg'] = true
+    }
     const conf = opts.context && opts.context.components && opts.context.components.conf || []
     
     return db.find({
