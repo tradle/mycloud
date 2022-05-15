@@ -49,6 +49,7 @@ type ListOpts = {
   orderBy?: OrderBy,
   limit?: number
   checkpoint?: any
+  context?: any
   backlink?: BacklinkInfo
 }
 
@@ -83,7 +84,7 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
     return objects.get(link)
   }
 
-  const get = async ({ model, key }: { model: Model, key: any }) => {
+  const get = async ({ model, key, context }: { model: Model, key: any, context: any }) => {
     // identities are a special case, as tradle.Identity in db might not
     // have same level of validation as PubKey mappings in identities module
     if (model.id === 'tradle.Identity' && key._permalink && !key._link) {
@@ -91,11 +92,16 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
     }
 
     try {
-      return await db.get({
+      let resource = await db.get({
         [TYPE]: model.id,
         ...key
       })
-
+      let { counterparty } = context
+      if (counterparty) {
+        if (!resource._authorOrg || resource._authorOrg !== counterparty._permalink)
+          throw new Error('User does not have rights to see this resource')
+      }
+      return resource
       // result = await db.findOne({
       //   filter: {
       //     EQ: {
@@ -132,7 +138,7 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
   }
 
   const listBacklink = async (opts: ListOpts) => {
-    const { backlink, ...listOpts } = opts
+    const { backlink, context, ...listOpts } = opts
     const { filter } = listOpts
     // const type = filter[TYPE]
     // const model = models[type]
@@ -146,6 +152,11 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
     const propFilter = property.items.filter || {}
     defaultsDeep(filter, propFilter)
 
+    if (context) {
+      let counterparty = context.counterparty
+      if (counterparty)
+        filter.EQ['_authorOrg'] = counterparty._permalink
+    }
     const typeCondition = filter.EQ[TYPE]
     if (typeCondition) {
       try {
