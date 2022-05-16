@@ -50,17 +50,20 @@ type ScoringReportOpts = {
   conf: any
   applications: Applications
   logger: Logger
+  productsAPI: any
 }
 export class ScoringReport {
   private bot: Bot
   private conf: any
   private applications: Applications
   private logger: Logger
-  constructor({ bot, conf, applications, logger }: ScoringReportOpts) {
+  private productsAPI: any
+  constructor({ bot, conf, applications, logger, productsAPI }: ScoringReportOpts) {
     this.bot = bot
     this.conf = conf
     this.applications = applications
     this.logger = logger
+    this.productsAPI = productsAPI
   }
   async genCreditScoring({application, conf, parentFormsStubs}) {
     const { products, creditBuroScoreForApplicant, creditBuroScoreForEndorser, capacityToPay } = conf
@@ -303,6 +306,8 @@ export class ScoringReport {
 
     props.totalScore = characterScore + props.paymentScore + assetScore
     this.addToScoreDetails({scoreDetails, property: 'totalScore', score: props.totalScore, total: true});
+
+    this.productsAPI._exec('willSaveResource', { application, resource: props });
 
     let score = await this.bot.draft({ type: resultForm }).set(props).signAndSave()
     return { score, scoreDetails }
@@ -894,8 +899,8 @@ export class ScoringReport {
     return items
   }
 }
-export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
-  const scoringReport = new ScoringReport({bot, applications, conf, logger})
+export const createPlugin: CreatePlugin<void> = ({ bot, applications, productsAPI }, { conf, logger }) => {
+  const scoringReport = new ScoringReport({bot, applications, conf, logger, productsAPI})
   const plugin: IPluginLifecycleMethods = {
     async genCreditScore(application, conf) {
       if (!application || !conf) return

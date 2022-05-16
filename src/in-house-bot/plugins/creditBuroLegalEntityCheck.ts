@@ -121,9 +121,10 @@ export class BuroCheckAPI {
   private conf: IBuroCheckConf
   private applications: Applications
   private logger: Logger
+  private productsAPI: any
   private PASS: object
   private FAIL: object
-  constructor({ bot, conf, applications, logger }) {
+  constructor({ bot, conf, applications, logger, productsAPI }) {
     this.bot = bot
     this.conf = conf
     this.applications = applications
@@ -188,20 +189,20 @@ export class BuroCheckAPI {
       aspects: ASPECTS,
       form
     }
-    await this.addMoreCheckProps(resource, status)
+    await this.addMoreCheckProps(resource, status, application)
 
     this.logger.debug(`${PROVIDER} creating CreditReportLegalEntityCheck`)
     const checkWrapper = await this.applications.createCheck(resource, req)
     this.logger.debug(`${PROVIDER} created CreditReportLegalEntityCheck`)
     return checkWrapper.resource
   }
-  async addMoreCheckProps(resource, status) {
+  async addMoreCheckProps(resource, status, application) {
     resource.message = getStatusMessageForCheck({ models: this.bot.models, check: resource })
     if (status.message) resource.resultDetails = status.message
     if (status.rawData) {
       resource.rawData = sanitize(status.rawData).sanitized
       if (status.status === 'pass')
-        resource.creditReport = await this.buildSubjectInfo(resource.rawData)
+        resource.creditReport = await this.buildSubjectInfo(resource.rawData, application)
     }
   }
   public repost = async (pendingWork: ITradleObject) => {
@@ -227,7 +228,8 @@ export class BuroCheckAPI {
       else
         check.status = this.FAIL
 
-      await this.addMoreCheckProps(check, status)
+      const application = this.bot.getResource(check.application)  
+      await this.addMoreCheckProps(check, status, application)
 
       let updatedCheck = await this.updateResource(check)
 
@@ -262,7 +264,7 @@ export class BuroCheckAPI {
     }
   }
 
-  private buildSubjectInfo = async (rawData: any): Promise<any> => {
+  private buildSubjectInfo = async (rawData: any, application: IPBApp): Promise<any> => {
     const generalData = rawData.datosGenerales
     const subject = {
       companyName: generalData.nombre,
@@ -273,60 +275,61 @@ export class BuroCheckAPI {
       country: generalData.pais,
       postalCode: generalData.codigoPostal
     }
+    this.productsAPI._exec('willSaveResource', { resource: subject, application })
     const savedSubject = await this.saveResource(CB_SUBJECT, subject)
     const topStub = buildResourceStub({ resource: savedSubject.resource })
 
     const promises = []
 
-    const header: any[] = this.createResources(rawData.encabezado, CB_HEADING)
+    const header: any[] = this.createResources(rawData.encabezado, CB_HEADING, application)
     for (const obj of header) {
       obj[SUBJECT] = topStub
       promises.push(this.saveResource(CB_HEADING, obj))
     }
 
-    const accounts: any[] = this.createResources(rawData.creditoFinanciero, CB_ACCOUNT)
+    const accounts: any[] = this.createResources(rawData.creditoFinanciero, CB_ACCOUNT, application)
     for (const obj of accounts) {
       obj[SUBJECT] = topStub
       promises.push(this.saveResource(CB_ACCOUNT, obj))
     }
 
-    const general = this.createResources(rawData.datosGenerales, CB_GENERAL)
+    const general = this.createResources(rawData.datosGenerales, CB_GENERAL, application)
     for (const obj of general) {
       obj[SUBJECT] = topStub
       promises.push(this.saveResource(CB_GENERAL, obj))
     }
 
-    const inqrs: any[] = this.createResources(rawData.historia, CB_HISTORY)
+    const inqrs: any[] = this.createResources(rawData.historia, CB_HISTORY, application)
     for (const obj of inqrs) {
       obj[SUBJECT] = topStub
       promises.push(this.saveResource(CB_HISTORY, obj))
     }
 
-    const rep = this.createResources(rawData.score, CB_SCORE)
+    const rep = this.createResources(rawData.score, CB_SCORE, application)
     for (const obj of rep) {
       obj[SUBJECT] = topStub
       promises.push(this.saveResource(CB_SCORE, obj))
     }
 
-    const alsBD: any[] = this.createResources(rawData.hawkHr, CB_HAWKALERT)
+    const alsBD: any[] = this.createResources(rawData.hawkHr, CB_HAWKALERT, application)
     for (const obj of alsBD) {
       obj[SUBJECT] = topStub
       promises.push(this.saveResource(CB_HAWKALERT, obj))
     }
 
-    const declar: any[] = this.createResources(rawData.declarativa, CB_DECLARATION)
+    const declar: any[] = this.createResources(rawData.declarativa, CB_DECLARATION, application)
     for (const obj of declar) {
       obj[SUBJECT] = topStub
       promises.push(this.saveResource(CB_DECLARATION, obj))
     }
 
-    const credit: any[] = this.createResources(rawData.creditoComercial, CB_CREDIT)
+    const credit: any[] = this.createResources(rawData.creditoComercial, CB_CREDIT, application)
     for (const obj of credit) {
       obj[SUBJECT] = topStub
       promises.push(this.saveResource(CB_CREDIT, obj))
     }
 
-    const rate: any[] = this.createResources(rawData.califica, CB_RATE)
+    const rate: any[] = this.createResources(rawData.califica, CB_RATE, application)
     for (const obj of rate) {
       obj[SUBJECT] = topStub
       promises.push(this.saveResource(CB_RATE, obj))
@@ -340,7 +343,7 @@ export class BuroCheckAPI {
     return savedSubject.resource
   }
 
-  private createResources = (something: any, fromType: string) : any[] => {
+  private createResources = (something: any, fromType: string, application: IPBApp) : any[] => {
     const resources = []
     if (!something || typeof something === 'string') return resources
 
@@ -348,15 +351,15 @@ export class BuroCheckAPI {
 
     if (something instanceof Array) {
       for (const from of something) {
-        resources.push(this.createResource(from, fromType, props))
+        resources.push(this.createResource(from, fromType, props, application))
       }
     } else {
-      resources.push(this.createResource(something, fromType, props))
+      resources.push(this.createResource(something, fromType, props, application))
     }
     return resources
   }
 
-  private createResource = (from: any, fromType: string, props: any[]) : any => {
+  private createResource = (from: any, fromType: string, props: any[], application: IPBApp) : any => {
     const resource = {}
     for (let p in props) {
       if (props[p].type === 'array') continue // skip backlink
@@ -377,6 +380,7 @@ export class BuroCheckAPI {
       }
       else resource[p] = value
     }
+    this.productsAPI._exec('willSaveResource', { resource, application })
     return resource
   }
   private convertToNumber = (value: string) : number => {
@@ -497,8 +501,8 @@ export class BuroCheckAPI {
   }
 }
 export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) => {
-  const { bot, applications, conf: botConf } = components
-  const buroCheckAPI = new BuroCheckAPI({ bot, conf, applications, logger })
+  const { bot, applications, conf: botConf, productsAPI } = components
+  const buroCheckAPI = new BuroCheckAPI({ bot, conf, applications, logger, productsAPI })
   // debugger
   const plugin: IPluginLifecycleMethods = {
     async onmessage(req: IPBReq) {

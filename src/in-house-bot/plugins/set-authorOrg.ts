@@ -1,4 +1,4 @@
-import { CreatePlugin, IPluginLifecycleMethods, IPBReq } from '../types'
+import { CreatePlugin, IPluginLifecycleMethods, IPBReq, WillIssueCertificateArg } from '../types'
 
 export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI, employeeManager }, { logger }) => {
   const plugin: IPluginLifecycleMethods = {
@@ -27,6 +27,15 @@ export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI, employeeMan
       if (application._authorOrg)
         notification._authorOrg = application._authorOrg
     },
+    willIssueCertificate: async ({ user, application, certificate, req }:  WillIssueCertificateArg) => {
+      if (application._authorOrg)
+        certificate._authorOrg = application._authorOrg
+    },
+    willSaveResource: ({ application, resource }) => {
+      if (application._authorOrg)
+        resource._authorOrg = application._authorOrg
+    },
+
     // onRequestForExistingProduct: async(req) => {
     //   if (employeeManager.isEmployee(req))
     //     await productsAPI.addApplication({ req })

@@ -159,13 +159,15 @@ class ControllingPersonRegistrationAPI {
   private conf: IControllingPersonRegistrationConf
   private applications: Applications
   private senderEmail: string
-  constructor({ bot, org, conf, logger, applications, senderEmail }) {
+  private productsAPI: any
+  constructor({ bot, org, conf, logger, applications, senderEmail, productsAPI }) {
     this.bot = bot
     this.org = org
     this.conf = conf
     this.logger = logger
     this.applications = applications
     this.senderEmail = senderEmail
+    this.productsAPI = productsAPI
   }
   public async sendConfirmationEmail({
     resource,
@@ -477,6 +479,7 @@ class ControllingPersonRegistrationAPI {
     let { emailAddress, phone } = resource
     if (emailAddress) notification.emailAddress = emailAddress
     if (phone) notification.mobile = phone
+    this.productsAPI._exec('willCreateNotification', {application, resource: notification})    
     return await this.bot
       .draft({ type: NOTIFICATION })
       .set(notification)
@@ -592,7 +595,7 @@ class ControllingPersonRegistrationAPI {
 }
 
 export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
-  let { bot, applications, commands, smsBasedVerifier } = components
+  let { bot, applications, commands, smsBasedVerifier, productsAPI } = components
   let { logger, conf } = pluginOpts
   const orgConf = components.conf
   const { org } = orgConf
@@ -604,6 +607,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
     org,
     logger,
     applications,
+    productsAPI,
     senderEmail
   })
   const plugin: IPluginLifecycleMethods = {

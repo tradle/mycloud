@@ -33,6 +33,7 @@ declare namespace PluginLifecycle {
   export type willCreateApplicationSubmission = (opts) => Promise<void>
   export type willCreateCheck = (opts) => Promise<void>
   export type willCreateModification = (opts) => Promise<void>
+  export type willSaveResource = (opts) => void
 
   export type replay = (obj: ITradleObject, applications: Applications) => Promise<void>
 
