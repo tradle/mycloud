@@ -96,10 +96,12 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
         [TYPE]: model.id,
         ...key
       })
-      let { counterparty } = context
-      if (counterparty) {
-        if (!resource._authorOrg || resource._authorOrg !== counterparty._permalink)
-          throw new Error('User does not have rights to see this resource')
+      if (EXCLUDED_TYPES.indexOf(model.id) === -1) {
+        let { counterparty } = context
+        if (counterparty) {
+          if (!resource._authorOrg || resource._authorOrg !== counterparty._permalink)
+            throw new Error('User does not have rights to see this resource')
+        }
       }
       return resource
       // result = await db.findOne({
