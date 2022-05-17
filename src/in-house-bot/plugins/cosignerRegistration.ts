@@ -140,7 +140,14 @@ class CosignerRegistrationAPI {
     message?: string
   }) {
     debugger
-    const { emailAddress='emailAddress', onboardingApplication } = this.conf.products[application.requestFor][resource[TYPE]]
+    const prodConf = this.conf.products[application.requestFor]
+    if (!prodConf || !prodConf[resource[TYPE]])
+      return 
+  
+    const { emailAddress='emailAddress', onboardingApplication } = prodConf[resource[TYPE]]
+    if (!emailAddress) 
+      debugger
+
     let email = resource[emailAddress]
 
     this.logger.debug('controlling person: preparing to send invite') // to ${emailAddress} from ${this.conf.senderEmail}`)
