@@ -81,8 +81,7 @@ export class ConditionalAutoApprove {
       let checkOverride = checkOverrides.find(co => co.check._link === c._link)
       if (!checkOverride) return false
 
-      let checkOverrideType = `${c[TYPE]}Override`
-      let co = checkOverrides.find(co => co[TYPE] === checkOverrideType)
+      let co = checkOverrides.find(co => co.check[TYPE] === c[TYPE])
       if (!co || getEnumValueId({ model: this.bot.models[OVERRIDE_STATUS], value: co.status }) !== 'pass') return
     }
 
