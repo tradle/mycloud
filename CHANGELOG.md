@@ -2,12 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.4](https://github.com/tradle/mycloud/compare/v4.0.3...v4.0.4) (2022-05-16)
+## [4.0.5](https://github.com/tradle/mycloud/compare/v4.0.4...v4.0.5) (2022-05-17)
+
+
+### Bug Fixes
+
+* bad check causes error ([97be5c7](https://github.com/tradle/mycloud/commit/97be5c7))
+* wrong check for auto-approve ([39ea47e](https://github.com/tradle/mycloud/commit/39ea47e))
 
 
 ### Features
 
-* vendor portal project ([a4e81e3](https://github.com/tradle/mycloud/commit/a4e81e3))
+* vendor portal project ([ab90ada](https://github.com/tradle/mycloud/commit/ab90ada))
 
 
 
