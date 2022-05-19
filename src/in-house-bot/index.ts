@@ -888,7 +888,9 @@ export async function loadComponentsAndPlugins ({
 
   // Resolve all packages in parallel
   // ... but load in series for consistent loading behaviour
-  for (const dynamicPlugin of await getDynamicPlugins(conf.bot.products)) {
+  const dynamicPlugins = await getDynamicPlugins(conf.bot.products)
+  this.logger.debug('Installed dynamic plugins', dynamicPlugins.map(plugin => `${plugin.name}@${plugin.version}`).join(', '))
+  for (const dynamicPlugin of dynamicPlugins) {
     await addDynamicPlugin(dynamicPlugin)
   }
   return components

@@ -63,6 +63,7 @@ export interface DynamicPluginPackage {
 
 export interface DynamicPlugin {
   name: string
+  version: string
   load: () => Promise<IPlugin<any>>
   // plugin: Plugin
   options: DynamicPluginOptions
@@ -84,8 +85,10 @@ export async function getDynamicPlugins (conf: IProductsConf): Promise<DynamicPl
 }
 
 export async function normalizePlugin (dynamicConf: { [key: string]: any }, plugin: Plugin): Promise<DynamicPlugin> {
+  const pkg = await plugin.package()
   return {
     name: plugin.name,
+    version: pkg.version,
     async load () {
       let data
       try {
@@ -100,7 +103,7 @@ export async function normalizePlugin (dynamicConf: { [key: string]: any }, plug
       }
       return data
     },
-    options: normalizePackageJSONOptions(await plugin.package()),
+    options: normalizePackageJSONOptions(pkg),
     conf: normalizeDynamicPluginConf(dynamicConf[plugin.name])
   }
 }
