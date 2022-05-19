@@ -303,6 +303,7 @@ export class Conf {
             const name = dynamicPlugin.name
             try {
               const plugin: IPlugin<any> = await dynamicPlugin.load()
+              if (!(plugin.validateConf || plugin.updateConf)) return
               const validateOpts: ValidatePluginConfOpts = {
                 bot: this.bot,
                 conf,

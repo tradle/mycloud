@@ -28,7 +28,7 @@ export {
 export const plugin = typeforce.object({
   name: typeforce.maybe(typeforce.String),
   createPlugin: typeforce.Function,
-  validateConf: typeforce.Function,
+  validateConf: typeforce.maybe(typeforce.Function),
   updateConf: typeforce.maybe(typeforce.Function)
 })
 
