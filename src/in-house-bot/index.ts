@@ -864,6 +864,7 @@ export async function loadComponentsAndPlugins ({
       const pluginImpl = await dynamicPlugin.load()
       ; ({ api, plugin } = pluginImpl.createPlugin({
         ...components,
+        buildResource,
         utils,
         errors: Errors
       }, {

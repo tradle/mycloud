@@ -308,6 +308,7 @@ export class Conf {
                 bot: this.bot,
                 conf,
                 pluginConf: dynamicPlugin.conf,
+                buildResource,
                 utils,
                 errors: Errors
               }
