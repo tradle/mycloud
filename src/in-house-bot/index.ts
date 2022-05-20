@@ -836,20 +836,14 @@ export async function loadComponentsAndPlugins ({
   //   attachPlugin({ name: 'limit-applications' })
   // }
 
-  logger.debug('using plugins', usedPlugins)
-  logger.debug('ignoring plugins', ignoredPlugins)
-
-  productsAPI.plugins.register('getRequiredForms', defaultGetRequiredForms)
-
   // DYNAMIC PLUGINS
   const addDynamicPlugin = async (dynamicPlugin: DynamicPlugin) => {
-    const name = dynamicPlugin.name
-    const { options, conf: pConf } = dynamicPlugin
+    const { name, version, options, conf: pConf } = dynamicPlugin
     if (options.requiresConf) {
       const hasConf = !!pConf
       const isEnabled = hasConf && pConf.enabled !== false
       if (!(hasConf && isEnabled)) {
-        ignoredPlugins.push({ name, hasConf, isEnabled })
+        ignoredPlugins.push({ name, version, hasConf, isEnabled })
         return
       }
     }
@@ -857,7 +851,7 @@ export async function loadComponentsAndPlugins ({
       return
     }
 
-    usedPlugins.push(name)
+    usedPlugins.push(`${name}@${version}`)
     let api
     let plugin
     try {
@@ -888,11 +882,14 @@ export async function loadComponentsAndPlugins ({
 
   // Resolve all packages in parallel
   // ... but load in series for consistent loading behaviour
-  const dynamicPlugins = await getDynamicPlugins(conf.bot.products)
-  this.logger.debug('Installed dynamic plugins', dynamicPlugins.map(plugin => `${plugin.name}@${plugin.version}`).join(', '))
-  for (const dynamicPlugin of dynamicPlugins) {
+  for (const dynamicPlugin of await getDynamicPlugins(conf.bot.products)) {
     await addDynamicPlugin(dynamicPlugin)
   }
+
+  logger.debug('using plugins', usedPlugins)
+  logger.debug('ignoring plugins', ignoredPlugins)
+
+  productsAPI.plugins.register('getRequiredForms', defaultGetRequiredForms)
   return components
 }
 
