@@ -49,6 +49,7 @@ const APPLICATION = 'tradle.Application'
 const SANCTIONS_CHECK = 'tradle.SanctionsCheck'
 
 export { isEmployee }
+export const sanitize = validateResource.utils.sanitize
 
 export const createEditConfOp = (edit) => async (opts) => {
   const { bot } = opts.commander

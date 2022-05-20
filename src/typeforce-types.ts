@@ -25,6 +25,28 @@ export {
   identity
 }
 
+export const plugin = typeforce.object({
+  name: typeforce.maybe(typeforce.String),
+  createPlugin: typeforce.Function,
+  validateConf: typeforce.maybe(typeforce.Function),
+  updateConf: typeforce.maybe(typeforce.Function)
+})
+
+export const pluginPackage = typeforce.object({
+  mycloud: typeforce.maybe(typeforce.object({
+    requiresConf: typeforce.maybe(typeforce.Boolean),
+    prepend: typeforce.maybe(typeforce.Boolean),
+    componentName: typeforce.maybe(typeforce.String),
+    events: typeforce.maybe(typeforce.arrayOf(typeforce.oneOf(
+      typeforce.String,
+      typeforce.object({
+        localOnly: typeforce.maybe(typeforce.Boolean),
+        event: typeforce.String
+      })
+    )))
+  }))
+})
+
 export const privateKey = typeforce.compile({
   pub: typeforce.String,
   priv: typeforce.String

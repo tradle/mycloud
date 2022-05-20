@@ -26,6 +26,10 @@ import {
   createModelsPackGetter
 } from './plugins/keep-models-fresh'
 
+// Note: This likely exposes a bit too much to plugins.
+//       See also the same use in ./configure.ts
+import * as utils from './utils'
+
 import {
   isPendingApplication,
   getNonPendingApplications,
@@ -56,7 +60,8 @@ import {
   VersionInfo,
   Conf,
   IChildDeployment,
-  Models
+  Models,
+  IPlugin
 } from './types'
 
 import Logger from '../logger'
@@ -64,6 +69,7 @@ import baseModels from '../models'
 import Errors from '../errors'
 import { TRADLE } from './constants'
 import * as LambdaEvents from './lambda-events'
+import { getDynamicPlugins, matchEvents, DynamicPlugin } from './dynamic-plugins'
 
 const { parseStub } = validateResource.utils
 const BASE_MODELS_IDS = Object.keys(baseModels)
@@ -183,7 +189,7 @@ export const loadConfAndComponents = async (opts: ConfigureLambdaOpts): Promise<
     modelsPack
   }
 
-  const components = loadComponentsAndPlugins({
+  const components = await loadComponentsAndPlugins({
     bot,
     logger,
     // namespace,
@@ -202,7 +208,7 @@ export const loadConfAndComponents = async (opts: ConfigureLambdaOpts): Promise<
   }
 }
 
-export const loadComponentsAndPlugins = ({
+export async function loadComponentsAndPlugins ({
   bot,
   logger,
   conf,
@@ -212,7 +218,7 @@ export const loadComponentsAndPlugins = ({
   logger: Logger
   conf: IConfComponents
   event?: string
-}): IBotComponents => {
+}): Promise<IBotComponents> {
   const {
     enabled,
     maximumApplications,
@@ -732,20 +738,13 @@ export const loadComponentsAndPlugins = ({
       'czechCheck',
       'openCorporates',
       // 'limit-applications',
-      'complyAdvantage',
       // 'controllingPersonRegistration',
-      'centrix',
-      'rankone-checks',
-      'idrndCheck',
       'facial-recognition',
-      'trueface',
       'jenIdChecker',
       'cibiChecker',
-      'gdcChecker',
       'sme-onboarding',
       'new-bo-simulation',
       'controllingEntityValidation',
-      'facetecZoom',
       'finastra',
       'reuse',
       'document-ocr',
@@ -766,9 +765,7 @@ export const loadComponentsAndPlugins = ({
       'boSimulator',
       'pitchbookCheck',
       'leiCheck',
-      'cifasCheck',
       'client-edits',
-      'roarIntegration',
       'sme-auto-approve',
       'attestation',
       'leasingQuotes',
@@ -838,6 +835,56 @@ export const loadComponentsAndPlugins = ({
   //   productsAPI.removeDefaultHandler('onRequestForExistingProduct')
   //   attachPlugin({ name: 'limit-applications' })
   // }
+
+  // DYNAMIC PLUGINS
+  const addDynamicPlugin = async (dynamicPlugin: DynamicPlugin) => {
+    const { name, version, options, conf: pConf } = dynamicPlugin
+    if (options.requiresConf) {
+      const hasConf = !!pConf
+      const isEnabled = hasConf && pConf.enabled !== false
+      if (!(hasConf && isEnabled)) {
+        ignoredPlugins.push({ name, version, hasConf, isEnabled })
+        return
+      }
+    }
+    if (!matchEvents(options.events, event, bot.isLocal)) {
+      return
+    }
+
+    usedPlugins.push(`${name}@${version}`)
+    let api
+    let plugin
+    try {
+      const pluginImpl = await dynamicPlugin.load()
+      ; ({ api, plugin } = pluginImpl.createPlugin({
+        ...components,
+        buildResource,
+        utils,
+        errors: Errors
+      }, {
+        conf: pConf,
+        logger: logger.sub(`plugin-${name}`)
+      }))
+    } catch (err) {
+      logger.error('failed to load plugin', {
+        name,
+        error: Errors.export(err)
+      })
+      return
+    }
+
+    if (api) {
+      components[options.componentName || name] = api
+    }
+
+    productsAPI.plugins.use(plugin, options.prepend)
+  }
+
+  // Resolve all packages in parallel
+  // ... but load in series for consistent loading behaviour
+  for (const dynamicPlugin of await getDynamicPlugins(conf.bot.products)) {
+    await addDynamicPlugin(dynamicPlugin)
+  }
 
   logger.debug('using plugins', usedPlugins)
   logger.debug('ignoring plugins', ignoredPlugins)

@@ -34,6 +34,7 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [Explore the Architecture](#explore-the-architecture)
     - [List deployed resources, API endpoints, ...](#list-deployed-resources-api-endpoints-)
 - [Development](#development)
+  - [Inspect / Debugger mode](#inspect--debugger-mode)
   - [serverless.yml](#serverlessyml)
   - [Testing](#testing)
   - [Hot re-loading](#hot-re-loading)

@@ -108,6 +108,14 @@ declare module '@tradle/validate-resource' {
     pickBacklinks(opts: OmitBacklinksInput): any
     isBacklinkProperty(prop: any): any
     stub(opts: BuildStubInput):ResourceStub
+    sanitize(input: any): {
+      sanitized: any
+      removed: Array<{
+        key: string
+        value: any
+        path: string
+      }>
+    }
   }
 
   class RequiredError extends Error {

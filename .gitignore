@@ -1,6 +1,7 @@
 node_modules
 DynamoDBLocal/
 .env
+.stfolder
 *.log
 *.zip
 .serverless*
@@ -28,3 +29,4 @@ schematest.js
 src/cli/cloudformation-template.json
 .localstack
 .stignore
+.stfolder
