@@ -129,6 +129,7 @@ export class BuroCheckAPI {
     this.conf = conf
     this.applications = applications
     this.logger = logger
+    this.productsAPI = productsAPI
 
     this.PASS = enumValue({
       model: this.bot.models[STATUS],
@@ -228,7 +229,7 @@ export class BuroCheckAPI {
       else
         check.status = this.FAIL
 
-      const application = this.bot.getResource(check.application)  
+      const application = this.bot.getResource(check.application)
       await this.addMoreCheckProps(check, status, application)
 
       let updatedCheck = await this.updateResource(check)
