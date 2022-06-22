@@ -117,7 +117,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         return
       }
       const { application, payload } = req
-      if (!application || application.draft || application.status === 'approved') return
+      if (!application || /* application.draft ||*/ application.status === 'approved') return
       if (!isSubClassOf(CHECK_OVERRIDE, bot.models[payload[TYPE]], bot.models)) return
 
       let productConf = conf.products[application.requestFor]
