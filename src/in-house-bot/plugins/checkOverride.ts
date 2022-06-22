@@ -25,8 +25,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       // debugger
       logger.debug(`${payloadModel.title} was created for ${application.requestFor}`)
       const { status } = application
-      if (status !== 'In review' && status !== 'approved' && status !== 'denied')
-        application.status = 'In review'
+      if (status !== IN_REVIEW && status !== 'approved' && status !== 'denied')
+        application.status = IN_REVIEW
     }
     // async onFormsCollected({ req }) {
     //   const { application } = req
