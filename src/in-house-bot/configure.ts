@@ -85,7 +85,8 @@ export type PublicInfo = {
   optionalPairing?: boolean,
   requireDeviceLocalAuth?: boolean,
   allowedMimeTypes?:string[],
-  templates?: []
+  templates?: [],
+  homePage?: string
 }
 
 const MINUTE = 3600000
@@ -377,6 +378,7 @@ export class Conf {
     const tour = _.get(bot, 'tours.intro')
     const currency = _.get(bot, 'defaultCurrency') || 'USD'
     const locale = _.get(bot, 'defaultLocale')
+    const homePage = _.get(bot, 'homePage')
     const optionalPairing = _.get(bot, 'optionalPairing')
     const allowedMimeTypes = _.get(bot, 'allowedMimeTypes')
     const requireDeviceLocalAuth = _.get(bot, 'requireDeviceLocalAuth')
@@ -400,6 +402,7 @@ export class Conf {
       requireDeviceLocalAuth,
       currency,
       locale,
+      homePage,
       tour,
       templates
     }
