@@ -2,17 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.9](https://github.com/tradle/mycloud/compare/v4.0.8...v4.0.9) (2022-06-16)
-
-
-### Bug Fixes
-
-* typo fix ([d27adf9](https://github.com/tradle/mycloud/commit/d27adf9))
+## [4.0.10](https://github.com/tradle/mycloud/compare/v4.0.9...v4.0.10) (2022-06-22)
 
 
 ### Features
 
-* vendor portal ([ffe3555](https://github.com/tradle/mycloud/commit/ffe3555))
+* allow to specify home page ([6063321](https://github.com/tradle/mycloud/commit/6063321))
 
 
 
