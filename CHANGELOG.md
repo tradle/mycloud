@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.10](https://github.com/tradle/mycloud/compare/v4.0.9...v4.0.10) (2022-06-22)
+## [4.0.11](https://github.com/tradle/mycloud/compare/v4.0.10...v4.0.11) (2022-06-23)
 
 
-### Features
+### Bug Fixes
 
-* allow to specify home page ([6063321](https://github.com/tradle/mycloud/commit/6063321))
+* allow auto-approve draft when check override to 'pass' ([d9d93ea](https://github.com/tradle/mycloud/commit/d9d93ea))
 
 
 
