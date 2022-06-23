@@ -65,6 +65,8 @@ export class ConditionalAutoApprove {
     // let latestChecks: any = req.latestChecks
     // if (!latestChecks) ({ latestChecks } = await getLatestChecks({ application, bot: this.bot }))
     const { latestChecks } = await getLatestChecks({ application, bot: this.bot })
+this.logger.debug(`checks to check: ${latestChecks.length}`)
+
     if (!latestChecks) return
     let foundChecks = 0
     for (let i = 0; i < latestChecks.length; i++) {
@@ -73,20 +75,28 @@ export class ConditionalAutoApprove {
       if (EXCLUDE_CHECKS.includes(c[TYPE])) continue
       foundChecks++
       if (c.status === undefined || isPassedCheck({status: c.status})) continue
+this.logger.debug(`check not passed: ${c[TYPE]}; checkOverrides: ${checkOverridesStubs && checkOverridesStubs.length}`)
 
       if (!checkOverridesStubs) return false
       if (!checkOverrides)
         checkOverrides = await Promise.all(checkOverridesStubs.map(stub => this.bot.getResource(stub)))
 
       let checkOverride = checkOverrides.find(co => co.check._link === c._link)
+this.logger.debug(`checkOverride: ${checkOverride && checkOverride[TYPE]}`)
+
       if (!checkOverride) return false
 
       let co = checkOverrides.find(co => co.check[TYPE] === c[TYPE])
+this.logger.debug(`checkOverride: ${co && co.status.title}`)
       if (!co || getEnumValueId({ model: this.bot.models[OVERRIDE_STATUS], value: co.status }) !== 'pass') return
     }
 
     if (checks) {
-      if (foundChecks !== checks.length) return false
+this.logger.debug(`is the number of passed checks the same: ${foundChecks !== checks.length}`)
+      if (foundChecks !== checks.length) {
+this.logger.debug(`foundCheck: ${foundChecks}; checks to check: ${checks.length}`)
+        return false
+      }
     }
     return true
   }
@@ -108,6 +118,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       if (await autoApproveAPI.checkAndAutoapprove({ application, ...productConf })) {
         req.conditionalApproval = true
+logger.debug(`onFormsCollected: approving`)
         await applications.approve({ req, application })
       }
     },
@@ -120,11 +131,13 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!application || /* application.draft ||*/ application.status === 'approved') return
       if (!isSubClassOf(CHECK_OVERRIDE, bot.models[payload[TYPE]], bot.models)) return
 
+logger.debug(`onmessage: recieved ${payload[TYPE]}`)
       let productConf = conf.products[application.requestFor]
       if (!productConf) return
 
       if (await autoApproveAPI.checkAndAutoapprove({ application, ...productConf })) {
         req.conditionalApproval = true
+logger.debug(`onmessage: approving ${payload[TYPE]}`)
         await applications.approve({ req, application })
       }
     },
@@ -137,11 +150,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!productConf) return
       if (req.conditionalApproval) return
       let approved = await autoApproveAPI.checkAndAutoapprove({ application, ...productConf })
-      if (!approved) {
-        throw new Errors.AbortError('Something is not yet resolved')
-        // if (req)
-        //   await bot.sendSimpleMessage({ to: req.user, message: 'Not all conditions are met for approval' })
-      }
+      if (!approved) 
+        throw new Errors.AbortError('Something is not yet resolved')      
     }
   }
 
