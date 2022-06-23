@@ -2,12 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.11](https://github.com/tradle/mycloud/compare/v4.0.10...v4.0.11) (2022-06-23)
-
-
-### Bug Fixes
-
-* allow auto-approve draft when check override to 'pass' ([d9d93ea](https://github.com/tradle/mycloud/commit/d9d93ea))
+## [4.0.12-rc.0](https://github.com/tradle/mycloud/compare/v4.0.11...v4.0.12-rc.0) (2022-06-23)
 
 
 
