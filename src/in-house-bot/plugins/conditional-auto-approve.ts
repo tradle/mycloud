@@ -48,7 +48,7 @@ export class ConditionalAutoApprove {
     this.applications = applications
     this.logger = logger
   }
-  public async checkAndAutoapprove({application, forms, checks}) {
+  public async checkAndAutoapprove({application, newCheckOverride, forms, checks}) {
     if (forms) {
       for (let ff in forms) {
         // let [f, p] = ff.split('^')
@@ -77,10 +77,19 @@ this.logger.debug(`checks to check: ${latestChecks.length}`)
       if (c.status === undefined || isPassedCheck({status: c.status})) continue
 this.logger.debug(`check not passed: ${c[TYPE]}; checkOverrides: ${checkOverridesStubs && checkOverridesStubs.length}`)
 
-      if (!checkOverridesStubs) return false
-      if (!checkOverrides)
-        checkOverrides = await Promise.all(checkOverridesStubs.map(stub => this.bot.getResource(stub)))
-
+      if (!checkOverridesStubs) 
+this.logger.debug(`checkOverride: no checksOverrides yet`)        
+      
+      if (!checkOverridesStubs && !newCheckOverride) return false
+      if (checkOverridesStubs) {
+        if (!checkOverrides)
+          checkOverrides = await Promise.all(checkOverridesStubs.map(stub => this.bot.getResource(stub)))
+          if (newCheckOverride)
+            checkOverrides.push(newCheckOverride)  
+      }
+      else 
+        checkOverrides = [newCheckOverride]
+      
       let checkOverride = checkOverrides.find(co => co.check._link === c._link)
 this.logger.debug(`checkOverride: ${checkOverride && checkOverride[TYPE]}`)
 
@@ -130,12 +139,13 @@ logger.debug(`onFormsCollected: approving`)
       const { application, payload } = req
       if (!application || /* application.draft ||*/ application.status === 'approved') return
       if (!isSubClassOf(CHECK_OVERRIDE, bot.models[payload[TYPE]], bot.models)) return
+      if (getEnumValueId({ model: bot.models[OVERRIDE_STATUS], value: payload.status }) !== 'pass') return
 
 logger.debug(`onmessage: recieved ${payload[TYPE]}`)
       let productConf = conf.products[application.requestFor]
       if (!productConf) return
 
-      if (await autoApproveAPI.checkAndAutoapprove({ application, ...productConf })) {
+      if (await autoApproveAPI.checkAndAutoapprove({ application, newCheckOverride: payload, ...productConf })) {
         req.conditionalApproval = true
 logger.debug(`onmessage: approving ${payload[TYPE]}`)
         await applications.approve({ req, application })
