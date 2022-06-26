@@ -443,7 +443,7 @@ class ClientEditsAPI {
       form: payload,
       modifications
     }
-    await this.productsAPI.exec('willCreateModification', { application, resource })
+    await this.productsAPI._exec('willCreateModification', { application, resource })
     return {
       modification: await this.bot
         .draft({ type: MODIFICATION })
