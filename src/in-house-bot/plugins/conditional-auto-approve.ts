@@ -75,11 +75,8 @@ this.logger.debug(`checks to check: ${latestChecks.length}`)
       if (EXCLUDE_CHECKS.includes(c[TYPE])) continue
       foundChecks++
       if (c.status === undefined || isPassedCheck({status: c.status})) continue
-this.logger.debug(`check not passed: ${c[TYPE]}; checkOverrides: ${checkOverridesStubs && checkOverridesStubs.length}`)
 
-      if (!checkOverridesStubs) 
-this.logger.debug(`checkOverride: no checksOverrides yet`)        
-      
+      if (!checkOverridesStubs)       
       if (!checkOverridesStubs && !newCheckOverride) return false
       if (checkOverridesStubs) {
         if (!checkOverrides)
@@ -91,21 +88,15 @@ this.logger.debug(`checkOverride: no checksOverrides yet`)
         checkOverrides = [newCheckOverride]
       
       let checkOverride = checkOverrides.find(co => co.check._link === c._link)
-this.logger.debug(`checkOverride: ${checkOverride && checkOverride[TYPE]}`)
-
       if (!checkOverride) return false
 
       let co = checkOverrides.find(co => co.check[TYPE] === c[TYPE])
-this.logger.debug(`checkOverride: ${co && co.status.title}`)
       if (!co || getEnumValueId({ model: this.bot.models[OVERRIDE_STATUS], value: co.status }) !== 'pass') return
     }
 
     if (checks) {
-this.logger.debug(`is the number of passed checks the same: ${foundChecks !== checks.length}`)
-      if (foundChecks !== checks.length) {
-this.logger.debug(`foundCheck: ${foundChecks}; checks to check: ${checks.length}`)
+      if (foundChecks !== checks.length) 
         return false
-      }
     }
     return true
   }
@@ -127,7 +118,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       if (await autoApproveAPI.checkAndAutoapprove({ application, ...productConf })) {
         req.conditionalApproval = true
-logger.debug(`onFormsCollected: approving`)
         await applications.approve({ req, application })
       }
     },
@@ -141,13 +131,11 @@ logger.debug(`onFormsCollected: approving`)
       if (!isSubClassOf(CHECK_OVERRIDE, bot.models[payload[TYPE]], bot.models)) return
       if (getEnumValueId({ model: bot.models[OVERRIDE_STATUS], value: payload.status }) !== 'pass') return
 
-logger.debug(`onmessage: recieved ${payload[TYPE]}`)
       let productConf = conf.products[application.requestFor]
       if (!productConf) return
 
       if (await autoApproveAPI.checkAndAutoapprove({ application, newCheckOverride: payload, ...productConf })) {
         req.conditionalApproval = true
-logger.debug(`onmessage: approving ${payload[TYPE]}`)
         await applications.approve({ req, application })
       }
     },
