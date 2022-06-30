@@ -65,9 +65,10 @@ export class ConditionalAutoApprove {
     // let latestChecks: any = req.latestChecks
     // if (!latestChecks) ({ latestChecks } = await getLatestChecks({ application, bot: this.bot }))
     const { latestChecks } = await getLatestChecks({ application, bot: this.bot })
-this.logger.debug(`checks to check: ${latestChecks.length}`)
 
     if (!latestChecks) return
+  this.logger.debug(`checks to check: ${latestChecks.length}`)
+
     let foundChecks = 0
     for (let i = 0; i < latestChecks.length; i++) {
       let c = latestChecks[i]
