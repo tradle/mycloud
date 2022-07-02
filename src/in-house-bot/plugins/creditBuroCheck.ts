@@ -64,10 +64,11 @@ const STATUS = 'tradle.Status'
 const CONSENT_TYPE = 'tradle.legal.CreditReportIndividualConsent'
 const CREDIT_CHECK = 'tradle.CreditReportIndividualCheck'
 
+const  CASHFLOW = 'com.leaseforu.PersonalCashflow'
+
 const SUMMARY = 'com.leaseforu.CreditBureauIndividualCreditSummary'
 const APPLICANT_INFO_TYPE = 'com.leaseforu.ApplicantInformation'
 const APPLICANT_ADDR_TYPE = 'com.leaseforu.ApplicantAddress'
-const  CASHFLOW = 'com.leaseforu.PersonalCashflow'
 
 const CB_SUBJECT = "com.leaseforu.CreditBureauIndividualSubject"
 const CB_ADDRESS = "com.leaseforu.CreditBureauIndividualAddresses"
@@ -614,6 +615,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
         return
       logger.debug('creditBuroCheck called onmessage')
 
+      const { processingDataBundle } = application
       const params = {}
       let info, addr
       if (CONSENT_TYPE === payloadType) {
@@ -621,6 +623,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
         info = payload
       }
       else if (APPLICANT_INFO_TYPE === payloadType) {
+        if (processingDataBundle) return
         const applicantType =  payload[APPLICANT]
         if (!applicantType) {
           logger.debug(`creditBuroCheck: there is no applicant type in ApplicantInfo`)
@@ -657,6 +660,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
         addr = await bot.getResource(stub);
       }
       else if (APPLICANT_ADDR_TYPE === payloadType) {
+        if (processingDataBundle) return
         addr = payload
         let changed = await hasPropertiesChanged({
             resource: payload,

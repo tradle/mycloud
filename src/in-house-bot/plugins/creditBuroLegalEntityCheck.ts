@@ -514,6 +514,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
       if (payload[TYPE] !== CONSENT_TYPE  &&  payload[TYPE] !== LEGAL_ENTITY_TYPE) return
 
       logger.debug('creditBuroLegalEntityCheck called onmessage')
+      const { processingDataBundle } = application
 
       const params = {}
       if (CONSENT_TYPE === payload[TYPE]) {
@@ -562,6 +563,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
           user
         })
       } else if (LEGAL_ENTITY_TYPE === payload[TYPE]) {
+        if (processingDataBundle) return
         let changed = await hasPropertiesChanged({
           resource: payload,
           bot,
