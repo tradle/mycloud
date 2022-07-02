@@ -1010,7 +1010,8 @@ const banter = (components: IBotComponents) => {
     logger.debug(`Received ${payload[TYPE]}`)
     debugger
     application.processingDataBundle = false
-    await productsAPI.requestNextRequiredItem({ req, user, application })
+    await productsAPI.continueApplication(req)
+    // await productsAPI.requestNextRequiredItem({ req, user, application })
   }
 
   return {
