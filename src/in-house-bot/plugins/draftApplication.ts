@@ -2,11 +2,12 @@ import _ from 'lodash'
 import { CreatePlugin, IPluginLifecycleMethods } from '../types'
 import { TYPE } from '@tradle/constants'
 import { sendConfirmationEmail } from '../email-utils'
-import { getAssociateResources } from '../utils'
+import { getAssociateResources, isSubClassOf } from '../utils'
 export const name = 'draftApplication'
 
 const APPLICATION = 'tradle.Application'
 const PRODUCT_BUNDLE = 'tradle.ProductBundle'
+const CHECK_OVERRIDE = 'tradle.CheckOverride'
 
 const exclude = [
   'tradle.ProductRequest',
@@ -104,6 +105,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       forms.forEach(form => {
         let type = form[TYPE]
         if (exclude.includes(type)) return
+        if (isSubClassOf(CHECK_OVERRIDE, models[type], models)) return
         let emailProp = !emailAddress  &&  productMap[type]
         if (emailProp  &&  !emailAddress) {
           emailAddress = form[emailProp]
