@@ -723,6 +723,7 @@ export interface IBotMessageEvent {
   user: IUser
   masterUser?: IUser
   counterparty?: any
+  employeeCertificate?: any
   allUsers?: IUser[]
   message: ITradleMessage
   payload: ITradleObject

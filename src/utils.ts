@@ -1442,12 +1442,14 @@ export const toBotMessageEvent = ({
   masterUser,
   counterparty,
   allUsers,
+  employeeCertificate,
   message
 }: {
   bot: Bot
   user: any
   counterparty?: any
   masterUser?: any
+  employeeCertificate?:any
   allUsers?: any
   message: any
 }): IBotMessageEvent => {
@@ -1463,6 +1465,7 @@ export const toBotMessageEvent = ({
     type,
     masterUser,
     counterparty,
+    employeeCertificate,
     allUsers,
     link: object._link,
     permalink: object._permalink
