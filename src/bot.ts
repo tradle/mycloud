@@ -41,7 +41,7 @@ import constants, {
 import { createConfig } from './aws/config'
 import { createResolver as createS3EmbedResolver } from './aws/s3-embed-resolver'
 import { StackUtils } from './aws/stack-utils'
-
+const MY_EMPLOYEE_PASS = 'tradle.MyEmployeeOnboarding'
 const {
   defineGetter,
   getResourceIdentifier,
@@ -1396,20 +1396,20 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
             this.logger.debug(`Failed to get allUsers for master identity ${uid}`)
             if (!allUsers) allUsers = [user]
           }
-          let counterparty
+          let counterparty, employeeCertificate
           if (user.roles  &&  user.roles.find(r => r.id.endsWith('_employee'))) {
-            const cert = await this.db.findOne({
+            employeeCertificate = await this.db.findOne({
               filter: {
                 EQ: {
-                  [TYPE]: 'tradle.MyEmployeeOnboarding',
+                  [TYPE]: MY_EMPLOYEE_PASS,
                   'owner._permalink': user.identity._permalink
                 }
               }
             })
-            counterparty = cert.counterparty
+            counterparty = employeeCertificate.counterparty
           }
           const batch = messages.map((message) =>
-            toBotMessageEvent({ bot: this, user, masterUser, counterparty, allUsers, message })
+            toBotMessageEvent({ bot: this, user, masterUser, counterparty, employeeCertificate, allUsers, message })
           )
           this.logger.debug(`feeding ${messages.length} messages to business logic`)
           if (async) {
