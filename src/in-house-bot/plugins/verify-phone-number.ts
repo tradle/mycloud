@@ -11,11 +11,13 @@ import {
   IPBApp,
   UpdateResourceOpts,
   ISMS,
-  Bot
+  Bot,
+  IPluginLifecycleMethods
 } from '../types'
 import { SMSBasedVerifier, TTL } from '../sms-based-verifier'
 import Errors from '../../errors'
 import { topics as EventTopics } from '../../events'
+import { sendFormError } from '../utils'
 import { randomDigits } from '../../crypto'
 import buildResource from '@tradle/build-resource'
 
@@ -182,45 +184,40 @@ export const createPlugin: CreatePlugin<SMSBasedVerifier> = (
 
     const createCheck = applications.createCheck(resource, req)
 
-    const requestConfirmationCode = await applications.requestItem({
-      req,
-      user,
-      application,
-      message: createSMSPrompt(phoneObj.number),
-      item: OTP
-    })
-
-    const [check] = await Promise.all([createCheck, requestConfirmationCode])
+    const [check] = await Promise.all([createCheck]) 
     if (EXEC_ASYNC) return
 
     const checkJson = check.toJSON({ validate: false }) as PhoneCheck
     await execPhoneCheck(checkJson)
   }
 
-  const plugin = {
+  const plugin: IPluginLifecycleMethods = {
     'onmessage:tradle.Form': async req => {
       const { user, application, payload } = req
-      if (payload[TYPE] === OTP) {
-        try {
-          await smsBasedVerifier.processConfirmationCode(payload.password)
-        } catch (err) {
-          Errors.rethrow(err, 'developer')
-          await applications.requestItem({
-            req,
-            user,
-            application,
-            message: INVALID_OTP,
-            item: OTP
-          })
-        }
-
-        return
-      }
 
       const phone = getPhone(application, payload)
       if (!phone) return
 
       await maybeRequestPhoneCheck({ req, user, application, phone, payload })
+    },
+    async validateForm({ req }) {
+      const { user, application, payload } = req
+      // debugger
+      if (!application) return
+
+      if (payload[TYPE] !== OTP) return
+      try {
+        await smsBasedVerifier.processConfirmationCode(payload.password)
+      } catch (err) {
+        return await sendFormError({
+          req,
+          payload,
+          applications,
+          prefill: {},
+          // errors: [{ name: 'password', error: 'Invalid code. Please try again.' }],
+          message: INVALID_OTP
+        })
+      }  
     }
   }
 
