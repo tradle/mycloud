@@ -71,6 +71,7 @@ export const createConfig = ({ region, local, iotEndpoint }: CreateConfigOpts): 
 }
 
 export const useRealSES = (bot: Bot) => {
+  console.log('using real SES')
   const { endpoint } = bot.aws.ses
   // @ts-ignore
   bot.aws.ses.endpoint = `https://email.${AWS.config.region}.amazonaws.com`
