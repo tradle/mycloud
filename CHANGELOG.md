@@ -2,20 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.13](https://github.com/tradle/mycloud/compare/v4.0.13-rc.0...v4.0.13) (2022-07-03)
+## [4.0.14](https://github.com/tradle/mycloud/compare/v4.0.13...v4.0.14) (2022-07-06)
 
 
 ### Bug Fixes
 
-* auto-approval is not happenning after bundle submitted ([347c693](https://github.com/tradle/mycloud/commit/347c693))
-* credit bureau check runs twice for bundle ([5913b6e](https://github.com/tradle/mycloud/commit/5913b6e))
-* no CheckOverrides in bundle ([9857cac](https://github.com/tradle/mycloud/commit/9857cac))
-
-
-### Features
-
-* show counterparty and employee who submitted for client on Application ([9522055](https://github.com/tradle/mycloud/commit/9522055))
-* show counterparty and employee who submitted for client on Application ([5de2fa2](https://github.com/tradle/mycloud/commit/5de2fa2))
+* sending form error if code is wrong ([37f455c](https://github.com/tradle/mycloud/commit/37f455c))
 
 
 
