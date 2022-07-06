@@ -25,10 +25,12 @@ import {
   Applications
 } from './types'
 
-import { TYPE } from '../constants'
+import { TYPE, PERMALINK, LINK } from '../constants'
 import { TRADLE } from './constants'
 import { safeStringify, trimLeadingSlashes, trimTrailingSlashes } from '../string-utils'
 import { logger } from '@tradle/dynamodb/lib/defaults'
+import { enumValue } from '@tradle/build-resource'
+import { database } from 'aws-xray-sdk-core'
 
 const SealModel = models['tradle.Seal']
 const SEAL_MODEL_PROPS = Object.keys(SealModel.properties)
@@ -902,4 +904,56 @@ export const getAssociateResources = async ({
   let [type, hash] = associatedResource.split('_')
   let associatedRes = await bot.getResource({ type, permalink: hash })
   return { associatedRes, parentApp }
+}
+export const sendFormError = async ({
+  payload,
+  prefill,
+  errors,
+  req,
+  message,
+  applications,
+  dataSource
+}: {
+  req: IPBReq
+  prefill?: any
+  errors?: any
+  payload: any
+  message: string
+  applications: Applications
+  dataSource?: any
+}) => {
+  let { application, user } = req
+  const payloadClone = _.cloneDeep(payload)
+  payloadClone[PERMALINK] = payloadClone._permalink
+  payloadClone[LINK] = payloadClone._link
+
+  _.extend(payloadClone, prefill)
+  // debugger
+  let formError: any = {
+    req,
+    user,
+    application
+  }
+  formError.details = {
+    prefill: payloadClone,
+    message
+  }
+  if (dataSource) {
+    formError.details.dataLineage = {
+      [dataSource.id]: {
+        properties: Object.keys(prefill)
+      }
+    }
+  }
+  
+  if (errors) _.extend(formError.details, { errors })
+  try {
+    await applications.requestEdit(formError)
+    return {
+      message: 'no request edit',
+      exit: true
+    }
+  } catch (err) {
+    debugger
+  }
 }

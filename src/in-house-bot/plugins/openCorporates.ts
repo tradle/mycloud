@@ -23,6 +23,7 @@ import {
   getCheckParameters,
   getStatusMessageForCheck,
   getEnumValueId,
+  sendFormError,
   // doesCheckExist,
   doesCheckNeedToBeCreated
 } from '../utils'
@@ -767,11 +768,16 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
         companiesHouseApiKey &&
         getEnumValueId({ model: bot.models[COUNTRY], value: payload[map.country] })
 
+      let dataSource = enumValue({
+        model: bot.models[REFERENCE_DATA_SOURCES],
+        value: (country && country === 'GB' && 'companiesHouse') || 'openCorporates'
+      })
       try {
-        return await this.sendFormError({
+        return await sendFormError({
           req,
           payload,
-          country,
+          dataSource,
+          applications,
           prefill,
           errors,
           message
@@ -780,60 +786,6 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
         debugger
       }
     },
-    async sendFormError({
-      payload,
-      country,
-      prefill,
-      errors,
-      req,
-      message
-    }: {
-      req: IPBReq
-      prefill?: any
-      errors?: any
-      payload: ITradleObject
-      country?: string
-      message: string
-    }) {
-      let { application, user } = req
-      const payloadClone = _.cloneDeep(payload)
-      payloadClone[PERMALINK] = payloadClone._permalink
-      payloadClone[LINK] = payloadClone._link
-
-      _.extend(payloadClone, prefill)
-      // debugger
-      let formError: any = {
-        req,
-        user,
-        application
-      }
-      let dataSource = enumValue({
-        model: bot.models[REFERENCE_DATA_SOURCES],
-        value: (country && country === 'GB' && 'companiesHouse') || 'openCorporates'
-      })
-
-      let dataLineage = {
-        [dataSource.id]: {
-          properties: Object.keys(prefill)
-        }
-      }
-
-      formError.details = {
-        prefill: payloadClone,
-        dataLineage,
-        message
-      }
-      if (errors) _.extend(formError.details, { errors })
-      try {
-        await applications.requestEdit(formError)
-        return {
-          message: 'no request edit',
-          exit: true
-        }
-      } catch (err) {
-        debugger
-      }
-    }
   }
 
   return {
