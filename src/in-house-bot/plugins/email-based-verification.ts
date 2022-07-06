@@ -2,7 +2,7 @@ import get from 'lodash/get'
 import { TYPE } from '@tradle/constants'
 import { CreatePlugin, ITradleObject, IPBApp, IPluginOpts, ValidatePluginConf } from '../types'
 import { EmailBasedVerifier, TTL } from '../email-based-verifier'
-import { getPropertyTitle } from '../utils'
+import { getPropertyTitle, getEnumValueId } from '../utils'
 import Errors from '../../errors'
 import { topics as EventTopics } from '../../events'
 import { useRealSES } from '../../aws/config'
@@ -12,6 +12,7 @@ const ASPECTS = 'Email verification'
 const CONFIRMATION_PAGE_TEXT = `Your email address have been confirmed
 
 Please continue in the Tradle app`
+const STATUS = 'tradle.Status'
 
 const EXPIRED_PAGE_TEXT = `This confirmation link has expired!
 
@@ -106,8 +107,8 @@ export const createPlugin: CreatePlugin<EmailBasedVerifier> = (
       Errors.ignoreNotFound(err)
       return true
     }
-
-    return latest.failed || latest.errored || latest.expired
+    return getEnumValueId({ model: bot.models[STATUS], value: latest.status }) !== 'pass'    
+    // return latest.failed || latest.errored || latest.expired
   }
 
   const plugin = {
@@ -168,6 +169,7 @@ export const createPlugin: CreatePlugin<EmailBasedVerifier> = (
           emailAddress: value,
           aspects: ASPECTS,
           form: payload,
+          status: 'pending',
           provider: conf.org.name,
           dateChecked: Date.now(),
           user: user.identity,
