@@ -80,6 +80,7 @@ export type PublicInfo = {
   org: IOrganization
   style: any
   tour: any
+  applicationTours: any
   currency?: string
   locale?: string
   optionalPairing?: boolean,
@@ -376,6 +377,7 @@ export class Conf {
 
   public assemblePublicInfo = ({ identity, org, style, bot }: IInfoInput): PublicInfo => {
     const tour = _.get(bot, 'tours.intro')
+    const applicationTours = _.get(bot, 'tours.applicationTours')
     const currency = _.get(bot, 'defaultCurrency') || 'USD'
     const locale = _.get(bot, 'defaultLocale')
     const homePage = _.get(bot, 'homePage')
@@ -404,6 +406,7 @@ export class Conf {
       locale,
       homePage,
       tour,
+      applicationTours,
       templates
     }
   }
