@@ -26,6 +26,10 @@ const { getRef, isDescendantOf } = validateModels.utils
 const { isInstantiable } = validateResource.utils
 const SHARE_REQUEST = 'tradle.ShareRequest'
 const BOOKMARK = 'tradle.Bookmark'
+import { TYPES as LOCAL_TYPES } from './in-house-bot/constants'
+const { 
+  MY_EMPLOYEE_ONBOARDING 
+} = LOCAL_TYPES
 const EXCLUDED_TYPES = [
   'tradle.PubKey',
   IDENTITY,
@@ -240,6 +244,14 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
     
     if (counterparty)  {
       let isAllowed = args.allow === model.id
+      if (!isAllowed  &&  model.id === MY_EMPLOYEE_ONBOARDING) {
+        isAllowed = true
+        if (!filter.EQ || filter.EQ['owner._permalink'] !== context.user.identity._permalink) {
+          if (!filter.EQ)
+            filter.EQ = {}
+          filter.EQ['owner._permalink'] === context.user.identity._permalink
+        }
+      }
       if (!isAllowed  &&  (!filter.EQ._permalink || filter.EQ._permalink !== counterparty._permalink))
         filter.EQ['_authorOrg'] = counterparty._permalink
     }  
