@@ -555,10 +555,12 @@ export default class Messaging {
     )
     if (object._authorOrg)
       unsignedMessage._authorOrg = object._authorOrg
+    if (object._authorOrgType)
+      unsignedMessage._authorOrgType = object._authorOrgType
     // TODO:
     // efficiency can be improved
     // message signing can be done in parallel with putObject in getOrCreatePayload
-   
+
     let attemptsToGo = 3
     let prev = await promisePrev
     let seq

@@ -251,6 +251,8 @@ export default class Backlinks {
         }
         if (submission._authorOrg)
           appSub.set({_authorOrg: submission._authorOrg})
+        if (submission._authorOrgType)
+          appSub.set({_authorOrgType: submission._authorOrgType})
 
         return appSub.toJSON()
       })

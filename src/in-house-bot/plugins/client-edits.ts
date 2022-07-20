@@ -122,7 +122,9 @@ class ClientEditsAPI {
             }
         }
       if (resource._authorOrg)
-        mod._authorOrg = resource._authorOrg  
+        mod._authorOrg = resource._authorOrg
+      if (resource._authorOrgType)
+        mod._authorOrgType = resource._authorOrgType
       modifications.push(this.bot
         .draft({ type: MODIFICATION })
         .set(mod)
@@ -464,7 +466,7 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
       if (payload[TYPE] === SHARE_REQUEST_SUBMITTED) {
         debugger
         return
-      }  
+      }
 
       if (payload[TYPE] === SHARE_REQUEST) {
         let { formStubs, verificationStubs} = payload

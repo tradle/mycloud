@@ -3,37 +3,28 @@ import { CreatePlugin, IPluginLifecycleMethods, IPBReq, WillIssueCertificateArg 
 export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI, employeeManager }, { logger }) => {
   const plugin: IPluginLifecycleMethods = {
     willRequestForm: async ({ application, formRequest }) => {
-      if (application._authorOrg)
-        formRequest._authorOrg = application._authorOrg
+      setAuthorOrg({from: application, to: formRequest})
     },
     willCreateApplication: async ({ req, user, application }) => {
-      const { payload } = req
-      if (payload._authorOrg) 
-        application._authorOrg = payload._authorOrg      
+      setAuthorOrg({from: req.payload, to: application})
     },
     willCreateApplicationSubmission: async ({ application, submission }) => {
-      if (application._authorOrg)
-        submission._authorOrg = application._authorOrg
+      setAuthorOrg({from: application, to: submission})
     },
     willCreateCheck: async ({ application, check }) => {
-      if (application._authorOrg)
-        check._authorOrg = application._authorOrg
+      setAuthorOrg({from: application, to: check})
     },
     willCreateModification: async ({ application, resource }) => {
-      if (application._authorOrg)
-        resource._authorOrg = application._authorOrg
+      setAuthorOrg({from: application, to: resource})
     },
     willCreateNotification: async ({ application, notification }) => {
-      if (application._authorOrg)
-        notification._authorOrg = application._authorOrg
+      setAuthorOrg({from: application, to: notification})
     },
     willIssueCertificate: async ({ user, application, certificate, req }:  WillIssueCertificateArg) => {
-      if (application._authorOrg)
-        certificate._authorOrg = application._authorOrg
+      setAuthorOrg({from: application, to: certificate})
     },
     willSaveResource: ({ application, resource }) => {
-      if (application._authorOrg)
-        resource._authorOrg = application._authorOrg
+      setAuthorOrg({from: application, to: resource})
     },
 
     // onRequestForExistingProduct: async(req) => {
@@ -43,5 +34,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI, employeeMan
   }
 
   return { plugin }
+}
+function setAuthorOrg({from, to}) {
+  if (from._authorOrg)
+    to._authorOrg = from._authorOrg
+  if (from._authorOrgType)
+    to._authorOrgType = from._authorOrgType
 }
 
