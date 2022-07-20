@@ -27,8 +27,8 @@ const { isInstantiable } = validateResource.utils
 const SHARE_REQUEST = 'tradle.ShareRequest'
 const BOOKMARK = 'tradle.Bookmark'
 import { TYPES as LOCAL_TYPES } from './in-house-bot/constants'
-const { 
-  MY_EMPLOYEE_ONBOARDING 
+const {
+  MY_EMPLOYEE_ONBOARDING
 } = LOCAL_TYPES
 const EXCLUDED_TYPES = [
   'tradle.PubKey',
@@ -186,7 +186,7 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
         items: await Promise.all(promises)
       }
     }
-      
+
     const container = await backlinks.getBacklinks({
       type: backlink.target[TYPE],
       permalink: backlink.target._permalink,
@@ -241,7 +241,7 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
     if (!filter) filter = { EQ: {} }
     if (!filter.EQ) filter.EQ = {}
     filter.EQ[TYPE] = model.id
-    
+
     if (counterparty)  {
       let isAllowed = args.allow === model.id
       if (!isAllowed  &&  model.id === MY_EMPLOYEE_ONBOARDING) {
@@ -252,16 +252,20 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
           filter.EQ['owner._permalink'] === context.user.identity._permalink
         }
       }
-      if (!isAllowed  &&  (!filter.EQ._permalink || filter.EQ._permalink !== counterparty._permalink))
-        filter.EQ['_authorOrg'] = counterparty._permalink
-    }  
+      if (!isAllowed  &&  (!filter.EQ._permalink || filter.EQ._permalink !== counterparty._permalink)) {
+        if (model.id === BOOKMARK)
+          filter.EQ['_authorOrgType'] = counterparty._t
+        else
+          filter.EQ['_authorOrg'] = counterparty._permalink
+      }
+    }
     else if (model.id === BOOKMARK)  {
       if (!filter.NULL)
         filter.NULL = {}
       filter.NULL['_authorOrg'] = true
     }
     const conf = opts.context && opts.context.components && opts.context.components.conf || []
-    
+
     return db.find({
       allowScan: true,
       select,
@@ -298,14 +302,14 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
             item.with = item.with.map(w => {
               let [ _t, _permalink, _link ] = w.id.split('_')
               return {_t, _permalink, _link}
-            })            
-          })  
-        }      
+            })
+          })
+        }
         else if (result.with[0].id) {
           result.with = result.with.map(w => {
             let [ _t, _permalink, _link ] = w.id.split('_')
             return {_t, _permalink, _link}
-          })            
+          })
         }
       }
       // debugger
