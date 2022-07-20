@@ -2,12 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.14](https://github.com/tradle/mycloud/compare/v4.0.13...v4.0.14) (2022-07-06)
+## [4.0.15](https://github.com/tradle/mycloud/compare/v4.0.14...v4.0.15) (2022-07-12)
 
 
 ### Bug Fixes
 
-* sending form error if code is wrong ([37f455c](https://github.com/tradle/mycloud/commit/37f455c))
+* status is not set when check first created ([a50a4ea](https://github.com/tradle/mycloud/commit/a50a4ea))
+
+
+### Features
+
+* application tours ([3b2f0af](https://github.com/tradle/mycloud/commit/3b2f0af))
+* vendor portal ([2d576fe](https://github.com/tradle/mycloud/commit/2d576fe))
 
 
 
