@@ -783,6 +783,7 @@ export const loadComponentsAndPlugins = ({
         'documentValidity',
         'fill-myproduct',
         'checkOverride',
+        'employeeRole',
         'prefill-controllingPerson'
       ].forEach((name) => attachPlugin({ name, requiresConf: false }))
     // used for some demo
