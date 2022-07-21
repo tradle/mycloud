@@ -2,18 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.15](https://github.com/tradle/mycloud/compare/v4.0.14...v4.0.15) (2022-07-12)
-
-
-### Bug Fixes
-
-* status is not set when check first created ([a50a4ea](https://github.com/tradle/mycloud/commit/a50a4ea))
+## [4.0.16](https://github.com/tradle/mycloud/compare/v4.0.15...v4.0.16) (2022-07-20)
 
 
 ### Features
 
-* application tours ([3b2f0af](https://github.com/tradle/mycloud/commit/3b2f0af))
-* vendor portal ([2d576fe](https://github.com/tradle/mycloud/commit/2d576fe))
+* prefill employee role for the very first employee ([2c48d4c](https://github.com/tradle/mycloud/commit/2c48d4c))
+* prefill employee role for the very first employee ([9092fa2](https://github.com/tradle/mycloud/commit/9092fa2))
+* shared bookmarks project - add type of the author to the object if third party ([ceae605](https://github.com/tradle/mycloud/commit/ceae605))
+* shared by same type of third party bookmarks ([d57adbb](https://github.com/tradle/mycloud/commit/d57adbb))
 
 
 
