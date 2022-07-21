@@ -191,7 +191,8 @@ export const createPlugin: CreatePlugin<EmailBasedVerifier> = (
     const { value, old } = event
     if (!value) return // this is a 'delete' op
     if (value[TYPE] !== EMAIL_CHECK) return
-    if (value.status) return
+    let status = getEnumValueId({ model: bot.models[STATUS], value: value.status })
+    if (status !== 'pending') return
 
     const botPermalink = await bot.getPermalink()
     if (value._author !== botPermalink) return
