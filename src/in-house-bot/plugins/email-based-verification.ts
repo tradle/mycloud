@@ -107,8 +107,8 @@ export const createPlugin: CreatePlugin<EmailBasedVerifier> = (
       Errors.ignoreNotFound(err)
       return true
     }
-    return getEnumValueId({ model: bot.models[STATUS], value: latest.status }) !== 'pass'    
-    // return latest.failed || latest.errored || latest.expired
+    // return getEnumValueId({ model: bot.models[STATUS], value: latest.check }) !== 'pass'    
+    return latest.failed || latest.errored || latest.expired
   }
 
   const plugin = {
@@ -205,7 +205,7 @@ export const createPlugin: CreatePlugin<EmailBasedVerifier> = (
           component: 'applications',
           method: 'updateCheck',
           params: {
-            type: EMAIL_CHECK,
+            type: EMAIL_CHECK, 
             permalink: value._permalink,
             props: {
               status: 'pass',
