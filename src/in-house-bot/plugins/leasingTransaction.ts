@@ -391,27 +391,28 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf }) => {
   const plugin: IPluginLifecycleMethods = {
     async didApproveApplication({ req }) {
       const { application } = req
-      if (!application) return
+      if (!application || !application.parent) return
 
       const requestFor = application.requestFor
 
       let productConf = conf[requestFor]
       if (!productConf  ||  !productConf.form) return
       const { form:formType } = productConf
+      let parentApp = await this.bot.getResource(application.parent, {backlinks: ['forms']})
       
-      await leasingTransation.exec({application, formType})      
+      await leasingTransation.exec({application:parentApp, formType})      
     },
-    async onmessage (req) {
-      let { application, payload } = req
-      if (!application || application.status !== 'approved') return
-      const requestFor = application.requestFor
+//     async onmessage (req) {
+//       let { application, payload } = req
+//       if (!application || application.status !== 'approved') return
+//       const requestFor = application.requestFor
 
-      let productConf = conf[requestFor]
-      const { form:formType } = productConf
-      if (!productConf  ||  !formType || payload[TYPE] !== formType) return
-debugger      
-      await leasingTransation.exec({application, formType, payload})    
-    }
+//       let productConf = conf[requestFor]
+//       const { form:formType } = productConf
+//       if (!productConf  ||  !formType || payload[TYPE] !== formType) return
+// debugger      
+//       await leasingTransation.exec({application, formType, payload})    
+//     }
   }
   return {
     plugin
