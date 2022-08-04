@@ -242,8 +242,8 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
     if (!filter.EQ) filter.EQ = {}
     filter.EQ[TYPE] = model.id
 
+    let isAllowed = args.allow === model.id
     if (counterparty)  {
-      let isAllowed = args.allow === model.id
       if (!isAllowed  &&  model.id === MY_EMPLOYEE_ONBOARDING) {
         isAllowed = true
         if (!filter.EQ || filter.EQ['owner._permalink'] !== context.user.identity._permalink) {
@@ -259,7 +259,7 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
           filter.EQ['_authorOrg'] = counterparty._permalink
       }
     }
-    else if (model.id === BOOKMARK)  {
+    else if (model.id === BOOKMARK && !isAllowed)  {
       if (!filter.NULL)
         filter.NULL = {}
       filter.NULL['_authorOrg'] = true
