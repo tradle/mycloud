@@ -2,13 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.17](https://github.com/tradle/mycloud/compare/v4.0.16...v4.0.17) (2022-07-21)
+## [4.0.18](https://github.com/tradle/mycloud/compare/v4.0.17...v4.0.18) (2022-08-12)
 
 
-### Bug Fixes
+### Features
 
-* previous return ([ff5036d](https://github.com/tradle/mycloud/commit/ff5036d))
-* previous return ([7d9911d](https://github.com/tradle/mycloud/commit/7d9911d))
+* allow to create shared bookmarks for all the counterparties of the same type ex. Vendor ([ba9fa99](https://github.com/tradle/mycloud/commit/ba9fa99))
+* first draft for preparing transaction to be sent to blockchain ([e5cb51e](https://github.com/tradle/mycloud/commit/e5cb51e))
+* first draft for preparing transaction to be sent to blockchain ([eb60a94](https://github.com/tradle/mycloud/commit/eb60a94))
+* redesign as step 1 for smart contract ([959a021](https://github.com/tradle/mycloud/commit/959a021))
 
 
 
