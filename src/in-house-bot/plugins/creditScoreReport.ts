@@ -686,7 +686,7 @@ export class ScoringReport {
       group,
       total,
       formProperty,
-      form: form && formStub,
+      form: formStub,
       max: total && maxScores && maxScores[property]
     }
     detail = sanitize(detail).sanitized
@@ -731,14 +731,15 @@ export class ScoringReport {
       return { creditBureauScore }
     let crAccounts = creditReport.accounts
     if (!crAccounts  ||  !crAccounts.length) return {creditBureauScore, cbReport: creditReport }
-    let accountsPoints =  await this.calcAccounts(crAccounts)
+
+    let accounts:any = await Promise.all(crAccounts.map(a => this.bot.getResource(a)))
+    let accountsPoints =  this.calcAccounts(accounts)
 
     return { creditBureauScore, accountsPoints, cbReport: creditReport }
   }
-  private async calcAccounts(crAccounts) {
-    let accounts:any = await Promise.all(crAccounts.map(a => this.bot.getResource(a)))
+  private calcAccounts(accounts) {
     let sumProps = ['totalMop2', 'totalMop3', 'totalMop4', 'totalMop5']
-    accounts.forEach(acc => {
+    let data = accounts.map(acc => {
       let sum = 0
       sumProps.forEach((p, i) => {
         let v = acc[sumProps[i]]
@@ -760,7 +761,7 @@ export class ScoringReport {
         avgOpen = 0, avgClose = 0,
         badOpen = 0, badClose = 0,
         openedAccounts = [], closedAccounts = []
-    accounts.forEach(account => {
+    data.forEach(account => {
       const {accountClosingDate, sum} = account
       if (accountClosingDate) {
         closedAccounts.push(account)
@@ -928,6 +929,16 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications, productsAP
       logger.debug('creditScoreReport is called onmessage')
       debugger
       await scoringReport.genCreditScoring({application, conf, parentFormsStubs})
+    },
+    async didApproveApplication({ req }) {
+      const { application } = req
+      if (!application || !application.parent) return
+
+      const requestFor = application.requestFor
+
+      let { products } = conf
+      if (!conf[requestFor] || !conf.sendTransaction) return
+
     }
   }
   return { plugin }
