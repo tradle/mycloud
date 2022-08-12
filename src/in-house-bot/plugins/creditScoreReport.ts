@@ -13,6 +13,7 @@ import {
 import { buildResourceStub } from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import extend from 'lodash/extend'
+import pick from 'lodash/pick'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
@@ -65,7 +66,43 @@ export class ScoringReport {
     this.logger = logger
     this.productsAPI = productsAPI
   }
-  async genCreditScoring({application, conf, parentFormsStubs}) {
+  async runReport({application, conf, parentFormsStubs, dataOnly}: {application: any, conf: any, parentFormsStubs: any, dataOnly?: boolean}) {
+    const { products } = conf
+    const { requestFor } = application
+    let resultForm
+    let data = await this.getCreditScoringData({application, conf, parentFormsStubs})
+    if (!data)
+      return
+    let { reportIndividual, reportCompany } = products[requestFor]
+    let { isCompany } = data
+    let inputData, additionalData, props
+    if (isCompany) {
+      resultForm = reportCompany
+      let result = await this.getDataForCompany(data)
+      ;({inputData, additionalData} = result)
+      extend(data, additionalData)
+      props = this.calcForCompany(inputData)
+    }
+    else {
+      resultForm = reportIndividual
+      let result = await this.getDataForIndividual(data)
+      ;({inputData, additionalData} = result)
+      extend(data, additionalData)
+      props = this.calcForIndividual(inputData)
+    }
+    if (dataOnly)
+      return inputData
+    this.productsAPI._exec('willSaveResource', { application, resource: props });
+
+    let score = await this.bot.draft({ type: resultForm }).set(props).signAndSave()
+    if (score) {
+      let cr = score.resource
+      application.creditScoreDetails = isCompany ? this.createCompanyScoreDetails(props, data) : this.createIndividualScoreDetails(props, data)
+      application.creditScore = buildResourceStub({ resource: cr, models: this.bot.models })
+    }
+    return inputData
+  }
+  async getCreditScoringData({application, conf, parentFormsStubs}) {
     const { products, creditBuroScoreForApplicant, creditBuroScoreForEndorser, capacityToPay } = conf
     let { requestFor, checks, parent } = application
 
@@ -164,6 +201,8 @@ export class ScoringReport {
       this.logger.debug(`creditScoreReport: ${checkType} nor passed`)
       return
     }
+    let { creditReport } = check
+    if (!creditReport) return
 
     let reportForms = await Promise.all(stubs.map(s => this.bot.getResource(s)))
 
@@ -172,102 +211,152 @@ export class ScoringReport {
       // items = await this.getItems(application)
       // if (!items) return
     }
-
-    let score, scoreDetails
-    if (isCompany)
-      ({ score, scoreDetails } = await this.execForCompany({applicantInformation, reportForms, resultForm, items, check, application }))
-    else
-      ({ score, scoreDetails } =  await this.execForIndividual({applicantInformation, reportForms, resultForm, items, check, parentApp, application }))
-
-    if (score) {
-      let cr = score.resource
-      application.creditScore = buildResourceStub({ resource: cr, models })
-      if (scoreDetails)
-        application.creditScoreDetails = scoreDetails
-    }
-  }
-  public async execForIndividual({ applicantInformation, reportForms, resultForm, items, check, parentApp, application }) {
     let map = {}
     reportForms.forEach(f => {
       map[f[TYPE].split('.').slice(-1)[0]] = f
     })
-    let { creditReport } = check
-    if (!creditReport) return
+    map[APPLICANT_INFORMATION] = applicantInformation
+    let quote:any = map[QUOTE]
+    if (Array.isArray(quote)) {
+      if (quote.length)
+        quote = quote[0]
+    }
+    let asset = await this.bot.getResource(quote.asset)
 
+    return { asset, quote, isCompany, creditReport, map, resultForm, items, check, parentApp, application }
+  }
+  public async getDataForIndividual({ asset, map, quote, creditReport, check, application, parentApp }) {
     creditReport = await this.bot.getResource(creditReport, {backlinks: ['accounts', 'creditScore' ]})
-    // let creditBureauScore = 0
-    // if (creditReport.creditScore  &&  creditReport.creditScore.length) {
-    //   let cbScore = await this.bot.getResource(creditReport.creditScore[0])
-    //   cbScore = cbScore.scoreValue
+    const { crCreditScore, crAccounts, cbReport, cCheck, checkPassed } = await this.getScoreDataForIndividual({ application, creditReport, check, parentApp })
+    let accounts:any = await Promise.all(crAccounts.map(a => this.bot.getResource(a)))
 
-    //   const cbScoreForApplicant = this.conf.creditBuroScoreForApplicant
-    //   creditBureauScore = this.calcScore(cbScore, cbScoreForApplicant)
-    // }
-    const { models } = this.bot
-    let val = this.getEnumValue(applicantInformation, 'existingCustomerRating')
-
-    let existingCustomer = val &&  val.score || 0
-    let scoreDetails: any = []
-    this.addToScoreDetails({scoreDetails, form: applicantInformation, formProperty: 'existingCustomerRating', property: 'existingCustomer', score: existingCustomer, group: CHARACTER_GROUP});
-
-    let yearsAtWork = 0
     const applicantMedicalProfession = map[APPLICANT_MED_PROFESSION]
-    if (applicantMedicalProfession) {
-      if (applicantMedicalProfession.yearsAtWork) {
-        val = this.getEnumValue(applicantMedicalProfession, 'yearsAtWork')
-        yearsAtWork = val.score
-        this.addToScoreDetails({scoreDetails, form: applicantMedicalProfession, formProperty: 'yearsAtWork', property: 'yearsAtWork', score: yearsAtWork, group: CHARACTER_GROUP});
+    const applicantAddress = map[APPLICANT_ADDRESS]
+    const cashflow = map[CASH_FLOW] || {}
+    const { creditBuroScoreForEndorser, creditBuroScoreForApplicant } = this.conf
+    const applicantInformation = map[APPLICANT_INFORMATION]
+    let enums = {
+      applicantInformation: {
+        existingCustomerRating: this.getEnumValue(applicantInformation, 'existingCustomerRating'),
+        yearsAtResidence: this.getEnumValue(applicantAddress, 'yearsAtResidence'),
+        yearsAtWork: applicantMedicalProfession && this.getEnumValue(applicantMedicalProfession, 'yearsAtWork')
+      },
+      asset: {
+        usefulLife: this.getEnumValue(asset, 'usefulLife'),
+        secondaryMarket: this.getEnumValue(asset, 'secondaryMarket'),
+        relocationTime: this.getEnumValue(asset, 'relocationTime'),
+        assetType: this.getEnumValue(asset, 'assetType')
+      },
+      quote: {
+        leaseType: this.getEnumValue(quote, 'leaseType')
       }
     }
-    const applicantAddress = map[APPLICANT_ADDRESS]
+    const inputData:any = {
+      enums,
+      checkPassed, // credentials check
+      cbScoreMap: creditBuroScoreForApplicant,
+      capacityToPayConf: this.conf.capacityToPay,
+      creditReport: {
+        creditScore: crCreditScore,
+      },
+      crCreditScore: {
+        scoreValue: crCreditScore.scoreValue
+      },
+      cashflow: {
+        extraEquipmentFactor: cashflow.extraEquipmentFactor,
+        verifiableFactor: cashflow.verifiableFactor,
+        incomeFactor: cashflow.incomeFactor
+      },
+      accountsData: accounts && accounts.map(acc => pick(acc, ['totalMop2', 'totalMop3', 'totalMop4', 'totalMop5', 'accountClosingDate'])),
+      cbReport: {
+        creditScore: cbReport.creditScore.scoreValue
+      },
+      applicantInformation: {
+        [TYPE]: applicantInformation[TYPE],
+        existingCustomerRating: applicantInformation.existingCustomerRating,
+        medical: applicantInformation.medical
+      },
+      applicantAddress: {
+        [TYPE]: applicantAddress[TYPE],
+        yearsAtResidence: applicantAddress.yearsAtResidence
+      },
+      asset: {
+        [TYPE]: asset[TYPE],
+        usefulLife: asset.usefulLife,
+        secondaryMarket: asset.secondaryMarket,
+        relocationTime: asset.relocationTime,
+        assetType: asset.assetType,
+      },
+      quote: {
+        [TYPE]: quote[TYPE],
+        term: quote.term,
+        leaseType: asset.leaseType
+      }
+    }
+    if (applicantMedicalProfession) {
+      inputData.applicantMedicalProfession = {
+        [TYPE]: applicantMedicalProfession[TYPE],
+        yearsAtWork: applicantMedicalProfession.yearsAtWork
+      }
+    }
+    const additionalData = {
+      crCreditScore,
+      cbReport,
+      cCheck,
+    }
+    return {inputData, additionalData}
+  }
+  private async getScoreDataForIndividual({application, creditReport, parentApp}:{application:any, isEndorser?: boolean, check?:any, creditReport?:any, parentApp: any}) {
+    if (application.status !== 'approved'  &&  application.status !== 'completed') return {}
+
+    // let creditBureauScore
+    let crCreditScore
+    if (creditReport.creditScore && creditReport.creditScore.length) {
+      crCreditScore = await this.bot.getResource(creditReport.creditScore[0])
+    }
+    let crAccounts = creditReport.accounts
+    let { cCheck, checkPassed } = await this.credentialsCheckPass(application, parentApp)
+
+    return { crCreditScore, crAccounts, cbReport: creditReport, cCheck, checkPassed }
+  }
+  public calcForIndividual(params) {
+    const { applicantInformation, applicantMedicalProfession, applicantAddress, asset, quote, enums, cashflow } = params
+    const { cbScoreMap, crCreditScore, accountsData, capacityToPayConf, checkPassed } = params
+
+    let val = enums.applicantInformation.existingCustomerRating
+    let existingCustomer = val &&  val.score || 0
+    let yearsAtWork = 0
+    if (applicantMedicalProfession  &&  applicantMedicalProfession.yearsAtWork) {
+      val = enums.applicantMedicalProfession.yearsAtWork
+      yearsAtWork = val.score
+    }
     let yearsAtResidence = 0
     if (applicantAddress.yearsAtResidence) {
-      val = this.getEnumValue(applicantAddress, 'yearsAtResidence')
+      val = enums.applicantAddress.yearsAtResidence
       yearsAtResidence = val.score
-      this.addToScoreDetails({scoreDetails, form: applicantAddress, formProperty: 'yearsAtResidence', property: 'yearsAtResidence', score: yearsAtResidence, group: CHARACTER_GROUP});
     }
-    const capacityToPayConf = this.conf.capacityToPay
 
-    const extraEquipmentFactor = map[CASH_FLOW] && map[CASH_FLOW].extraEquipmentFactor
     let capacityToPayFactor
     if (applicantInformation.medical)
-      capacityToPayFactor = map[CASH_FLOW] && map[CASH_FLOW].extraEquipmentFactor
+      capacityToPayFactor = cashflow.extraEquipmentFactor
     else
-      capacityToPayFactor = map[CASH_FLOW] && map[CASH_FLOW].verifiableFactor
+      capacityToPayFactor = cashflow.verifiableFactor
 
     let capacityToPay = capacityToPayFactor && this.calcScore(capacityToPayFactor, capacityToPayConf) || 0
 
-    let { creditBureauScore=0, accountsPoints, cbReport } = await this.scoreFromCheckIndividual({ item: application, creditReport, check })
-    this.addToScoreDetails({scoreDetails, form: cbReport && cbReport.creditScore, formProperty: 'scoreValue', property: 'creditBureauScore', score: creditBureauScore, group: CHARACTER_GROUP});
-
-    let specialityCouncil = 0
-    let { cCheck, checkPassed } = await this.credentialsCheckPass(application, parentApp)
-    if (checkPassed) {
-      specialityCouncil = 3
-      this.addToScoreDetails({scoreDetails, form: cCheck, formProperty: 'status', property: 'specialityCouncil', score: specialityCouncil, group: CHARACTER_GROUP});
-    }
-
-    let cosignerCreditBureauScore = 0
-    // if (items  &&  items.length) {
-    //   items = await Promise.all(items.map(item => this.bot.getResource(item, {backlinks: ['checks']})))
-    //   // for (let i=0; i<items.length; i++) {
-    //   let cosignerScores = await this.scoreFromCheckIndividual({ item: items[0], isEndorser: true})
-    //   cosignerCreditBureauScore = cosignerScores.creditBureauScore
-    // }
-    let { maxScores } = this.conf
-
-    const {asset, usefulLife, secondaryMarket, relocation, assetType, leaseType} = await this.getCommonScores(map, scoreDetails)
+    const {usefulLife, secondaryMarket, relocation, assetType, leaseType} = this.getCommonScores({quote, asset, enums})
+    const creditBureauScore = this.calcScore(crCreditScore.scoreValue, cbScoreMap)
     const characterScore = creditBureauScore + existingCustomer + yearsAtWork + yearsAtResidence
-    this.addToScoreDetails({scoreDetails, property: 'characterScore', score: characterScore, group: CHARACTER_GROUP, total: true, maxScores});
 
     const assetScore = usefulLife + secondaryMarket + relocation + assetType + leaseType
 
-    this.addToScoreDetails({scoreDetails, form: asset, property: 'assetScore', score: assetScore, group: ASSET_GROUP, total: true, maxScores});
+    let accountsPoints =  this.calcAccounts(accountsData)
     let accScore = accountsPoints ? accountsPoints.accScore : 0
+
     let props:any = {
       creditBureauScore,
       existingCustomer,
-      specialityCouncil,
+      specialityCouncil: checkPassed && 3,
       yearsAtWork,
       yearsAtResidence,
       characterScore,
@@ -277,14 +366,15 @@ export class ScoringReport {
       relocation,
       assetType,
       leaseType,
-      cosignerCreditBureauScore,
+      cosignerCreditBureauScore: 0,
       accounts: accScore,
       assetScore,
+      // totalScore
       // check
     }
     let { formula } = capacityToPayConf
     if (formula) {
-      let props1 = {...map[CASH_FLOW], capacityToPay}
+      let props1 = {...cashflow, capacityToPay}
 
       let keys = Object.keys(props1)
       let values = Object.values(props1)
@@ -296,41 +386,135 @@ export class ScoringReport {
          debugger
       }
     }
-
-    if (capacityToPay) {
-      this.addToScoreDetails({scoreDetails, form: map[CASH_FLOW], formProperty: 'capacityToPayFactor', property: 'capacityToPay', score: capacityToPay, group: PAYMENT_GROUP});
-      this.addToScoreDetails({scoreDetails, form: map[CASH_FLOW], formProperty: 'capacityToPayFactor', property: 'paymentScore', score: capacityToPay, group: PAYMENT_GROUP, total: true, maxScores});
-    }
-    props.capacityToPay = capacityToPay
-    props.paymentScore = capacityToPay
-
-    props.totalScore = characterScore + props.paymentScore + assetScore
-    this.addToScoreDetails({scoreDetails, property: 'totalScore', score: props.totalScore, total: true});
-
-    this.productsAPI._exec('willSaveResource', { application, resource: props });
-
-    let score = await this.bot.draft({ type: resultForm }).set(props).signAndSave()
-    return { score, scoreDetails }
+    let paymentScore = capacityToPay
+    props.totalScore = characterScore + paymentScore + assetScore
+    props = sanitize(props).sanitized
+    return props
   }
-  public async execForCompany({ applicantInformation, reportForms, resultForm, items, check, application }) {
-    let map = {}
-    reportForms.forEach(f => {
-      const type = f[TYPE].split('.').slice(-1)[0]
-      if (!map[type])
-        map[type] = []
-      map[type].push(f)
-    })
-    let { creditReport } = check
-    if (!creditReport) return
+  private getCommonScores({quote, asset, enums}: {quote: any, asset:any, enums: any}) {
+    let usefulLife = 0, secondaryMarket = 0, relocation = 0, assetType = 0, leaseType = 0
+    // const { usefulLife, secondaryMarket, relocationTime, assetType, leaseType } = asset
 
-    let scoreDetails: any = []
+    let val = enums.asset.usefulLife
+    if (val) {
+      // let term = this.getEnumValue(qd, 'term', qd.term)
+      let term = parseInt(quote.term.title.split(' ')[0]) / 12
+      if (val.years > term)
+        usefulLife = 7
+      else if (val.years === term)
+        usefulLife = 5
+      else
+        usefulLife = 0
+    }
+    // if (!scoreDetails)
+    //   scoreDetails = []
+    // this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'usefulLife', property: 'usefulLife', score: usefulLife, group: ASSET_GROUP});
 
-    // let hasLeasingExperience = applicantInformation.leasingExperience && 2 || 0
-    // this.addToScoreDetails({scoreDetails, form: applicantInformation, formProperty: 'leasingExperience', property: 'hasLeasingExperience', score: hasLeasingExperience, group: CHARACTER_GROUP});
+    val = enums.asset.secondaryMarket
+    if (val) {
+      secondaryMarket = val.score
+    }
+    // this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'secondaryMarket', property: 'secondaryMarket', score: secondaryMarket, group: ASSET_GROUP});
 
+    val = enums.asset.relocationTime
+    if (val) {
+      relocation = val.score
+    }
+    // this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'relocation', property: 'relocation', score: relocation, group: ASSET_GROUP});
+
+    val = enums.asset.assetType
+    if (val) {
+      assetType = val.score
+    }
+    // this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'assetType', property: 'assetType', score: assetType, group: ASSET_GROUP});
+    val = enums.quote.leaseType
+    if (val) {
+      leaseType = val.score
+      // this.addToScoreDetails({scoreDetails, form: quote, formProperty: 'leaseType', property: 'leaseType', score: leaseType, group: ASSET_GROUP});
+    }
+    return {
+      asset,
+      usefulLife,
+      secondaryMarket,
+      relocation,
+      assetType,
+      leaseType
+    }
+  }
+  public async getDataForCompany({ asset, map, quote, creditReport, check, application, parentApp }) {
     creditReport = await this.bot.getResource(creditReport, {backlinks: ['generalData', 'accounts', 'commercialCredit' ]})
-    let { generalData, accounts } = creditReport
+    let { generalData, accounts, commercialCredit } = creditReport
     generalData = generalData  &&  await this.bot.getResource(generalData[0])
+
+    accounts = accounts && await Promise.all(accounts.map(r => this.bot.getResource(r)))
+
+    if (commercialCredit)
+      commercialCredit = await Promise.all(commercialCredit.map(r => this.bot.getResource(r)))
+
+    let enums = {
+      asset: {
+        usefulLife: this.getEnumValue(asset, 'usefulLife'),
+        secondaryMarket: this.getEnumValue(asset, 'secondaryMarket'),
+        relocationTime: this.getEnumValue(asset, 'relocationTime'),
+        assetType: this.getEnumValue(asset, 'assetType')
+      },
+      quote: {
+        leaseType: this.getEnumValue(quote, 'leaseType')
+      }
+    }
+    let legalEntity = map[LEGAL_ENTITY]
+    if (!legalEntity)
+      return
+    let financialDetails = map[COMPANY_FINANCIALS]
+    if (financialDetails)
+      financialDetails = pick(financialDetails, [TYPE, 'netProfitP', 'acidTest','leverage', 'technicalBankrupcy', 'workingCapitalRatio', 'indebtedness', 'returnOnEquity', 'returnOnAssets', 'operatingProfitP'])
+    if (Array.isArray(legalEntity)) legalEntity = legalEntity[0]
+    let companyCashflow = map[COMPANY_CASH_FLOW]
+    let inputData:any = {
+      enums,
+      generalData: {
+        [TYPE]: generalData[TYPE],
+        financialRating: generalData.financialRating
+      },
+      commercialCredit: {
+        commercialCredit: creditReport.commercialCredit
+      },
+      asset: {
+        [TYPE]: asset[TYPE],
+        usefulLife: asset.usefulLife,
+        secondaryMarket: asset.secondaryMarket,
+        relocationTime: asset.relocationTime,
+        assetType: asset.assetType,
+      },
+      financialDetails,
+      quote: {
+        [TYPE]: quote[TYPE],
+        term: quote.term,
+        leaseType: asset.leaseType
+      },
+      legalEntity: {
+        [TYPE]: legalEntity[TYPE],
+        registrationDate: legalEntity.registrationDate,
+        ownFacility: legalEntity.ownFacility
+      },
+      accountsData: accounts.map(acc => pick(acc, [TYPE, 'history', 'closedDate'])),
+    }
+    if (companyCashflow)
+      inputData.companyCashflow = {
+        extraEquipmentRatio: companyCashflow.extraEquipmentRatio
+      }
+
+    return {
+      inputData,
+      additionalData: {
+        commercialCredit,
+        generalData,
+        legalEntity,
+      }
+    }
+  }
+  public calcForCompany(params) {
+    const { asset, legalEntity, companyCashflow, financialDetails, accountsData, quote, generalData, enums } = params
     let financialRating = generalData  &&  generalData.financialRating
     let ratingInBureau = 0
     if (financialRating) {
@@ -340,14 +524,8 @@ export class ScoringReport {
     }
     else
       ratingInBureau = 2
-    this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'financialRating', property: 'ratingInBureau', score: ratingInBureau, group: CHARACTER_GROUP});
-    let recentAccounts = await this.calcAccountsForCompany(accounts, scoreDetails, generalData)
-    let commercialCredit = creditReport.commercialCredit
-    if (commercialCredit) {
-      commercialCredit = await Promise.all(commercialCredit.map(r => this.bot.getResource(r)))
-    }
-    let legalEntity = map[LEGAL_ENTITY]
-    if (legalEntity) legalEntity = legalEntity[0]
+    let recentAccounts = this.calcAccountsForCompany(accountsData)
+    let {recentMonthsInArrears, percentageOfGoodAccounts, worstMopThisYear, recentClosedAccounts, recentOpenedAccounts} = recentAccounts
     let yearsInOperation = 0, ownFacility = 0
     if (legalEntity) {
       if ((Date.now() - legalEntity.registrationDate) / ONE_YEAR_MILLIS > 2)
@@ -356,38 +534,30 @@ export class ScoringReport {
       if (legalEntity.ownFacility)
         ownFacility = 1
     }
-    this.addToScoreDetails({scoreDetails, form: legalEntity, formProperty: 'registrationDate', property: 'yearsInOperation', score: yearsInOperation, group: CHARACTER_GROUP});
-    this.addToScoreDetails({scoreDetails, form: legalEntity, formProperty: 'ownFacility', property: 'ownFacility', score: ownFacility, group: CHARACTER_GROUP});
 
-    let financialDetails = map[COMPANY_FINANCIALS]
     let companyFinancials
     let debtFactor
-    if (financialDetails) {
-      companyFinancials = this.calculateCompanyFinancials(financialDetails, scoreDetails)
-
-      debtFactor = map[COMPANY_CASH_FLOW]  &&  map[COMPANY_CASH_FLOW][0].extraEquipmentRatio
-      debtFactor = this.calcScore(debtFactor, this.conf.debtFactor)
-      this.addToScoreDetails({scoreDetails, form: map[COMPANY_CASH_FLOW], property: 'debtFactor', formProperty: 'extraEquipmentRatio', score: debtFactor, group: PAYMENT_GROUP});
-    }
-    const {asset, usefulLife, secondaryMarket, relocation, assetType, leaseType} = await this.getCommonScores(map, scoreDetails)
-    let { maxScores } = this.conf
-
-    let characterScore = 0
     let paymentScore = 0
-    let assetScore = 0
-    scoreDetails.forEach(r => {
-      let { group, score } = r
-      if (group === CHARACTER_GROUP)
-        characterScore += score
-      else if (group === PAYMENT_GROUP)
-        paymentScore += score
-      else if (group === ASSET_GROUP)
-        assetScore += score
-    })
-    if (financialDetails)
-      this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'paymentScore', score: paymentScore, group: PAYMENT_GROUP, total: true, maxScores});
-    this.addToScoreDetails({scoreDetails, form: asset, property: 'characterScore', score: characterScore, group: CHARACTER_GROUP, total: true, maxScores});
-    this.addToScoreDetails({scoreDetails, form: asset, property: 'assetScore', score: assetScore, group: ASSET_GROUP, total: true, maxScores});
+    let characterScore = 0
+    if (financialDetails) {
+      companyFinancials = this.calcCompanyFinancials(financialDetails)
+
+      debtFactor = companyCashflow && companyCashflow.extraEquipmentRatio
+      debtFactor = this.calcScore(debtFactor, this.conf.debtFactor)
+      paymentScore = debtFactor || 0
+      let exclude = {
+        profitable: true
+      }
+      for (let p in companyFinancials) {
+        if (!exclude[p])
+        paymentScore += companyFinancials[p]
+      }
+      characterScore = companyFinancials.profitable
+    }
+    const {usefulLife, secondaryMarket, relocation, assetType, leaseType} = this.getCommonScores({quote, asset, enums})
+
+    characterScore += (ratingInBureau + recentMonthsInArrears + percentageOfGoodAccounts + worstMopThisYear + recentClosedAccounts + recentOpenedAccounts + yearsInOperation + ownFacility)
+    let assetScore = usefulLife + secondaryMarket + relocation + assetType
     let totalScore = characterScore + paymentScore + assetScore
     let props:any = {
       ratingInBureau,
@@ -401,9 +571,6 @@ export class ScoringReport {
       leaseType,
       characterScore,
       paymentScore,
-      // hasLeasingExperience,
-      // cosignerCreditBureauScore,
-      // accounts: accountsPoints,
       totalScore,
       ...recentAccounts
     }
@@ -412,14 +579,94 @@ export class ScoringReport {
       props.debtFactor = debtFactor
     }
     props = sanitize(props).sanitized
-    this.addToScoreDetails({scoreDetails, property: 'totalScore', score: props.totalScore, total: true});
 
-    let score = await this.bot.draft({ type: resultForm }).set(props).signAndSave()
-    this.logger.debug(`creditScoreReport: created ${resultForm}`)
-    return { score, scoreDetails }
+    return props
   }
-  private async calcAccountsForCompany(accounts, scoreDetails, generalData) {
-    accounts = accounts && await Promise.all(accounts.map(r => this.bot.getResource(r)))
+  public createCompanyScoreDetails(props:any, data) {
+    const { map, asset, legalEntity, quote, generalData } = data
+    let scoreDetails = []
+    this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'financialRating', property: 'ratingInBureau', score: props.ratingInBureau, group: CHARACTER_GROUP});
+
+    let { maxScores } = this.conf
+    this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'recentMonthsInArrears', score: props.recentMonthsInArrears, group: CHARACTER_GROUP});
+    this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'percentageOfGoodAccounts', score: props.percentageOfGoodAccounts, group: CHARACTER_GROUP});
+    this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'worstMopThisYear', score: props.worstMopThisYear, group: CHARACTER_GROUP});
+    this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'recentOpenedAccounts', score: props.recentOpenedAccounts, group: CHARACTER_GROUP});
+    this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'recentClosedAccounts', score: props.recentClosedAccounts, group: CHARACTER_GROUP});
+
+    this.addToScoreDetails({scoreDetails, form: legalEntity, formProperty: 'registrationDate', property: 'yearsInOperation', score: props.yearsInOperation, group: CHARACTER_GROUP});
+    this.addToScoreDetails({scoreDetails, form: legalEntity, formProperty: 'ownFacility', property: 'ownFacility', score: props.ownFacility, group: CHARACTER_GROUP});
+
+    this.addToScoreDetails({scoreDetails, form: asset, property: 'characterScore', score: props.characterScore, group: CHARACTER_GROUP, total: true, maxScores});
+    this.addToScoreDetails({scoreDetails, form: asset, property: 'assetScore', score: props.assetScore, group: ASSET_GROUP, total: true, maxScores});
+
+    this.addToScoreDetails({scoreDetails, property: 'totalScore', score: props.totalScore, total: true});
+    this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'usefulLife', property: 'usefulLife', score: props.usefulLife, group: ASSET_GROUP});
+
+    this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'secondaryMarket', property: 'secondaryMarket', score: props.secondaryMarket, group: ASSET_GROUP});
+
+    this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'relocation', property: 'relocation', score: props.relocation, group: ASSET_GROUP});
+
+    this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'assetType', property: 'assetType', score: props.assetType, group: ASSET_GROUP});
+    if (props.leaseType) {
+      this.addToScoreDetails({scoreDetails, form: quote, formProperty: 'leaseType', property: 'leaseType', score: props.leaseType, group: ASSET_GROUP});
+    }
+    this.addToScoreDetails({scoreDetails, form: map[COMPANY_CASH_FLOW], property: 'debtFactor', formProperty: 'extraEquipmentRatio', score: props.debtFactor, group: PAYMENT_GROUP});
+    let financialDetails = map[COMPANY_FINANCIALS]
+    if (financialDetails) {
+      this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'paymentScore', score: props.paymentScore, group: PAYMENT_GROUP, total: true, maxScores});
+      this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'profitable', formProperty: 'netProfitP', score: props.profitable, group: CHARACTER_GROUP});
+      this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'liquidity', formProperty: 'acidTest', score: props.liquidity, group: PAYMENT_GROUP});
+      this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'leverage', formProperty: 'leverage', score: props.leverage, group: PAYMENT_GROUP});
+      this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'technicalBankrupcy', formProperty: 'technicalBankrupcy', score: props.technicalBankrupcy, group: PAYMENT_GROUP});
+      this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'workingCapitalRatio', formProperty: 'workingCapitalRatio', score: props.workingCapitalRatio, group: PAYMENT_GROUP});
+      this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'debtLevel', formProperty: 'indebtedness', score: props.debtLevel, group: PAYMENT_GROUP});
+      this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'returnOnAssets', formProperty: 'returnOnAssets', score: props.returnOnAssets, group: PAYMENT_GROUP});
+      this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'operatingIncomeMargin', formProperty: 'operatingIncomeMargin', score: props.operatingIncomeMargin, group: PAYMENT_GROUP});
+      this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'returnOnEquity', formProperty: 'returnOnEquity', score: props.returnOnEquity, group: PAYMENT_GROUP});
+      this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'netProfit', formProperty: 'netProfitP', score: props.netProfit, group: PAYMENT_GROUP});
+    }
+    return scoreDetails
+  }
+  public createIndividualScoreDetails(props:any, data) {
+    const { map, cbReport, cCheck, asset, quote } = data
+    let scoreDetails = []
+    this.addToScoreDetails({scoreDetails, form: map[APPLICANT_INFORMATION], formProperty: 'existingCustomerRating', property: 'existingCustomer', score: props.existingCustomer, group: CHARACTER_GROUP});
+
+    if (props.yearsAtWork) {
+      this.addToScoreDetails({scoreDetails, form: map[APPLICANT_MED_PROFESSION], formProperty: 'yearsAtWork', property: 'yearsAtWork', score: props.yearsAtWork, group: CHARACTER_GROUP});
+    }
+    if (props.yearsAtResidence) {
+      this.addToScoreDetails({scoreDetails, form: map[APPLICANT_ADDRESS], formProperty: 'yearsAtResidence', property: 'yearsAtResidence', score: props.yearsAtResidence, group: CHARACTER_GROUP});
+    }
+    this.addToScoreDetails({scoreDetails, form: cbReport && cbReport.creditScore, formProperty: 'scoreValue', property: 'creditBureauScore', score: props.creditBureauScore, group: CHARACTER_GROUP});
+
+    if (props.specialityCouncil) {
+      this.addToScoreDetails({scoreDetails, form: cCheck, formProperty: 'status', property: 'specialityCouncil', score: props.specialityCouncil, group: CHARACTER_GROUP});
+    }
+    let { maxScores } = this.conf
+    this.addToScoreDetails({scoreDetails, property: 'characterScore', score: props.characterScore, group: CHARACTER_GROUP, total: true, maxScores});
+
+    this.addToScoreDetails({scoreDetails, form: asset, property: 'assetScore', score: props.assetScore, group: ASSET_GROUP, total: true, maxScores});
+    this.addToScoreDetails({scoreDetails, property: 'totalScore', score: props.totalScore, total: true});
+    this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'usefulLife', property: 'usefulLife', score: props.usefulLife, group: ASSET_GROUP});
+
+    this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'secondaryMarket', property: 'secondaryMarket', score: props.secondaryMarket, group: ASSET_GROUP});
+
+    this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'relocation', property: 'relocation', score: props.relocation, group: ASSET_GROUP});
+
+    this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'assetType', property: 'assetType', score: props.assetType, group: ASSET_GROUP});
+    if (props.leaseType) {
+      this.addToScoreDetails({scoreDetails, form: quote, formProperty: 'leaseType', property: 'leaseType', score: props.leaseType, group: ASSET_GROUP});
+    }
+    if (props.capacityToPay) {
+      this.addToScoreDetails({scoreDetails, form: map[CASH_FLOW], formProperty: 'capacityToPayFactor', property: 'capacityToPay', score: props.capacityToPay, group: PAYMENT_GROUP});
+      this.addToScoreDetails({scoreDetails, form: map[CASH_FLOW], formProperty: 'capacityToPayFactor', property: 'paymentScore', score: props.capacityToPay, group: PAYMENT_GROUP, total: true, maxScores});
+    }
+    return scoreDetails
+  }
+
+  private calcAccountsForCompany(accounts) {
     if (!accounts) return {}
     let score = 2
     let goodAccounts = 0
@@ -445,20 +692,16 @@ export class ScoringReport {
         goodAccounts++
       let history12 = history.length > 12 ? history.slice(0, 12) : history
       if (!match4(history))
-      // if (hasDigitsBigerThan(history12, 4))
         last12monthsScore = 0
       else if (history12.indexOf('4') !== -1)
         last12monthsScore = last12monthsScore < 2 ? last12monthsScore : 1
     }
-    this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'recentMonthsInArrears', score, group: CHARACTER_GROUP});
+    let recentMonthsInArrears = score
+
     let percentageOfGoodAccounts = goodAccounts * 100/openedAccounts.length
     percentageOfGoodAccounts  = percentageOfGoodAccounts > 80 ? 2 : 0
-    this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'percentageOfGoodAccounts', score, group: CHARACTER_GROUP});
+
     worstMopThisYear = last12monthsScore
-    this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'worstMopThisYear', score: worstMopThisYear, group: CHARACTER_GROUP});
-    // calculate recentOpenedAccounts and recentClosedAccounts
-    // if (openedAccounts.length) openedAccounts.sort((a, b) => b.openingDate - a.openingDate)
-    // if (closedAccounts.length) closedAccounts.sort((a, b) => b.closedDate - a.closedDate)
     let {count: openCnt, accScores: openAccScores} = this.calcRecentCompanyAccounts(openedAccounts)
     let {count: closeCnt, accScores: closeAccScores} = this.calcRecentCompanyAccounts(closedAccounts)
     let coef = Math.round(12/(openCnt + closeCnt) * 100)/100
@@ -468,20 +711,12 @@ export class ScoringReport {
 
     let recentOpenedAccounts = coef * openedAccScoresSum / 100
     let recentClosedAccounts = coef * closedAccScoresSum / 100
-    this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'recentOpenedAccounts', score: recentOpenedAccounts, group: CHARACTER_GROUP});
-    this.addToScoreDetails({scoreDetails, form: generalData, formProperty: 'accounts', property: 'recentClosedAccounts', score: recentClosedAccounts, group: CHARACTER_GROUP});
-    return { recentOpenedAccounts, recentClosedAccounts, worstMopThisYear }
+    return { recentOpenedAccounts, recentClosedAccounts, worstMopThisYear, percentageOfGoodAccounts, recentMonthsInArrears }
   }
 
-  calculateCompanyFinancials(financialDetails, scoreDetails) {
-    if (!financialDetails)
+  calcCompanyFinancials(fDetail) {
+    if (!fDetail)
       return {}
-
-    // let profitable = 0, liquidity = 0, leverage = 0, technicalBankrupcy = 0, operatingIncomeMargin = 0,
-    //     workingCapitalRatio = 0, debtLevel = 0, returnOnEquity = 0, returnOnAssets = 0, netProfit = 0
-
-    const fDetail = financialDetails.find(detail => detail.year.id.endsWith('currentYear'))
-    if (!fDetail) return {}
 
     let profitable = fDetail.netProfitP || 0
     let liquidity = fDetail.acidTest || 0
@@ -494,25 +729,18 @@ export class ScoringReport {
     let operatingIncomeMargin = fDetail.operatingProfitP || 0
     let netProfit = fDetail.netProfitP || 0
 
-    // const flen = financialDetails.length
     profitable = profitable  ? 2 : 0
-    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'profitable', formProperty: 'netProfitP', score: profitable, group: CHARACTER_GROUP});
-
     liquidity = liquidity > 1 ? 2 : 0
-    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'liquidity', formProperty: 'acidTest', score: liquidity, group: PAYMENT_GROUP});
 
     if (leverage <= 60) leverage = 2
     else if (leverage < 71) leverage = 1
     else leverage = 0
-    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'leverage', formProperty: 'leverage', score: leverage, group: PAYMENT_GROUP});
 
     technicalBankrupcy = technicalBankrupcy < 33 ? 2 : 0
-    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'technicalBankrupcy', formProperty: 'technicalBankrupcy', score: technicalBankrupcy, group: PAYMENT_GROUP});
 
     if (workingCapitalRatio >= 2) workingCapitalRatio = 2
     else if (workingCapitalRatio < 2  &&  workingCapitalRatio > 1) workingCapitalRatio = 1
     else workingCapitalRatio = 0
-    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'workingCapitalRatio', formProperty: 'workingCapitalRatio', score: workingCapitalRatio, group: PAYMENT_GROUP});
 
     if (debtLevel < 60)
       debtLevel = 2
@@ -520,7 +748,6 @@ export class ScoringReport {
       debtLevel = 1
     else
       debtLevel = 0
-    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'debtLevel', formProperty: 'indebtedness', score: debtLevel, group: PAYMENT_GROUP});
 
     if (returnOnAssets >= 8)
       returnOnAssets = 2
@@ -529,15 +756,12 @@ export class ScoringReport {
     else
       returnOnAssets = 0
 
-    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'returnOnAssets', formProperty: 'returnOnAssets', score: returnOnAssets, group: PAYMENT_GROUP});
-
     if (operatingIncomeMargin > 5)
       operatingIncomeMargin = 2
     else if (operatingIncomeMargin >= 3 && operatingIncomeMargin <= 5)
       operatingIncomeMargin = 1
     else
       operatingIncomeMargin = 0
-    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'operatingIncomeMargin', formProperty: 'operatingIncomeMargin', score: operatingIncomeMargin, group: PAYMENT_GROUP});
 
     if (returnOnEquity >= 10)
       returnOnEquity = 2
@@ -546,12 +770,9 @@ export class ScoringReport {
     else
       returnOnEquity = 0
 
-    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'returnOnEquity', formProperty: 'returnOnEquity', score: returnOnEquity, group: PAYMENT_GROUP});
-
     if (netProfit > 10) netProfit = 2
     else if (netProfit < 10  &&  netProfit > 1) netProfit = 1
     else netProfit = 0
-    this.addToScoreDetails({scoreDetails, form: financialDetails, property: 'netProfit', formProperty: 'netProfitP', score: netProfit, group: PAYMENT_GROUP});
 
     return {
       profitable,
@@ -564,62 +785,6 @@ export class ScoringReport {
       returnOnAssets,
       operatingIncomeMargin,
       netProfit,
-    }
-  }
-  private async getCommonScores(map, scoreDetails) {
-    let quote = map[QUOTE]
-    let asset, usefulLife = 0, secondaryMarket = 0, relocation = 0, assetType = 0, leaseType = 0
-    if (!quote)
-      return {}
-    if (Array.isArray(quote)) {
-      if (!quote.length) return {}
-      quote = quote[0]
-    }
-    asset = await this.bot.getResource(quote.asset)
-    // const { usefulLife, secondaryMarket, relocationTime, assetType, leaseType } = asset
-
-    let val = this.getEnumValue(asset, 'usefulLife')
-    if (val) {
-      // let term = this.getEnumValue(qd, 'term', qd.term)
-      let term = parseInt(quote.term.title.split(' ')[0]) / 12
-      if (val.years > term)
-        usefulLife = 7
-      else if (val.years === term)
-        usefulLife = 5
-      else
-        usefulLife = 0
-    }
-    this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'usefulLife', property: 'usefulLife', score: usefulLife, group: ASSET_GROUP});
-
-    val = this.getEnumValue(asset, 'secondaryMarket')
-    if (val) {
-      secondaryMarket = val.score
-    }
-    this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'secondaryMarket', property: 'secondaryMarket', score: secondaryMarket, group: ASSET_GROUP});
-
-    val = this.getEnumValue(asset, 'relocationTime')
-    if (val) {
-      relocation = val.score
-    }
-    this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'relocation', property: 'relocation', score: relocation, group: ASSET_GROUP});
-
-    val = this.getEnumValue(asset, 'assetType')
-    if (val) {
-      assetType = val.score
-    }
-    this.addToScoreDetails({scoreDetails, form: asset, formProperty: 'assetType', property: 'assetType', score: assetType, group: ASSET_GROUP});
-    val = this.getEnumValue(quote, 'leaseType')
-    if (val) {
-      leaseType = val.score
-      this.addToScoreDetails({scoreDetails, form: quote, formProperty: 'leaseType', property: 'leaseType', score: leaseType, group: ASSET_GROUP});
-    }
-    return {
-      asset,
-      usefulLife,
-      secondaryMarket,
-      relocation,
-      assetType,
-      leaseType
     }
   }
   private async credentialsCheckPass(application, parent) {
@@ -686,7 +851,7 @@ export class ScoringReport {
       group,
       total,
       formProperty,
-      form: formStub,
+      form: form && formStub,
       max: total && maxScores && maxScores[property]
     }
     detail = sanitize(detail).sanitized
@@ -704,45 +869,13 @@ export class ScoringReport {
     })
     return pm.enum.find(e => e.id === eValueId)
   }
-  private async scoreFromCheckIndividual({item, isEndorser, check, creditReport}:{item:any, isEndorser?: boolean, check?:any, creditReport?:any}) {
-    const { creditBuroScoreForEndorser, creditBuroScoreForApplicant } = this.conf
-    const cbScoreMap = isEndorser ? creditBuroScoreForEndorser : creditBuroScoreForApplicant
-    if (item.status !== 'approved'  &&  item.status !== 'completed') return {}
-    if (!check) {
-      const { checks } = item
-      let cChecks:any = checks.filter(check => check[TYPE] === CREDIT_REPORT_CHECK)
-      if (!cChecks) return {}
 
-      cChecks = await Promise.all(cChecks.map(c => this.bot.getResource(c)))
-      cChecks.sort((a, b) => b._time - a._time)
-      check = cChecks[0]
-      creditReport = check.creditReport  &&  await this.bot.getResource(check.creditReport)
-      if (!creditReport) return {}
-    }
-
-    let creditBureauScore
-    if (creditReport.creditScore && creditReport.creditScore.length) {
-      let crCreditScore:any = await this.bot.getResource(creditReport.creditScore[0])
-
-      let ecbScore = crCreditScore.scoreValue
-      creditBureauScore = await this.calcScore(ecbScore, cbScoreMap)
-    }
-    if (isEndorser)
-      return { creditBureauScore }
-    let crAccounts = creditReport.accounts
-    if (!crAccounts  ||  !crAccounts.length) return {creditBureauScore, cbReport: creditReport }
-
-    let accounts:any = await Promise.all(crAccounts.map(a => this.bot.getResource(a)))
-    let accountsPoints =  this.calcAccounts(accounts)
-
-    return { creditBureauScore, accountsPoints, cbReport: creditReport }
-  }
   private calcAccounts(accounts) {
     let sumProps = ['totalMop2', 'totalMop3', 'totalMop4', 'totalMop5']
     let data = accounts.map(acc => {
       let sum = 0
       sumProps.forEach((p, i) => {
-        let v = acc[sumProps[i]]
+        let v = acc[p]
         if (!v)
           v = 0
         else  if (typeof v === 'string') {
@@ -912,7 +1045,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications, productsAP
 
       else app = application
       logger.debug('creditScoreReport is called for pending CB check')
-      await scoringReport.genCreditScoring({application:app, conf: conf.products.plugins.creditScoreReport, parentFormsStubs})
+      await scoringReport.runReport({application, parentFormsStubs, conf})
     },
     onFormsCollected: async ({ req }: { req: IPBReq }) => {
       let { application, parentFormsStubs } = req
@@ -920,26 +1053,35 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications, productsAP
       // if (!application || application.draft) return
       if (!application) return
       logger.debug('creditScoreReport is called onFormsCollected')
-      await scoringReport.genCreditScoring({application, conf, parentFormsStubs})
-      // debugger
+      const requestFor = application.requestFor
+      let { products } = conf
+      if (!products || !products[requestFor]) return
+
+      await scoringReport.runReport({application, parentFormsStubs, conf})
     },
     async onmessage(req: IPBReq) {
       let { application, payload, parentFormsStubs } = req
       if (payload[TYPE] !== DATA_BUNDLE_SUMBITTED) return
       logger.debug('creditScoreReport is called onmessage')
       debugger
-      await scoringReport.genCreditScoring({application, conf, parentFormsStubs})
+      await scoringReport.runReport({application, parentFormsStubs, conf})
     },
-    async didApproveApplication({ req }) {
-      const { application } = req
-      if (!application || !application.parent) return
+    // async didApproveApplication({ req }) {
+    //   const { application, parentFormsStubs } = req
+    //   if (!application || !application.parent) return
 
-      const requestFor = application.requestFor
+    //   const requestFor = application.requestFor
+    //   let { products } = conf
+    //   if (!products || !products[requestFor]) return
+    //   let inputData = await scoringReport.runReport({application, conf, parentFormsStubs, dataOnly: true})
 
-      let { products } = conf
-      if (!conf[requestFor] || !conf.sendTransaction) return
+    //   // send transaction on blockchain
+    //   // if (inputData.isCompany)
+    //   //   props = this.calcForCompany(inputData)
+    //   // else
+    //   //   props = this.calcForIndividual(inputData)
 
-    }
+    // }
   }
   return { plugin }
 }
