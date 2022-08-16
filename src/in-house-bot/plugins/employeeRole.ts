@@ -17,15 +17,19 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
   const plugin: IPluginLifecycleMethods = {
     async willRequestForm({ application, formRequest }) {
       if (!application || application.requestFor !== EMPLOYEE_ONBOARDING || formRequest.form !== EMPLOYEE_ROLE) return
-      let certificate = await bot.db.findOne({
-        select: ['link'],
-        filter: {
-          EQ: {
-            [TYPE]: MY_EMPLOYEE_ONBOARDING
-          }
-        }        
-      })
-      if (certificate) return
+      try {
+        let certificate = await bot.db.findOne({
+          select: ['link'],
+          filter: {
+            EQ: {
+              [TYPE]: MY_EMPLOYEE_ONBOARDING
+            }
+          }        
+        })
+        if (certificate) return
+      } catch(err) {
+        debugger
+      }
       if (!formRequest.prefill)
         formRequest.prefill = {[TYPE]: EMPLOYEE_ROLE}
       formRequest.prefill.role = enumValue({model: bot.models[EMPLOYEE_ROLES], value: 'admin'})
