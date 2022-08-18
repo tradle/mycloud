@@ -2,12 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.19](https://github.com/tradle/mycloud/compare/v4.0.18...v4.0.19) (2022-08-16)
-
-
-### Bug Fixes
-
-* for the very first employee ([f57e4b0](https://github.com/tradle/mycloud/commit/f57e4b0))
+## [4.0.20](https://github.com/tradle/mycloud/compare/v4.0.19...v4.0.20) (2022-08-18)
 
 
 
