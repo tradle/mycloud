@@ -1,3 +1,5 @@
+// plugin prepares data for 
+// plugin prepares data to send to smart contract
 import { pmt, pv, PaymentDueTime } from 'financial'
 import {
   CreatePlugin,
@@ -8,7 +10,6 @@ import {
 import { TYPE } from '@tradle/constants'
 
 const COST_OF_CAPITAL = 'tradle.credit.CostOfCapital'
-
 class LeasingTransationAPI {
   private bot: Bot
   constructor({ bot }) {
@@ -94,7 +95,7 @@ class LeasingTransationAPI {
     const { models } = this.bot
     let termProp = models[form[TYPE]].properties.term
     
-    let loan, lease
+    let loan, lease, leaseNew
     if (loanTerm) {
       loan = this.calcLoan({
         quote: {
@@ -114,7 +115,7 @@ class LeasingTransationAPI {
       })
     }
     else {
-      lease = this.calcLease({
+      let params = {
         quote: {
           term,
           factor,
@@ -139,8 +140,11 @@ class LeasingTransationAPI {
           presentValueFactor,
           monthlyRateLease,
         }                  
-      })
+      }
+      lease = this.calcLease(params)
+      leaseNew = this.calcLeaseNew(params)
     }
+
     return {lease, loan}
   }
   
@@ -283,44 +287,100 @@ class LeasingTransationAPI {
       }
     }
     return qd
-    // let d = new Date()
-    // let date = dateformat(d.getTime(), 'yyyy-mm-dd')
-  
-    // let data = [
-    //   {amount: -priceMx.value, date},
-    //   {amount: initPayment, date},
-    //   {amount: blindPayment, date}
-    // ]
-    // let m = d.getMonth()
-    // let firstMonth = deliveryTime.id.split('_')[1].split('dt')[1]
-  
-    // let numberOfMonthlyPayments = depositPercentage ?  termVal - 1 : termVal - 2
-  
-    // for (let j=0; j<numberOfMonthlyPayments; j++) {
-    //   this.nextMonth(d, j ? 1 : parseInt(firstMonth))
-    //   let md = dateformat(d.getTime(), 'yyyy-mm-dd')
-    //   data.push({amount: payPerMonth, date: md})
-    // }
-    // this.nextMonth(d, 1)
-    // data.push({amount: payPerMonth + qd.purchaseOptionPrice.value, date: dateformat(d.getTime(), 'yyyy-mm-dd')})
-  
-    // const {days, rate} = xirr(data)
-    // let xirrVal = Math.round(convertRate(rate, 365) * 100 * 100)/100
-  
-    // const irrData = data.map(d => d.amount)
-    // const irrRate = irr(irrData)
-    // let irrVal = Math.round(irrRate * 100 * 100)/100
-  
-    // end XIRR & IRR
-  
-    // extend(qd, {
-    //   minXIRR,
-    //   xirr: xirrVal,
-    //   irr: irrVal
-    // })
-    // qd = sanitize(qd).sanitized
-    // return qd
   }
+  calcLeaseNew({quote, asset, costOfCapital}) {
+    let {
+      term,
+      deliveryTime,
+      vatRate,
+      priceMx,
+      depositPercentage,
+      discountFromVendor,
+      blindDiscount,
+      depositValue,
+      delayedFunding,
+      fundedInsurance,
+      commissionFeePercent,
+    } = quote
+    let {
+      residualValuePerTerm,
+    } = asset
+    let {
+      // from CostOfCapital
+      monthlyRateLease,
+    } = costOfCapital
+  
+    let termVal = parseInt(term.title.split(' ')[0])
+  
+    let blindDiscountVal = blindDiscount/100
+  
+    let deposit = depositPercentage/100
+  
+    let dtID = deliveryTime.id.split('_')[1]
+    let deliveryTimeVal = dtID.split('dt')[1] - 1
+  
+    let commissionFeeCalculated = priceMx.value * commissionFeePercent / 100
+    let delayedFundingVal = delayedFunding && parseInt(delayedFunding.id.split('_df')[1]) || 0
+    let termIRR = termVal + deliveryTimeVal
+  
+    let monthlyPayment = pmt(monthlyRateLease, termVal, -priceMx.value / Math.pow((1 - monthlyRateLease), (deliveryTimeVal - delayedFundingVal)) * (1 - (deposit + blindDiscountVal)), residualValuePerTerm * priceMx.value, PaymentDueTime.End)
+    let insurance = fundedInsurance.value
+    let depositVal = depositValue && depositValue.value || 0
+    let initialPayment = depositPercentage === 0 ? monthlyPayment + insurance : depositVal / (1 + vatRate)
+    let initialPaymentVat = (initialPayment + commissionFeeCalculated) * vatRate
+
+    let vatQc =  mathRound((monthlyPayment + insurance) * vatRate)
+    let paymentFromVendor = (priceMx.value - depositVal) * discountFromVendor / 100
+    let totalInitialPayment = initialPayment &&  mathRound(commissionFeeCalculated + initialPayment + initialPaymentVat)
+        
+    let currency = priceMx.currency
+    let purchaseOptionPrice = residualValuePerTerm ? mathRound(priceMx.value * residualValuePerTerm) : 1
+    let totalPaymentLessInsuranceAndCommission = (totalInitialPayment - commissionFeeCalculated * (1+vatRate))+(monthlyPayment*(1+vatRate)*termVal) + purchaseOptionPrice
+    return {
+      termIRR,
+      initialPaymentVat: initialPaymentVat && {
+        value: mathRound(initialPaymentVat),
+        currency
+      },
+      totalPaymentLessInsuranceAndCommission: {
+        value: mathRound(totalPaymentLessInsuranceAndCommission),
+        currency 
+      },
+      totalInitialPayment: initialPayment && {
+        value: totalInitialPayment,
+        currency
+      },
+      initialPayment: {
+        value: mathRound(initialPayment),
+        currency
+      },
+      monthlyPaymentLease: {
+        value: mathRound(monthlyPayment),
+        currency
+      },
+      commissionFee: {
+        value: mathRound(commissionFeeCalculated),
+        currency
+      },
+      purchaseOptionPrice: {
+        value: residualValuePerTerm ? mathRound(priceMx.value * residualValuePerTerm) : 1,
+        currency
+      },
+      paymentFromVendor: paymentFromVendor && {
+        value: mathRound(paymentFromVendor),
+        currency
+      },
+      vatPerTerm: monthlyPayment && {
+        value: vatQc,
+        currency
+      },
+      totalPayment: {
+        value: mathRound(monthlyPayment + insurance + vatQc),
+        currency
+      },
+    }
+  }
+  
   calcLoan({quote, asset, costOfCapital}) {
     let {
       term,
@@ -404,7 +464,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf }) => {
     },
 //     async onmessage (req) {
 //       let { application, payload } = req
-//       if (!application || application.status !== 'approved') return
+//       if (!application) return
 //       const requestFor = application.requestFor
 
 //       let productConf = conf[requestFor]
