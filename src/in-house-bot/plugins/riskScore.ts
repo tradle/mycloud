@@ -228,9 +228,10 @@ class RiskScoreAPI {
       let checkOverride, checkOverridePre
       checks.forEach((check: any) => {
         let ctype = check[TYPE]
-        if (ctype === SPECIAL_APPROVAL_REQUIRED_CHECK) {
+        if (ctype === SPECIAL_APPROVAL_REQUIRED_CHECK) 
           checkOverride = check.checkOverride
-        } else if (ctype === PRE_SPECIAL_APPROVAL_CHECK) checkOverridePre = check.checkOverride
+        else if (ctype === PRE_SPECIAL_APPROVAL_CHECK) 
+          checkOverridePre = check.checkOverride
       })
       let bsaCode, ddr
       let { bsaList, ddrList } = this.conf

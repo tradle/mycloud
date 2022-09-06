@@ -207,7 +207,7 @@ class LeasingTransationAPI {
     let monthlyPayment = (priceMx.value - depositVal * (1 + blindDiscountVal) - (residualValuePerTerm * priceMx.value)/(1 + factorVPdelVR))/(1 + vatRate) * totalPercentage/termVal * (1 - blindDiscountVal)
   
     let insurance = fundedInsurance.value
-    let initialPayment = depositPercentage === 0 ? monthlyPayment + insurance : depositVal / (1 + vatRate)
+    let initialPayment = (depositPercentage === 0 ? monthlyPayment + insurance : depositVal) / (1 + vatRate)
   
     let commissionFeeCalculated = priceMx.value * commissionFeePercent / 100
     let initialPaymentVat = (initialPayment + commissionFeeCalculated) * vatRate
@@ -326,7 +326,7 @@ class LeasingTransationAPI {
     let monthlyPayment = pmt(monthlyRateLease, termVal, -priceMx.value / Math.pow((1 - monthlyRateLease), (deliveryTimeVal - delayedFundingVal)) * (1 - (deposit + blindDiscountVal)), residualValuePerTerm * priceMx.value, PaymentDueTime.End)
     let insurance = fundedInsurance.value
     let depositVal = depositValue && depositValue.value || 0
-    let initialPayment = depositPercentage === 0 ? monthlyPayment + insurance : depositVal / (1 + vatRate)
+    let initialPayment = (depositPercentage === 0 ? monthlyPayment + insurance : depositVal) / (1 + vatRate)
     let initialPaymentVat = (initialPayment + commissionFeeCalculated) * vatRate
 
     let vatQc =  mathRound((monthlyPayment + insurance) * vatRate)
