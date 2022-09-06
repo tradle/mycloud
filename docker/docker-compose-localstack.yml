@@ -1,4 +1,4 @@
-version: '2.1'
+version: '3.5'
 
 services:
   # dynamo:
@@ -14,7 +14,7 @@ services:
 
   # needed for mosca (local MQTT server)
   redis:
-    image: tradle/redis
+    image: redis:latest
     restart: always
     ports:
       - 6379:6379
@@ -22,27 +22,30 @@ services:
       - /data
 
   localstack:
-    image: localstack/localstack:0.9.0
+    image: localstack/localstack:0.14.2
     restart: always
+    platform: linux/arm64/v8
+    network_mode: bridge
     ports:
-      - "4567:4567"
-      - "4568:4568"
+      - "4566:4566"
+      - "4567:4566"
+      - "4568:4566"
       # - "4569:4569" # use dynalite instead
-      - "4570:4570"
-      - "4571:4571"
-      - "4572:4572"
-      - "4573:4573"
-      - "4574:4574"
-      - "4575:4575"
-      - "4576:4576"
-      - "4577:4577"
-      - "4578:4578"
-      - "4579:4579"
-      - "4580:4580"
-      - "4581:4581"
-      - "4582:4582"
-      - "4583:4583"
-      - "4584:4584"
+      - "4570:4566"
+      - "4571:4566"
+      - "4572:4566"
+      - "4573:4566"
+      - "4574:4566"
+      - "4575:4566"
+      - "4576:4566"
+      - "4577:4566"
+      - "4578:4566"
+      - "4579:4566"
+      - "4580:4566"
+      - "4581:4566"
+      - "4582:4566"
+      - "4583:4566"
+      - "4584:4566"
       - "8080:8080"
     environment:
       - SERVICES=${SERVICES- }
@@ -51,6 +54,7 @@ services:
       - LAMBDA_EXECUTOR=${LAMBDA_EXECUTOR- }
       - KINESIS_ERROR_PROBABILITY=${KINESIS_ERROR_PROBABILITY- }
       - DOCKER_HOST=unix:///var/run/docker.sock
+      - EXTRA_CORS_ALLOWED_ORIGINS=*
     volumes:
       - "$LOCALSTACK_DATA_DIR/main:/tmp/localstack/data"
       - "/var/run/docker.sock:/var/run/docker.sock"
@@ -63,13 +67,13 @@ services:
       - "$LOCALSTACK_DATA_DIR/dynalite:/db"
     command: dynalite --port 4569 --path /db
     user: root
-  tradle_web:
-    image: tradle/web-app:localstack
-    restart: always
-    container_name: tradle-web-app
-    restart: always
-    ports:
-      - "55555:80"
-    environment:
-      # if url contains any '~' characters, be sure to escape them:
-      - DEFAULT_TRADLE_SERVER_URL=${DEFAULT_TRADLE_SERVER_URL}
+#  tradle_web:
+#    image: tradle/web-app:localstack
+#    restart: always
+#    container_name: tradle-web-app
+#    restart: always
+#    ports:
+#      - "55555:80"
+#    environment:
+#      # if url contains any '~' characters, be sure to escape them:
+#      - DEFAULT_TRADLE_SERVER_URL=${DEFAULT_TRADLE_SERVER_URL}
