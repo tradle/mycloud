@@ -23,6 +23,7 @@ export const REGIONS = [
   'ap-south-1',
   'ap-southeast-2',
   'eu-central-1',
+  'eu-central-2',
   'me-south-1',
   'ap-east-1',
   'ap-southeast-1',
