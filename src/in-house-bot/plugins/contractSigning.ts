@@ -62,8 +62,8 @@ class ContractSigningAPI {
 
     locale = locale || 'en-US'
 
-    for (let i=0; i<formToProp.length; i++) {
-      let pair = formToProp[i]
+    formToProp.forEach(async (pair, i) => {
+      // let pair = formToProp[i]
       let formId = Object.keys(pair)[0]
       if (BUILT_IN_VARIABLES.includes(formId)) {
         contractText = this.insertBuiltInVariable(locale, org, formId, contractText)
@@ -107,7 +107,7 @@ class ContractSigningAPI {
         let title = getDisplayName({models, model: models[ref], resource: val})
         contractText = contractText.replace(placeholder, title)
       }
-    }
+    })
     return contractText
   }
   private insertBuiltInVariable(locale, org, variable, contractText) {
