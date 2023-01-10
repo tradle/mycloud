@@ -13,7 +13,7 @@ import { normalizeEnumForPrefill, getAllToExecute } from '../setProps-utils'
 
 const { TYPE, TYPES } = constants
 const { MONEY } = TYPES
-
+const CONTRACT = 'tradle.Contract'
 const CONTRACT_SIGNING = 'tradle.ContractSigning'
 const FORM_REQUEST = 'tradle.FormRequest'
 const PHOTO = 'tradle.Photo'
@@ -73,8 +73,12 @@ class ContractSigningAPI {
       let form = forms.find(f => f[TYPE] === formId)
       let placeholder = `{${formId}.${prop}}`
       if (!form || !form[prop]) {
-        contractText = contractText.replace(placeholder, '')
-        return
+        if (formId === CONTRACT)
+          form = contract
+        else {   
+          contractText = contractText.replace(placeholder, '')
+          return
+        }
       }
       let val = form[prop]
       if (isPrimitiveType(val)) {
@@ -223,22 +227,46 @@ export const createPlugin: CreatePlugin<void> = (components , { logger, conf }) 
 
       if (!stubsForContract.length) return
 
-      let formWithContractStub = stubsForContract.find(stub => contractMap.form === stub.type)
+      let formWithContractStub = stubsForContract.find(stub => contractMap.form === stub.type)      
       let daysStub = stubsForContract.find(stub => daysMap.form === stub.type)
       let termStub = stubsForContract.find(stub => termMap.form === stub.type)
 
       if (!formWithContractStub || !daysStub || !termStub) return
-
+      let arr = [formWithContractStub]
+      if (contractMap.form !== daysMap.form) 
+        arr.push(daysStub)
+      if (contractMap.form !== termMap.form && daysMap.form !== termMap.form)
+        arr.push(termStub) 
       let formWithContract, daysResource, termResource
       try {
-        ([formWithContract, daysResource, termResource] = await Promise.all([formWithContractStub, daysStub, termStub].map(stub => bot.getResource(stub))))
+        let result = await Promise.all(arr.map(stub => bot.getResource(stub)))
+        formWithContract = result[0]
+        if (contractMap.form === daysMap.form)
+          daysResource = formWithContract
+        else
+          daysResource = result[1]  
+        if (contractMap.form !== termMap.form && daysMap.form !== termMap.form) 
+          termResource = result[3]  
+        else if (contractMap.form !== termMap.form)
+          termResource = formWithContract
+        else
+          termResource = daysResource
       } catch (err) {
         debugger
         return
       }
-      let contract = formWithContract[contractMap.property]
-      if (!contract) return
-      contract = await bot.getResource(contract)
+      let contractType = formWithContract[contractMap.property]
+      if (!contractType) return
+      let contract = await bot.db.findOne({
+        filter: {
+          EQ: {
+            [TYPE]: CONTRACT,
+            current: true,
+            'contractType.id': `${contractType.id}`
+          },
+        }
+      })
+      if (!contract) return        
 
       let locale = _.get(orgConf.bot, 'defaultLocale')
       let org = _.get(orgConf, 'org')
@@ -262,7 +290,7 @@ export const createPlugin: CreatePlugin<void> = (components , { logger, conf }) 
       }
       _.extend(formRequest.prefill, {
         contractText,
-        title: contract.title,
+        title: contractType.title,
         daysTillFirstScheduledPayment: daysResource[daysMap.property] || 10,
         term
       })
