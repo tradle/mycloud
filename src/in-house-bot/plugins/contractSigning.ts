@@ -75,7 +75,7 @@ class ContractSigningAPI {
       if (!form || !form[prop]) {
         if (formId === CONTRACT)
           form = contract
-        else {   
+        else {
           contractText = contractText.replace(placeholder, '')
           return
         }
@@ -151,7 +151,7 @@ export const createPlugin: CreatePlugin<void> = (components , { logger, conf }) 
       const { form, settings, moreSettings, additionalFormsFromProps } = productConf
       if (!form  ||  !settings || !settings.length) return
       let allSettings = _.cloneDeep(settings)
-      if (moreSettings.totalInitialPayment)
+      if (moreSettings  &&  moreSettings.totalInitialPayment)
         allSettings.push(moreSettings.totalInitialPayment)
 
       let model = bot.models[form]
@@ -227,16 +227,16 @@ export const createPlugin: CreatePlugin<void> = (components , { logger, conf }) 
 
       if (!stubsForContract.length) return
 
-      let formWithContractStub = stubsForContract.find(stub => contractMap.form === stub.type)      
+      let formWithContractStub = stubsForContract.find(stub => contractMap.form === stub.type)
       let daysStub = stubsForContract.find(stub => daysMap.form === stub.type)
       let termStub = stubsForContract.find(stub => termMap.form === stub.type)
 
       if (!formWithContractStub || !daysStub || !termStub) return
       let arr = [formWithContractStub]
-      if (contractMap.form !== daysMap.form) 
+      if (contractMap.form !== daysMap.form)
         arr.push(daysStub)
       if (contractMap.form !== termMap.form && daysMap.form !== termMap.form)
-        arr.push(termStub) 
+        arr.push(termStub)
       let formWithContract, daysResource, termResource
       try {
         let result = await Promise.all(arr.map(stub => bot.getResource(stub)))
@@ -244,9 +244,9 @@ export const createPlugin: CreatePlugin<void> = (components , { logger, conf }) 
         if (contractMap.form === daysMap.form)
           daysResource = formWithContract
         else
-          daysResource = result[1]  
-        if (contractMap.form !== termMap.form && daysMap.form !== termMap.form) 
-          termResource = result[3]  
+          daysResource = result[1]
+        if (contractMap.form !== termMap.form && daysMap.form !== termMap.form)
+          termResource = result[3]
         else if (contractMap.form !== termMap.form)
           termResource = formWithContract
         else
@@ -266,7 +266,7 @@ export const createPlugin: CreatePlugin<void> = (components , { logger, conf }) 
           },
         }
       })
-      if (!contract) return        
+      if (!contract) return
 
       let locale = _.get(orgConf.bot, 'defaultLocale')
       let org = _.get(orgConf, 'org')
