@@ -2,19 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.23](https://github.com/tradle/mycloud/compare/v4.0.22...v4.0.23) (2023-01-06)
-
-
-### Bug Fixes
-
-* error in filling up the template ([2ef2589](https://github.com/tradle/mycloud/commit/2ef2589))
-* new style calculations for lease ([f2b2563](https://github.com/tradle/mycloud/commit/f2b2563))
+## [4.0.24](https://github.com/tradle/mycloud/compare/v4.0.23...v4.0.24) (2023-01-10)
 
 
 ### Features
 
-* adding 'eu-central-2' endpoint ([5c0e7da](https://github.com/tradle/mycloud/commit/5c0e7da))
-* adopting to work with apple M1 chip ([03b1a5d](https://github.com/tradle/mycloud/commit/03b1a5d))
+* contract signing project ([a93ad9d](https://github.com/tradle/mycloud/commit/a93ad9d))
 
 
 
