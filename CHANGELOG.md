@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.25](https://github.com/tradle/mycloud/compare/v4.0.24...v4.0.25) (2023-01-10)
+## [4.0.26](https://github.com/tradle/mycloud/compare/v4.0.25...v4.0.26) (2023-01-12)
 
 
 ### Bug Fixes
 
-* some configuration props are not set ([267988e](https://github.com/tradle/mycloud/commit/267988e))
+* date needs to be formatted in contract ([ebe23a1](https://github.com/tradle/mycloud/commit/ebe23a1))
 
 
 
