@@ -3,6 +3,7 @@ import _ from 'lodash'
 import constants from '@tradle/constants'
 import { title as getDisplayName } from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
+import dateformat from 'dateformat'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
@@ -82,12 +83,16 @@ class ContractSigningAPI {
       }
       let val = form[prop]
       if (isPrimitiveType(val)) {
-        contractText = contractText.replace(placeholder, val)
+        let ptype = models[formId].properties[prop].type
+        if (ptype === 'date') 
+          contractText = dateformat(val, 'yyyy-mm-dd')        
+        else
+          contractText = contractText.replace(placeholder, val)
         return
       }
       let { ref, signature } = models[formId].properties[prop]
-      if (!ref)
-        contractText = contractText.replace(placeholder, val.toString())
+      if (!ref) 
+      contractText = contractText.replace(placeholder, val.toString())      
       else if (ref === MONEY) {
         let v = new Intl.NumberFormat(locale, { style: 'currency', currency: val.currency }).format(val.value)
         contractText = contractText.replace(placeholder, v)
