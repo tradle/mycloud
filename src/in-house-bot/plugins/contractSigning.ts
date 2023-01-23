@@ -84,10 +84,9 @@ class ContractSigningAPI {
       let val = form[prop]
       if (isPrimitiveType(val)) {
         let ptype = models[formId].properties[prop].type
-        if (ptype === 'date') 
-          contractText = dateformat(val, 'yyyy-mm-dd')        
-        else
-          contractText = contractText.replace(placeholder, val)
+        if (ptype === 'date')  
+          val = dateformat(val, 'yyyy-mm-dd')        
+        contractText = contractText.replace(placeholder, val)
         return
       }
       let { ref, signature } = models[formId].properties[prop]
