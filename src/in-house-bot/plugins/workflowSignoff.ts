@@ -1,3 +1,4 @@
+// renamed from leasingSignoff
 import uniqBy from 'lodash/uniqBy'
 import {
   CreatePlugin,
@@ -16,11 +17,12 @@ import { TYPE } from '@tradle/constants'
 import { getEnumValueId } from '../../utils'
 import { getLatestChecks, isSubClassOf } from '../utils'
 import { Errors } from '../..'
+import { appLinks } from '../../app-links'
 const STATUS = 'tradle.Status'
 const OVERRIDE_STATUS = 'tradle.OverrideStatus'
 const CHECK_OVERRIDE = 'tradle.CheckOverride'
 
-class LeasingSignoffAPI {
+class WorkflowSignoffAPI {
   private bot: Bot
   private logger: Logger
   private applications: Applications
@@ -31,7 +33,7 @@ class LeasingSignoffAPI {
     this.logger = logger
     this.conf = conf
   }
-  public async checkAndCreate({application}) {
+  public async checkAndCreate({application, templates}) {
     const { bot, conf, logger } = this
     let { checks, checksOverride, requestFor } = application
     const productConf = conf.products[requestFor]
@@ -42,9 +44,8 @@ class LeasingSignoffAPI {
     const { models } = this.bot
 
     if (!checks) {
-      return await this.createSignoffChecks({application, signoffChecks})
+      return await this.createSignoffChecks({application, signoffChecks, templates})
     }
-
     // Checks were created already
     let signOffChecksCount = 0
     checks.forEach(check => signoffChecks[check[TYPE]] && signOffChecksCount++)
@@ -66,13 +67,14 @@ class LeasingSignoffAPI {
       }
       if (getEnumValueId({model: models[OVERRIDE_STATUS], value: override.status}) !== 'pass') return
     }
-    return await this.createSignoffChecks({application, signoffChecks, checks, latestChecks})
+    return await this.createSignoffChecks({application, signoffChecks, checks, latestChecks, templates})
   }
-  async createSignoffChecks({application, signoffChecks, checks, latestChecks}:{
+  async createSignoffChecks({application, signoffChecks, checks, latestChecks, templates}:{
     application: IPBApp,
     signoffChecks:any,
     checks?:ITradleCheck[],
-    latestChecks?:ITradleCheck[]}
+    latestChecks?:ITradleCheck[]
+    templates?: string[]}
     ) {
 
     let soChecks = []
@@ -84,6 +86,21 @@ class LeasingSignoffAPI {
         dateChecked: new Date().getTime(),
         aspects: signoffChecks[checkId],
       }
+      if (templates && templates.length) {
+        let templateName = checkId.split('.').pop()
+        let template = templates.find(t => t['html'].split('.')[0] === templateName)
+        if (template) {
+          let extraQueryParams = { template } //, provider: await this.bot.getMyPermalink()}
+          resource.documentToBeNotarised = appLinks.getResourceLink({
+            type: application[TYPE],
+            baseUrl: '',
+            platform: 'web',
+            permalink: application._permalink,
+            link: application._link,
+            ...extraQueryParams
+          })
+        }
+      }
       this.logger.debug(`creating ${checkId}`)
       soChecks.push(this.applications.createCheck(resource, {application, checks, latestChecks}))
     }
@@ -91,15 +108,16 @@ class LeasingSignoffAPI {
   }
 
 }
-export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
-  const leasingSignoff = new LeasingSignoffAPI({ bot, conf, applications, logger })
+export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) => {
+  const { bot, applications, conf:botConf } = components
+  const WorkflowSignoff = new WorkflowSignoffAPI({ bot, conf, applications, logger })
   const plugin: IPluginLifecycleMethods = {
     async onFormsCollected({ req }) {
       const { application } = req
       if (!application ||  application.status === 'approved') return
       if (application.processingDataBundle) return
-
-      await leasingSignoff.checkAndCreate({application})
+      let templates = botConf.bot['templates'] //.filter(t => t.notarizable && t.applicationFor === application.requestFor).map(t => t.title)
+      await WorkflowSignoff.checkAndCreate({application, templates})
     },
     async onmessage(req) {
       const { application, payload } = req

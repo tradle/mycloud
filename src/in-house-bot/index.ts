@@ -772,7 +772,7 @@ export const loadComponentsAndPlugins = ({
       'sme-auto-approve',
       'attestation',
       'leasingQuotes',
-      'leasingSignoff',
+      'workflowSignoff',
       'giinCheck',
       'vatCheck',
       // 'invoicing'
