@@ -2,13 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.30](https://github.com/tradle/mycloud/compare/v4.0.29...v4.0.30) (2023-01-31)
+## [4.0.31](https://github.com/tradle/mycloud/compare/v4.0.30...v4.0.31) (2023-01-31)
 
 
-### Features
+### Bug Fixes
 
-* insert array props in markdown ([4931e90](https://github.com/tradle/mycloud/commit/4931e90))
-* notarization ([b780ef3](https://github.com/tradle/mycloud/commit/b780ef3))
+* notarization ([e1fd225](https://github.com/tradle/mycloud/commit/e1fd225))
 
 
 
