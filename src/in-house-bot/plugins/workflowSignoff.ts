@@ -21,6 +21,7 @@ import { appLinks } from '../../app-links'
 const STATUS = 'tradle.Status'
 const OVERRIDE_STATUS = 'tradle.OverrideStatus'
 const CHECK_OVERRIDE = 'tradle.CheckOverride'
+const EXCLUDE_CHECKS = ['tradle.ClientEditsCheck']
 
 class WorkflowSignoffAPI {
   private bot: Bot
@@ -57,9 +58,11 @@ class WorkflowSignoffAPI {
     for (let j=0; j<latestChecks.length; j++) {
       let check = latestChecks[j]
       let checkType = check[TYPE]
+      if (EXCLUDE_CHECKS.indexOf(checkType) !== -1)
+        continue
       let status = getEnumValueId({model: models[STATUS], value: check.status})
       if (status === 'pass') continue
-
+    
       let override = checksOverride && checksOverride.find(co => co[TYPE] === `${checkType}Override`)
       if (!override) {
         logger.debug(`No check override for failed ${models[checkType].title}`)
@@ -133,20 +136,25 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
       const ptype = payload[TYPE]
       const { models } = bot
       if (!isSubClassOf(CHECK_OVERRIDE, models[ptype], models)) return
-      if (getEnumValueId({model: models[OVERRIDE_STATUS], value: payload.status}) !== 'fail') return
-      
-      let checkId = ptype.slice(0, -8)
-      if (!signoffChecks[checkId]) return
 
-      let resource: any = {
-        [TYPE]: checkId,
-        status: 'pending',
-        application,
-        dateChecked: new Date().getTime(),
-        aspects: signoffChecks[checkId],
-      }
-      logger.debug(`creating ${checkId}`)
-      await applications.createCheck(resource, {application})     
+      let checkId = ptype.slice(0, -8)
+      const checkStatus = getEnumValueId({model: models[OVERRIDE_STATUS], value: payload.status})
+      if (checkStatus !== 'fail') 
+        if (signoffChecks[checkId]) return
+      
+      if (checkStatus !== 'pass') 
+        return        
+      let templates = botConf.bot['templates']
+      await WorkflowSignoff.checkAndCreate({application, templates})
+      // let resource: any = {
+      //   [TYPE]: checkId,
+      //   status: 'pending',
+      //   application,
+      //   dateChecked: new Date().getTime(),
+      //   aspects: signoffChecks[checkId],
+      // }
+      // logger.debug(`creating ${checkId}`)
+      // await applications.createCheck(resource, {application})     
     },
     async willApproveApplication (opts: IWillJudgeAppArg) {
       const { application } = opts
