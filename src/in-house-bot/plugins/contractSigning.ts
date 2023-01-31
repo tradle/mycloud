@@ -35,7 +35,7 @@ class ContractSigningAPI {
   public async fillTheContract(contract, stubs, locale, org) {
     let { contractText } = contract
     const { models } = this.bot
-    var regex = /\{(.*?)\}/g;
+    const regex = /\{(.*?)\}/g;
     let matches = contractText.match(regex)
     if (!matches) return contractText
     let formToProp = []
@@ -89,9 +89,15 @@ class ContractSigningAPI {
         contractText = contractText.replace(placeholder, val)
         return
       }
-      let { ref, signature } = models[formId].properties[prop]
-      if (!ref) 
-      contractText = contractText.replace(placeholder, val.toString())      
+      let { ref, signature, type } = models[formId].properties[prop]
+      if (!ref) {
+        if (type === 'array') {
+          let s = ''
+          val.forEach(v => s += `\n${getDisplayName({models, resource: v})}`)
+          val = s
+        }
+        contractText = contractText.replace(placeholder, val.toString())      
+      }
       else if (ref === MONEY) {
         let v = new Intl.NumberFormat(locale, { style: 'currency', currency: val.currency }).format(val.value)
         contractText = contractText.replace(placeholder, v)
