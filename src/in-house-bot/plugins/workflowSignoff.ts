@@ -93,7 +93,7 @@ class WorkflowSignoffAPI {
         let templateName = checkId.split('.').pop()
         let template = templates.find(t => t['html'].split('.')[0] === templateName)
         if (template) {
-          let extraQueryParams = { template } //, provider: await this.bot.getMyPermalink()}
+          let extraQueryParams = { template: template['title'] } //, provider: await this.bot.getMyPermalink()}
           resource.documentToBeNotarised = appLinks.getResourceLink({
             type: application[TYPE],
             baseUrl: '',

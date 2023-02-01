@@ -5,6 +5,7 @@ import extend from 'lodash/extend'
 import { CreatePlugin, IPBReq, IPluginLifecycleMethods, ValidatePluginConf } from '../types'
 import { TYPE } from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
+import { buildResourceStub } from '@tradle/build-resource'
 import { isSubClassOf, getLatestForms } from '../utils'
 import { normalizeEnumForPrefill, getAllToExecute, getForms } from '../setProps-utils'
 
@@ -262,8 +263,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let productConf = conf[requestFor]
       if (!productConf) return
 
-      let ftype = formRequest.form
-      let model = bot.models[ftype]
+      const ftype = formRequest.form
+      const { models } = bot
+      const model = models[ftype]
       if (!model) return
       let formConditions = productConf.find(f => typeof f !== 'string' && f[ftype])
 
@@ -282,12 +284,16 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         model,
         logger
       })
-
+      
       let prefill = {}
       allFormulas.forEach(async val => {
         let [propName, formula] = val
         try {
           let value = new Function('forms', 'application', `return ${formula}`)(forms, application)
+          if (typeof value === 'object') {
+            if (value[TYPE] && !models[value[TYPE]].enum)
+              value = buildResourceStub({resource: value, model: models[value[TYPE]], models})
+          }
           prefill[propName] = value
         } catch (err) {
           debugger
