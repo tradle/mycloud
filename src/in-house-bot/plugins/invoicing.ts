@@ -1,50 +1,44 @@
 import size from 'lodash/size'
-import cloneDeep from 'lodash/cloneDeep'
-import extend from 'lodash/extend'
 
 import {
   CreatePlugin,
   IWillJudgeAppArg,
-  IPBReq,
   IPluginLifecycleMethods,
   ITradleObject,
-  ValidatePluginConf
 } from '../types'
 import { TYPE } from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { parseStub, sanitize } = validateResource.utils
-import { normalizeEnumForPrefill, getAllToExecute, getForms } from '../setProps-utils'
+import { normalizeEnumForPrefill, getAllToExecute } from '../setProps-utils'
 
 export const name = 'invoicing'
 const FORM_REQUEST = 'tradle.FormRequest'
-const ENUM = 'tradle.Enum'
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
   const plugin: IPluginLifecycleMethods = {
-    name: 'invoicing',
-    async willRequestForm({ application, formRequest }) {
+    name: 'invoicing',  
+    async didApproveApplication(opts: IWillJudgeAppArg, certificate: ITradleObject) {
+      const { application, user, req } = opts
+    // async onmessage(req: IPBReq) {
+    //   const { payload, application, user } = req
+      // debugger
       if (!application) return
 
       const { requestFor } = application
       let productConf = conf[requestFor]
       if (!productConf) return
 
-      const { form, settings, moreSettings, additionalFormsFromProps } = productConf
+      const { form, settings, additionalFormsFromProps } = productConf
       if (!form  ||  !settings || !settings.length) return
-      if (formRequest.form !== form) return
-
-      let allSettings = cloneDeep(settings)
-      if (moreSettings  &&  moreSettings.totalInitialPayment)
-        allSettings.push(moreSettings.totalInitialPayment)
 
       let model = bot.models[form]
       if (!model) return
 
-      let { allFormulas = [], forms } = await getAllToExecute({
+      let { allForms, allFormulas = [], forms } = await getAllToExecute({
         application,
         bot,
-        settings: allSettings,
+        settings,
         model,
         logger,
         additionalFormsFromProps
@@ -71,78 +65,22 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!size(prefill)) return
 
       normalizeEnumForPrefill({ form: prefill, model: bot.models[form], models: bot.models })
-      if (!formRequest.prefill) {
-        formRequest.prefill = {
-          [TYPE]: form,
-        }
+
+      let item = {
+        [TYPE]: FORM_REQUEST,
+        form,
+        product: requestFor,
+        message: 'Please review and confirm receiving the invoice',
+        prefill
       }
-      extend(formRequest.prefill, prefill)
-      formRequest.message = 'Please review and confirm receiving the invoice'
-    },
-  
-    // async didApproveApplication(opts: IWillJudgeAppArg, certificate: ITradleObject) {
-    //   const { application, user, req } = opts
-    // // async onmessage(req: IPBReq) {
-    // //   const { payload, application, user } = req
-    //   // debugger
-    //   if (!application) return
-
-    //   const { requestFor } = application
-    //   let productConf = conf[requestFor]
-    //   if (!productConf) return
-
-    //   const { form, settings, additionalFormsFromProps } = productConf
-    //   if (!form  ||  !settings || !settings.length) return
-
-    //   let model = bot.models[form]
-    //   if (!model) return
-
-    //   let { allForms, allFormulas = [], forms } = await getAllToExecute({
-    //     application,
-    //     bot,
-    //     settings,
-    //     model,
-    //     logger,
-    //     additionalFormsFromProps
-    //   })
-
-    //   let prefill = {
-    //     [TYPE]: form
-    //   }
-    //   let allSet = true
-    //   allFormulas.forEach(async val => {
-    //     let [propName, formula] = val
-    //     try {
-    //       let value = new Function('forms', 'application', `return ${formula}`)(forms, application)
-    //       prefill[propName] = value
-    //     } catch (err) {
-    //       allSet = false
-    //       debugger
-    //     }
-    //   })
-
-    //   // if (!allSet) return
-
-    //   prefill = sanitize(prefill).sanitized
-    //   if (!size(prefill)) return
-
-    //   normalizeEnumForPrefill({ form: prefill, model: bot.models[form], models: bot.models })
-
-    //   let item = {
-    //     [TYPE]: FORM_REQUEST,
-    //     form,
-    //     product: requestFor,
-    //     message: 'Please review and confirm receiving the invoice',
-    //     prefill
-    //   }
-    //   await applications.requestItem({
-    //     item,
-    //     application,
-    //     req,
-    //     user,
-    //     message: 'Please review and confirm'
-    //   })
-    // }
+      await applications.requestItem({
+        item,
+        application,
+        req,
+        user,
+        message: 'Please review and confirm'
+      })
+    }
   }
   return {
     plugin
@@ -286,26 +224,82 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 //   return formula
 // }
 
-export const validateConf: ValidatePluginConf = async ({ bot, pluginConf }) => {
-  const { models } = bot
-  for (let p in pluginConf) {
-    const { form, settings } = pluginConf[p]
-    debugger
-    if (!form || !settings)
-      throw new Error(`the configuration must have two properties 'settings' and 'form'`)
+// export const validateConf: ValidatePluginConf = async ({ bot, pluginConf }) => {
+//   const { models } = bot
+//   for (let p in pluginConf) {
+//     const { form, settings } = pluginConf[p]
+//     debugger
+//     if (!form || !settings)
+//       throw new Error(`the configuration must have two properties 'settings' and 'form'`)
 
-    if (!models[form])
-      throw new Error(`Invalid 'form': ${form}`)
+//     if (!models[form])
+//       throw new Error(`Invalid 'form': ${form}`)
 
-    settings.forEach(formula => {
-      if (!formula.startsWith('set:'))
-        throw new Error(`formula ${formula} is invalid, it should start with the keyword 'set'`)
+//     settings.forEach(formula => {
+//       if (!formula.startsWith('set:'))
+//         throw new Error(`formula ${formula} is invalid, it should start with the keyword 'set'`)
 
-      let forms = getForms(formula)
-      if (!forms.length) return
-      forms.forEach(f => {
-        if (!models[f]) throw new Error(`missing model: ${f}`)
-      })
-    })
-  }
-}
+//       let forms = getForms(formula)
+//       if (!forms.length) return
+//       forms.forEach(f => {
+//         if (!models[f]) throw new Error(`missing model: ${f}`)
+//       })
+//     })
+//   }
+// }
+    // async willRequestForm({ application, formRequest }) {
+    //   if (!application) return
+
+    //   const { requestFor } = application
+    //   let productConf = conf[requestFor]
+    //   if (!productConf) return
+
+    //   const { form, settings, moreSettings, additionalFormsFromProps } = productConf
+    //   if (!form  ||  !settings || !settings.length) return
+    //   if (formRequest.form !== form) return
+
+    //   let allSettings = cloneDeep(settings)
+    //   if (moreSettings  &&  moreSettings.totalInitialPayment)
+    //     allSettings.push(moreSettings.totalInitialPayment)
+
+    //   let model = bot.models[form]
+    //   if (!model) return
+
+    //   let { allFormulas = [], forms } = await getAllToExecute({
+    //     application,
+    //     bot,
+    //     settings: allSettings,
+    //     model,
+    //     logger,
+    //     additionalFormsFromProps
+    //   })
+
+    //   let prefill = {
+    //     [TYPE]: form
+    //   }
+    //   let allSet = true
+    //   allFormulas.forEach(async val => {
+    //     let [propName, formula] = val
+    //     try {
+    //       let value = new Function('forms', 'application', `return ${formula}`)(forms, application)
+    //       prefill[propName] = value
+    //     } catch (err) {
+    //       allSet = false
+    //       debugger
+    //     }
+    //   })
+
+    //   // if (!allSet) return
+
+    //   prefill = sanitize(prefill).sanitized
+    //   if (!size(prefill)) return
+
+    //   normalizeEnumForPrefill({ form: prefill, model: bot.models[form], models: bot.models })
+    //   if (!formRequest.prefill) {
+    //     formRequest.prefill = {
+    //       [TYPE]: form,
+    //     }
+    //   }
+    //   extend(formRequest.prefill, prefill)
+    //   formRequest.message = 'Please review and confirm receiving the invoice'
+    // },
