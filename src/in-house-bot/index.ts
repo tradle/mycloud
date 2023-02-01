@@ -775,7 +775,7 @@ export const loadComponentsAndPlugins = ({
       'workflowSignoff',
       'giinCheck',
       'vatCheck',
-      // 'invoicing'
+      'invoicing'
     ].forEach((name) => attachPlugin({ name }))
       ;[
         'hand-sig',

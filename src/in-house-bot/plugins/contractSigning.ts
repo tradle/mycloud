@@ -148,71 +148,71 @@ export const createPlugin: CreatePlugin<void> = (components , { logger, conf }) 
 
   const plugin: IPluginLifecycleMethods = {
 
-    async onmessage(req:IPBReq) {
-      const { application, user, payload } = req
-      if (!application) return
-      if (payload[TYPE] !== CONTRACT_SIGNING) return
-      // debugger
+    // async onmessage(req:IPBReq) {
+    //   const { application, user, payload } = req
+    //   if (!application) return
+    //   if (payload[TYPE] !== CONTRACT_SIGNING) return
+    //   // debugger
 
-      const { requestFor } = application
-      let productConf = conf[requestFor]
-      if (!productConf) return
+    //   const { requestFor } = application
+    //   let productConf = conf[requestFor]
+    //   if (!productConf) return
 
-      const { form, settings, moreSettings, additionalFormsFromProps } = productConf
-      if (!form  ||  !settings || !settings.length) return
-      let allSettings = _.cloneDeep(settings)
-      if (moreSettings  &&  moreSettings.totalInitialPayment)
-        allSettings.push(moreSettings.totalInitialPayment)
+    //   const { form, settings, moreSettings, additionalFormsFromProps } = productConf
+    //   if (!form  ||  !settings || !settings.length) return
+    //   let allSettings = _.cloneDeep(settings)
+    //   if (moreSettings  &&  moreSettings.totalInitialPayment)
+    //     allSettings.push(moreSettings.totalInitialPayment)
 
-      let model = bot.models[form]
-      if (!model) return
+    //   let model = bot.models[form]
+    //   if (!model) return
 
-      let { allFormulas = [], forms } = await getAllToExecute({
-        application,
-        bot,
-        settings: allSettings,
-        model,
-        logger,
-        additionalFormsFromProps
-      })
+    //   let { allFormulas = [], forms } = await getAllToExecute({
+    //     application,
+    //     bot,
+    //     settings: allSettings,
+    //     model,
+    //     logger,
+    //     additionalFormsFromProps
+    //   })
 
-      let prefill = {
-        [TYPE]: form
-      }
-      let allSet = true
-      allFormulas.forEach(async val => {
-        let [propName, formula] = val
-        try {
-          let value = new Function('forms', 'application', `return ${formula}`)(forms, application)
-          prefill[propName] = value
-        } catch (err) {
-          allSet = false
-          debugger
-        }
-      })
+    //   let prefill = {
+    //     [TYPE]: form
+    //   }
+    //   let allSet = true
+    //   allFormulas.forEach(async val => {
+    //     let [propName, formula] = val
+    //     try {
+    //       let value = new Function('forms', 'application', `return ${formula}`)(forms, application)
+    //       prefill[propName] = value
+    //     } catch (err) {
+    //       allSet = false
+    //       debugger
+    //     }
+    //   })
 
-      // if (!allSet) return
+    //   // if (!allSet) return
 
-      prefill = sanitize(prefill).sanitized
-      if (!_.size(prefill)) return
+    //   prefill = sanitize(prefill).sanitized
+    //   if (!_.size(prefill)) return
 
-      normalizeEnumForPrefill({ form: prefill, model: bot.models[form], models: bot.models })
+    //   normalizeEnumForPrefill({ form: prefill, model: bot.models[form], models: bot.models })
 
-      let item = {
-        [TYPE]: FORM_REQUEST,
-        form,
-        product: requestFor,
-        message: 'Please review and confirm receiving the invoice',
-        prefill
-      }
-      await applications.requestItem({
-        item,
-        application,
-        req,
-        user,
-        message: 'Please review and confirm'
-      })
-    },
+    //   let item = {
+    //     [TYPE]: FORM_REQUEST,
+    //     form,
+    //     product: requestFor,
+    //     message: 'Please review and confirm receiving the invoice',
+    //     prefill
+    //   }
+    //   await applications.requestItem({
+    //     item,
+    //     application,
+    //     req,
+    //     user,
+    //     message: 'Please review and confirm'
+    //   })
+    // },
 
     async willRequestForm({ application, formRequest }) {
       if (formRequest.form !== CONTRACT_SIGNING) return

@@ -1,4 +1,6 @@
 import size from 'lodash/size'
+import cloneDeep from 'lodash/cloneDeep'
+import extend from 'lodash/extend'
 
 import {
   CreatePlugin,
@@ -21,27 +23,28 @@ const ENUM = 'tradle.Enum'
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
   const plugin: IPluginLifecycleMethods = {
     name: 'invoicing',
-    async didApproveApplication(opts: IWillJudgeAppArg, certificate: ITradleObject) {
-      const { application, user, req } = opts
-    // async onmessage(req: IPBReq) {
-    //   const { payload, application, user } = req
-      // debugger
+    async willRequestForm({ application, formRequest }) {
       if (!application) return
 
       const { requestFor } = application
       let productConf = conf[requestFor]
       if (!productConf) return
 
-      const { form, settings, additionalFormsFromProps } = productConf
+      const { form, settings, moreSettings, additionalFormsFromProps } = productConf
       if (!form  ||  !settings || !settings.length) return
+      if (formRequest.form !== form) return
+
+      let allSettings = cloneDeep(settings)
+      if (moreSettings  &&  moreSettings.totalInitialPayment)
+        allSettings.push(moreSettings.totalInitialPayment)
 
       let model = bot.models[form]
       if (!model) return
 
-      let { allForms, allFormulas = [], forms } = await getAllToExecute({
+      let { allFormulas = [], forms } = await getAllToExecute({
         application,
         bot,
-        settings,
+        settings: allSettings,
         model,
         logger,
         additionalFormsFromProps
@@ -68,22 +71,78 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!size(prefill)) return
 
       normalizeEnumForPrefill({ form: prefill, model: bot.models[form], models: bot.models })
-
-      let item = {
-        [TYPE]: FORM_REQUEST,
-        form,
-        product: requestFor,
-        message: 'Please review and confirm receiving the invoice',
-        prefill
+      if (!formRequest.prefill) {
+        formRequest.prefill = {
+          [TYPE]: form,
+        }
       }
-      await applications.requestItem({
-        item,
-        application,
-        req,
-        user,
-        message: 'Please review and confirm'
-      })
-    }
+      extend(formRequest.prefill, prefill)
+      formRequest.message = 'Please review and confirm receiving the invoice'
+    },
+  
+    // async didApproveApplication(opts: IWillJudgeAppArg, certificate: ITradleObject) {
+    //   const { application, user, req } = opts
+    // // async onmessage(req: IPBReq) {
+    // //   const { payload, application, user } = req
+    //   // debugger
+    //   if (!application) return
+
+    //   const { requestFor } = application
+    //   let productConf = conf[requestFor]
+    //   if (!productConf) return
+
+    //   const { form, settings, additionalFormsFromProps } = productConf
+    //   if (!form  ||  !settings || !settings.length) return
+
+    //   let model = bot.models[form]
+    //   if (!model) return
+
+    //   let { allForms, allFormulas = [], forms } = await getAllToExecute({
+    //     application,
+    //     bot,
+    //     settings,
+    //     model,
+    //     logger,
+    //     additionalFormsFromProps
+    //   })
+
+    //   let prefill = {
+    //     [TYPE]: form
+    //   }
+    //   let allSet = true
+    //   allFormulas.forEach(async val => {
+    //     let [propName, formula] = val
+    //     try {
+    //       let value = new Function('forms', 'application', `return ${formula}`)(forms, application)
+    //       prefill[propName] = value
+    //     } catch (err) {
+    //       allSet = false
+    //       debugger
+    //     }
+    //   })
+
+    //   // if (!allSet) return
+
+    //   prefill = sanitize(prefill).sanitized
+    //   if (!size(prefill)) return
+
+    //   normalizeEnumForPrefill({ form: prefill, model: bot.models[form], models: bot.models })
+
+    //   let item = {
+    //     [TYPE]: FORM_REQUEST,
+    //     form,
+    //     product: requestFor,
+    //     message: 'Please review and confirm receiving the invoice',
+    //     prefill
+    //   }
+    //   await applications.requestItem({
+    //     item,
+    //     application,
+    //     req,
+    //     user,
+    //     message: 'Please review and confirm'
+    //   })
+    // }
   }
   return {
     plugin
