@@ -2,14 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.34](https://github.com/tradle/mycloud/compare/v4.0.33...v4.0.34) (2023-02-01)
-
-
-### Bug Fixes
-
-* fix template in URL ([0b9df76](https://github.com/tradle/mycloud/commit/0b9df76))
-* for setting the object property that is not an enum ([5836ad6](https://github.com/tradle/mycloud/commit/5836ad6))
-* invoicing ([05aa947](https://github.com/tradle/mycloud/commit/05aa947))
+## [4.0.35](https://github.com/tradle/mycloud/compare/v4.0.34...v4.0.35) (2023-02-01)
 
 
 
