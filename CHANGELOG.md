@@ -2,12 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.36](https://github.com/tradle/mycloud/compare/v4.0.35...v4.0.36) (2023-02-03)
-
-
-### Bug Fixes
-
-* links for notarized docs ([b65104d](https://github.com/tradle/mycloud/commit/b65104d))
+## [4.0.37](https://github.com/tradle/mycloud/compare/v4.0.36...v4.0.37) (2023-02-03)
 
 
 
