@@ -77,7 +77,7 @@ class WorkflowSignoffAPI {
     signoffChecks:any,
     checks?:ITradleCheck[],
     latestChecks?:ITradleCheck[]
-    templates?: string[]}
+    templates?: any[]}
     ) {
 
     let soChecks = []
@@ -91,17 +91,17 @@ class WorkflowSignoffAPI {
       }
       if (templates && templates.length) {
         let templateName = checkId.split('.').pop()
-        let template = templates.find(t => t['html'].split('.')[0] === templateName)
+        let template = templates.find(t => t.html.split('.')[0] === templateName)
         if (template) {
-          let extraQueryParams = { template: template['title'] } //, provider: await this.bot.getMyPermalink()}
-          resource.documentToBeNotarised = appLinks.getResourceLink({
+          this.logger.debug(`found template: ${template.title}`)
+          let link = appLinks.getResourceLink({
             type: application[TYPE],
             baseUrl: '',
             platform: 'web',
             permalink: application._permalink,
             link: application._link,
-            ...extraQueryParams
           })
+          resource.documentToBeNotarised = `${link}&-template=${encodeURIComponent(template.title)}`
         }
       }
       this.logger.debug(`creating ${checkId}`)
