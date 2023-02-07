@@ -349,7 +349,7 @@ export class TreeBuilder {
     let { application, payload, latestChecks } = req
     let ok, fail, checks
     if (latestChecks && latestChecks.length) {
-      checks = latestChecks.filter(check => check.form._permalink === payload._permalink)
+      checks = latestChecks.filter(check => check.form && check.form._permalink === payload._permalink)
       if (checks.length) {
         ok = checks.filter(
           check =>
@@ -438,7 +438,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     onFormsCollected: async ({ req }) => {
       // debugger
       const { application } = req
-      if (!application || !conf.length || application.draft) return
+      if (!application || !conf.length /*|| application.draft*/) return
       const { requestFor } = application
 
       let pairs = conf.filter(pair => requestFor === pair.parent)
@@ -488,7 +488,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
     async onmessage(req: IPBReq) {
       // debugger
       const { application, payload } = req
-      if (!application || !application.forms || !conf.length || application.draft) return
+      if (!application || !application.forms || !conf.length/* || application.draft*/) return
 
       // if (application.parent) {
       //   await smeVerifierAPI.checkAndUpdateNotification(application)
@@ -528,6 +528,11 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!application.parent) {
         let stub = buildResourceStub({ resource: parentApp, models })
         application.parent = stub
+        isInit = true
+        application.top = parentApp.top || stub
+      }
+      else if (!application.top) {
+        let stub = buildResourceStub({ resource: parentApp, models })
         isInit = true
         application.top = parentApp.top || stub
       }
