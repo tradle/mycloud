@@ -209,13 +209,17 @@ export class TreeBuilder {
 
     application.tree = { ...application.tree }
   }
-  public async findAndInsertTreeNode({ req, isInit }) {
+  public async findAndInsertTreeNode({ req, isInit, top }:{req: any, isInit: boolean, top?: any}) {
     let { application, payload } = req
-    let { top, parent, associatedResource } = application
-    
-    if (!top) return
-    
-    let topApp = await this.bot.getLatestResource(top)
+    let { parent, associatedResource } = application
+    let topApp
+    if (top) 
+      topApp = top
+    else {
+      top = application.top
+      if (!top) return      
+      topApp = await this.bot.getLatestResource(top)
+    }
     if (!topApp.tree) return
  
     // debugger
@@ -524,7 +528,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       //   return
       // debugger
       // application.parent = parentApp
-      let isInit
+      let isInit, top
       if (!application.parent) {
         let stub = buildResourceStub({ resource: parentApp, models })
         application.parent = stub
@@ -535,14 +539,19 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         let stub = buildResourceStub({ resource: parentApp, models })
         isInit = true
         application.top = parentApp.top || stub
+        if (!parentApp.top)
+          top = parentApp
       }
+      else if (application.top._permalink === parentApp._permalink)
+        top = parentApp
       application.associatedResource = buildResourceStub({
         resource: associatedRes,
         models
       })
       await treeBuilderAPI.findAndInsertTreeNode({
         req,
-        isInit
+        isInit,
+        top
       })
 
       await smeVerifierAPI.checkAndUpdateNotification(application)
