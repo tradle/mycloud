@@ -10,7 +10,7 @@ import isEmpty from 'lodash/isEmpty'
 import { enumValue, buildResourceStub } from '@tradle/build-resource'
 
 import { parseStub, getEnumValueId } from '../utils'
-import { isPassedCheck, removeRoleFromUser, getLatestChecks } from './utils'
+import { isPassedCheck, removeRoleFromUser, getLatestChecks, isSubClassOf } from './utils'
 import Errors from '../errors'
 import { mixin as modelsMixin } from '../models-mixin'
 import { TYPE, PERMALINK } from '../constants'
@@ -94,7 +94,8 @@ const {
   APPLICATION_SUBMISSION,
   MY_EMPLOYEE_ONBOARDING,
   ASSIGN_RELATIONSHIP_MANAGER,
-  PRODUCT_REQUEST
+  PRODUCT_REQUEST,
+  MY_PRODUCT
 } = TYPES
 
 const PRUNABLE_FORMS = [ASSIGN_RELATIONSHIP_MANAGER, PRODUCT_REQUEST]
@@ -189,9 +190,11 @@ export class Applications implements IHasModels {
         if (n) return n
         continue
       }
+      const { models } = this.bot
+      let isMyProduct = isSubClassOf(MY_PRODUCT, models[node[TYPE]], models)
       if (
         tree[p]._permalink === node._permalink ||
-        tree[p].associatedResource === node._permalink
+        (!isMyProduct  &&  tree[p].associatedResource === node._permalink)
       ) {
         let foundNode = tree[p]
         if (doDelete) delete tree[p]
