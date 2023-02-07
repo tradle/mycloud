@@ -488,7 +488,7 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
       let { distance } = conf
 
       let checks =
-        req.latestChecks && req.latestChecks.filter(check => check.form._link === payload._link)
+        req.latestChecks && req.latestChecks.filter(check => check.form && check.form._link === payload._link)
 
       // debugger
       let check
