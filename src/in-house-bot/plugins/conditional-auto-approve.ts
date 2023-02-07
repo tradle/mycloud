@@ -66,7 +66,7 @@ export class ConditionalAutoApprove {
     // if (!latestChecks) ({ latestChecks } = await getLatestChecks({ application, bot: this.bot }))
     const { latestChecks } = await getLatestChecks({ application, bot: this.bot })
 
-    if (!latestChecks) return
+    if (!latestChecks) return true
   this.logger.debug(`checks to check: ${latestChecks.length}`)
 
     let foundChecks = 0
