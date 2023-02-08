@@ -2,7 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.37](https://github.com/tradle/mycloud/compare/v4.0.36...v4.0.37) (2023-02-03)
+## [4.0.38](https://github.com/tradle/mycloud/compare/v4.0.37...v4.0.38) (2023-02-08)
+
+
+### Bug Fixes
+
+* application tree project ([c1a9ba6](https://github.com/tradle/mycloud/commit/c1a9ba6))
+* application tree project ([7d07522](https://github.com/tradle/mycloud/commit/7d07522))
+* didn't work without any checks ([ff9b735](https://github.com/tradle/mycloud/commit/ff9b735))
+* for checks without form reference ([80b6fb0](https://github.com/tradle/mycloud/commit/80b6fb0))
+* tree building didn't work on draft stage; fix: for checks without form ref ([2743274](https://github.com/tradle/mycloud/commit/2743274))
 
 
 
