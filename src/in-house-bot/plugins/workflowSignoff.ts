@@ -14,10 +14,16 @@ import {
   ValidatePluginConfOpts
 } from '../types'
 import { TYPE } from '@tradle/constants'
+import validateModels from '@tradle/validate-model'
+
+const { isEnumProperty } = validateModels.utils
+
 import { getEnumValueId } from '../../utils'
 import { getLatestChecks, isSubClassOf } from '../utils'
 import { Errors } from '../..'
 import { appLinks } from '../../app-links'
+
+import { type } from 'os'
 const STATUS = 'tradle.Status'
 const OVERRIDE_STATUS = 'tradle.OverrideStatus'
 const CHECK_OVERRIDE = 'tradle.CheckOverride'
@@ -49,7 +55,12 @@ class WorkflowSignoffAPI {
     }
     // Checks were created already
     let signOffChecksCount = 0
-    checks.forEach(check => signoffChecks[check[TYPE]] && signOffChecksCount++)
+    if (signoffChecks.components) {
+      let { checkId } = signoffChecks.components
+      checks.forEach(chk => chk[TYPE] === checkId && signOffChecksCount++)
+    }
+    else
+      checks.forEach(check => signoffChecks[check[TYPE]] && signOffChecksCount++)
     if (signOffChecksCount) return
     if (checksOverride)
       checksOverride = await Promise.all(checksOverride.map(o => bot.getResource(o)))
@@ -72,6 +83,62 @@ class WorkflowSignoffAPI {
     }
     return await this.createSignoffChecks({application, signoffChecks, checks, latestChecks, templates})
   }
+  async createConditionalChecks({signoffChecks, templates, checks, latestChecks, application}) {
+    const { components, conditions } = signoffChecks
+    const { form, property, checkId } = components
+
+    let signOffChecksCount = 0                
+    checks.forEach(acheck => checkId === acheck[TYPE] && signOffChecksCount++)
+    if (signOffChecksCount) return
+
+    let sub = application.submissions.find(sub => sub.submission[TYPE] === form)
+    if (!sub) return
+    const { models } = this.bot
+    let model = models[sub.submission[TYPE]]
+    let f = await this.bot.getResource(sub.submission)
+    let p = f[property]
+    let condition = isEnumProperty({models, property: model.properties[property]})
+                  ? p.title
+                  : p
+    let soChecks = []
+    for (let i=0; i<conditions.length; i++) {
+      let cond = conditions[i]
+      const { aspects } = cond
+      
+      let link = this.createTemplateLink(templates, application, aspects)        
+      if (!link) continue
+      if (cond[property].indexOf(condition) === -1) continue
+      
+      let propsToSet = Object.keys(cond).filter(c => c !== property)
+      
+      let resource: any = {
+        [TYPE]: checkId,
+        status: 'pending',
+        application,
+        dateChecked: new Date().getTime(),
+      }
+      if (propsToSet)
+        propsToSet.forEach(p => resource[p] = cond[p])
+      resource.documentToBeNotarised = link
+      this.logger.debug(`creating ${checkId}`)
+      soChecks.push(this.applications.createCheck(resource, {application, checks, latestChecks}))
+    }
+    return await Promise.all(soChecks)                    
+  }
+  createTemplateLink(templates, application, templateTitle) {
+    if (!templates || !templates.length) return
+    let template = templates.find(t => t.title === templateTitle)
+    if (!template)  return
+    this.logger.debug(`found template: ${template.title}`)
+    let link = appLinks.getResourceLink({
+      type: application[TYPE],
+      baseUrl: '',
+      platform: 'web',
+      permalink: application._permalink,
+      link: application._link,
+    })
+    return `${link}&-template=${encodeURIComponent(templateTitle)}`
+  }
   async createSignoffChecks({application, signoffChecks, checks, latestChecks, templates}:{
     application: IPBApp,
     signoffChecks:any,
@@ -79,6 +146,8 @@ class WorkflowSignoffAPI {
     latestChecks?:ITradleCheck[]
     templates?: any[]}
     ) {
+    if (signoffChecks.components)
+      return await this.createConditionalChecks({application, signoffChecks, checks, latestChecks, templates})
 
     let soChecks = []
     for (let checkId in signoffChecks) {
@@ -89,21 +158,10 @@ class WorkflowSignoffAPI {
         dateChecked: new Date().getTime(),
         aspects: signoffChecks[checkId],
       }
-      if (templates && templates.length) {
-        let templateName = checkId.split('.').pop()
-        let template = templates.find(t => t.html.split('.')[0] === templateName)
-        if (template) {
-          this.logger.debug(`found template: ${template.title}`)
-          let link = appLinks.getResourceLink({
-            type: application[TYPE],
-            baseUrl: '',
-            platform: 'web',
-            permalink: application._permalink,
-            link: application._link,
-          })
-          resource.documentToBeNotarised = `${link}&-template=${encodeURIComponent(template.title)}`
-        }
-      }
+      let link = this.createTemplateLink(templates, application, resource.name)  
+      if (link)
+        resource.documentToBeNotarised = link
+
       this.logger.debug(`creating ${checkId}`)
       soChecks.push(this.applications.createCheck(resource, {application, checks, latestChecks}))
     }
