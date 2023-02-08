@@ -172,6 +172,11 @@ export class Applications implements IHasModels {
     notifications.forEach((n: any) => {
       let form = n.form
       let node = this.findNode({ tree: tree.top.nodes, node: form })
+      if (!node) {
+        this.logger.debug(`Can't find node for ${form._displayName}`)
+        debugger
+        return
+      }
       node.notifiedStatus = getEnumValueId({
         model: this.bot.models[NOTIFICATION_STATUS],
         value: n.status
