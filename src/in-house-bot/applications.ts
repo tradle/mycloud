@@ -243,9 +243,15 @@ export class Applications implements IHasModels {
       )
       if (oldCheck) props.previousCheck = buildResourceStub({ resource: oldCheck })
     }
-    let check = await bot.draft({ type }).set(props).signAndSave()
+    if (checkModel.properties.requiresAttention) {
+      if (props.status !== 'pass')
+        props.requiresAttention = true
+    }
+
+    let check:any = await bot.draft({ type }).set(props).signAndSave()
 
     let checkResource = check.toJSON({ virtual: true })
+
 
     let checksCount = application.checksCount
     application.checksCount = (checksCount && ++application.checksCount) || 1

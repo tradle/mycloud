@@ -27,6 +27,12 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       const { status } = application
       if (status !== IN_REVIEW && status !== 'approved' && status !== 'denied')
         application.status = IN_REVIEW
+      const { check } = payload
+      if (bot.models[check[TYPE]].properties.requiresAttention) {
+        let checkR = await bot.getResource(check)        
+        checkR.requiresAttention = false
+        await bot.versionAndSave(checkR)
+      }
     }
     // async onFormsCollected({ req }) {
     //   const { application } = req
