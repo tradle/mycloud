@@ -87,10 +87,6 @@ class WorkflowSignoffAPI {
     const { components, conditions } = signoffChecks
     const { form, property, checkId } = components
 
-    let signOffChecksCount = 0                
-    checks.forEach(acheck => checkId === acheck[TYPE] && signOffChecksCount++)
-    if (signOffChecksCount) return
-
     let sub = application.submissions.find(sub => sub.submission[TYPE] === form)
     if (!sub) return
     const { models } = this.bot
@@ -104,7 +100,7 @@ class WorkflowSignoffAPI {
     for (let i=0; i<conditions.length; i++) {
       let cond = conditions[i]
       const { aspects } = cond
-      
+
       let link = this.createTemplateLink(templates, application, aspects)        
       if (!link) continue
       if (cond[property].indexOf(condition) === -1) continue
@@ -113,7 +109,7 @@ class WorkflowSignoffAPI {
       
       let resource: any = {
         [TYPE]: checkId,
-        status: 'pending',
+        status: 'warning',
         application,
         dateChecked: new Date().getTime(),
       }
@@ -153,7 +149,7 @@ class WorkflowSignoffAPI {
     for (let checkId in signoffChecks) {
       let resource: any = {
         [TYPE]: checkId,
-        status: 'pending',
+        status: 'warning',
         application,
         dateChecked: new Date().getTime(),
         aspects: signoffChecks[checkId],
