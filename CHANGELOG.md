@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.39](https://github.com/tradle/mycloud/compare/v4.0.38...v4.0.39) (2023-02-09)
+## [4.0.40](https://github.com/tradle/mycloud/compare/v4.0.39...v4.0.40) (2023-02-09)
 
 
 ### Features
 
-* notarization project ([fa824ad](https://github.com/tradle/mycloud/commit/fa824ad))
+* workflow project: team queues based on the list of unresolved checks ([7f109be](https://github.com/tradle/mycloud/commit/7f109be))
 
 
 
