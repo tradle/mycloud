@@ -178,7 +178,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
     },
     async onmessage(req) {
       const { application, payload } = req
-      if (!application) return
+      if (!application || application.status !== 'completed') return
       let { requestFor } = application
 
       const productConf = conf.products && conf.products[requestFor]

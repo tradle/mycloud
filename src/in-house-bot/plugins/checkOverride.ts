@@ -13,7 +13,6 @@ import { getLatestForms, isSubClassOf } from '../utils'
 const { TYPE } = constants
 
 const CHECK_OVERRIDE = 'tradle.CheckOverride'
-const IN_REVIEW = 'In review'
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger }) => {
   const plugin = {
@@ -24,9 +23,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       if (!isSubClassOf(CHECK_OVERRIDE, payloadModel, bot.models)) return
       // debugger
       logger.debug(`${payloadModel.title} was created for ${application.requestFor}`)
-      const { status } = application
-      if (status !== IN_REVIEW && status !== 'approved' && status !== 'denied')
-        application.status = IN_REVIEW
+      const { status, manualEdit } = application
+      if (!manualEdit && status !== 'approved' && status !== 'denied')
+        application.manualEdit = true
       const { check } = payload
       if (bot.models[check[TYPE]].properties.requiresAttention) {
         let checkR = await bot.getResource(check)        
