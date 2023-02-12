@@ -122,7 +122,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (
         latestChecks &&
         latestChecks.find(
-          check => check[TYPE] === REUSE_CHECK && check.form._permalink === payload._permalink
+          check => check[TYPE] === REUSE_CHECK && check.form && check.form._permalink === payload._permalink
         )
       )
         return

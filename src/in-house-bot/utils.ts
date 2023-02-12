@@ -486,7 +486,7 @@ export const getLatestCheck = async ({
       latestChecks = latestChecks.sort((a, b) => b._time - a._time)
       return latestChecks.find(
         (check) =>
-          check[TYPE] === type && (!payload || payload._permalink === check.form._permalink)
+          check[TYPE] === type && (!payload || !check.form || payload._permalink === check.form._permalink)
       )
     }
   }
@@ -496,7 +496,7 @@ export const getLatestCheck = async ({
   let checks: any = await Promise.all(checkStubs.map((checkStub) => bot.getResource(checkStub)))
   latestChecks = checks.slice().sort((a, b) => b._time - a._time)
   return latestChecks.find(
-    (check) => check[TYPE] === type && (!payload || payload._permalink === check.form._permalink)
+    (check) => check[TYPE] === type && (!payload || !check.form || payload._permalink === check.form._permalink)
   )
 }
 export const doesCheckNeedToBeCreated = async ({
@@ -532,7 +532,7 @@ export const doesCheckNeedToBeCreated = async ({
   // let items = await getChecks({ bot, type, application, provider })
   if (!items.length) return { needsCheck: true }
 
-  let checks = items.filter((r) => r[prop]._link === form._link)
+  let checks = items.filter((r) => r[prop] && r[prop]._link === form._link)
   if (checks.length) return false
   let { needsCheck, notMatched } = await getChangedProperties({ resource: form, bot, propertiesToCheck, req })
   if (needsCheck ) return { needsCheck, notMatched }
