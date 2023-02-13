@@ -238,7 +238,7 @@ export class Applications implements IHasModels {
         (check) =>
           check.provider === props.provider &&
           !check.inactive &&
-          check.form._permalink === props.form._permalink &&
+          (check.form && check.form._permalink === props.form._permalink) &&
           !check.nextCheck
       )
       if (oldCheck) props.previousCheck = buildResourceStub({ resource: oldCheck })

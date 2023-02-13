@@ -152,7 +152,7 @@ class RiskScoreAPI {
     if (!latestChecks || !latestChecks.length) return
     let permalink = form._permalink
 
-    let checksForThisForm = latestChecks.filter(check => check.form._permalink === permalink)
+    let checksForThisForm = latestChecks.filter(check => check.form && check.form._permalink === permalink)
     let corpExistsCheck = checksForThisForm.find(check => check[TYPE] === CORPORATION_EXISTS)
     if (
       corpExistsCheck &&

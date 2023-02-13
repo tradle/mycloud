@@ -371,7 +371,7 @@ class ControllingPersonRegistrationAPI {
       if (checkOverride.reachOut) return cpEntities
     }
     return cpEntities.filter(
-      r => !result.find((check: any) => check.form._permalink === r._permalink)
+      r => !result.find((check: any) => check.form && check.form._permalink === r._permalink)
     )
   }
   async reachOut({ payload, application, rules }) {

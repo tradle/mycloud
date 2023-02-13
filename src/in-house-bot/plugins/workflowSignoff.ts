@@ -28,6 +28,7 @@ const STATUS = 'tradle.Status'
 const OVERRIDE_STATUS = 'tradle.OverrideStatus'
 const CHECK_OVERRIDE = 'tradle.CheckOverride'
 const EXCLUDE_CHECKS = ['tradle.ClientEditsCheck']
+const PROVIDER = 'Tradle'
 
 class WorkflowSignoffAPI {
   private bot: Bot
@@ -40,7 +41,11 @@ class WorkflowSignoffAPI {
     this.logger = logger
     this.conf = conf
   }
-  public async checkAndCreate({application, templates}) {
+  public async checkAndCreate({application, templates, checkOverride}:{
+    application: any,
+    templates: any,
+    checkOverride?:any
+  }) {
     const { bot, conf, logger } = this
     let { checks, checksOverride, requestFor } = application
     const productConf = conf.products[requestFor]
@@ -62,8 +67,22 @@ class WorkflowSignoffAPI {
     else
       checks.forEach(check => signoffChecks[check[TYPE]] && signOffChecksCount++)
     if (signOffChecksCount) return
-    if (checksOverride)
+    if (!checksOverride) {
+      if (checkOverride)
+        checksOverride = [checkOverride]
+    }
+    else if (checksOverride.length === 1  && checkOverride && checksOverride[0]._permalink === checksOverride._permalink) 
+      checksOverride = [checkOverride]
+    else {
       checksOverride = await Promise.all(checksOverride.map(o => bot.getResource(o)))
+      if (checkOverride) {
+        let chkO = checksOverride.find(co => co._permalink === checkOverride._permalink)
+        if (!chkO) {
+          logger.debug(`CheckOverride is not yet in DB`)
+          checksOverride.push(checkOverride)
+        }
+      }
+    }
     let { latestChecks } = checks &&  await getLatestChecks({ application, bot })
 
     for (let j=0; j<latestChecks.length; j++) {
@@ -73,7 +92,7 @@ class WorkflowSignoffAPI {
         continue
       let status = getEnumValueId({model: models[STATUS], value: check.status})
       if (status === 'pass') continue
-    
+
       let override = checksOverride && checksOverride.find(co => co[TYPE] === `${checkType}Override`)
       if (!override) {
         logger.debug(`No check override for failed ${models[checkType].title}`)
@@ -101,15 +120,16 @@ class WorkflowSignoffAPI {
       let cond = conditions[i]
       const { aspects } = cond
 
-      let link = this.createTemplateLink(templates, application, aspects)        
+      let link = this.createTemplateLink(templates, application, aspects)
       if (!link) continue
       if (cond[property].indexOf(condition) === -1) continue
-      
+
       let propsToSet = Object.keys(cond).filter(c => c !== property)
-      
+
       let resource: any = {
         [TYPE]: checkId,
         status: 'warning',
+        provider: PROVIDER,
         application,
         dateChecked: new Date().getTime(),
       }
@@ -119,7 +139,7 @@ class WorkflowSignoffAPI {
       this.logger.debug(`creating ${checkId}`)
       soChecks.push(this.applications.createCheck(resource, {application, checks, latestChecks}))
     }
-    return await Promise.all(soChecks)                    
+    return await Promise.all(soChecks)
   }
   createTemplateLink(templates, application, templateTitle) {
     if (!templates || !templates.length) return
@@ -150,11 +170,12 @@ class WorkflowSignoffAPI {
       let resource: any = {
         [TYPE]: checkId,
         status: 'warning',
+        provider: PROVIDER,
         application,
         dateChecked: new Date().getTime(),
         aspects: signoffChecks[checkId],
       }
-      let link = this.createTemplateLink(templates, application, resource.name)  
+      let link = this.createTemplateLink(templates, application, resource.name)
       if (link)
         resource.documentToBeNotarised = link
 
@@ -178,11 +199,11 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
     },
     async onmessage(req) {
       const { application, payload } = req
-      if (!application) return
+      if (!application || application.status !== 'completed') return
       let { requestFor } = application
 
       const productConf = conf.products && conf.products[requestFor]
-      if (!productConf) return 
+      if (!productConf) return
 
       let { signoffChecks } = productConf
       if (!signoffChecks) return
@@ -193,13 +214,13 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
 
       let checkId = ptype.slice(0, -8)
       const checkStatus = getEnumValueId({model: models[OVERRIDE_STATUS], value: payload.status})
-      if (checkStatus !== 'fail') 
+      if (checkStatus !== 'fail')
         if (signoffChecks[checkId]) return
-      
-      if (checkStatus !== 'pass') 
-        return        
+
+      if (checkStatus !== 'pass')
+        return
       let templates = botConf.bot['templates']
-      await WorkflowSignoff.checkAndCreate({application, templates})
+      await WorkflowSignoff.checkAndCreate({application, templates, checkOverride: payload})
       // let resource: any = {
       //   [TYPE]: checkId,
       //   status: 'pending',
@@ -208,26 +229,26 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
       //   aspects: signoffChecks[checkId],
       // }
       // logger.debug(`creating ${checkId}`)
-      // await applications.createCheck(resource, {application})     
+      // await applications.createCheck(resource, {application})
     },
     async willApproveApplication (opts: IWillJudgeAppArg) {
       const { application } = opts
-      
+
       if (application.status === 'approved') return
-     
+
       let { requestFor } = application
 
       const productConf = conf.products && conf.products[requestFor]
-      if (!productConf) return 
+      if (!productConf) return
 
       let { signoffChecks } = productConf
       if (!signoffChecks) return
       let message = 'Application should be completed before approval'
-      if (application.status === 'started') 
+      if (application.status === 'started')
         throw new Errors.AbortError(message)
       // let message = 'All credit committee checks should be overwritten before application can be approved'
-        // if (!checksOverride) 
-      //   throw new Error(message) 
+        // if (!checksOverride)
+      //   throw new Error(message)
 
       // let signOffChecksOverrideTypes =  Object.keys(signoffChecks).map(sc => `${sc}Override`)
       // let signOffChecksOverrideTypesCount = signOffChecksOverrideTypes.length
