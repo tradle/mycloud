@@ -227,7 +227,7 @@ class ClientEditsAPI {
       status,
       provider: PROVIDER,
       application,
-      dateChecked: date, //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
+      dateChecked: date,
       aspects: ASPECTS,
       form
     }
@@ -240,7 +240,6 @@ class ClientEditsAPI {
         resource.message = rawData[p]
       }
     }
-    // resource.message = getStatusMessageForCheck({models: this.bot.models, check: resource})
     this.logger.debug(`ClientEdits status message: ${resource.message}`)
     if (status.message) resource.resultDetails = status.message
     if (rawData) resource.rawData = rawData
@@ -363,7 +362,7 @@ class ClientEditsAPI {
 
     let resource: any = {
       [TYPE]: MODIFICATION,
-      dateModified: Date.now(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
+      dateModified: Date.now(),
       form: payload,
       modifications
     }
@@ -456,7 +455,7 @@ class ClientEditsAPI {
   }
 }
 export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) => {
-  const { bot, productsAPI, employeeManager, applications } = components
+  const { bot, productsAPI, applications } = components
   const clientEdits = new ClientEditsAPI({ bot, applications, logger, productsAPI })
   const plugin = {
     async onmessage(req: IPBReq) {
