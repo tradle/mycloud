@@ -1,5 +1,5 @@
 // renamed from leasingSignoff
-import uniqBy from 'lodash/uniqBy'
+import extend from 'lodash/extend'
 import {
   CreatePlugin,
   Bot,
@@ -8,7 +8,6 @@ import {
   IPluginLifecycleMethods,
   ValidatePluginConf,
   IWillJudgeAppArg,
-  ITradleObject,
   IPBApp,
   ITradleCheck,
   ValidatePluginConfOpts
@@ -71,17 +70,20 @@ class WorkflowSignoffAPI {
       if (checkOverride)
         checksOverride = [checkOverride]
     }
-    else if (checksOverride.length === 1  && checkOverride && checksOverride[0]._permalink === checksOverride._permalink) 
+    else if (checksOverride.length === 1  && checkOverride && checksOverride[0]._permalink === checksOverride._permalink)
       checksOverride = [checkOverride]
     else {
-      checksOverride = await Promise.all(checksOverride.map(o => bot.getResource(o)))
       if (checkOverride) {
-        let chkO = checksOverride.find(co => co._permalink === checkOverride._permalink)
-        if (!chkO) {
+        let idx = checksOverride.findIndex(co => co._permalink === checkOverride._permalink)
+        if (idx === -1)
           logger.debug(`CheckOverride is not yet in DB`)
-          checksOverride.push(checkOverride)
-        }
+        else
+          checksOverride.splice(idx, 1)
       }
+      if (checksOverride.length)
+        checksOverride = await Promise.all(checksOverride.map(o => bot.getResource(o)))
+      if (checkOverride)
+        checksOverride.push(checkOverride)
     }
     let { latestChecks } = checks &&  await getLatestChecks({ application, bot })
 
@@ -120,7 +122,7 @@ class WorkflowSignoffAPI {
       let cond = conditions[i]
       const { aspects } = cond
 
-      let link = this.createTemplateLink(templates, application, aspects)
+      let link = this.createTemplateLink({templates, application, templateTitle: aspects, isEmployee: true})
       if (!link) continue
       if (cond[property].indexOf(condition) === -1) continue
 
@@ -140,20 +142,6 @@ class WorkflowSignoffAPI {
       soChecks.push(this.applications.createCheck(resource, {application, checks, latestChecks}))
     }
     return await Promise.all(soChecks)
-  }
-  createTemplateLink(templates, application, templateTitle) {
-    if (!templates || !templates.length) return
-    let template = templates.find(t => t.title === templateTitle)
-    if (!template)  return
-    this.logger.debug(`found template: ${template.title}`)
-    let link = appLinks.getResourceLink({
-      type: application[TYPE],
-      baseUrl: '',
-      platform: 'web',
-      permalink: application._permalink,
-      link: application._link,
-    })
-    return `${link}&-template=${encodeURIComponent(templateTitle)}`
   }
   async createSignoffChecks({application, signoffChecks, checks, latestChecks, templates}:{
     application: IPBApp,
@@ -175,7 +163,7 @@ class WorkflowSignoffAPI {
         dateChecked: new Date().getTime(),
         aspects: signoffChecks[checkId],
       }
-      let link = this.createTemplateLink(templates, application, resource.name)
+      let link = this.createTemplateLink({templates, application, templateTitle: resource.name, isEmployee: true})
       if (link)
         resource.documentToBeNotarised = link
 
@@ -184,10 +172,42 @@ class WorkflowSignoffAPI {
     }
     return await Promise.all(soChecks)
   }
-
+  createTemplateLink({templates, application, templateTitle, isEmployee}:{
+    templates: any[],
+    application: IPBApp,
+    templateTitle: string
+    isEmployee: boolean
+  }) {
+    if (!templates || !templates.length) return
+    let template = templates.find(t => t.title === templateTitle)
+    if (!template)  return
+    
+    this.bot.logger.debug(`found template: ${template.title}`)
+    let args = {
+      type: application[TYPE],
+      baseUrl: '',
+      platform: 'web',
+    }
+    if (isEmployee) {
+      extend(args, {
+        permalink: application._permalink,
+        link: application._link,
+      })
+    }
+    else {
+      const { request } = application
+      extend(args, {
+        permalink: request._permalink,
+        link: request._link,
+      })
+    }  
+    let link = appLinks.getResourceLink(args)
+    return `${link}&-template=${encodeURIComponent(templateTitle)}`
+  }  
 }
+  
 export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) => {
-  const { bot, applications, conf:botConf } = components
+  const { bot, applications, conf:botConf, employeeManager } = components
   const WorkflowSignoff = new WorkflowSignoffAPI({ bot, conf, applications, logger })
   const plugin: IPluginLifecycleMethods = {
     async onFormsCollected({ req }) {
@@ -221,15 +241,6 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
         return
       let templates = botConf.bot['templates']
       await WorkflowSignoff.checkAndCreate({application, templates, checkOverride: payload})
-      // let resource: any = {
-      //   [TYPE]: checkId,
-      //   status: 'pending',
-      //   application,
-      //   dateChecked: new Date().getTime(),
-      //   aspects: signoffChecks[checkId],
-      // }
-      // logger.debug(`creating ${checkId}`)
-      // await applications.createCheck(resource, {application})
     },
     async willApproveApplication (opts: IWillJudgeAppArg) {
       const { application } = opts
@@ -246,32 +257,31 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
       let message = 'Application should be completed before approval'
       if (application.status === 'started')
         throw new Errors.AbortError(message)
-      // let message = 'All credit committee checks should be overwritten before application can be approved'
-        // if (!checksOverride)
-      //   throw new Error(message)
+    },
+    async willRequestForm({user, formRequest, application}) {
+      const {requestFor} = application
+      const templates = botConf.bot['templates']
+      if (!application || !templates || !conf.products || !conf.products[requestFor] || !conf.products[requestFor].signoffForm) return
+      let { form, property, template:templateTitle } = conf.products[requestFor].signoffForm
+      const { models } = bot
 
-      // let signOffChecksOverrideTypes =  Object.keys(signoffChecks).map(sc => `${sc}Override`)
-      // let signOffChecksOverrideTypesCount = signOffChecksOverrideTypes.length
+      if (!form || form !== formRequest.form || !property || !models[form].properties[property] || !templateTitle) return
+      let template = templates.find(t => t.title === templateTitle)
+      if (!template) return
 
-      // let signoffChecksOverride = checksOverride.filter(co => signOffChecksOverrideTypes.indexOf(co[TYPE]) !== -1)
-      // if (signoffChecksOverride.length < signOffChecksOverrideTypesCount) return
+      if (!formRequest.prefill)
+        formRequest.prefill = {[TYPE]: form}
 
-      // const { models } = bot
-      // signoffChecksOverride = await Promise.all(signoffChecksOverride.map(so => bot.getResource(so)))
-      // signoffChecksOverride.sort((a, b) => b._time - a._time)
-      // signoffChecksOverride = uniqBy(signoffChecksOverride, TYPE)
-
-      // signoffChecksOverride = signoffChecksOverride.filter(so => getEnumValueId({model: models[OVERRIDE_STATUS], value: so.status}) !== 'pass')
-      // if (!signoffChecksOverride.length) return
-      // if (req)
-      //   await bot.sendSimpleMessage({ to: user, message })
-      // throw new Error(message)
+      let link = await WorkflowSignoff.createTemplateLink({templates, application, templateTitle, isEmployee: employeeManager.isEmployee({user})})
+      if (link)
+        formRequest.prefill[property] = link
     }
   }
   return {
     plugin
   }
 }
+
 export const validateConf: ValidatePluginConf = async (opts: ValidatePluginConfOpts) => {
   const { bot, conf, pluginConf } = opts
   const { models } = bot
