@@ -2,12 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.40](https://github.com/tradle/mycloud/compare/v4.0.39...v4.0.40) (2023-02-09)
+## [4.0.42](https://github.com/tradle/mycloud/compare/v4.0.41...v4.0.42) (2023-02-13)
+
+
+### Bug Fixes
+
+* notarization checks do not have form reference ([b291058](https://github.com/tradle/mycloud/commit/b291058))
+* rollback draft logic ([75d68bf](https://github.com/tradle/mycloud/commit/75d68bf))
 
 
 ### Features
 
-* workflow project: team queues based on the list of unresolved checks ([7f109be](https://github.com/tradle/mycloud/commit/7f109be))
+* manualEdit flag ([c3759a1](https://github.com/tradle/mycloud/commit/c3759a1))
+* notarization ([6d57db1](https://github.com/tradle/mycloud/commit/6d57db1))
 
 
 
