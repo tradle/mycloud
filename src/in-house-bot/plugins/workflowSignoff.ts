@@ -310,7 +310,7 @@ export const validateConf: ValidatePluginConf = async (opts: ValidatePluginConfO
       if (!models[form].properties[property])  
         throw new Error(`Invalid property ${property} for the ${form}`)        
     }
-    if (!signoffChecks) return
+    if (!signoffChecks) continue
     const { conditions, components } = signoffChecks
     
     if (!components || !conditions)  {
@@ -318,14 +318,14 @@ export const validateConf: ValidatePluginConf = async (opts: ValidatePluginConfO
         if (!models[m])
           throw new Error(`Invalid model ${m}`)
       }
-      return
+      continue
     }
     const {checkId, form, property} = components
-    if (models[checkId])
-      throw new Error(`Invalid ${checkId}`)        
-    if (models[form])
-      throw new Error(`Invalid ${form}`)        
-    if (!models[form].properties[property])
+    if (!models[checkId])
+      throw new Error(`Invalid form ${checkId}`)        
+    if (!models[form])
+      throw new Error(`Invalid form ${form}`)        
+    if (property && !models[form].properties[property])
       throw new Error(`Invalid property ${property} in ${form}`)        
   }
 }
