@@ -321,10 +321,10 @@ export const validateConf: ValidatePluginConf = async (opts: ValidatePluginConfO
       return
     }
     const {checkId, form, property} = components
-    if (models[checkId])
-      throw new Error(`Invalid ${checkId}`)        
-    if (models[form])
-      throw new Error(`Invalid ${form}`)        
+    if (!models[checkId])
+      throw new Error(`Invalid form ${checkId}`)        
+    if (!models[form])
+      throw new Error(`Invalid form ${form}`)        
     if (!models[form].properties[property])
       throw new Error(`Invalid property ${property} in ${form}`)        
   }
