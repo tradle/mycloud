@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.43](https://github.com/tradle/mycloud/compare/v4.0.42...v4.0.43) (2023-02-16)
+## [4.0.44](https://github.com/tradle/mycloud/compare/v4.0.43...v4.0.44) (2023-02-23)
 
 
 ### Features
 
-* notarization, link to docs for cusstomer ([4551d49](https://github.com/tradle/mycloud/commit/4551d49))
+* allow to create check unconditionally ([d705429](https://github.com/tradle/mycloud/commit/d705429))
 
 
 
