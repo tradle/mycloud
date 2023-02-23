@@ -106,6 +106,8 @@ class WorkflowSignoffAPI {
   }
   async createConditionalChecks({signoffChecks, templates, checks, latestChecks, application}) {
     const { components, conditions } = signoffChecks
+    if (!conditions)
+      return
     const { form, property, checkId } = components
 
     let sub = application.submissions.find(sub => sub.submission[TYPE] === form)
@@ -113,10 +115,13 @@ class WorkflowSignoffAPI {
     const { models } = this.bot
     let model = models[sub.submission[TYPE]]
     let f = await this.bot.getResource(sub.submission)
-    let p = f[property]
-    let condition = isEnumProperty({models, property: model.properties[property]})
+    let condition
+    if (property) {
+      let p = f[property]
+      condition = isEnumProperty({models, property: model.properties[property]})
                   ? p.title
                   : p
+    }
     let soChecks = []
     for (let i=0; i<conditions.length; i++) {
       let cond = conditions[i]
@@ -124,10 +129,11 @@ class WorkflowSignoffAPI {
 
       let link = this.createTemplateLink({templates, application, templateTitle: aspects, isEmployee: true})
       if (!link) continue
-      if (cond[property].indexOf(condition) === -1) continue
-
-      let propsToSet = Object.keys(cond).filter(c => c !== property)
-
+      let propsToSet
+      if (property) {
+        if (cond[property].indexOf(condition) === -1) continue
+        propsToSet = Object.keys(cond).filter(c => c !== property)
+      }
       let resource: any = {
         [TYPE]: checkId,
         status: 'warning',
@@ -137,6 +143,7 @@ class WorkflowSignoffAPI {
       }
       if (propsToSet)
         propsToSet.forEach(p => resource[p] = cond[p])
+
       resource.documentToBeNotarised = link
       this.logger.debug(`creating ${checkId}`)
       soChecks.push(this.applications.createCheck(resource, {application, checks, latestChecks}))
@@ -181,7 +188,7 @@ class WorkflowSignoffAPI {
     if (!templates || !templates.length) return
     let template = templates.find(t => t.title === templateTitle)
     if (!template)  return
-    
+
     this.bot.logger.debug(`found template: ${template.title}`)
     let args = {
       type: application[TYPE],
@@ -200,12 +207,12 @@ class WorkflowSignoffAPI {
         permalink: request._permalink,
         link: request._link,
       })
-    }  
+    }
     let link = appLinks.getResourceLink(args)
     return `${link}&-template=${encodeURIComponent(templateTitle)}`
-  }  
+  }
 }
-  
+
 export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) => {
   const { bot, applications, conf:botConf, employeeManager } = components
   const WorkflowSignoff = new WorkflowSignoffAPI({ bot, conf, applications, logger })
@@ -290,6 +297,35 @@ export const validateConf: ValidatePluginConf = async (opts: ValidatePluginConfO
     throw new Error('missing "products"')
   for (let p in products) {
     if (!models[p])
-      throw new Error(`Not found model: ${p}`)
+      throw new Error(`Invalid model: ${p}`)
+    const {signoffChecks, signoffForm} = products[p]  
+    if (!signoffChecks && !signoffForm)
+      throw new Error(`At least one of the two should be present: signoffChecks or signoffForm`)
+    if (signoffForm) {
+      const {form, property, template} = signoffForm
+      if (!form || !property || !template)
+        throw new Error('signoffForm should have: form, property and template')
+      if (!models[form])
+        throw new Error(`Invalid form ${form}`)
+      if (!models[form].properties[property])  
+        throw new Error(`Invalid property ${property} for the ${form}`)        
+    }
+    if (!signoffChecks) return
+    const { conditions, components } = signoffChecks
+    
+    if (!components || !conditions)  {
+      for (let m in signoffChecks) {
+        if (!models[m])
+          throw new Error(`Invalid model ${m}`)
+      }
+      return
+    }
+    const {checkId, form, property} = components
+    if (models[checkId])
+      throw new Error(`Invalid ${checkId}`)        
+    if (models[form])
+      throw new Error(`Invalid ${form}`)        
+    if (!models[form].properties[property])
+      throw new Error(`Invalid property ${property} in ${form}`)        
   }
 }
