@@ -2,19 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.42](https://github.com/tradle/mycloud/compare/v4.0.41...v4.0.42) (2023-02-13)
-
-
-### Bug Fixes
-
-* notarization checks do not have form reference ([b291058](https://github.com/tradle/mycloud/commit/b291058))
-* rollback draft logic ([75d68bf](https://github.com/tradle/mycloud/commit/75d68bf))
+## [4.0.43](https://github.com/tradle/mycloud/compare/v4.0.42...v4.0.43) (2023-02-16)
 
 
 ### Features
 
-* manualEdit flag ([c3759a1](https://github.com/tradle/mycloud/commit/c3759a1))
-* notarization ([6d57db1](https://github.com/tradle/mycloud/commit/6d57db1))
+* notarization, link to docs for cusstomer ([4551d49](https://github.com/tradle/mycloud/commit/4551d49))
 
 
 
