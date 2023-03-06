@@ -9,6 +9,7 @@ import mergeModels from '@tradle/merge-models'
 import { TYPE, ORG, TYPES } from '@tradle/constants'
 import { buildResourceStub } from '@tradle/build-resource'
 
+import generate from './generate'
 const { FORM } = TYPES
 import { Plugins } from './plugins'
 // import { models as onfidoModels } from '@tradle/plugin-onfido'
@@ -83,6 +84,7 @@ const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
 const APPLICATION = 'tradle.Application'
 const VERSION_INFO = 'tradle.cloud.VersionInfo'
 const CUSTOMER_APPLICATION = 'tradle.products.CustomerApplication'
+const LANGUAGE = 'tradle.Language'
 const PRODUCT_LIST_MESSAGE = 'See our list of products'
 const PRODUCT_LIST_CHANGED_MESSAGE = 'Our products have changed'
 const PRODUCT_LIST_MENU_MESSAGE = 'Choose Apply for Product from the menu'
@@ -574,17 +576,33 @@ export const loadComponentsAndPlugins = ({
           }
         }
       },
-      willRequestForm: ({ formRequest, application }) => {
+      willRequestForm: ({ formRequest, application, user }) => {
         const { models } = bot
         const { form } = formRequest
         const model = models[form]
-        if (model && isSubClassOf('tradle.MyProduct', model, models)) {
+        if (!model) return
+        if (isSubClassOf('tradle.MyProduct', model, models)) {
           const productModel = getProductModelForCertificateModel({
             models,
             certificateModel: model
           })
           const { title } = productModel || model
           formRequest.message = `Please get a "${title}" first!`
+        }
+        else if (application && model.description) {
+          if (!application.conversation) 
+            application.conversation = {messages: []}
+          
+          let language
+          if (user.language) {
+            let langR = bot.models[LANGUAGE].enum.find(l => l.id === user.language)
+            language = langR.id
+          }
+          else
+            language = 'English'
+          application.conversation.messages.push({ role: 'user', content: `You will be using this information when questions asked about this form "${model.title}": ${model.description}`})
+
+          // application.conversation.messages = await generate({messages: application.conversation.messages, accessToken: conf.bot['openApiAccessToken'], message: `You will be using this information when questions asked about this form "${model.title}": ${model.description}`, language})
         }
       },
       'onmessage:tradle.MyProduct': async (req: IPBReq) => {
@@ -961,7 +979,7 @@ const approveWhenTheTimeComes = (components: IBotComponents): PluginLifecycle.Me
 }
 
 const banter = (components: IBotComponents) => {
-  const { bot, productsAPI } = components
+  const { bot, productsAPI, conf, applications } = components
   const handleSimpleMessage = async (req) => {
     const { user, application, object } = req
     const { message } = object
@@ -971,28 +989,62 @@ const banter = (components: IBotComponents) => {
     // if (application && application.reviewer)
     if (application && application.analyst) return
 
-    if (/^(?:hey|hi|hello)$/i.test(message)) {
-      await productsAPI.send({
-        req,
-        to: user,
-        object: {
-          [TYPE]: 'tradle.SimpleMessage',
-          message: `${message} yourself!`
-        }
-      })
+    // if (/^(?:hey|hi|hello)$/i.test(message)) {
+    //   await productsAPI.send({
+    //     req,
+    //     to: user,
+    //     object: {
+    //       [TYPE]: 'tradle.SimpleMessage',
+    //       message: `${message} yourself!`
+    //     }
+    //   })
 
-      return
-    }
+    //   return
+    // }
 
     // avoid infinite loop between two bots: "I'm sorry", "No I'm sorry!", "No I'm sorry"...
     if (user.friend) return
-
+    let msg
+    let messages
+    if (conf.bot['openApiKey']) {
+      let language
+      if (user.language) {
+        let langR = bot.models[LANGUAGE].enum.find(l => l.id === user.language)
+        language = langR.id
+      }
+      else
+        language = 'English'
+      if (application) {
+        let { conversation } = application
+        if (!conversation) {
+          (conversation = {messages: []})
+          application.conversation = conversation
+        }
+        
+        ({ messages } = conversation)
+      }
+      else
+        messages = []
+      try {
+        let allMessages = await generate({messages, message, language, conf: conf.bot});
+        msg = allMessages[allMessages.length - 1].content
+        if (application) {
+          application.conversation.messages = allMessages
+          await applications.updateApplication(application)
+        }
+      } catch (err) {
+        debugger
+        bot.logger.debug('Something went wrong', err)
+      }
+    }
+    if (!msg)
+      msg = 'Thank you for your message! Customer representative will be with you shortly!'
     await productsAPI.send({
       req,
       to: user,
       object: {
         [TYPE]: 'tradle.SimpleMessage',
-        message: 'Thank you for your message! Customer representative will be with you shortly!'
+        message: msg // 'Thank you for your message! Customer representative will be with you shortly!'
 //         message: `Sorry, I'm not that smart yet!
 
 // If you start a product application, I'll see if I can get someone to help you.
