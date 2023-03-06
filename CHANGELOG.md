@@ -2,12 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.44](https://github.com/tradle/mycloud/compare/v4.0.43...v4.0.44) (2023-02-23)
+## [4.0.45](https://github.com/tradle/mycloud/compare/v4.0.44...v4.0.45) (2023-03-06)
+
+
+### Bug Fixes
+
+* previous return ([345848b](https://github.com/tradle/mycloud/commit/345848b))
+* previous return ([a6ceced](https://github.com/tradle/mycloud/commit/a6ceced))
 
 
 ### Features
 
-* allow to create check unconditionally ([d705429](https://github.com/tradle/mycloud/commit/d705429))
+* integration with openai ([1933d6e](https://github.com/tradle/mycloud/commit/1933d6e))
+* integration with openai ([8a063d7](https://github.com/tradle/mycloud/commit/8a063d7))
 
 
 
