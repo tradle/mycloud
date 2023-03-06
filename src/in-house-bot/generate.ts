@@ -5,17 +5,22 @@ const UTF8 = 'utf-8'
 
 export default async function ({message,  messages, conf, language}) {
   const {openApiKey, AIGovernanceAndSupportFolder, providerSetup, AIGovernanceAndSupportBucket} = conf
-  if (!openApiKey || !AIGovernanceAndSupportFolder || !AIGovernanceAndSupportBucket || !providerSetup) return
-    
+  if (!openApiKey) return  
+
   let api = new Configuration({apiKey: openApiKey})
   const openai = new OpenAIApi(api)
   
-  let orgMessage = await getFileFromS3(samplesS3,
-    `${AIGovernanceAndSupportFolder}/${providerSetup}`,
-    AIGovernanceAndSupportBucket)
-  orgMessage += `\nTranslate all responds in ${language}`
+  let systemMessage
+  if (AIGovernanceAndSupportFolder && AIGovernanceAndSupportBucket && providerSetup) 
+    systemMessage = await getFileFromS3(samplesS3,
+      `${AIGovernanceAndSupportFolder}/${providerSetup}`,
+      AIGovernanceAndSupportBucket)
+  else
+    systemMessage = 'You are a helpful assistent'
+   
+  systemMessage += `\nTranslate all responds in ${language}`
   
-  let systemContent = {role: "system", content: `${orgMessage}`}
+  let systemContent = {role: "system", content: `${systemMessage}`}
   if (!messages.length)  
     messages.push(systemContent)
   
@@ -42,7 +47,7 @@ export default async function ({message,  messages, conf, language}) {
     }
   }
 }
-const getFileFromS3 = async (s3: AWS.S3, file: string, bucket: string): Promise<string> => {
+async function getFileFromS3(s3: AWS.S3, file: string, bucket: string) {
   const params = {
     Bucket: bucket,
     Key: file
