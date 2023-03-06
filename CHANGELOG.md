@@ -2,19 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.46](https://github.com/tradle/mycloud/compare/v4.0.44...v4.0.46) (2023-03-06)
-
-
-### Bug Fixes
-
-* previous return ([345848b](https://github.com/tradle/mycloud/commit/345848b))
-* previous return ([a6ceced](https://github.com/tradle/mycloud/commit/a6ceced))
+## [4.0.47](https://github.com/tradle/mycloud/compare/v4.0.46...v4.0.47) (2023-03-06)
 
 
 ### Features
 
-* integration with openai ([1933d6e](https://github.com/tradle/mycloud/commit/1933d6e))
-* integration with openai ([8a063d7](https://github.com/tradle/mycloud/commit/8a063d7))
+* integration with openai ([5db63fa](https://github.com/tradle/mycloud/commit/5db63fa))
 
 
 
