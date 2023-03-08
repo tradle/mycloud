@@ -5,7 +5,6 @@ All notable changes to this project will be documented in this file. See [standa
 ## [4.0.49](https://github.com/tradle/mycloud/compare/v4.0.47...v4.0.49) (2023-03-06)
 
 
-
 <a name="2.1.2"></a>
 ## [2.1.2](https://github.com/tradle/serverless/compare/v2.1.2-rc.1...v2.1.2) (2018-11-23)
 
