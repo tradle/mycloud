@@ -589,21 +589,6 @@ export const loadComponentsAndPlugins = ({
           const { title } = productModel || model
           formRequest.message = `Please get a "${title}" first!`
         }
-        else if (application && model.description) {
-          if (!application.conversation) 
-            application.conversation = {messages: []}
-          
-          let language
-          if (user.language) {
-            let langR = bot.models[LANGUAGE].enum.find(l => l.id === user.language)
-            language = langR.id
-          }
-          else
-            language = 'English'
-          application.conversation.messages.push({ role: 'user', content: `You will be using this information when questions asked about this form "${model.title}": ${model.description}`})
-
-          // application.conversation.messages = await generate({messages: application.conversation.messages, accessToken: conf.bot['openApiAccessToken'], message: `You will be using this information when questions asked about this form "${model.title}": ${model.description}`, language})
-        }
       },
       'onmessage:tradle.MyProduct': async (req: IPBReq) => {
         const { application, payload } = req
@@ -1005,7 +990,6 @@ const banter = (components: IBotComponents) => {
     // avoid infinite loop between two bots: "I'm sorry", "No I'm sorry!", "No I'm sorry"...
     if (user.friend) return
     let msg
-    let messages
     if (conf.bot['openApiKey']) {
       let language
       if (user.language) {
@@ -1014,22 +998,10 @@ const banter = (components: IBotComponents) => {
       }
       else
         language = 'English'
-      if (application) {
-        let { conversation } = application
-        if (!conversation) {
-          (conversation = {messages: []})
-          application.conversation = conversation
-        }
-        
-        ({ messages } = conversation)
-      }
-      else
-        messages = []
       try {
-        let allMessages = await generate({messages, message, language, conf: conf.bot});
-        msg = allMessages[allMessages.length - 1].content
+        msg = await generate({application, message, language, bot, conf: conf.bot});
         if (application) {
-          application.conversation.messages = allMessages
+          // application.conversation.messages = allMessages
           await applications.updateApplication(application)
         }
       } catch (err) {
