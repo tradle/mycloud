@@ -9,7 +9,7 @@ import mergeModels from '@tradle/merge-models'
 import { TYPE, ORG, TYPES } from '@tradle/constants'
 import { buildResourceStub } from '@tradle/build-resource'
 
-import generate from './generate'
+import { getChatGPTMessage } from './openAiInterface'
 const { FORM } = TYPES
 import { Plugins } from './plugins'
 // import { models as onfidoModels } from '@tradle/plugin-onfido'
@@ -84,7 +84,6 @@ const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
 const APPLICATION = 'tradle.Application'
 const VERSION_INFO = 'tradle.cloud.VersionInfo'
 const CUSTOMER_APPLICATION = 'tradle.products.CustomerApplication'
-const LANGUAGE = 'tradle.Language'
 const PRODUCT_LIST_MESSAGE = 'See our list of products'
 const PRODUCT_LIST_CHANGED_MESSAGE = 'Our products have changed'
 const PRODUCT_LIST_MENU_MESSAGE = 'Choose Apply for Product from the menu'
@@ -787,7 +786,7 @@ export const loadComponentsAndPlugins = ({
         'fill-myproduct',
         'checkOverride',
         'employeeRole',
-        'prefill-controllingPerson'
+        'prefill-controllingPerson',
       ].forEach((name) => attachPlugin({ name, requiresConf: false }))
     // used for some demo
     // ;[
@@ -991,15 +990,8 @@ const banter = (components: IBotComponents) => {
     if (user.friend) return
     let msg
     if (conf.bot['openApiKey']) {
-      let language
-      if (user.language) {
-        let langR = bot.models[LANGUAGE].enum.find(l => l.id === user.language)
-        language = langR.id
-      }
-      else
-        language = 'English'
       try {
-        msg = await generate({application, message, language, bot, conf: conf.bot});
+        msg = await getChatGPTMessage({req, bot, conf: conf.bot});
         if (application) {
           // application.conversation.messages = allMessages
           await applications.updateApplication(application)
