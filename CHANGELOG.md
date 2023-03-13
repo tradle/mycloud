@@ -2,7 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.49](https://github.com/tradle/mycloud/compare/v4.0.47...v4.0.49) (2023-03-06)
+## [4.0.50](https://github.com/tradle/mycloud/compare/v4.0.49...v4.0.50) (2023-03-13)
+
+
+### Features
+
+* sales assistant project with chatGPT ([fe6e635](https://github.com/tradle/mycloud/commit/fe6e635))
+* sales assistant project with chatGPT ([b57b79b](https://github.com/tradle/mycloud/commit/b57b79b))
+
+
+
+## [4.0.45](https://github.com/tradle/mycloud/compare/v4.0.44...v4.0.45) (2023-02-23)
+
 
 
 <a name="2.1.2"></a>
