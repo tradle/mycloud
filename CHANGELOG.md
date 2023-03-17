@@ -2,17 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.51](https://github.com/tradle/mycloud/compare/v4.0.49...v4.0.51) (2023-03-13)
+## [4.0.52](https://github.com/tradle/mycloud/compare/v4.0.51...v4.0.52) (2023-03-17)
 
 
 ### Features
 
-* sales assistant project with chatGPT ([fe6e635](https://github.com/tradle/mycloud/commit/fe6e635))
-* sales assistant project with chatGPT ([b57b79b](https://github.com/tradle/mycloud/commit/b57b79b))
-
-
-
-## [4.0.45](https://github.com/tradle/mycloud/compare/v4.0.44...v4.0.45) (2023-02-23)
+* prefill forms with ChatGPT ([d7e7996](https://github.com/tradle/mycloud/commit/d7e7996))
+* prefill with ChatGPT ([a0825a6](https://github.com/tradle/mycloud/commit/a0825a6))
 
 
 
