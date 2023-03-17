@@ -180,12 +180,12 @@ async function convertObjectToJson({message, openai, model, models}:{message: st
     if (property.ref === MONEY)
       moneyProps.push(p)  
   }
-  let sysMessage = `I will give you a list of tokens and you will have to fill out this JSON: ${JSON.stringify(props)}.`
+  let sysMessage = `You are a JSON created machine. I will give you a list of tokens and you will have to fill out this JSON: ${JSON.stringify(props)}. You are not allowed to product invalid JSON.`
   if (enumProps.length) {
     enumProps.forEach(e => {
       if (models[e.ref].enum.length > 10) return
       let eenum = models[e.ref].enum
-      sysMessage += `\nPlease set value for "${e.name}" to one of the following: "${eenum.map(e => e.title).join(',')}"`       
+      sysMessage += `\nPlease set value for "${e.name}" to one of the following categories: "${eenum.map(e => e.title).join(',')}". Map category of the document to the most suitable category listed. If you don't find a suitable category indicate a category like "category name (New Category)".`       
     })
     sysMessage += `\nPlease translate to English values for these properties: "${enumProps.map(e => e.name).join(',')}"` 
   } 

@@ -27,8 +27,9 @@ import {
   IPluginLifecycleMethods,
   Logger
 } from '../types'
+import { logger } from '../lambda/mqtt/onmessage'
 
-const COUNTRY = 'tradle.Country'
+const MAX_FILE_SIZE = 15728640
 const CURRENCY = 'tradle.Currency'
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 
@@ -74,7 +75,8 @@ export class PrefillWithChatGPT {
         return {}
       }
     } else image = buffer
-
+if (image.length > MAX_FILE_SIZE)
+  return {error: `File is too big. The current limit is ${MAX_FILE_SIZE/1024/1024} Megabytes`}
     let accessKeyId = ''
     let secretAccessKey = ''
     let region = 'us-east-1'
@@ -91,29 +93,44 @@ export class PrefillWithChatGPT {
         Bytes: image
       }
     }
+    let apiResponse
     try {
-      let apiResponse = await textract.detectDocumentText(params).promise()
+      apiResponse = await textract.detectDocumentText(params).promise()
+    } catch (err) {
+      this.logger.debug('Textract error', err)
+      return
+    }
       //  @ts-ignore
       // let analyzeResponse = await textract.analyzeDocument({...params, FeatureTypes: [ 'TABLES', 'FORMS', 'SIGNATURES']}).promise()
-      
+    try {  
       let message = JSON.stringify(apiResponse.Blocks.map(b => b.Text).filter(a => a !== undefined))
       let data = await getChatGPTMessage({req, bot: this.bot, conf: this.botConf.bot, message: message.slice(1, message.length - 1)})
       if (!data) {
         debugger
         return
       }
-      let i = data.length - 2
-      let doTrim
-      for (; data.charAt(i) !== '"'; i--) {
-        if (data.charAt(i) === '"') break
-        if (data.charAt(i) !== ' ')
-          doTrim = true
+      // let i = data.length - 2
+      // let doTrim
+      // for (; data.charAt(i) !== '"'; i--) {
+      //   let ch = data.charAt(i)
+      //   if (ch === '"') break
+      //   if (ch !== ' ' && (ch !== '\n'))
+      //     doTrim = true
+      // }
+      // if (doTrim) 
+      //   data = `${data.slice(0, i + 1)}}`
+           
+      let response
+      try {
+        response = JSON.parse(data)
+      } catch (err) {
+        debugger
+        // HACK
+        if (data.charAt(data.length - 3) === ',') {
+          data.splice(data.length - 3, 1)
+          response = JSON.parse(data)
+        }
       }
-      if (doTrim) 
-        data = `${data.slice(0, i + 1)}}`
-      
-      let response = JSON.parse(data)
-
       const {models} = this.bot
       let model = models[payload[ TYPE]]
       this.normalizeResponse({response, model, models})
@@ -145,54 +162,28 @@ export class PrefillWithChatGPT {
       if (type !== 'object')
         continue
       if (ref === MONEY) {
-        let {currency, value, symbol} = parseMoney(val)
-        if (!value)
-          continue
-        response[p] = { value }
-        if (!currency && !symbol) {
-          deleteProps.push(p)
-          continue
-        }
-        // check if it is symbol
-        let oneOf = models[MONEY].properties.currency.oneOf
-        let curEnum = models[CURRENCY].enum
-        let cur
-        if (currency) 
-          cur = curEnum.find(c => c.id === currency)
-        
-        else if (symbol) {
-          cur = oneOf.find(c => Object.values(c)[0] === symbol)
-          if (cur) 
-            cur = curEnum.find(c => c.id === cur)          
-        }
-        if (cur) 
-          response[p].currency = cur.id
-        else 
-          deleteProps.push(p)
+        let moneyVal = makeMoneyValue(val, models)
+        if (moneyVal) 
+          response[p] = moneyVal
+        else
+          deleteProps.push(p)        
         continue
       }  
       if (!isEnumProperty({models, property})) {
         deleteProps.push(p)
         continue
       }  
-      let lVal = val.toLowerCase()
-      let isCountry = ref === COUNTRY
-      let pVal = models[ref].enum.find(e => e.title.toLowerCase() === lVal || (isCountry && e.nationality.toLowerCase() === lVal))
-      if (!pVal) {
-        let parts = lVal.split(' ')
-        for (let i=0; i<parts.length && !pVal; i++) 
-          pVal = models[ref].enum.find(e => e.title.toLowerCase() === lVal || (isCountry && e.nationality.toLowerCase() === lVal))
+      let pVal = makeEnumValue(val, ref, models)
         // debugger
-        if (!pVal) {
-          deleteProps.push(p)
-          continue
-        }
-      }
+      if (pVal) {
+        response[p] = {
+          id: `${ref}_${pVal.id}`,
+          title: pVal.title
+        } 
+      }       
+      else
+        deleteProps.push(p)    
       // let pVal =  models[ref].enum.find(e => e.id === val || e.title.toLowerCase === val.toLowerCase()) 
-      response[p] = {
-        id: `${ref}_${pVal.id}`,
-        title: pVal.title
-      }        
     }
     if (deleteProps.length) 
       deleteProps.forEach(p => delete response[p])
@@ -367,6 +358,29 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
 //   return {};
   
 // }
+function makeMoneyValue (val, models) {
+  let {currency, value, symbol} = parseMoney(val)
+  if (!value)
+    return
+  
+  if (!currency && !symbol) 
+    return { value }
+  // check if it is symbol
+  let oneOf = models[MONEY].properties.currency.oneOf
+  let curEnum = models[CURRENCY].enum
+  let cur
+  if (currency) 
+    cur = curEnum.find(c => c.id === currency)
+  
+  else if (symbol) {
+    cur = oneOf.find(c => Object.values(c)[0] === symbol)
+    if (cur) 
+      cur = curEnum.find(c => c.id === cur)          
+  }
+  if (cur) 
+    return { value, currency: cur.id}
+}
+
 function parseMoney(input) {
   // Match the currency symbol or code at the beginning or end of the string
 
@@ -388,4 +402,23 @@ function parseMoney(input) {
     // Return null if no valid money format was found
     return null;
   }
+}
+function makeEnumValue(val, ref, models) {
+  let lVal = val.toLowerCase()
+  let pVal = models[ref].enum.find(e => e.title.toLowerCase() === lVal)
+  if (!pVal) {
+    let parts = lVal.split(' ')
+    for (let i=0; i<parts.length && !pVal; i++) {
+      let partVal = parts[i].toLowerCase()
+      pVal = models[ref].enum.find(e => {
+        for (let p in e) {
+          if (typeof e[p] === 'string' && e[p].toLowerCase() === partVal)
+            return true
+        }
+        return false
+      })
+    }
+    // debugger
+  }
+  return pVal
 }
