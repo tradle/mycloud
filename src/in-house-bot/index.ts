@@ -751,6 +751,7 @@ export const loadComponentsAndPlugins = ({
       'finastra',
       'reuse',
       'document-ocr',
+      'prefillWithChatGPT',
       'bundleUpload',
       'draftApplication',
       'termsAndConditions',
@@ -991,7 +992,7 @@ const banter = (components: IBotComponents) => {
     let msg
     if (conf.bot['openApiKey']) {
       try {
-        msg = await getChatGPTMessage({req, bot, conf: conf.bot});
+        msg = await getChatGPTMessage({req, bot, conf: conf.bot, message});
         if (application) {
           // application.conversation.messages = allMessages
           await applications.updateApplication(application)

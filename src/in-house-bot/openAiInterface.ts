@@ -1,15 +1,19 @@
 import { Configuration, OpenAIApi} from 'openai'
 import AWS from 'aws-sdk'
+import Promise from 'bluebird'
+import { omitBy, uniqBy } from 'lodash'
+import { IPBUser, Bot, IPBReq, Model } from './types'
+import validateModels from '@tradle/validate-model'
 import { TYPE, TYPES } from '@tradle/constants'
 const {
   MONEY,
   FORM,
   SIMPLE_MESSAGE
 } = TYPES
-import { omitBy, uniqBy } from 'lodash'
-import { IPBUser, Bot, IPBReq } from './types'
-import validateModels from '@tradle/validate-model'
+
 import { isSubClassOf } from './utils'
+import { execute } from 'graphql'
+import { message } from '../typeforce-types'
 const {
   isEnumProperty,
 } = validateModels.utils
@@ -19,15 +23,23 @@ const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const LANGUAGE = 'tradle.Language'
 const APPLICATION_SUBMISSION = 'tradle.ApplicationSubmission'
 
+const NUMBER_OF_ATTEMPTS = 3
+
 // const TEN_MINUTES = 36000000
 const samplesS3 = new AWS.S3()
 const UTF8 = 'utf-8'
 
-export async function getChatGPTMessage({req, bot, conf}:{req: IPBReq, bot: Bot, conf: any}) {
+export async function getChatGPTMessage({req, bot, conf, message }:{req: IPBReq, bot: Bot, conf: any, message: any}) {
   const {openApiKey, AIGovernanceAndSupportFolder, providerSetup, AIGovernanceAndSupportBucket} = conf
   if (!openApiKey) return
-  let { user, application, object } = req
-  let { message } = object
+
+  let api = new Configuration({apiKey: openApiKey})
+  const openai = new OpenAIApi(api)
+  const { models } = bot
+
+  let { user, application, payload } = req
+  if (payload[TYPE] !== SIMPLE_MESSAGE) 
+    return await convertObjectToJson({message, openai, model: bot.models[payload[TYPE]], models})
   let query = {
     orderBy: {
       property: '_time',
@@ -57,7 +69,6 @@ export async function getChatGPTMessage({req, bot, conf}:{req: IPBReq, bot: Bot,
 
   messages.splice(0, 0, setupContent)
   messages.splice(1, 0, {role: 'user', content: 'All dates in JSON are in long format. Please convert them using Date JS if asked.'})
-  const { models } = bot
   if (application) {
     let { submissions, forms } = application
     if (submissions.length === 50) {
@@ -123,8 +134,6 @@ export async function getChatGPTMessage({req, bot, conf}:{req: IPBReq, bot: Bot,
       messages.push({role: 'user', content: `Please use them when asked for a particular property from any of the forms.`})
     }
   }
-  let api = new Configuration({apiKey: openApiKey})
-  const openai = new OpenAIApi(api)
   try {
     // await addModeration (openai, message, msgs, language)
     messages.push({role: "user", content: message})
@@ -139,6 +148,93 @@ export async function getChatGPTMessage({req, bot, conf}:{req: IPBReq, bot: Bot,
   } catch(error) {
     const { status, data } = error.response
     if (error.response) {
+      console.log(status, data);
+      debugger
+    } else {
+      console.log(`Error with OpenAI API request: ${error.message}`);
+    }
+    if (data.error.message.startsWith('This model\'s maximum context length is 4096 tokens')) {
+      // let messegesStr = messages.map(m => m.content).join(' ')
+      debugger
+    }
+  }
+}
+async function convertObjectToJson({message, openai, model, models}:{message: string, openai:any, model: Model, models: any}) {
+  // let properties = model && omitBy(model.properties, (value, key) => key.startsWith('_')).map(p => p.name).join(', ')
+  let properties = model.properties
+  let props = {}
+  let enumProps = [], moneyProps = []
+  for (let p in properties) {
+    const property = properties[p]
+    const { range, items, displayAs } = property
+    if (p.charAt(0) === '_'        || 
+        p.indexOf('_group') !== -1 || 
+        range === 'photo'          ||
+        range === 'json'           ||
+        range === 'document'       ||
+        displayAs                 ||
+        (items && items.backlink)) continue
+    props[p] = ''
+    if (isEnumProperty({models, property}))
+      enumProps.push({name: p, ref: property.ref})
+    if (property.ref === MONEY)
+      moneyProps.push(p)  
+  }
+  let sysMessage = `I will give you a list of tokens and you will have to fill out this JSON: ${JSON.stringify(props)}.`
+  if (enumProps.length) {
+    enumProps.forEach(e => {
+      if (models[e.ref].enum.length > 10) return
+      let eenum = models[e.ref].enum
+      sysMessage += `\nPlease set value for "${e.name}" to one of the following: "${eenum.map(e => e.title).join(',')}"`       
+    })
+    sysMessage += `\nPlease translate to English values for these properties: "${enumProps.map(e => e.name).join(',')}"` 
+  } 
+  if (moneyProps.length) 
+    sysMessage += `\nPlease include currency symbol if present for these properties ${moneyProps.join(',')}`
+  
+  let messages = [
+    {role: 'system', content: sysMessage},
+    {role: 'user', content: `${message.slice(1, message.length - 1)}`}
+  ]
+  let response = await getResponse({openai, messages})
+  for (let i=0; i<NUMBER_OF_ATTEMPTS && (typeof response === 'string'); i++) {
+    await Promise.delay(1500)
+    response = await getResponse({openai, messages, requestID: response})     
+  }
+  
+  // try {
+  //   let completion = await openai.createChatCompletion({
+  //     model: "gpt-3.5-turbo",
+  //     temperature: 0.2,
+  //     messages
+  //   })
+  //  let response = completion.data.choices[0].message
+  if (typeof response === 'object')
+    return response.content.trim()
+}  
+async function getResponse({openai, messages, requestID}:{openai: any, messages: any, requestID?: string}) {
+  if (requestID)
+    messages[0].content += `\nThis is the previously failed messages with ID ${requestID}`
+  try {
+    let completion = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      temperature: 0.2,
+      messages
+    })
+    return completion.data.choices[0].message
+    // let response = completion.data.choices[0].message
+    // return response.content.trim()
+  } catch(error) {
+    const { status, data } = error.response
+    if (error.response) {
+      if (status === 429) {
+        let { message } = data.error
+        let idx = message.indexOf(' request ID ')
+        if (idx !== -1)  {
+          let idx1 = message.indexOf(' ', idx + 12)          
+          return message.slice(idx, idx1)
+        }
+      }
       console.log(status, data);
       debugger
     } else {
