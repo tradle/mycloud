@@ -120,6 +120,9 @@ if (image.length > MAX_FILE_SIZE)
       // if (doTrim) 
       //   data = `${data.slice(0, i + 1)}}`
            
+      let lastBraces = data.lastIndexOf('}')
+      if (lastBraces !== data.length - 1)
+        data = data.slice(0, lastBraces + 1)
       let response
       try {
         response = JSON.parse(data)

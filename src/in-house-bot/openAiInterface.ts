@@ -185,7 +185,7 @@ async function convertObjectToJson({message, openai, model, models}:{message: st
     enumProps.forEach(e => {
       if (models[e.ref].enum.length > 10) return
       let eenum = models[e.ref].enum
-      sysMessage += `\nPlease set value for "${e.name}" to one of the following categories: "${eenum.map(e => e.title).join(',')}". Map category of the document to the most suitable category listed. If you don't find a suitable category indicate a category like "category name (New Category)".`       
+      sysMessage += `\nPlease set value for "${e.name}" to one of the following categories: "${eenum.map(e => e.title).join(',')}". Try to map found value to the most suitable category in the list or if you can't find a suitable category indicate a category like "category name (New Category)".`       
     })
     sysMessage += `\nPlease translate to English values for these properties: "${enumProps.map(e => e.name).join(',')}"` 
   } 
