@@ -180,22 +180,22 @@ async function convertObjectToJson({message, openai, model, models}:{message: st
     if (property.ref === MONEY)
       moneyProps.push(p)  
   }
-  let sysMessage = `You are a JSON created machine. I will give you a list of tokens and you will have to fill out this JSON: ${JSON.stringify(props)}. You are not allowed to product invalid JSON.`
+  let sysMessage = `You are a JSON created machine. I will give you a list of tokens and you will have to fill out this JSON: ${JSON.stringify(props)}. You are not allowed to produce invalid JSON.`
   if (enumProps.length) {
     enumProps.forEach(e => {
       if (models[e.ref].enum.length > 10) return
       let eenum = models[e.ref].enum
-      sysMessage += `\nPlease set value for "${e.name}" to one of the following categories: "${eenum.map(e => e.title).join(',')}". Try to map found value to the most suitable category in the list or if you can't find a suitable category indicate a category like "category name (New Category)".`       
+      sysMessage += `\nIf applicable, Please set value for "${e.name}" to one of the following categories: "${eenum.map(e => e.title).join(',')}". Try to map found value to the most suitable category in the list or if you can't find a suitable category indicate a category like "category name (New Category)".`       
     })
     sysMessage += `\nPlease translate to English values for these properties: "${enumProps.map(e => e.name).join(',')}"` 
   } 
-  if (moneyProps.length) 
-    sysMessage += `\nPlease include currency symbol if present for these properties ${moneyProps.join(',')}`
+    sysMessage += `\nIf applicable, Please include currency symbol if present for these properties ${moneyProps.join(',')}`
   
   let messages = [
     {role: 'system', content: sysMessage},
     {role: 'user', content: `${message.slice(1, message.length - 1)}`}
   ]
+
   let response = await getResponse({openai, messages})
   for (let i=0; i<NUMBER_OF_ATTEMPTS && (typeof response === 'string'); i++) {
     await Promise.delay(1500)
