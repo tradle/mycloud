@@ -2,12 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.54](https://github.com/tradle/mycloud/compare/v4.0.53...v4.0.54) (2023-03-18)
+## [4.0.55](https://github.com/tradle/mycloud/compare/v4.0.54...v4.0.55) (2023-03-20)
 
 
 ### Features
 
-* prefill with ChatGPT ([8cf7d18](https://github.com/tradle/mycloud/commit/8cf7d18))
+* prefill with ChatGPT ([b13b64f](https://github.com/tradle/mycloud/commit/b13b64f))
+* prefill with ChatGPT; feat: resize image if too big ([ca667ff](https://github.com/tradle/mycloud/commit/ca667ff))
 
 
 
