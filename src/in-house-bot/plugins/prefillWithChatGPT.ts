@@ -6,6 +6,8 @@ import path from 'path'
 import fs from 'fs'
 import { v4 as uuid } from 'uuid'
 import { execSync } from 'child_process'
+import sizeof from 'image-size'
+import sharp from 'sharp'
 
 import { TYPE, PERMALINK, LINK, TYPES } from '@tradle/constants'
 const {
@@ -25,13 +27,14 @@ import {
   ValidatePluginConf,
   Applications,
   IPluginLifecycleMethods,
-  Logger
+  Logger,
+  ValidatePluginConfOpts
 } from '../types'
-import { logger } from '../lambda/mqtt/onmessage'
 
-const MAX_FILE_SIZE = 15728640
+const MAX_FILE_SIZE = 15728640 // 15 * 1024 * 1024 bytes in 15M
 const CURRENCY = 'tradle.Currency'
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
+const MAX_WIDTH = 2000
 
 type PrefillWithChatGPTOpts = {
   bot: Bot
@@ -64,19 +67,10 @@ export class PrefillWithChatGPT {
     if (Array.isArray(payload[prop])) base64 = payload[prop][0].url
     else base64 = payload[prop].url
 
-    let buffer: any = DataURI.decode(base64)
-    let image
-    // debugger
-    if (buffer.mimetype === 'application/pdf') {
-      try {
-        image = await this.convertPdfToPng(buffer)
-      } catch (err) {
-        this.logger.error('document-ocr failed', err)
-        return {}
-      }
-    } else image = buffer
-if (image.length > MAX_FILE_SIZE)
-  return {error: `File is too big. The current limit is ${MAX_FILE_SIZE/1024/1024} Megabytes`}
+
+    let image = await checkAndResizeResizeImage(base64, this.logger)
+  // return {error: `File is too big. The current limit is ${MAX_FILE_SIZE/1024/1024} Megabytes`}
+
     let accessKeyId = ''
     let secretAccessKey = ''
     let region = 'us-east-1'
@@ -120,9 +114,13 @@ if (image.length > MAX_FILE_SIZE)
       // if (doTrim) 
       //   data = `${data.slice(0, i + 1)}}`
            
-      let lastBraces = data.lastIndexOf('}')
-      if (lastBraces !== data.length - 1)
-        data = data.slice(0, lastBraces + 1)
+      let lastBracesIdx = data.lastIndexOf('}')
+      if (lastBracesIdx === -1) {
+        this.logger.debug('the response does not have JSON', data)
+        return
+      }  
+      if (lastBracesIdx !== data.length - 1)
+        data = data.slice(0, lastBracesIdx + 1)
       let response
       try {
         response = JSON.parse(data)
@@ -269,8 +267,10 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
       let dataLineage
       try {
         prefill = await prefillWithChatGPT.prefill(payload, property, req)
-        if (!prefill)
+        if (!prefill) {
           debugger
+          return
+        }
         if (prefill.error) {
           return {
             message: prefill.error
@@ -424,4 +424,78 @@ function makeEnumValue(val, ref, models) {
     // debugger
   }
   return pVal
+}
+async function checkAndResizeResizeImage (dataUrl, logger) {
+  let pref = dataUrl.substring(0, dataUrl.indexOf(',') + 1)
+  
+  let buffer: any = DataURI.decode(dataUrl)
+  let buf
+  if (pref.indexOf('application/pdf') !== -1) {
+  // debugger
+    try {
+      buf = await this.convertPdfToPng(buffer)
+    } catch (err) {
+      logger.error('document-ocr failed', err)
+      return {}
+    }
+  } 
+  else
+    buf = DataURI.decode(dataUrl)
+  
+  return await imageResize(buf, pref, logger)  
+}
+async function imageResize (buf, pref, logger, maxWidth?: number) {
+  if (buf.length < MAX_FILE_SIZE) return buf
+  
+  let dimensions: any = sizeof(buf);
+  let currentWidth: number = dimensions.width
+  let currentHeight: number = dimensions.height
+  logger.debug(`prefillWithChatGPT image original w=${currentWidth}' h=${currentHeight}`)
+  let biggest = currentWidth > currentHeight ? currentWidth : currentHeight
+  if (!maxWidth)
+    maxWidth = MAX_WIDTH
+  let coef: number = maxWidth / biggest
+
+  if (currentWidth < currentHeight) { // rotate
+    let resizedBuf: any
+    let width: number = currentHeight
+    let height: number = currentWidth
+    if (coef < 1) { // also resize
+      width = Math.round(currentHeight * coef)
+      height = Math.round(currentWidth * coef)
+      resizedBuf = await sharp(buf).rotate(-90).resize(width, height).toBuffer()
+      logger.debug(`prefillWithChatGPT image resized and rotated w=${width}' h=${height}`)
+    }
+    else {
+      resizedBuf = await sharp(buf).rotate(-90).toBuffer()
+      this.logger.debug(`prefillWithChatGPT image rotated w=${width}' h=${height}`)
+    }
+    let newDataUrl = pref + resizedBuf.toString('base64')
+    buf = DataURI.decode(newDataUrl)
+    return imageResize(buf, pref, logger, maxWidth / 2)
+  }
+  if (coef < 1) {
+    let width = Math.round(currentWidth * coef)
+    let height = Math.round(currentHeight * coef)
+    let resizedBuf = await sharp(buf).resize(width, height).toBuffer()
+    let newDataUrl = pref + resizedBuf.toString('base64')
+    logger.debug(`prefillWithChatGPT image resized w=${width}' h=${height}`)
+    buf = DataURI.decode(newDataUrl)
+    return imageResize(buf, pref, logger, maxWidth / 2)    
+  }
+  logger.debug(`prefillWithChatGPT image no change`)
+  return buf
+}
+export const validateConf: ValidatePluginConf = async (opts: ValidatePluginConfOpts) => {
+  const { bot, conf, pluginConf } = opts
+  const { models } = bot
+  for (let form in pluginConf) {
+    if (!models[form])
+      throw new Error(`Invalid model: ${form}`)
+    let c = pluginConf[form]  
+    if (!c.property)
+      throw new Error(`The configuration needs to have 'property' that points to the document that will be processed by this plugin`)
+    if (!models[form].properties[c.property])
+      throw new Error(`Invalid property: ${c.property} in ${form}`)
+  }
 }
