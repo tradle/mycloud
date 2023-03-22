@@ -84,6 +84,7 @@ const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
 const APPLICATION = 'tradle.Application'
 const VERSION_INFO = 'tradle.cloud.VersionInfo'
 const CUSTOMER_APPLICATION = 'tradle.products.CustomerApplication'
+const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
 const PRODUCT_LIST_MESSAGE = 'See our list of products'
 const PRODUCT_LIST_CHANGED_MESSAGE = 'Our products have changed'
 const PRODUCT_LIST_MENU_MESSAGE = 'Choose Apply for Product from the menu'
@@ -990,9 +991,10 @@ const banter = (components: IBotComponents) => {
     // avoid infinite loop between two bots: "I'm sorry", "No I'm sorry!", "No I'm sorry"...
     if (user.friend) return
     let msg
+    const { models } = bot
     if (conf.bot['openApiKey']) {
       try {
-        msg = await getChatGPTMessage({req, bot, conf: conf.bot, message});
+        msg = await getChatGPTMessage({req, bot, conf: conf.bot, message, model: models[SIMPLE_MESSAGE]});
         if (application) {
           // application.conversation.messages = allMessages
           await applications.updateApplication(application)
