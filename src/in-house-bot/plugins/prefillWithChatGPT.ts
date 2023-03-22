@@ -64,8 +64,25 @@ export class PrefillWithChatGPT {
     await this.bot.resolveEmbeds(payload)
     // Form now only 1 doc will be processed
     let base64
-    if (Array.isArray(payload[prop])) base64 = payload[prop][0].url
-    else base64 = payload[prop].url
+    let parts = prop.split('.')
+    if (parts.length === 1) {
+      if (Array.isArray(payload[prop])) base64 = payload[prop][0].url
+      else base64 = payload[prop].url
+    }       
+    else {
+      let res = payload
+      let len = parts.length
+      for (let i=0; i<parts.length - 1; i++) 
+        res = await this.bot.getResource(res[parts[i]])
+      
+      await this.bot.resolveEmbeds(res)        
+      let p = parts[len - 1]
+      if (Array.isArray(res[p])) base64 = res[p][0].url
+      else base64 = res[p].url
+        
+    }
+    // if (Array.isArray(payload[prop])) base64 = payload[prop][0].url
+    // else base64 = payload[prop].url
 
 
     let image = await checkAndResizeResizeImage(base64, this.logger)
@@ -98,7 +115,21 @@ export class PrefillWithChatGPT {
       // let analyzeResponse = await textract.analyzeDocument({...params, FeatureTypes: [ 'TABLES', 'FORMS', 'SIGNATURES']}).promise()
     try {  
       let message = JSON.stringify(apiResponse.Blocks.map(b => b.Text).filter(a => a !== undefined))
-      let data = await getChatGPTMessage({req, bot: this.bot, conf: this.botConf.bot, message: message.slice(1, message.length - 1)})
+      let params:any = {
+        req, 
+        bot: this.bot, 
+        conf: this.botConf.bot, 
+        message: message.slice(1, message.length - 1)
+      }
+      const {models} = this.bot
+      let model = models[payload[ TYPE]]
+
+      let map = this.conf.map
+      if (map && map[payload[TYPE]])
+        params.model = models[map[payload[TYPE]]]
+      else
+        params.model = model
+      let data = await getChatGPTMessage(params)
       if (!data) {
         debugger
         return
@@ -132,8 +163,6 @@ export class PrefillWithChatGPT {
           response = JSON.parse(data)
         }
       }
-      const {models} = this.bot
-      let model = models[payload[ TYPE]]
       this.normalizeResponse({response, model, models})
       return response
     } catch (err) {
@@ -189,40 +218,6 @@ export class PrefillWithChatGPT {
     if (deleteProps.length) 
       deleteProps.forEach(p => delete response[p])
   }
-  public convertPdfToPng = async (pdf: any) => {
-    const fileName = uuid()
-    let gsOp = gs()
-      .option('-r' + 1200)
-      .option('-dFirstPage=1')
-      .option('-dLastPage=1')
-      .device('png16m')
-      .output('/tmp/' + fileName + '-%d.png')
-
-    if (process.env.LAMBDA_TASK_ROOT) {
-      const ghostscriptPath = path.resolve(
-        __dirname,
-        '../../../node_modules/lambda-ghostscript/bin/gs'
-      )
-      gsOp.executablePath(ghostscriptPath)
-    }
-
-    return new Promise((resolve, reject) => {
-      gsOp.exec(pdf, (error, stdout, stderror) => {
-        if (error) {
-          this.logger.debug(error)
-        }
-        // debugger
-        const outfile = '/tmp/' + fileName + '-1.png'
-        if (fs.existsSync(outfile)) {
-          let png = fs.readFileSync(outfile)
-          // remove file
-          // fs.unlink(outfile, (err) => { })
-          //console.log('png file size ', png.length)
-          resolve(png)
-        } else reject(new Error('no png file generated'))
-      })
-    })
-  }
 
 }
 
@@ -236,10 +231,15 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
       const { user, application, payload } = req
       // debugger
       if (!application) return
-      const formConf = conf[payload[TYPE]]
-      if (!formConf) return
+      let formConf = conf[payload[TYPE]]
+      if (!formConf) {
+        let { models } = bot
+        let m = models[payload[TYPE]]
+        formConf = conf[m.subClassOf]
+        if (!formConf) return
+      }
       const { property } = formConf
-      if (!property || !payload[property]) return
+      if (!property || !payload[property.split('.')[0]]) return
 
       if (payload._prevlink && payload[property]) {
         let dbRes = await bot.objects.get(payload._prevlink)
@@ -430,10 +430,12 @@ async function checkAndResizeResizeImage (dataUrl, logger) {
   
   let buffer: any = DataURI.decode(dataUrl)
   let buf
-  if (pref.indexOf('application/pdf') !== -1) {
+  let isPDF = pref.indexOf('application/pdf') !== -1
+  if (isPDF) {
   // debugger
     try {
-      buf = await this.convertPdfToPng(buffer)
+      const fileName = uuid()
+      buf = await convertPdfToPng(buffer)
     } catch (err) {
       logger.error('document-ocr failed', err)
       return {}
@@ -442,10 +444,49 @@ async function checkAndResizeResizeImage (dataUrl, logger) {
   else
     buf = DataURI.decode(dataUrl)
   
-  return await imageResize(buf, pref, logger)  
+  return await imageResize({buf, pref, logger, isPDF})  
 }
-async function imageResize (buf, pref, logger, maxWidth?: number) {
-  if (buf.length < MAX_FILE_SIZE) return buf
+async function convertPdfToPng(pdf: any) {
+  const fileName = uuid()
+  let gsOp = gs()
+    .option('-r' + 1200)
+    .option('-dFirstPage=1')
+    .option('-dLastPage=1')
+    .device('png16m')
+    .output('/tmp/' + fileName + '-%d.png')
+
+  if (process.env.LAMBDA_TASK_ROOT) {
+    const ghostscriptPath = path.resolve(
+      __dirname,
+      '../../../node_modules/lambda-ghostscript/bin/gs'
+    )
+    gsOp.executablePath(ghostscriptPath)
+  }
+
+  return new Promise((resolve, reject) => {
+    gsOp.exec(pdf, (error, stdout, stderror) => {
+      if (error) {
+        this.logger.debug(error)
+      }
+      // debugger
+      const outfile = '/tmp/' + fileName + '-1.png'
+      if (fs.existsSync(outfile)) {
+        let png = fs.readFileSync(outfile)
+        // remove file
+        // fs.unlink(outfile, (err) => { })
+        //console.log('png file size ', png.length)
+        resolve(png)
+      } else reject(new Error('no png file generated'))
+    })
+  })
+}
+
+async function imageResize ({buf, pref, logger, maxWidth, isPDF}:{buf:Buffer, pref: string, maxWidth?:number, logger: Logger, isPDF?: boolean}) {
+  let isTooBig = buf.length > MAX_FILE_SIZE
+  if (!isTooBig) {
+    if (!isPDF)
+      return buf
+  }
   
   let dimensions: any = sizeof(buf);
   let currentWidth: number = dimensions.width
@@ -455,6 +496,9 @@ async function imageResize (buf, pref, logger, maxWidth?: number) {
   if (!maxWidth)
     maxWidth = MAX_WIDTH
   let coef: number = maxWidth / biggest
+  // Need to resize image from PDF  at least once
+  if (isPDF && !isTooBig && coef >= 1)
+    coef = 0.9 
 
   if (currentWidth < currentHeight) { // rotate
     let resizedBuf: any
@@ -468,11 +512,11 @@ async function imageResize (buf, pref, logger, maxWidth?: number) {
     }
     else {
       resizedBuf = await sharp(buf).rotate(-90).toBuffer()
-      this.logger.debug(`prefillWithChatGPT image rotated w=${width}' h=${height}`)
+      logger.debug(`prefillWithChatGPT image rotated w=${width}' h=${height}`)
     }
     let newDataUrl = pref + resizedBuf.toString('base64')
     buf = DataURI.decode(newDataUrl)
-    return imageResize(buf, pref, logger, maxWidth / 2)
+    return imageResize({buf, pref, logger, maxWidth: maxWidth / 2})
   }
   if (coef < 1) {
     let width = Math.round(currentWidth * coef)
@@ -481,7 +525,7 @@ async function imageResize (buf, pref, logger, maxWidth?: number) {
     let newDataUrl = pref + resizedBuf.toString('base64')
     logger.debug(`prefillWithChatGPT image resized w=${width}' h=${height}`)
     buf = DataURI.decode(newDataUrl)
-    return imageResize(buf, pref, logger, maxWidth / 2)    
+    return imageResize({buf, pref, logger, maxWidth: maxWidth / 2})    
   }
   logger.debug(`prefillWithChatGPT image no change`)
   return buf
@@ -495,7 +539,7 @@ export const validateConf: ValidatePluginConf = async (opts: ValidatePluginConfO
     let c = pluginConf[form]  
     if (!c.property)
       throw new Error(`The configuration needs to have 'property' that points to the document that will be processed by this plugin`)
-    if (!models[form].properties[c.property])
-      throw new Error(`Invalid property: ${c.property} in ${form}`)
+    // if (!models[form].properties[c.property])
+    //   throw new Error(`Invalid property: ${c.property} in ${form}`)
   }
 }
