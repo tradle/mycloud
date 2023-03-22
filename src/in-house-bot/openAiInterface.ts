@@ -12,8 +12,6 @@ const {
 } = TYPES
 
 import { isSubClassOf } from './utils'
-import { execute } from 'graphql'
-import { message } from '../typeforce-types'
 const {
   isEnumProperty,
 } = validateModels.utils
@@ -29,7 +27,7 @@ const NUMBER_OF_ATTEMPTS = 3
 const samplesS3 = new AWS.S3()
 const UTF8 = 'utf-8'
 
-export async function getChatGPTMessage({req, bot, conf, message }:{req: IPBReq, bot: Bot, conf: any, message: any}) {
+export async function getChatGPTMessage({req, bot, conf, message, model }:{req: IPBReq, bot: Bot, conf: any, message: any, model: any}) {
   const {openApiKey, AIGovernanceAndSupportFolder, providerSetup, AIGovernanceAndSupportBucket} = conf
   if (!openApiKey) return
 
@@ -38,8 +36,9 @@ export async function getChatGPTMessage({req, bot, conf, message }:{req: IPBReq,
   const { models } = bot
 
   let { user, application, payload } = req
-  if (payload[TYPE] !== SIMPLE_MESSAGE) 
-    return await convertObjectToJson({message, openai, model: bot.models[payload[TYPE]], models})
+  if (model.id !== SIMPLE_MESSAGE) 
+    return await convertObjectToJson({message, openai, model, models})
+  
   let query = {
     orderBy: {
       property: '_time',
@@ -68,7 +67,8 @@ export async function getChatGPTMessage({req, bot, conf, message }:{req: IPBReq,
   let { setupContent } = await getSetupContent({user, bot, conf})
 
   messages.splice(0, 0, setupContent)
-  messages.splice(1, 0, {role: 'user', content: 'All dates in JSON are in long format. Please convert them using Date JS if asked.'})
+  messages.splice(1, 0, {role: 'user', content: 'All dates in JSON are in long format. Please convert them using Date JS if asked. Please don\'t mention the word "JSON" in your response, you can use "data" instead'})
+  
   if (application) {
     let { submissions, forms } = application
     if (submissions.length === 50) {
@@ -189,6 +189,7 @@ async function convertObjectToJson({message, openai, model, models}:{message: st
     })
     sysMessage += `\nPlease translate to English values for these properties: "${enumProps.map(e => e.name).join(',')}"` 
   } 
+  if (moneyProps.length)
     sysMessage += `\nIf applicable, Please include currency symbol if present for these properties ${moneyProps.join(',')}`
   
   let messages = [
@@ -255,7 +256,7 @@ async function getSetupContent({ user, bot, conf}: {user: IPBUser, bot: Bot, con
       `${AIGovernanceAndSupportFolder}/${providerSetup}`,
       AIGovernanceAndSupportBucket)
   }
-  else
+  if (!systemMessage)
     systemMessage = 'You are a helpful assistent'
 
   let language
