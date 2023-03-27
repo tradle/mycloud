@@ -28,9 +28,6 @@ import {
 import { TYPE, PERMALINK, LINK } from '../constants'
 import { TRADLE } from './constants'
 import { safeStringify, trimLeadingSlashes, trimTrailingSlashes } from '../string-utils'
-import { logger } from '@tradle/dynamodb/lib/defaults'
-import { enumValue } from '@tradle/build-resource'
-import { database } from 'aws-xray-sdk-core'
 
 const SealModel = models['tradle.Seal']
 const SEAL_MODEL_PROPS = Object.keys(SealModel.properties)
@@ -48,7 +45,6 @@ const DEPLOYMENT_CONFIGURATION = 'tradle.cloud.Configuration'
 const CHECK_STATUS = 'tradle.Status'
 const HAND_SIGNATURE = 'tradle.HandSignature'
 const APPLICATION = 'tradle.Application'
-const SANCTIONS_CHECK = 'tradle.SanctionsCheck'
 
 export { isEmployee }
 
