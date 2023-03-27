@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.56](https://github.com/tradle/mycloud/compare/v4.0.55...v4.0.56) (2023-03-22)
+## [4.0.57](https://github.com/tradle/mycloud/compare/v4.0.56...v4.0.57) (2023-03-27)
 
 
-### Bug Fixes
+### Features
 
-* convert PDF to image couldn't be read bt textract ([b0dc9a5](https://github.com/tradle/mycloud/commit/b0dc9a5))
+* prefill forms with ChatGPT ([f6e156e](https://github.com/tradle/mycloud/commit/f6e156e))
 
 
 
