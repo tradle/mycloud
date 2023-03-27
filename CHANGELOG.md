@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.57](https://github.com/tradle/mycloud/compare/v4.0.56...v4.0.57) (2023-03-27)
+## [4.0.58](https://github.com/tradle/mycloud/compare/v4.0.57...v4.0.58) (2023-03-27)
 
 
-### Features
+### Bug Fixes
 
-* prefill forms with ChatGPT ([f6e156e](https://github.com/tradle/mycloud/commit/f6e156e))
+* bad import ([7293cdb](https://github.com/tradle/mycloud/commit/7293cdb))
 
 
 
