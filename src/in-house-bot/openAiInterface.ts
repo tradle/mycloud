@@ -12,7 +12,6 @@ const {
 } = TYPES
 
 import { isSubClassOf } from './utils'
-import { logger } from './lambda/mqtt/onmessage'
 const {
   isEnumProperty,
 } = validateModels.utils
@@ -177,7 +176,7 @@ async function getChatGPTResponseForForm({message, openai, model, models, otherP
       for (let p in enumProperties) {
         let model = models[enumProperties[p]]
         if (!model) {
-          logger.debug(`${p} model does not exist`)
+          // logger.debug(`${p} model does not exist`)
           continue
         }
         enumProps.push({name: p, ref: model.id})
