@@ -10,12 +10,15 @@ import validateResource from '@tradle/validate-resource'
 import { enumValue } from '@tradle/build-resource'
 import { getEnumValueId } from '../../utils'
 import { isSubClassOf, getCheckParameters } from '../utils'
+import { mergeWithDocData, makeNewCP } from '../orgUtils'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const CLIENT_ACTION_REQUIRED_CHECK = 'tradle.ClientActionRequiredCheck'
+const AI_CORPORATION_CHECK = 'tradle.AICorporationCheck'
+
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
 const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
@@ -118,7 +121,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         (check) =>
           check[TYPE] === CORPORATION_EXISTS ||
           check[TYPE] === BENEFICIAL_OWNER_CHECK ||
-          check[TYPE] === CLIENT_ACTION_REQUIRED_CHECK
+          check[TYPE] === CLIENT_ACTION_REQUIRED_CHECK ||
+          check[TYPE] === AI_CORPORATION_CHECK
       )
       if (!stubs.length) return
       logger.debug('found ' + stubs.length + ' checks')
@@ -146,6 +150,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           c.provider === 'PitchBook Data, Inc.' &&
           c.form._permalink === legalEntityPermalink
       )
+      const aiCheck = result.find(c => c[TYPE] === AI_CORPORATION_CHECK)
+
       let carCheck = result.find((c) => c[TYPE] === CLIENT_ACTION_REQUIRED_CHECK)
       const statusM = bot.models[CHECK_STATUS]
       let forms = application.forms.filter((form) => form.submission[TYPE] === CONTROLLING_PERSON)
@@ -153,14 +159,15 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
       let officers, items
       if (check.status.id !== `${CHECK_STATUS}_pass`) {
         if (pscCheck && pscCheck.status.id === `${CHECK_STATUS}_pass`)
-          await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck })
+          await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck, aiCheck })
         if (carCheck && carCheck.status.id === `${CHECK_STATUS}_pass`)
           await this.prefillBeneficialOwner({
             items,
             forms,
             officers,
             formRequest,
-            pscCheck: carCheck
+            pscCheck: carCheck,
+            aiCheck
           })
 
         if (
@@ -168,7 +175,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           pitchbookCheck &&
           getEnumValueId({ model: statusM, value: pitchbookCheck.status }) === 'pass'
         )
-          await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pitchbookCheck })
+        await this.prefillBeneficialOwner({ items, forms, officers, formRequest, pitchbookCheck, aiCheck })
         return
       }
 
@@ -217,6 +224,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
             officers,
             formRequest,
             pscCheck,
+            aiCheck,
             legalEntity
           })
           dataSource = 'psc'
@@ -229,7 +237,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
             officers,
             formRequest,
             pscCheck: carCheck,
-            legalEntity
+            aiCheck,
+            legalEntity,
           })
           dataSource = 'clientAction'
           // this.addRefDataSource({ dataSource: 'clientAction', formRequest, currenPrefill })
@@ -247,9 +256,24 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
             officers,
             formRequest,
             pscCheck: pitchbookCheck,
+            aiCheck,
             legalEntity
           })
           this.addRefDataSource({ dataSource, formRequest, currenPrefill })
+        }
+        if (aiCheck) {
+          let prefill = formRequest.prefill 
+                      ? {... formRequest.prefill } 
+                      : { [TYPE]: CONTROLLING_PERSON }
+          let items = await Promise.all(forms.map((f) => bot.getResource(f.submission)))
+          let psize = size(prefill)
+          await makeNewCP({aiCheck, resource: prefill, bot, forms: items})          
+          if (size(prefill) > psize) {
+            let {firstName, lastName } = prefill            
+            if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
+            formRequest.message = `Please review and correct the data below **for ${firstName} ${lastName}**` //${bot.models[CONTROLLING_PERSON].title}: ${officer.name}`
+            extend(formRequest.prefill, prefill)
+          }
         }
         return
       }
@@ -403,6 +427,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
         })
       }
       await this.addOwnsTypeOfOwnership({ formRequest, prefill })
+      await mergeWithDocData({aiCheck, resource: prefill, bot, isPrefill: true})
 
       formRequest.dataLineage = dataLineage
       if (!formRequest.prefill) formRequest.prefill = { [TYPE]: CONTROLLING_PERSON }
@@ -646,7 +671,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           title: natureOfControl.title
         }
     },
-    async prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck, legalEntity }) {
+    async prefillBeneficialOwner({ items, forms, officers, formRequest, pscCheck, legalEntity, aiCheck }) {
       if (!items) items = await Promise.all(forms.map((f) => bot.getResource(f.submission)))
       if (!pscCheck) return
 
@@ -698,6 +723,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
 
         if (isIndividual) {
           this.prefillIndividual(prefill, bene)
+          await mergeWithDocData({aiCheck, resource: prefill, bot, isPrefill: true})
         } else {
           this.prefillCompany(prefill, bene)
         }

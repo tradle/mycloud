@@ -727,6 +727,7 @@ export const loadComponentsAndPlugins = ({
       'smart-prefill',
       'lens',
       'required-forms',
+      'aiCorporateData',
       'ruesCheck',
       'doctorCheck',
       'creditBuroCheck',

@@ -27,6 +27,7 @@ import {
   // doesCheckExist,
   doesCheckNeedToBeCreated
 } from '../utils'
+import { mergeWithDocData } from '../orgUtils'
 
 const { TYPE, TYPES, PERMALINK, LINK } = constants
 const { VERIFICATION } = TYPES
@@ -40,6 +41,7 @@ const COUNTRY = 'tradle.Country'
 const STATUS = 'tradle.Status'
 const API = 'tradle.API'
 const API_BASED_VERIFIED_METHOD = 'tradle.APIBasedVerificationMethod'
+
 const CH_URL = 'https://beta.companieshouse.gov.uk'
 
 const CZECH_COUNTRY_ID = 'CZ' // handled by czechCheck
@@ -519,19 +521,17 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
     async onmessage(req: IPBReq) {
       // debugger
       if (req.skipChecks) return
-      const { user, application, payload } = req
+      let { user, application, payload } = req
       if (!application) return
 
       // debugger
       let ptype = payload[TYPE]
       let { products, propertyMap, apiToken } = conf
-
       let productId = application.requestFor
       if (!products || !products[productId] || !products[productId].includes(ptype)) {
         logger.debug('not running check as form is missing "country"')
         return
       }
-
       let map = propertyMap && propertyMap[payload[TYPE]]
       if (map) map = { ...defaultPropMap, ...map }
       else map = defaultPropMap
@@ -540,10 +540,18 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
       if (bot.models[ptype].properties.region) propertiesToCheck.push('region')
 
       if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) {
-        logger.debug(
-          'skipping check as form is missing "country" or "registrationNumber" or "companyName"'
-        )
-        return
+        if (ptype === LEGAL_ENTITY) {
+          payload = await mergeWithDocData({isCompany: true, application, resource: payload, bot})
+          if (!payload) {
+            logger.debug('skipping check as form is missing "country" or "registrationNumber" or "companyName"')
+            return
+          }
+          if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) return
+        }
+        else {
+          logger.debug('skipping check as form is missing "country" or "NIT" or "companyName"')          
+          return
+        }
       }
 
       if (payload[map.country].id.split('_')[1] === CZECH_COUNTRY_ID ||
@@ -659,7 +667,7 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
       if (map) map = { ...defaultPropMap, ...map }
       else map = defaultPropMap
 
-      if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) {
+      if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) {  
         logger.debug('skipping prefill"')
         return
       }
@@ -889,3 +897,4 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
 //   }
 //   return { resource, rawData: json.results, hits: companies, url }
 // }
+

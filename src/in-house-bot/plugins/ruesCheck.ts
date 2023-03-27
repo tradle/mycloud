@@ -25,10 +25,12 @@ import {
 } from '../utils'
 
 import Errors from '../../errors'
+import { mergeWithDocData } from '../orgUtils'
 
 const { TYPE, PERMALINK, LINK } = constants
 const STATUS = 'tradle.Status'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
+const LEGAL_ENTITY = 'tradle.LegalEntity'
 
 const MAIN_URL = 'http://www.rues.org.co/'
 const CH_URL = 'http://www.rues.org.co/Home/ConsultaNIT_json'
@@ -164,7 +166,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
     async onmessage(req: IPBReq) {
       // debugger
       if (req.skipChecks) return
-      const { user, application, payload } = req
+      let { application, payload } = req
       if (!application) return
 
       // debugger
@@ -174,10 +176,18 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         return
   
       if (!payload[companyPropertyName] || !payload[nitPropertyName] || !payload[countryPropertyName]) {
-        logger.debug(
-          'skipping check as form is missing "country" or "NIT" or "companyName"'
-        )
-        return
+        if (ptype === LEGAL_ENTITY) {
+          payload = await mergeWithDocData({isCompany: true, application, resource: payload, bot})
+          if (!payload) {
+            logger.debug('skipping check as form is missing "country" or "registrationNumber" or "companyName"')
+            return
+          }
+          if (!payload[companyPropertyName] || !payload[nitPropertyName] || !payload[countryPropertyName]) return
+        }
+        else {
+          logger.debug('skipping check as form is missing "country" or "NIT" or "companyName"')          
+          return
+        }
       }
 
       if (payload[countryPropertyName].id.split('_')[1] !== COLOMBIA_COUNTRY_CODE)

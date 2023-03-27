@@ -31,6 +31,7 @@ import dateformat from 'dateformat'
 import _ from 'lodash'
 import util from 'util'
 import validateResource from '@tradle/validate-resource'
+import { mergeWithDocData } from '../orgUtils'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
@@ -391,7 +392,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       logger.debug('czechCheck called onmessage')
       // debugger
       if (req.skipChecks) return
-      const { user, application, payload } = req
+      let { user, application, payload } = req
       if (!application) return
 
       // debugger
@@ -405,10 +406,18 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       let propertiesToCheck: any = Object.values(map) // ['registrationNumber', 'registrationDate', 'country', 'companyName']
 
       if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) {
-        logger.debug(
-          'skipping check as form is missing "country" or "registrationNumber" or "companyName"'
-        )
-        return
+        if (ptype === LEGAL_ENTITY) {
+          payload = await mergeWithDocData({isCompany: true, application, resource: payload, bot})
+          if (!payload) {
+            logger.debug('skipping check as form is missing "country" or "registrationNumber" or "companyName"')
+            return
+          }
+          if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) return
+        }
+        else {
+          logger.debug('skipping check as form is missing "country" or "NIT" or "companyName"')          
+          return
+        }
       }
 
       if (payload[map.country].id.split('_')[1] !== CZECH_COUNTRY_ID)
