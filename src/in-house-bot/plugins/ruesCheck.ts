@@ -178,10 +178,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       if (!payload[companyPropertyName] || !payload[nitPropertyName] || !payload[countryPropertyName]) {
         if (ptype === LEGAL_ENTITY) {
           payload = await mergeWithDocData({isCompany: true, application, resource: payload, bot})
-          if (!payload) {
-            logger.debug('skipping check as form is missing "country" or "registrationNumber" or "companyName"')
-            return
-          }
           if (!payload[companyPropertyName] || !payload[nitPropertyName] || !payload[countryPropertyName]) return
         }
         else {
@@ -245,19 +241,26 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       }
     },
     async validateForm({ req }) {
-      const { user, application, payload } = req
+      const { user, application, payload: resource } = req
        // debugger
       if (!application) return
 
-      let ptype: string = payload[TYPE]
+      let ptype: string = resource[TYPE]
+      if (ptype !== LEGAL_ENTITY) return
       let { formName, nitPropertyName, companyPropertyName, countryPropertyName, municipialityPropertyName } = conf
       if (formName !== ptype)
         return
   
+      let payload
       if (!payload[countryPropertyName] || !payload[companyPropertyName] || !payload[nitPropertyName]) {
-        logger.debug('skipping prefill')
-        return
+        payload = await mergeWithDocData({isCompany: true, application, resource, bot})
+        if (!payload[countryPropertyName] || !payload[companyPropertyName] || !payload[nitPropertyName]) {
+          logger.debug('skipping check as form is missing "country" or "NIT" or "companyName"')          
+          return
+        }
       }
+      else payload = resource
+
       if (payload[countryPropertyName].id.split('_')[1] !== COLOMBIA_COUNTRY_CODE)
         return
  

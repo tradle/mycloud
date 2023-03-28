@@ -656,21 +656,32 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
       let checksAndVerifications = await Promise.all(pchecks)
     },
     async validateForm({ req }) {
-      const { user, application, payload } = req
+      const { user, application, payload:resource } = req
       // debugger
       if (!application) return
 
-      if (payload[TYPE] !== LEGAL_ENTITY) return
+      if (resource[TYPE] !== LEGAL_ENTITY) return
       
       let { propertyMap, companiesHouseApiKey } = conf
-      let map = propertyMap && propertyMap[payload[TYPE]]
+      let map = propertyMap && propertyMap[resource[TYPE]]
       if (map) map = { ...defaultPropMap, ...map }
       else map = defaultPropMap
 
-      if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) {  
-        logger.debug('skipping prefill"')
-        return
+      let ptype = resource[TYPE]
+
+      let payload
+      if (!resource[map.country] || !resource[map.companyName] || !resource[map.registrationNumber]) {  
+        if (ptype === LEGAL_ENTITY) {
+          payload = await mergeWithDocData({isCompany: true, application, resource, bot})
+          if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) return
+        }
+        else {
+          logger.debug('skipping check as form is missing "country" or "NIT" or "companyName"')          
+          return
+        }
       }
+      else payload = resource
+
       if (payload[map.country].id.split('_')[1] === CZECH_COUNTRY_ID ||
           payload[map.country].id.split('_')[1] === COLOMBIA_COUNTRY_CODE)
         return

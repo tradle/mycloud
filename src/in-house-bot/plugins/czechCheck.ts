@@ -408,10 +408,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) {
         if (ptype === LEGAL_ENTITY) {
           payload = await mergeWithDocData({isCompany: true, application, resource: payload, bot})
-          if (!payload) {
-            logger.debug('skipping check as form is missing "country" or "registrationNumber" or "companyName"')
-            return
-          }
           if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) return
         }
         else {
@@ -521,21 +517,28 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       }
     },
     async validateForm({ req }) {
-      const { user, application, payload } = req
+      const { user, application, payload:resource } = req
       // debugger
       if (!application) return
 
-      if (payload[TYPE] !== LEGAL_ENTITY) return
+      let ptype = resource[TYPE]
+      if (ptype !== LEGAL_ENTITY) return
       let { propertyMap } = conf
-      let map = propertyMap && propertyMap[payload[TYPE]]
+      let map = propertyMap && propertyMap[resource[TYPE]]
       if (map) map = { ...defaultPropMap, ...map }
       else map = defaultPropMap
 
       logger.debug('czechCheck validateForm called 1')
-      if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) {
-        logger.debug('skipping prefill')
-        return
+      let payload
+      if (!resource[map.country] || !resource[map.companyName] || !resource[map.registrationNumber]) {  
+        payload = await mergeWithDocData({isCompany: true, application, resource, bot})
+        if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) {
+          logger.debug('skipping check as form is missing "country" or "NIT" or "companyName"')          
+          return
+        }
       }
+      else payload = resource
+
       logger.debug('czechCheck validateForm called 2')
       if (payload[map.country].id.split('_')[1] !== CZECH_COUNTRY_ID)
         return
