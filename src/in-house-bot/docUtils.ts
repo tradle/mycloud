@@ -258,7 +258,7 @@ async function convertPdfToPng(pdf, logger) {
   if (process.env.LAMBDA_TASK_ROOT) {
     const ghostscriptPath = path.resolve(
       __dirname,
-      '../../../node_modules/lambda-ghostscript/bin/gs'
+      '../../node_modules/lambda-ghostscript/bin/gs'
     )
     gsOp.executablePath(ghostscriptPath)
   }
