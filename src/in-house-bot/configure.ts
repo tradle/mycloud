@@ -85,6 +85,7 @@ export type PublicInfo = {
   locale?: string
   optionalPairing?: boolean,
   requireDeviceLocalAuth?: boolean,
+  dontUseExternalAI: boolean,
   allowedMimeTypes?:string[],
   templates?: [],
   homePage?: string
@@ -384,6 +385,7 @@ export class Conf {
     const optionalPairing = _.get(bot, 'optionalPairing')
     const allowedMimeTypes = _.get(bot, 'allowedMimeTypes')
     const requireDeviceLocalAuth = _.get(bot, 'requireDeviceLocalAuth')
+    const dontUseExternalAI = _.get(bot, 'dontUseExternalAI')
     const templates = _.get(bot, 'templates')
     debugger
     return {
@@ -405,6 +407,7 @@ export class Conf {
       currency,
       locale,
       homePage,
+      dontUseExternalAI,
       tour,
       applicationTours,
       templates

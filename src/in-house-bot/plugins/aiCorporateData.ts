@@ -168,6 +168,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
   // debugger
   const plugin: IPluginLifecycleMethods = {
     async onmessage(req:IPBReq) {
+      if (botConf.bot['dontUseExternalAI']) return
       const { user, application, payload } = req
       // debugger
       if (!application) return

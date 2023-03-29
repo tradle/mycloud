@@ -993,7 +993,7 @@ const banter = (components: IBotComponents) => {
     if (user.friend) return
     let msg
     const { models } = bot
-    if (conf.bot['openApiKey']) {
+    if (conf.bot['openApiKey']  &&  !conf.bot['dontUseExternalAI']) {
       try {
         msg = await getChatGPTMessage({req, bot, conf: conf.bot, message, model: models[SIMPLE_MESSAGE]});
         if (application) {

@@ -28,7 +28,7 @@ export async function mergeWithDocData({isCompany, isPrefill, req, resource, bot
       application,
       bot
     })
-
+    if (!aiCheck) return emptyReturn
     aiCheck = aiCheck.rawData ? aiCheck : await bot.getResource(aiCheck)
     if (getEnumValueId({ model: bot.models[STATUS], value: aiCheck.status }) !== 'pass') return emptyReturn
   }
