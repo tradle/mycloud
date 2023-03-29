@@ -75,6 +75,10 @@ export class PrefillWithChatGPT {
 
 
     let image = await checkAndResizeResizeImage(base64, this.logger)
+    if (!image) {
+      this.logger.debug(`Conversion to image for property: ${prop} failed`)  
+      return
+    }
   // return {error: `File is too big. The current limit is ${MAX_FILE_SIZE/1024/1024} Megabytes`}
 
     let accessKeyId = ''

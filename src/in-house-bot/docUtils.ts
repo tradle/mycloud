@@ -154,11 +154,21 @@ async function imageResize ({buf, pref, logger, maxWidth, isPDF}:{buf:Buffer, pr
     if (coef < 1) { // also resize
       width = Math.round(currentHeight * coef)
       height = Math.round(currentWidth * coef)
-      resizedBuf = await sharp(buf).rotate(-90).resize(width, height).toBuffer()
+      try {
+        resizedBuf = await sharp(buf).rotate(-90).resize(width, height).toBuffer()
+      } catch (err) {
+        logger.debug('error rotating and resizing image', err)
+        return
+      }
       logger.debug(`prefillWithChatGPT image resized and rotated w=${width}' h=${height}`)
     }
     else {
-      resizedBuf = await sharp(buf).rotate(-90).toBuffer()
+      try {
+        resizedBuf = await sharp(buf).rotate(-90).toBuffer()
+      } catch (err) {
+        logger.debug('error rotating image', err)
+        return
+      }
       logger.debug(`prefillWithChatGPT image rotated w=${width}' h=${height}`)
     }
     let newDataUrl = pref + resizedBuf.toString('base64')

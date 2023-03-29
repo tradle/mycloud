@@ -92,6 +92,10 @@ export class PrefillWithChatGPT {
     else base64 = payload[prop].url
    
     let image = await checkAndResizeResizeImage(base64, this.logger)
+    if (!image) {
+      this.logger.debug(`Conversion to image for property: ${prop} failed`)  
+      return
+    }
     let message
     this.logger.debug(`Textract document for property: ${prop}`)
 
@@ -235,27 +239,32 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
 }
 
 function checkIfDocumentChanged({dbRes, payload, property, models}) {
-  let pType = models[payload[TYPE]].properties[property].type
-  let isArray = pType === 'array'
-  let maybeNotChanged
-  if (dbRes  &&  dbRes[property]) {
-    if (isArray)
-      maybeNotChanged = dbRes[property].length === payload[property].length
-    else  
-      maybeNotChanged = dbRes[property].url === payload[property].url 
-  }
-  if (maybeNotChanged) {
-    let dbPhotos = dbRes[property]
-    let payloadPhotos = payload[property]
-    let same = true
-    for (let i = 0; i < dbPhotos.length && same; i++) {
-      let url = dbPhotos[i].url
-      let idx = payloadPhotos.findIndex(r => r.url === url)
-      same = idx !== -1
-    }
-    if (same) return false
-  }
-  return true
+  if (dbRes && dbRes[property])
+    return dbRes[property].url !== payload[property].url 
+  else
+    return true
+
+  // let pType = models[payload[TYPE]].properties[property].type
+  // let isArray = pType === 'array'
+  // let maybeNotChanged
+  // if (dbRes  &&  dbRes[property]) {
+    // if (isArray)
+    //   maybeNotChanged = dbRes[property].length === payload[property].length
+    // else  
+      // maybeNotChanged = dbRes[property].url === payload[property].url 
+  // }
+  // if (maybeNotChanged) {
+  //   let dbPhotos = dbRes[property]
+  //   let payloadPhotos = payload[property]
+  //   let same = true
+  //   for (let i = 0; i < dbPhotos.length && same; i++) {
+  //     let url = dbPhotos[i].url
+  //     let idx = payloadPhotos.findIndex(r => r.url === url)
+  //     same = idx !== -1
+  //   }
+  //   if (same) return false
+  // }
+  // return true
 }
 
 function mapToCpProperties(response, property, models) {
