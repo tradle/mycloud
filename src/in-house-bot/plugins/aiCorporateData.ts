@@ -93,6 +93,8 @@ export class PrefillWithChatGPT {
    
     let image = await checkAndResizeResizeImage(base64, this.logger)
     let message
+    this.logger.debug(`Textract document for property: ${prop}`)
+
     try {
       ({ message} = await doTextract(image, this.logger))
     } catch (err) {
@@ -118,6 +120,8 @@ export class PrefillWithChatGPT {
     params.model = model
 
     try {          
+      this.logger.debug(`ChatGPT document for property: ${prop}`)
+
       let data = await getChatGPTMessage(params)
       params.message = ''
       // let data1 = await getChatGPTMessage(params)
@@ -127,7 +131,7 @@ export class PrefillWithChatGPT {
       }
       let lastBracesIdx = data.lastIndexOf('}')
       if (lastBracesIdx === -1) {
-        this.logger.debug('the response does not have JSON', data)
+        this.logger.debug('ChatGPT response does not have JSON', data)
         return
       }  
       if (lastBracesIdx !== data.length - 1)
@@ -172,11 +176,15 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
       const { models } = bot
       let dbRes
       if (payload._prevlink) {  //  payload.registrationNumber) {
-        dbRes = await bot.objects.get(payload._prevlink)
+        dbRes = await bot.objects.get(payload._prevlink) 
         if (checkIfDocumentChanged({dbRes, payload, property: 'companyFormationDocument', models}))
           changed.push('companyFormationDocument')
+        else
+          logger.debug(`Document for "companyFormationDocument" didn't change`)  
         if (checkIfDocumentChanged({dbRes, payload, property: 'articlesOfAssociationDocument', models}))
           changed.push('articlesOfAssociationDocument')
+          else
+          logger.debug(`Document for "articlesOfAssociationDocument" didn't change`)  
       }
       else {
         changed.push('companyFormationDocument')
@@ -189,9 +197,10 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
         let prop = changed[i]
         let check
         try {
+          logger.debug(`reading document for property: ${prop}`)
           let response = await prefillWithChatGPT.exec({payload, prop, req, check})
           if (!response) {
-            logger.debug(`ChatGPT: no response for document set in property: ${prop}`)
+            logger.debug(`no response for document set in property: ${prop}`)
             debugger
             // return
           }
