@@ -1,4 +1,3 @@
-import { extend, cloneDeep } from 'lodash'
 import AWS from 'aws-sdk'
 import gs from 'node-gs'
 import path from 'path'
@@ -9,14 +8,11 @@ import sizeof from 'image-size'
 import sharp from 'sharp'
 import validateModels from '@tradle/validate-model'
 const { isEnumProperty } = validateModels.utils
-import { TYPE } from '@tradle/constants'
 
 import {
   Logger, 
-  Bot, 
 } from '../types'
 
-const AI_CORPORATION_CHECK = 'tradle.AICorporationCheck'
 const CURRENCY = 'tradle.Currency'
 const MONEY = 'tradle.Money'
 const MAX_FILE_SIZE = 15728640 // 15 * 1024 * 1024 bytes in 15M
@@ -38,7 +34,6 @@ export async function checkAndResizeResizeImage (dataUrl, logger) {
   if (isPDF) {
   // debugger
     try {
-      const fileName = uuid()
       buf = await convertPdfToPng(buffer, logger)
     } catch (err) {
       logger.error('document-ocr failed', err)
@@ -50,7 +45,7 @@ export async function checkAndResizeResizeImage (dataUrl, logger) {
   
   return await imageResize({buf, pref, logger, isPDF})  
 }
-export async function doTextract(image) {
+export async function doTextract(image, logger) {
   let accessKeyId = ''
   let secretAccessKey = ''
   let region = 'us-east-1'
@@ -71,7 +66,7 @@ export async function doTextract(image) {
   try {
     apiResponse = await textract.detectDocumentText(params).promise()
   } catch (err) {
-    this.logger.debug('Textract error', err)
+    logger.debug('Textract error', err)
     return
   }
   let message = JSON.stringify(apiResponse.Blocks.map(b => b.Text).filter(a => a !== undefined))
@@ -280,18 +275,3 @@ async function convertPdfToPng(pdf, logger) {
     })
   })
 }
-
-export async function getLEfromAiCheck({application, bot}) {
-  let check = application.checks.find(check => check[TYPE] === AI_CORPORATION_CHECK)
-  if (!check) return
-  check = bot.getResource(check)
-  return check.rawData.companyFormationDocument
-}
-
-export async function getCPfromAiCheck({application, bot}) {
-  let check = application.checks.find(check => check[TYPE] === AI_CORPORATION_CHECK)
-  if (!check) return
-  check = bot.getResource(check)
-  let cp = check.rawData.articlesOfAssociationDocument
-}
-
