@@ -1,11 +1,10 @@
-import _, { extend, property } from 'lodash'
+import _ from 'lodash'
 import { execSync } from 'child_process'
 
-import { TYPE, PERMALINK, LINK } from '@tradle/constants'
+import { TYPE } from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
-import { enumValue } from '@tradle/build-resource'
 import { getChatGPTMessage } from '../openAiInterface'
 
 import {
@@ -184,18 +183,18 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
         changed.push('articlesOfAssociationDocument')
       }
       if (!changed.length) return
-      let check
       await bot.resolveEmbeds(payload)
 
       for (let i=0; i<changed.length; i++) {
         let prop = changed[i]
+        let check
         try {
           let response = await prefillWithChatGPT.exec({payload, prop, req, check})
           if (!response) {
+            logger.debug(`ChatGPT: no response for document set in property: ${prop}`)
             debugger
             // return
           }
-
           check = {
             [TYPE]: PROP_TO_CHECK[prop],
             status: response ? 'pass' : 'fail',
@@ -208,19 +207,16 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
           }
           check.message = getStatusMessageForCheck({models, check})
           // HACK
-          if (response.registrationNumber) {
-            let country = getEnumValueId({ model: models[COUNTRY], value: response.country })
-            if (country === 'US')
-              response.registrationNumber = response.registrationNumber.split(' ')[0]
+          if (response) {
+            if (response.registrationNumber && response.country && getEnumValueId({ model: models[COUNTRY], value: response.country }) === 'US') 
+              response.registrationNumber = response.registrationNumber.split(' ')[0]            
+            check.rawData = sanitize(response).sanitized
           }
-          response = sanitize(response).sanitized    
-          if (response)
-            check.rawData = response
+          // check = sanitize(check).sanitized
+          check = await applications.createCheck(check, req)
         } catch (err) {
           debugger
         }
-        check = sanitize(check).sanitized
-        check = await applications.createCheck(check, req)
       }
     },
   }
