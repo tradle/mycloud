@@ -21,7 +21,7 @@ const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const LANGUAGE = 'tradle.Language'
 const APPLICATION_SUBMISSION = 'tradle.ApplicationSubmission'
 
-const NUMBER_OF_ATTEMPTS = 3
+const NUMBER_OF_ATTEMPTS = 1
 
 // const TEN_MINUTES = 36000000
 const samplesS3 = new AWS.S3()
