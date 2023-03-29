@@ -541,15 +541,14 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
 
       if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) {
         if (ptype === LEGAL_ENTITY) {
-          payload = await mergeWithDocData({isCompany: true, application, resource: payload, bot})
-          if (!payload) {
+          payload = await mergeWithDocData({isCompany: true, req, resource: payload, bot})
+          if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) {
             logger.debug('skipping check as form is missing "country" or "registrationNumber" or "companyName"')
             return
           }
-          if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) return
         }
         else {
-          logger.debug('skipping check as form is missing "country" or "NIT" or "companyName"')          
+          logger.debug('skipping check as form is missing "country" or "registrationNumber" or "companyName"')
           return
         }
       }
@@ -672,7 +671,7 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
       let payload
       if (!resource[map.country] || !resource[map.companyName] || !resource[map.registrationNumber]) {  
         if (ptype === LEGAL_ENTITY) {
-          payload = await mergeWithDocData({isCompany: true, application, resource, bot})
+          payload = await mergeWithDocData({isCompany: true, req, resource, bot})
           if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) return
         }
         else {
@@ -686,7 +685,7 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
           payload[map.country].id.split('_')[1] === COLOMBIA_COUNTRY_CODE)
         return
 
-      if (payload._prevlink && payload.registrationDate) return
+      if (resource._prevlink && resource.registrationDate) return
 
       let checks: any = req.latestChecks || application.checks
 

@@ -407,7 +407,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
 
       if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) {
         if (ptype === LEGAL_ENTITY) {
-          payload = await mergeWithDocData({isCompany: true, application, resource: payload, bot})
+          payload = await mergeWithDocData({isCompany: true, req, resource: payload, bot})
           if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) return
         }
         else {
@@ -531,7 +531,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
       logger.debug('czechCheck validateForm called 1')
       let payload
       if (!resource[map.country] || !resource[map.companyName] || !resource[map.registrationNumber]) {  
-        payload = await mergeWithDocData({isCompany: true, application, resource, bot})
+        payload = await mergeWithDocData({isCompany: true, req, resource, bot})
         if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) {
           logger.debug('skipping check as form is missing "country" or "NIT" or "companyName"')          
           return
@@ -544,7 +544,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, 
         return
 
       logger.debug('czechCheck validateForm called 3')
-      if (payload._prevlink && payload.registrationDate) return
+      if (resource._prevlink && resource.registrationDate) return
 
       let checks: any = req.latestChecks || application.checks
 

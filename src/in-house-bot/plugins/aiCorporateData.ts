@@ -1,4 +1,4 @@
-import _, { extend } from 'lodash'
+import _, { extend, property } from 'lodash'
 import { execSync } from 'child_process'
 
 import { TYPE, PERMALINK, LINK } from '@tradle/constants'
@@ -15,22 +15,24 @@ import {
   Applications,
   IPluginLifecycleMethods,
   Logger,
-  ValidatePluginConfOpts,
   IPBReq
 } from '../types'
-import { getEnumValueId } from '../utils'
+import { getEnumValueId, getStatusMessageForCheck } from '../utils'
 import { normalizeResponse, checkAndResizeResizeImage, doTextract } from '../docUtils'
 
 const PROVIDER = 'ChatGPT'
 
 const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
-const LEGAL_ENTITY_CP = 'tradle.legal.LegalEntityControllingPerson'
 const SENIOR_MANAGER_POSITION = 'tradle.SeniorManagerPosition'
 const COUNTRY = 'tradle.Country'
 const AI_CORPORATION_CHECK = 'tradle.AICorporationCheck'
-const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
+const AI_ARTICLES_OF_ASSOCIATION_CHECK = 'tradle.AiArticlesOfAssociationCheck'
 const TYPE_OF_CP = 'tradle.legal.TypeOfControllingEntity'
-const ASPECTS = 'Extracting corporate data with ChatGPT'
+const ASPECTS = 'Reading document with AI'
+const PROP_TO_CHECK = {
+  companyFormationDocument: AI_CORPORATION_CHECK,
+  articlesOfAssociationDocument: AI_ARTICLES_OF_ASSOCIATION_CHECK
+}
 const MAPS = {
   articlesOfAssociationDocument: {
     properties: {
@@ -93,7 +95,7 @@ export class PrefillWithChatGPT {
     let image = await checkAndResizeResizeImage(base64, this.logger)
     let message
     try {
-      ({ message} = await doTextract(image))
+      ({ message} = await doTextract(image, this.logger))
     } catch (err) {
       this.logger.debug('Textract error', err)
       return
@@ -118,6 +120,8 @@ export class PrefillWithChatGPT {
 
     try {          
       let data = await getChatGPTMessage(params)
+      params.message = ''
+      // let data1 = await getChatGPTMessage(params)
       if (!data) {
         debugger
         return
@@ -141,7 +145,7 @@ export class PrefillWithChatGPT {
         }
       }
       return otherProperties 
-            ? mapToCpProperties(response, models) 
+            ? mapToCpProperties(response, prop, models) 
             : normalizeResponse({response, model, models})
     } catch (err) {
       debugger
@@ -168,7 +172,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
       let changed = [] //'articlesOfAssociationDocument', 'companyFormationDocument']
       const { models } = bot
       let dbRes
-      if (payload._prevlink  &&  payload.registrationNumber) {
+      if (payload._prevlink) {  //  payload.registrationNumber) {
         dbRes = await bot.objects.get(payload._prevlink)
         if (checkIfDocumentChanged({dbRes, payload, property: 'companyFormationDocument', models}))
           changed.push('companyFormationDocument')
@@ -189,21 +193,20 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
           let response = await prefillWithChatGPT.exec({payload, prop, req, check})
           if (!response) {
             debugger
-            return
+            // return
           }
-          if (!check) {
-            check = {
-              [TYPE]: AI_CORPORATION_CHECK,
-              status: 'pass',
-              provider: PROVIDER,
-              application,
-              dateChecked: Date.now(),
-              // shareUrl: url,
-              aspects: ASPECTS,
-              rawData: {},
-              form: payload
-            }
+
+          check = {
+            [TYPE]: PROP_TO_CHECK[prop],
+            status: response ? 'pass' : 'fail',
+            provider: PROVIDER,
+            application,
+            dateChecked: Date.now(),
+            // shareUrl: url,
+            aspects: ASPECTS,
+            form: payload,
           }
+          check.message = getStatusMessageForCheck({models, check})
           // HACK
           if (response.registrationNumber) {
             let country = getEnumValueId({ model: models[COUNTRY], value: response.country })
@@ -211,81 +214,15 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
               response.registrationNumber = response.registrationNumber.split(' ')[0]
           }
           response = sanitize(response).sanitized    
-          check.rawData[prop] = response
+          if (response)
+            check.rawData = response
         } catch (err) {
           debugger
         }
+        check = sanitize(check).sanitized
+        check = await applications.createCheck(check, req)
       }
-      check = sanitize(check).sanitized
-      check = await applications.createCheck(check, req)
     },
-    // async validateForm({ req }) {
-    //   const { user, application, payload } = req
-    //   if (!application || !application.checks) return
-    //   // debugger
-    //   if (payload[TYPE] !== LEGAL_ENTITY) return
-    //   if (payload.registrationNumber) return
-
-    //   let check = application.checks.find(check => check[TYPE] === AI_CORPORATION_CHECK)
-    //   if (!check) return
-    //   let checkR = await bot.getResource(check)
-
-    //   let prefill = checkR.rawData.companyFormationDocument
-      
-    //   let hasChanges
-    //   for (let p in prefill) {
-    //     if (!payload[p]) hasChanges = true
-    //     else if (typeof payload[p] === 'object' && !_.isEqual(payload[p], prefill[p]))
-    //       hasChanges = true
-    //     else if (payload[p] !== prefill[p]) hasChanges = true
-    //     if (hasChanges) break
-    //   }
-    //   if (!hasChanges) {
-    //     logger.error(
-    //       `prefillWithChatGPT does not send request for correction for ${payload[TYPE]} since the resource didn\'t change`
-    //     )
-    //     return
-    //   }
-
-    //   const payloadClone = _.cloneDeep(payload)
-    //   payloadClone[PERMALINK] = payloadClone._permalink
-    //   payloadClone[LINK] = payloadClone._link
-
-    //   _.extend(payloadClone, prefill)
-
-
-    //   let dataLineage
-    //   let provider = enumValue({
-    //     model: bot.models[REFERENCE_DATA_SOURCES],
-    //     value: 'amazonTextract'
-    //   })
-    //   dataLineage = {
-    //     [provider.id]: {
-    //       properties: Object.keys(check)
-    //     }
-    //   }
-    //   let formError: any = {
-    //     req,
-    //     user,
-    //     application
-    //   }
-    //   formError.details = {
-    //     prefill: payloadClone,
-    //     message: `Please review and correct the data below`
-    //   }
-    //   if (dataLineage) {
-    //     _.extend(formError.details, { dataLineage })
-    //   }
-    //   try {
-    //     await applications.requestEdit(formError)
-    //     return {
-    //       message: 'no request edit',
-    //       exit: true
-    //     }
-    //   } catch (err) {
-    //     debugger
-    //   }
-    // },
   }
   return { 
     plugin 
@@ -296,10 +233,11 @@ function checkIfDocumentChanged({dbRes, payload, property, models}) {
   let pType = models[payload[TYPE]].properties[property].type
   let isArray = pType === 'array'
   let maybeNotChanged
-  if (dbRes) {
+  if (dbRes  &&  dbRes[property]) {
     if (isArray)
-      maybeNotChanged = dbRes[property] && dbRes[property].length === payload[property].length
-    else if (dbRes[property] && dbRes[property].url === payload[property].url) return
+      maybeNotChanged = dbRes[property].length === payload[property].length
+    else  
+      maybeNotChanged = dbRes[property].url === payload[property].url 
   }
   if (maybeNotChanged) {
     let dbPhotos = dbRes[property]
@@ -312,59 +250,64 @@ function checkIfDocumentChanged({dbRes, payload, property, models}) {
     }
     if (same) return false
   }
+  return true
 }
 
-function mapToCpProperties(response, models) {
+function mapToCpProperties(response, property, models) {
   // let { properties } = models[LEGAL_ENTITY_CP]
   let { shares, positions } = response
+  if (!shares.length  &&  !positions.length) return
   let people = []
   let totalShares = shares.reduce((a, b) => {
     return a + b.numberOfShares
   }, 0)  
   let smEnum = models[SENIOR_MANAGER_POSITION].enum
   let typeOfControllingEntity = models[TYPE_OF_CP].enum.find(e => e.id === 'person')
-  positions.forEach(p => {
-    let { firstName, lastName, jobTitle } = p
-    let obj:any = {
-      firstName,
-      lastName     
-    }
-    let jobTitleL = jobTitle.map(jt => jt.toLowerCase())
-    let pIdx = smEnum.findIndex(e => {
-      let idx = jobTitleL.indexOf(e.title.toLowerCase())
-      if (idx === -1) return false
-      jobTitle.splice(idx, 1)
-      return true        
-    })
-    if (pIdx !== -1) {
-      let position = smEnum[pIdx]
-      obj.isSeniorManager = true
-      obj.seniorManagerPosition = {
-        id: `${SENIOR_MANAGER_POSITION}_${position.id}`,
-        title: position.title
+  if (JSON.stringify(positions) !== JSON.stringify(MAPS[property].properties.positions) ||
+      JSON.stringify(shares) !== JSON.stringify(MAPS[property].properties.shares)) {
+    positions.forEach(p => {
+      let { firstName, lastName, jobTitle } = p
+      let obj:any = {
+        firstName,
+        lastName     
       }
-    }
-    if (jobTitle.length)
-      obj.position = jobTitle.join(', ')      
+      let jobTitleL = jobTitle.map(jt => jt.toLowerCase())
+      let pIdx = smEnum.findIndex(e => {
+        let idx = jobTitleL.indexOf(e.title.toLowerCase())
+        if (idx === -1) return false
+        jobTitle.splice(idx, 1)
+        return true        
+      })
+      if (pIdx !== -1) {
+        let position = smEnum[pIdx]
+        obj.isSeniorManager = true
+        obj.seniorManagerPosition = {
+          id: `${SENIOR_MANAGER_POSITION}_${position.id}`,
+          title: position.title
+        }
+      }
+      if (jobTitle.length)
+        obj.position = jobTitle.join(', ')      
 
-    let sh = shares.find(sh => sh.firstName.toLowerCase() === p.firstName.toLowerCase() && sh.lastName.toLowerCase() === p.lastName.toLowerCase())
-    if (sh) 
-      obj.percentageOfOwnership = Math.round(sh.numberOfShares/totalShares * 100 * 100)/100
-    obj.typeOfControllingEntity = {
-      id: `${TYPE_OF_CP}_${typeOfControllingEntity.id}`,
-      title: typeOfControllingEntity.title
-    }
-    people.push(obj)
-  })
-  shares.forEach(sh => {
-    let { firstName, lastName, numberOfShares } = sh
-    let person = people.find(p => firstName === p.firstName && lastName === p.lastName)    
-    if (person) return
-    people.push({
-      firstName,
-      lastName,
-      percentageOfShares: Math.round(numberOfShares/totalShares * 100 * 100)/100
+      let sh = shares.find(sh => sh.firstName.toLowerCase() === p.firstName.toLowerCase() && sh.lastName.toLowerCase() === p.lastName.toLowerCase())
+      if (sh) 
+        obj.percentageOfOwnership = Math.round(sh.numberOfShares/totalShares * 100 * 100)/100
+      obj.typeOfControllingEntity = {
+        id: `${TYPE_OF_CP}_${typeOfControllingEntity.id}`,
+        title: typeOfControllingEntity.title
+      }
+      people.push(obj)
     })
-  })
+    shares.forEach(sh => {
+      let { firstName, lastName, numberOfShares } = sh
+      let person = people.find(p => firstName === p.firstName && lastName === p.lastName)    
+      if (person) return
+      people.push({
+        firstName,
+        lastName,
+        percentageOfShares: Math.round(numberOfShares/totalShares * 100 * 100)/100
+      })
+    })
+  }
   return people
 }

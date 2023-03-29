@@ -3,28 +3,36 @@ import { TYPE } from '@tradle/constants'
 import {
   Bot, 
 } from '../types'
+import { getLatestCheck, getEnumValueId } from './utils'
+import { IPBReq } from './types'
 
 const AI_CORPORATION_CHECK = 'tradle.AICorporationCheck'
-const COMPANY_FORMATION_PROP = 'companyFormationDocument'
-const ARTICLES_PROP = 'articlesOfAssociationDocument'
+const AI_ARTICLES_OF_ASSOCIATION_CHECK = 'tradle.AiArticlesOfAssociationCheck'
+const STATUS = 'tradle.Status'
 
-export async function mergeWithDocData({isCompany, isPrefill, application, resource, bot, aiCheck}:{
+export async function mergeWithDocData({isCompany, isPrefill, req, resource, bot, aiCheck}:{
   isCompany?: boolean, 
   isPrefill?: boolean, 
-  application?: any, 
+  req?: IPBReq, 
   resource: any,
   bot: Bot,
   aiCheck?: any,
 }) {
   let emptyReturn = {}
   if (!aiCheck) {
-    let { checks } = application
-    let check = checks && checks.find(ch => ch[TYPE] === AI_CORPORATION_CHECK)
-    if (!check) return emptyReturn
-    aiCheck = check.rawData ? check : await bot.getResource(check)
+    if (!req) return emptyReturn
+    const { application } = req
+    aiCheck = await getLatestCheck({
+      type: isCompany ? AI_CORPORATION_CHECK : AI_ARTICLES_OF_ASSOCIATION_CHECK,
+      req,
+      application,
+      bot
+    })
+
+    aiCheck = aiCheck.rawData ? aiCheck : await bot.getResource(aiCheck)
+    if (getEnumValueId({ model: bot.models[STATUS], value: aiCheck.status }) !== 'pass') return emptyReturn
   }
-  let prop = isCompany ? COMPANY_FORMATION_PROP : ARTICLES_PROP
-  const val = aiCheck.rawData[prop]
+  const val = aiCheck.rawData
   if (!val) return emptyReturn
   let newResource = isPrefill ? resource : cloneDeep(resource)
   if (isCompany) {
@@ -50,7 +58,7 @@ export async function makeNewCP({resource, bot, aiCheck, forms}:{
   aiCheck?: any,
   forms: any
 }) {
-  const val = aiCheck.rawData[ARTICLES_PROP]
+  const val = aiCheck.rawData
   if (!val) return
   if (!forms || !forms.length) {
     extend(resource, val[0])

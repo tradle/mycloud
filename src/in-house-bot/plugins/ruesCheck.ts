@@ -177,7 +177,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
   
       if (!payload[companyPropertyName] || !payload[nitPropertyName] || !payload[countryPropertyName]) {
         if (ptype === LEGAL_ENTITY) {
-          payload = await mergeWithDocData({isCompany: true, application, resource: payload, bot})
+          payload = await mergeWithDocData({isCompany: true, req, resource: payload, bot})
           if (!payload[companyPropertyName] || !payload[nitPropertyName] || !payload[countryPropertyName]) return
         }
         else {
@@ -253,7 +253,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
   
       let payload
       if (!payload[countryPropertyName] || !payload[companyPropertyName] || !payload[nitPropertyName]) {
-        payload = await mergeWithDocData({isCompany: true, application, resource, bot})
+        payload = await mergeWithDocData({isCompany: true, req, resource, bot})
         if (!payload[countryPropertyName] || !payload[companyPropertyName] || !payload[nitPropertyName]) {
           logger.debug('skipping check as form is missing "country" or "NIT" or "companyName"')          
           return

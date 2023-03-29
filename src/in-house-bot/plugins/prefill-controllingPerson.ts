@@ -17,7 +17,7 @@ const { sanitize } = validateResource.utils
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 const BENEFICIAL_OWNER_CHECK = 'tradle.BeneficialOwnerCheck'
 const CLIENT_ACTION_REQUIRED_CHECK = 'tradle.ClientActionRequiredCheck'
-const AI_CORPORATION_CHECK = 'tradle.AICorporationCheck'
+const AI_ARTICLES_OF_ASSOCIATION_CHECK = 'tradle.AiArticlesOfAssociationCheck'
 
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
@@ -122,7 +122,8 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           check[TYPE] === CORPORATION_EXISTS ||
           check[TYPE] === BENEFICIAL_OWNER_CHECK ||
           check[TYPE] === CLIENT_ACTION_REQUIRED_CHECK ||
-          check[TYPE] === AI_CORPORATION_CHECK
+          check[TYPE] === AI_ARTICLES_OF_ASSOCIATION_CHECK
+
       )
       if (!stubs.length) return
       logger.debug('found ' + stubs.length + ' checks')
@@ -150,7 +151,7 @@ export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
           c.provider === 'PitchBook Data, Inc.' &&
           c.form._permalink === legalEntityPermalink
       )
-      const aiCheck = result.find(c => c[TYPE] === AI_CORPORATION_CHECK)
+      const aiCheck = result.find(c => c[TYPE] === AI_ARTICLES_OF_ASSOCIATION_CHECK)
 
       let carCheck = result.find((c) => c[TYPE] === CLIENT_ACTION_REQUIRED_CHECK)
       const statusM = bot.models[CHECK_STATUS]
