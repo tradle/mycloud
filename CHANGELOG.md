@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.65](https://github.com/tradle/mycloud/compare/v4.0.64...v4.0.65) (2023-03-29)
+## [4.0.66](https://github.com/tradle/mycloud/compare/v4.0.65...v4.0.66) (2023-03-29)
 
 
-### Bug Fixes
+### Features
 
-* better trace the image resizing ([8baa2c4](https://github.com/tradle/mycloud/commit/8baa2c4))
+* make use of external AI optional ([d27f6d4](https://github.com/tradle/mycloud/commit/d27f6d4))
 
 
 
