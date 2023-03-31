@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.66](https://github.com/tradle/mycloud/compare/v4.0.65...v4.0.66) (2023-03-29)
+## [4.0.67](https://github.com/tradle/mycloud/compare/v4.0.66...v4.0.67) (2023-03-31)
 
 
-### Features
+### Bug Fixes
 
-* make use of external AI optional ([d27f6d4](https://github.com/tradle/mycloud/commit/d27f6d4))
+* delete temporary created image on conversion stage ([0b5acb6](https://github.com/tradle/mycloud/commit/0b5acb6))
 
 
 
