@@ -176,7 +176,9 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
       
       // if (payload.registrationNumber) return
 
-      if (!payload.companyFormationDocument || !payload.articlesOfAssociationDocument) return
+      let {companyFormationDocument, articlesOfAssociationDocument, registrationNumber} = payload
+      if (!companyFormationDocument) return
+      if (registrationNumber && !articlesOfAssociationDocument) return
       let changed = [] //'articlesOfAssociationDocument', 'companyFormationDocument']
       const { models } = bot
       let dbRes
@@ -186,14 +188,14 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
           changed.push('companyFormationDocument')
         else
           logger.debug(`Document for "companyFormationDocument" didn't change`)  
-        if (checkIfDocumentChanged({dbRes, payload, property: 'articlesOfAssociationDocument', models}))
+        if (articlesOfAssociationDocument && checkIfDocumentChanged({dbRes, payload, property: 'articlesOfAssociationDocument', models}))
           changed.push('articlesOfAssociationDocument')
           else
           logger.debug(`Document for "articlesOfAssociationDocument" didn't change`)  
       }
       else {
         changed.push('companyFormationDocument')
-        changed.push('articlesOfAssociationDocument')
+        // changed.push('articlesOfAssociationDocument')
       }
       if (!changed.length) return
       await bot.resolveEmbeds(payload)
