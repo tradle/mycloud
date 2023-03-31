@@ -2,6 +2,7 @@ import AWS from 'aws-sdk'
 import gs from 'node-gs'
 import path from 'path'
 import fs from 'fs'
+import util from 'util'
 import { v4 as uuid } from 'uuid'
 import DataURI from 'strong-data-uri'
 import sizeof from 'image-size'
@@ -10,7 +11,7 @@ import validateModels from '@tradle/validate-model'
 const { isEnumProperty } = validateModels.utils
 
 import {
-  Logger, 
+  Logger,
 } from '../types'
 
 const CURRENCY = 'tradle.Currency'
@@ -27,23 +28,24 @@ const MAX_WIDTH = 2000
 // }
 export async function checkAndResizeResizeImage (dataUrl, logger) {
   let pref = dataUrl.substring(0, dataUrl.indexOf(',') + 1)
-  
+
   let buffer: any = DataURI.decode(dataUrl)
   let buf
   let isPDF = pref.indexOf('application/pdf') !== -1
   if (isPDF) {
   // debugger
     try {
+      // let pages = await splitAndConvertPages(buffer, logger)
       buf = await convertPdfToPng(buffer, logger)
     } catch (err) {
-      logger.error('document-ocr failed', err)
+      logger.error('Conversion to image failed', err)
       return {}
     }
-  } 
+  }
   else
     buf = DataURI.decode(dataUrl)
-  
-  return await imageResize({buf, pref, logger, isPDF})  
+
+  return await imageResize({buf, pref, logger, isPDF})
 }
 export async function doTextract(image, logger) {
   let accessKeyId = ''
@@ -85,7 +87,7 @@ export function  normalizeResponse({response, model, models}) {
       deleteProps.push(p)
       continue
     }
-      
+
     const { type, ref, items } = property
     if (type === 'date') {
       response[p] = new Date(val).getTime()
@@ -95,16 +97,16 @@ export function  normalizeResponse({response, model, models}) {
       continue
     if (ref === MONEY) {
       let moneyVal = makeMoneyValue(val, models)
-      if (moneyVal) 
+      if (moneyVal)
         response[p] = moneyVal
       else
-        deleteProps.push(p)        
+        deleteProps.push(p)
       continue
-    }  
+    }
     if (!isEnumProperty({models, property})) {
       deleteProps.push(p)
       continue
-    }  
+    }
     let pVal = makeEnumValue(val, ref, models)
     // if (!pVal && ref === COUNTRY) {
     //   let v = ISO3166_COUNTRIES[val]
@@ -116,16 +118,16 @@ export function  normalizeResponse({response, model, models}) {
       response[p] = {
         id: `${ref}_${pVal.id}`,
         title: pVal.title
-      } 
-    }       
-    else 
-      deleteProps.push(p)    
-    
-    // let pVal =  models[ref].enum.find(e => e.id === val || e.title.toLowerCase === val.toLowerCase()) 
+      }
+    }
+    else
+      deleteProps.push(p)
+
+    // let pVal =  models[ref].enum.find(e => e.id === val || e.title.toLowerCase === val.toLowerCase())
   }
-  if (deleteProps.length) 
+  if (deleteProps.length)
     deleteProps.forEach(p => delete response[p])
-  return response  
+  return response
 }
 
 async function imageResize ({buf, pref, logger, maxWidth, isPDF}:{buf:Buffer, pref: string, maxWidth?:number, logger: Logger, isPDF?: boolean}) {
@@ -134,7 +136,7 @@ async function imageResize ({buf, pref, logger, maxWidth, isPDF}:{buf:Buffer, pr
     if (!isPDF)
       return buf
   }
-  
+
   let dimensions: any = sizeof(buf);
   let currentWidth: number = dimensions.width
   let currentHeight: number = dimensions.height
@@ -145,7 +147,7 @@ async function imageResize ({buf, pref, logger, maxWidth, isPDF}:{buf:Buffer, pr
   let coef: number = maxWidth / biggest
   // Need to resize image from PDF  at least once
   if (isPDF && !isTooBig && coef >= 1)
-    coef = 0.9 
+    coef = 0.9
 
   if (currentWidth < currentHeight) { // rotate
     let resizedBuf: any
@@ -155,7 +157,8 @@ async function imageResize ({buf, pref, logger, maxWidth, isPDF}:{buf:Buffer, pr
       width = Math.round(currentHeight * coef)
       height = Math.round(currentWidth * coef)
       try {
-        resizedBuf = await sharp(buf).rotate(-90).resize(width, height).toBuffer()
+        // resizedBuf = await sharp(buf, {sequentialRead: true}).rotate(-90).resize(width, height).toFile('/tmp/f.png')
+        resizedBuf = await sharp(buf, {sequentialRead: true}).rotate(-90).resize(width, height).toBuffer()
       } catch (err) {
         logger.debug('error rotating and resizing image', err)
         return
@@ -164,6 +167,7 @@ async function imageResize ({buf, pref, logger, maxWidth, isPDF}:{buf:Buffer, pr
     }
     else {
       try {
+        // resizedBuf = await sharp(buf, {sequentialRead: true}).rotate(-90).toBuffer()
         resizedBuf = await sharp(buf).rotate(-90).toBuffer()
       } catch (err) {
         logger.debug('error rotating image', err)
@@ -182,7 +186,7 @@ async function imageResize ({buf, pref, logger, maxWidth, isPDF}:{buf:Buffer, pr
     let newDataUrl = pref + resizedBuf.toString('base64')
     logger.debug(`prefillWithChatGPT image resized w=${width}' h=${height}`)
     buf = DataURI.decode(newDataUrl)
-    return imageResize({buf, pref, logger, maxWidth: maxWidth / 2})    
+    return imageResize({buf, pref, logger, maxWidth: maxWidth / 2})
   }
   logger.debug(`prefillWithChatGPT image no change`)
   return buf
@@ -191,22 +195,22 @@ function makeMoneyValue (val, models) {
   let {currency, value, symbol} = parseMoney(val)
   if (!value)
     return
-  
-  if (!currency && !symbol) 
+
+  if (!currency && !symbol)
     return { value }
   // check if it is symbol
   let oneOf = models[MONEY].properties.currency.oneOf
   let curEnum = models[CURRENCY].enum
   let cur
-  if (currency) 
+  if (currency)
     cur = curEnum.find(c => c.id === currency)
-  
+
   else if (symbol) {
     cur = oneOf.find(c => Object.values(c)[0] === symbol)
-    if (cur) 
-      cur = curEnum.find(c => c.id === cur)          
+    if (cur)
+      cur = curEnum.find(c => c.id === cur)
   }
-  if (cur) 
+  if (cur)
     return { value, currency: cur.id}
 }
 
@@ -267,21 +271,40 @@ async function convertPdfToPng(pdf, logger) {
     )
     gsOp.executablePath(ghostscriptPath)
   }
+  try {
+    const gsExec = util.promisify(gsOp.exec.bind(gsOp));
+    await gsExec(pdf);
 
-  return new Promise((resolve, reject) => {
-    gsOp.exec(pdf, (error, stdout, stderror) => {
-      if (error) {
-        logger.debug(error)
-      }
-      // debugger
-      const outfile = '/tmp/' + fileName + '-1.png'
-      if (fs.existsSync(outfile)) {
-        let png = fs.readFileSync(outfile)
-        // remove file
-        // fs.unlink(outfile, (err) => { })
-        //console.log('png file size ', png.length)
-        resolve(png)
-      } else reject(new Error('no png file generated'))
-    })
-  })
+    // await util.promisify(gsOp.exec)(pdf, args);
+
+    const outfile = '/tmp/' + fileName + '-1.png';
+    if (fs.existsSync(outfile)) {
+      let png = fs.readFileSync(outfile);
+      // remove file
+      fs.unlink(outfile, (err) => {});
+      return png;
+    } else {
+      throw new Error('no png file generated');
+    }
+  } catch (error) {
+    logger.debug(error);
+    throw error;
+  }
 }
+
+// import { PDFDocument } from 'pdf-lib'
+// async function splitAndConvertPages(pdfBuffer, logger) {
+//   // let outputDirectory = '/tmp'
+//   const readPdf = await PDFDocument.load(pdfBuffer);
+//   const { length } = readPdf.getPages();
+//   const pages = []
+//   for (let i = 0, n = length; i < n; i += 1) {
+//     const writePdf = await PDFDocument.create();
+//     const [page] = await writePdf.copyPages(readPdf, [i]);
+//     writePdf.addPage(page);
+//     const bytes = await writePdf.save();
+
+//     pages.push(bytes)
+//   }
+//   return pages
+// };
