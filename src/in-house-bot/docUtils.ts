@@ -262,7 +262,7 @@ async function convertPdfToPng(pdf, logger) {
     .option('-r' + 600)
     .option('-dFirstPage=1')
     .option('-dLastPage=1')
-    .device('png16m')
+    .device('pnggray')
     .output('/tmp/' + fileName + '-%d.png')
 
   if (process.env.LAMBDA_TASK_ROOT) {
