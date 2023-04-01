@@ -35,7 +35,6 @@ export async function checkAndResizeResizeImage (dataUrl, logger) {
   if (isPDF) {
   // debugger
     try {
-      // let pages = await splitAndConvertPages(buffer, logger)
       buf = await convertPdfToPng(buffer, logger)
     } catch (err) {
       logger.error('Conversion to image failed', err)
@@ -159,6 +158,8 @@ async function imageResize ({buf, pref, logger, maxWidth, isPDF}:{buf:Buffer, pr
       try {
         // resizedBuf = await sharp(buf, {sequentialRead: true}).rotate(-90).resize(width, height).toFile('/tmp/f.png')
         resizedBuf = await sharp(buf, {sequentialRead: true}).rotate(-90).resize(width, height).toBuffer()
+        // const rotatedImage = await sharp(buf, {sequentialRead: true}).rotate(-90).toBuffer();
+        // resizedBuf = await sharp(rotatedImage).resize(width, height).toBuffer();                
       } catch (err) {
         logger.debug('error rotating and resizing image', err)
         return
@@ -258,7 +259,7 @@ function makeEnumValue(val, ref, models) {
 async function convertPdfToPng(pdf, logger) {
   const fileName = uuid()
   let gsOp = gs()
-    .option('-r' + 1200)
+    .option('-r' + 600)
     .option('-dFirstPage=1')
     .option('-dLastPage=1')
     .device('png16m')
