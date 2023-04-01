@@ -19,7 +19,7 @@ import {
 import { getEnumValueId, getStatusMessageForCheck } from '../utils'
 import { normalizeResponse, checkAndResizeResizeImage, doTextract } from '../docUtils'
 
-const PROVIDER = 'ChatGPT'
+const PROVIDER = 'External AI'
 
 const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 const SENIOR_MANAGER_POSITION = 'tradle.SeniorManagerPosition'
