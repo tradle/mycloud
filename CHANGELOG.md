@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.67](https://github.com/tradle/mycloud/compare/v4.0.66...v4.0.67) (2023-03-31)
+## [4.0.68](https://github.com/tradle/mycloud/compare/v4.0.67...v4.0.68) (2023-03-31)
 
 
-### Bug Fixes
+### Features
 
-* delete temporary created image on conversion stage ([0b5acb6](https://github.com/tradle/mycloud/commit/0b5acb6))
+* prefill with chatGPT ([60134d2](https://github.com/tradle/mycloud/commit/60134d2))
 
 
 
