@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.68](https://github.com/tradle/mycloud/compare/v4.0.67...v4.0.68) (2023-03-31)
+## [4.0.69](https://github.com/tradle/mycloud/compare/v4.0.68...v4.0.69) (2023-04-01)
 
 
-### Features
+### Bug Fixes
 
-* prefill with chatGPT ([60134d2](https://github.com/tradle/mycloud/commit/60134d2))
+* pdf processing  with  sharp - try converting to image with different resolution ([74accb2](https://github.com/tradle/mycloud/commit/74accb2))
 
 
 
