@@ -1,7 +1,7 @@
 import { Configuration, OpenAIApi} from 'openai'
 import AWS from 'aws-sdk'
 import Promise from 'bluebird'
-import { omitBy, uniqBy } from 'lodash'
+import { omitBy, uniqBy, mergeWith, isEqual, cloneDeep, isArray, size } from 'lodash'
 import { IPBUser, Bot, IPBReq, Model } from './types'
 import validateModels from '@tradle/validate-model'
 import { TYPE, TYPES } from '@tradle/constants'
@@ -12,6 +12,7 @@ const {
 } = TYPES
 
 import { isSubClassOf } from './utils'
+import { countTokens } from './docUtils'
 const {
   isEnumProperty,
 } = validateModels.utils
@@ -20,8 +21,6 @@ const FORM_REQUEST = 'tradle.FormRequest'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const LANGUAGE = 'tradle.Language'
 const APPLICATION_SUBMISSION = 'tradle.ApplicationSubmission'
-
-const NUMBER_OF_ATTEMPTS = 1
 
 // const TEN_MINUTES = 36000000
 const samplesS3 = new AWS.S3()
@@ -36,9 +35,9 @@ export async function getChatGPTMessage({req, bot, conf, message, model, otherPr
   const { models } = bot
 
   let { user, application, payload } = req
-  if (model.id !== SIMPLE_MESSAGE) 
+  if (model.id !== SIMPLE_MESSAGE)
     return await getChatGPTResponseForForm({message, openai, model, models, otherProperties})
-  
+
   let query = {
     orderBy: {
       property: '_time',
@@ -69,7 +68,7 @@ export async function getChatGPTMessage({req, bot, conf, message, model, otherPr
 
   messages.splice(0, 0, setupContent)
   messages.splice(1, 0, {role: 'user', content: 'All dates in JSON are in long format. Convert them using Date JS if asked.\n# Don\'t mention the word "JSON" in your response, you can use "data" instead'})
-  
+
   if (application) {
     let { submissions, forms } = application
     if (submissions.length === 50) {
@@ -163,15 +162,17 @@ export async function getChatGPTMessage({req, bot, conf, message, model, otherPr
     }
   }
 }
-async function getChatGPTResponseForForm({message, openai, model, models, otherProperties}:{message: string, openai:any, model: Model, models: any, otherProperties?: any}) {
+async function getChatGPTResponseForForm({message, openai, model, models, otherProperties}:{message: any, openai:any, model: Model, models: any, otherProperties?: any}) {
   // let properties = model && omitBy(model.properties, (value, key) => key.startsWith('_')).map(p => p.name).join(', ')
   let properties = model.properties
   let props = {}
   let enumProps = [], moneyProps = [], additionalPrompt
   if (otherProperties) {
-    const { properties, enumProperties, moneyProperties } = otherProperties
+    const { properties:oprops, enumProperties, moneyProperties } = otherProperties
     additionalPrompt = otherProperties.additionalPrompt
-    props = properties
+    if (oprops)
+      props = oprops
+
     if (enumProperties) {
       for (let p in enumProperties) {
         let model = models[enumProperties[p]]
@@ -187,12 +188,12 @@ async function getChatGPTResponseForForm({message, openai, model, models, otherP
         moneyProps.push(p)
     }
   }
-  else {  
+  if (!size(props)) {
     for (let p in properties) {
       const property = properties[p]
       const { range, items, displayAs } = property
-      if (p.charAt(0) === '_'        || 
-          p.indexOf('_group') !== -1 || 
+      if (p.charAt(0) === '_'        ||
+          p.indexOf('_group') !== -1 ||
           range === 'photo'          ||
           range === 'json'           ||
           range === 'document'       ||
@@ -202,44 +203,92 @@ async function getChatGPTResponseForForm({message, openai, model, models, otherP
       if (isEnumProperty({models, property}))
         enumProps.push({name: p, ref: property.ref})
       if (property.ref === MONEY)
-        moneyProps.push(p)  
+        moneyProps.push(p)
     }
   }
-  let sysMessage = `You are a JSON created machine.\n# I will give you a list of tokens and you will have to fill out this JSON: ${JSON.stringify(props)}.\n# You are not allowed to produce invalid JSON.`
+  let propsStr = JSON.stringify(props)
+  let sysMessageJson = {
+    task: "You are a JSON creating machine!",
+    taskRules: [
+      "You are not allowed to produce invalid JSON.",
+      "Please use the tokens to fill in the values for the properties in the JSON template below",
+      "The tokens are from the articles of association document. Please extract as much information as possible in accordance with JSON template",
+      "You are not allowed to add any new properties outside of the template",
+      "Return the original JSON template if there is no relevant information found",
+      "You are not allowed to override in JSON the existing values.",
+      "If applicable, include currency symbol if present for these properties purchasePrice",
+      "Return countries as two letter country code in ISO 3166 format.",
+      "You must fill out as many properties of JSON as it is possible."
+    ],
+    JSON: `${propsStr}`
+  }
   if (additionalPrompt)
-    sysMessage += `\n${additionalPrompt}`
+    sysMessageJson.taskRules.push(`${additionalPrompt}`)
   if (enumProps.length) {
     enumProps.forEach(e => {
       if (models[e.ref].enum.length > 10) return
       let eenum = models[e.ref].enum
-      sysMessage += `\n# If applicable, set value for "${e.name}" to one of the following categories: "${eenum.map(e => e.title).join(',')}". Try to map found value to the most suitable category in the list or if you can't find a suitable category indicate a category like "category name (New Category)".`       
+      sysMessageJson.taskRules.push(`If applicable, set value for "${e.name}" to one of the following categories: "${eenum.map(e => e.title).join(',')}". Try to map found value to the most suitable category in the list or if you can't find a suitable category indicate a category like "category name (New Category)".`)
     })
-    sysMessage += `\n# Translate to English values for these properties: "${enumProps.map(e => e.name).join(',')}"` 
-  } 
-  if (moneyProps.length)
-    sysMessage += `\n# If applicable, include currency symbol if present for these properties ${moneyProps.join(',')}`
-  sysMessage += `\n# Return countries as two letter country code in ISO 3166 format.`
-  let messages = [
-    {role: 'system', content: sysMessage},
-    {role: 'user', content: `${message.slice(1, message.length - 1)}`}
-  ]
-
-  let response = await getResponse({openai, messages})
-  for (let i=0; i<NUMBER_OF_ATTEMPTS && (typeof response === 'string'); i++) {
-    await Promise.delay(1500)
-    response = await getResponse({openai, messages, requestID: response})     
+    sysMessageJson.taskRules.push(`Translate to English values for these properties: "${enumProps.map(e => e.name).join(',')}"`)
   }
-  
-  // try {
-  //   let completion = await openai.createChatCompletion({
-  //     model: "gpt-3.5-turbo",
-  //     temperature: 0.2,
-  //     messages
-  //   })
-  //  let response = completion.data.choices[0].message
-  if (typeof response === 'object')
-    return response.content.trim()
-}  
+  if (moneyProps.length)
+    sysMessageJson.taskRules.push(`If applicable, include currency symbol if present for these properties ${moneyProps.join(',')}`)
+
+    let sysMessage = JSON.stringify(sysMessageJson)
+
+  let responses = []
+  for (let i=0; i<message.length; i++) {
+
+  let sysCnt = countTokens(sysMessage)
+  let msgCnt = countTokens(message[i])
+    if (!message[i].length) continue
+    let messages = [
+      {role: 'system', content: sysMessage},
+      {role: 'user', content: `${message[i]}`}
+    ]
+
+    let response = await getResponse({openai, messages})
+    try {
+      let val = response.content.trim()
+      let v = JSON.parse(val)
+      if (!isEqual(props, v))
+        responses.push(v)
+    } catch (err) {
+      debugger
+    }
+    // for (let i=0; i<NUMBER_OF_ATTEMPTS && (typeof response === 'string'); i++) {
+    //   await Promise.delay(1500)
+    //   response = await getResponse({openai, messages, requestID: response})
+    //   responses.push(json)
+    // }
+  }
+  if (responses.length)
+    return makeResponse(responses, props)
+}
+function makeResponse(responses, props) {
+  let result = cloneDeep(props)
+  let propKeys = Object.keys(props)
+  for (let i=0; i<responses.length; i++) {
+    let res = responses[i]
+    for (let p in res) {
+      if (propKeys.indexOf(p) === -1)
+        delete res[p]
+    }
+    // result = mergeObjects(res, result)
+    result = mergeWith(result, res, (a,b) => {
+      if (isArray(a))
+        mergeObjectsArray(a, b)
+        // return arrayUnique(a.concat(b))
+      if (typeof a === 'string') {
+        if (!a.length) return b
+        if (!b.length) return a
+      }
+    })
+  }
+
+  return result
+}
 async function getResponse({openai, messages, requestID}:{openai: any, messages: any, requestID?: string}) {
   if (requestID)
     messages[0].content += `\nThis is the previously failed messages with ID ${requestID}`
@@ -259,7 +308,7 @@ async function getResponse({openai, messages, requestID}:{openai: any, messages:
         let { message } = data.error
         let idx = message.indexOf(' request ID ')
         if (idx !== -1)  {
-          let idx1 = message.indexOf(' ', idx + 12)          
+          let idx1 = message.indexOf(' ', idx + 12)
           return message.slice(idx, idx1)
         }
       }
@@ -333,3 +382,35 @@ async function addModeration (openai, message, msgs, language){
   ]
 }
 
+function mergeObjectsArray(arr1, arr2) {
+  const mergedArray = [];
+  const keysToMerge = ["positions", "shares"]; // Array properties to merge
+
+  // Loop through objects in first array and add to merged array
+  arr1.forEach((obj1) => {
+    const matchedObjIndex = arr2.findIndex(
+      (obj2) => JSON.stringify(obj1) === JSON.stringify(obj2)
+    );
+    if (matchedObjIndex !== -1) {
+      // If an identical object exists in second array, merge the array properties
+      keysToMerge.forEach((key) => {
+        if (Array.isArray(obj1[key]) && Array.isArray(arr2[matchedObjIndex][key])) {
+          const mergedArray = [...new Set([...obj1[key], ...arr2[matchedObjIndex][key]])];
+          obj1[key] = mergedArray;
+          arr2[matchedObjIndex][key] = mergedArray;
+        }
+      });
+      mergedArray.push(obj1);
+      arr2.splice(matchedObjIndex, 1);
+    } else {
+      mergedArray.push(obj1);
+    }
+  });
+
+  // Add any remaining objects from second array to merged array
+  arr2.forEach((obj2) => {
+    mergedArray.push(obj2);
+  });
+
+  return mergedArray;
+}
