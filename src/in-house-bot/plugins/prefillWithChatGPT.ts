@@ -21,7 +21,7 @@ import {
   Logger,
   ValidatePluginConfOpts
 } from '../types'
-import { normalizeResponse, checkAndResizeResizeImage } from '../docUtils'
+import { normalizeResponse, getPDFContent } from '../docUtils'
 
 const REFERENCE_DATA_SOURCES = 'tradle.ReferenceDataSources'
 
@@ -74,40 +74,45 @@ export class PrefillWithChatGPT {
     // else base64 = payload[prop].url
 
 
-    let image = await checkAndResizeResizeImage(base64, this.logger)
+    let image = await getPDFContent(base64, this.logger)
     if (!image) {
       this.logger.debug(`Conversion to image for property: ${prop} failed`)  
       return
     }
+    image = image[0]
+    let message 
   // return {error: `File is too big. The current limit is ${MAX_FILE_SIZE/1024/1024} Megabytes`}
+    if (typeof image === 'string') 
+      message = image
+    else {
+      let accessKeyId = ''
+      let secretAccessKey = ''
+      let region = 'us-east-1'
+      let textract = new AWS.Textract({
+        apiVersion: '2018-06-27',
+        accessKeyId,
+        secretAccessKey,
+        region
+      })
 
-    let accessKeyId = ''
-    let secretAccessKey = ''
-    let region = 'us-east-1'
-    let textract = new AWS.Textract({
-      apiVersion: '2018-06-27',
-      accessKeyId,
-      secretAccessKey,
-      region
-    })
-
-    let params = {
-      Document: {
-        /* required */
-        Bytes: image
+      let params = {
+        Document: {
+          /* required */
+          Bytes: image
+        }
       }
-    }
-    let apiResponse
-    try {
-      apiResponse = await textract.detectDocumentText(params).promise()
-    } catch (err) {
-      this.logger.debug('Textract error', err)
-      return
+      let apiResponse
+      try {
+        apiResponse = await textract.detectDocumentText(params).promise()
+      } catch (err) {
+        this.logger.debug('Textract error', err)
+        return
+      }
+      message = JSON.stringify(apiResponse.Blocks.map(b => b.Text).filter(a => a !== undefined))
     }
       //  @ts-ignore
       // let analyzeResponse = await textract.analyzeDocument({...params, FeatureTypes: [ 'TABLES', 'FORMS', 'SIGNATURES']}).promise()
     try {  
-      let message = JSON.stringify(apiResponse.Blocks.map(b => b.Text).filter(a => a !== undefined))
       let params:any = {
         req, 
         bot: this.bot, 
@@ -122,8 +127,8 @@ export class PrefillWithChatGPT {
         params.model = models[map[payload[TYPE]]]
       else
         params.model = model
-      let data = await getChatGPTMessage(params)
-      if (!data) {
+      let response = await getChatGPTMessage(params)
+      if (!response) {
         debugger
         return
       }
@@ -138,24 +143,24 @@ export class PrefillWithChatGPT {
       // if (doTrim) 
       //   data = `${data.slice(0, i + 1)}}`
            
-      let lastBracesIdx = data.lastIndexOf('}')
-      if (lastBracesIdx === -1) {
-        this.logger.debug('the response does not have JSON', data)
-        return
-      }  
-      if (lastBracesIdx !== data.length - 1)
-        data = data.slice(0, lastBracesIdx + 1)
-      let response
-      try {
-        response = JSON.parse(data)
-      } catch (err) {
-        debugger
-        // HACK
-        if (data.charAt(data.length - 3) === ',') {
-          data.splice(data.length - 3, 1)
-          response = JSON.parse(data)
-        }
-      }
+      // let lastBracesIdx = data.lastIndexOf('}')
+      // if (lastBracesIdx === -1) {
+      //   this.logger.debug('the response does not have JSON', data)
+      //   return
+      // }  
+      // if (lastBracesIdx !== data.length - 1)
+      //   data = data.slice(0, lastBracesIdx + 1)
+      // let response
+      // try {
+      //   response = JSON.parse(data)
+      // } catch (err) {
+      //   debugger
+      //   // HACK
+      //   if (data.charAt(data.length - 3) === ',') {
+      //     data.splice(data.length - 3, 1)
+      //     response = JSON.parse(data)
+      //   }
+      // }
       normalizeResponse({response, model, models})
       return response
     } catch (err) {

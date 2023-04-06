@@ -1,6 +1,6 @@
 import fetch from 'node-fetch'
 import dateformat from 'dateformat'
-import _ from 'lodash'
+import _, { size } from 'lodash'
 
 import validateResource from '@tradle/validate-resource'
 import { enumValue } from '@tradle/build-resource'
@@ -24,6 +24,7 @@ import {
   getStatusMessageForCheck,
   getEnumValueId,
   sendFormError,
+  hasPropertiesChanged,
   // doesCheckExist,
   doesCheckNeedToBeCreated
 } from '../utils'
@@ -513,7 +514,7 @@ class OpenCorporatesAPI {
 }
 
 export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) => {
-  const { bot, applications } = components
+  const { bot, applications, conf:botConf } = components
   const { org } = components.conf
   const openCorporates = new OpenCorporatesAPI({ bot, conf, applications, logger })
   const plugin: IPluginLifecycleMethods = {
@@ -668,11 +669,13 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
 
       let ptype = resource[TYPE]
 
-      let payload
+      let payload, isPrefilled      
       if (!resource[map.country] || !resource[map.companyName] || !resource[map.registrationNumber]) {  
         if (ptype === LEGAL_ENTITY) {
           payload = await mergeWithDocData({isCompany: true, req, resource, bot})
-          if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) return
+          isPrefilled = size(payload)
+          if (!isPrefilled) return
+          // if (!payload[map.country] || !payload[map.companyName] || !payload[map.registrationNumber]) return
         }
         else {
           logger.debug('skipping check as form is missing "country" or "NIT" or "companyName"')          
@@ -681,18 +684,59 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
       }
       else payload = resource
 
-      if (payload[map.country].id.split('_')[1] === CZECH_COUNTRY_ID ||
-          payload[map.country].id.split('_')[1] === COLOMBIA_COUNTRY_CODE)
+      if (payload[map.country] && (
+          payload[map.country].id.split('_')[1] === CZECH_COUNTRY_ID ||
+          payload[map.country].id.split('_')[1] === COLOMBIA_COUNTRY_CODE))
         return
 
-      if (resource._prevlink && resource.registrationDate) return
+      if (resource._prevlink && resource.registrationDate) {
+        if (botConf.bot['dontUseExternalAI']) return
+        let hasPropsChanged = await hasPropertiesChanged({
+          resource: payload,
+          bot,
+          propertiesToCheck: [map.country, map.registrationDate, map.registrationNumber],
+          req
+        }) 
+        if (!hasPropsChanged) return
+      }
 
       let checks: any = req.latestChecks || application.checks
 
       if (!checks) return
 
+      let dataSource
+      let errors
       let stubs = checks.filter(check => check[TYPE] === CORPORATION_EXISTS)
-      if (!stubs || !stubs.length) return
+      if (!stubs || !stubs.length) {
+        if (!isPrefilled)
+          return
+        application.applicantName = payload[map.companyName]
+        errors = []
+        if (!payload[map.registrationNumber])
+          errors.push({ name: 'registrationNumber', error: 'This property is required' })
+        let country = payload[map.country]
+        if (!country)
+          errors.push({ name: 'country', error: 'This property is required' })
+        if (!errors.length)
+          errors = undefined
+        dataSource = enumValue({
+          model: bot.models[REFERENCE_DATA_SOURCES],
+          value: 'ai'
+        })
+        try {
+          return await sendFormError({
+            req,
+            payload:resource,
+            dataSource,
+            applications,
+            prefill: payload,
+            errors,
+            message: `Please review and correct the data below for **${payload.companyName}**`
+          })
+        } catch (err) {
+          debugger
+        }
+      }
 
       let result: any = await Promise.all(stubs.map(check => bot.getResource(check)))
 
@@ -701,7 +745,6 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
       result = _.uniqBy(result, TYPE)
       let message
       let prefill: any = {}
-      let errors
       if (getEnumValueId({ model: bot.models[STATUS], value: result[0].status }) !== 'pass') {
         message = 'The company was not found. Please fill out the form'
         application.applicantName = payload[map.companyName]
@@ -782,14 +825,17 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
         }
         message = `${error} Please review and correct the data below for **${name}**`
       }
-      let country =
-        companiesHouseApiKey &&
-        getEnumValueId({ model: bot.models[COUNTRY], value: payload[map.country] })
+      let payloadCountry = payload[map.country]
+      if (payloadCountry) {
+        let country =
+          companiesHouseApiKey &&
+          getEnumValueId({ model: bot.models[COUNTRY], value: payload[map.country] })
 
-      let dataSource = enumValue({
-        model: bot.models[REFERENCE_DATA_SOURCES],
-        value: (country && country === 'GB' && 'companiesHouse') || 'openCorporates'
-      })
+        dataSource = enumValue({
+          model: bot.models[REFERENCE_DATA_SOURCES],
+          value: (country && country === 'GB' && 'companiesHouse') || 'openCorporates'
+        })
+      }
       try {
         return await sendFormError({
           req,

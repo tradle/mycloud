@@ -10,14 +10,13 @@ import { getChatGPTMessage } from '../openAiInterface'
 import {
   Bot,
   CreatePlugin,
-  ValidatePluginConf,
   Applications,
   IPluginLifecycleMethods,
   Logger,
   IPBReq
 } from '../types'
 import { getEnumValueId, getStatusMessageForCheck } from '../utils'
-import { normalizeResponse, checkAndResizeResizeImage, doTextract } from '../docUtils'
+import { normalizeResponse, getPDFContent, doTextract, combinePages } from '../docUtils'
 
 const PROVIDER = 'External AI'
 
@@ -37,12 +36,12 @@ const MAPS = {
     properties: {
       companyName: '',
       state: '',
-      positions: [{
+      directors: [{
         firstName: '',
         lastName: '',
         jobTitle: []  
       }],
-      shares: [{
+      shareHolders: [{
         firstName: '',
         lastName: '',
         numberOfShares: '',
@@ -51,7 +50,7 @@ const MAPS = {
       // totalShares: '',
       // percentageOfShares: ''
     },
-    additionalPrompt: '# Convert numberOfShares to numbers.',
+    // additionalPrompt: '# Convert numberOfShares to numbers.',
     // additionalPrompt: "# To calculate percentage of shares for each shareholder wait till all of the document is read, first calculate the total number of shares by adding up the number of shares purchased by all shareholders, \nand then calculate the percentage of shares purchased by each shareholder \nbased on the total number of shares.",
     // enumProperties: {
     //   jobTitle: 'tradle.SeniorManagerPosition'
@@ -59,6 +58,9 @@ const MAPS = {
     moneyProperties: {
       purchasePrice: ""
     }
+  },
+  companyFormationDocument: {
+    additionalPrompt: 'You must include country and registration number in response!'
   }
 }
 type PrefillWithChatGPTOpts = {
@@ -91,33 +93,30 @@ export class PrefillWithChatGPT {
     if (Array.isArray(payload[prop])) base64 = payload[prop][0].url
     else base64 = payload[prop].url
    
-    let image = await checkAndResizeResizeImage(base64, this.logger)
-    if (!image) {
-      this.logger.debug(`Conversion to image for property: ${prop} failed`)  
-      return
-    }
+    let ret = await getPDFContent(base64, this.logger)
     let message
-    this.logger.debug(`Textract document for property: ${prop}`)
-
-    try {
-      ({ message} = await doTextract(image, this.logger))
-    } catch (err) {
-      this.logger.debug('Textract error', err)
-      return
-    }
     let params:any = {
       req, 
       bot: this.bot, 
       conf: this.botConf.bot, 
-      message: message.slice(1, message.length - 1)
     }
+    let chunks = []
+    if (!ret) {
+      this.logger.debug(`Conversion to image for property: ${prop} failed`)  
+      return
+    }
+    if (typeof ret[0] === 'string') 
+      chunks = ret
+    else {
+      this.logger.debug(`Textract document for property: ${prop}`)
+      let result = await Promise.all(ret.map(r =>  doTextract(r, this.logger)))
+      result.forEach((r:any) => chunks.push(r.message.slice(1, r.message.length - 1)))      
+    }
+    let pages = combinePages(chunks)
+    params.message = pages
     const {models} = this.bot
     let model = models[payload[ TYPE]]
 
-    // let map = this.conf.map
-    // if (map && map[payload[TYPE]])
-    // if (MAPS[payload[TYPE]])
-    //   model = models[MAPS[payload[TYPE]]]
     let otherProperties = MAPS[prop]
     if (otherProperties)
       params.otherProperties = otherProperties
@@ -126,38 +125,17 @@ export class PrefillWithChatGPT {
     try {          
       this.logger.debug(`ChatGPT document for property: ${prop}`)
 
-      let data = await getChatGPTMessage(params)
-      params.message = ''
-      // let data1 = await getChatGPTMessage(params)
-      if (!data) {
+      let response = await getChatGPTMessage(params)
+      if (!response) {
         debugger
         return
       }
-      let lastBracesIdx = data.lastIndexOf('}')
-      if (lastBracesIdx === -1) {
-        this.logger.debug('ChatGPT response does not have JSON', data)
-        return
-      }  
-      if (lastBracesIdx !== data.length - 1)
-        data = data.slice(0, lastBracesIdx + 1)
-      let response
-      try {
-        response = JSON.parse(data)
-      } catch (err) {
-        debugger
-        // HACK
-        if (data.charAt(data.length - 3) === ',') {
-          data.splice(data.length - 3, 1)
-          response = JSON.parse(data)
-        }
-      }
-      return otherProperties 
+      return otherProperties && otherProperties.properties 
             ? mapToCpProperties(response, prop, models) 
             : normalizeResponse({response, model, models})
     } catch (err) {
       debugger
       this.logger.error('textract detectDocumentText failed', err)
-      // return { error: err.message }
     }
   }
 }
@@ -272,17 +250,17 @@ function checkIfDocumentChanged({dbRes, payload, property, models}) {
 
 function mapToCpProperties(response, property, models) {
   // let { properties } = models[LEGAL_ENTITY_CP]
-  let { shares, positions } = response
-  if (!shares.length  &&  !positions.length) return
+  let { shareHolders, directors } = response
+  if (!shareHolders.length  &&  !directors.length) return
   let people = []
-  let totalShares = shares.reduce((a, b) => {
+  let totalShares = shareHolders.reduce((a, b) => {
     return a + b.numberOfShares
   }, 0)  
   let smEnum = models[SENIOR_MANAGER_POSITION].enum
   let typeOfControllingEntity = models[TYPE_OF_CP].enum.find(e => e.id === 'person')
-  if (JSON.stringify(positions) !== JSON.stringify(MAPS[property].properties.positions) ||
-      JSON.stringify(shares) !== JSON.stringify(MAPS[property].properties.shares)) {
-    positions.forEach(p => {
+  if (JSON.stringify(directors) !== JSON.stringify(MAPS[property].properties.directors) ||
+      JSON.stringify(shareHolders) !== JSON.stringify(MAPS[property].properties.shares)) {
+    directors.forEach(p => {
       let { firstName, lastName, jobTitle } = p
       let obj:any = {
         firstName,
@@ -306,7 +284,7 @@ function mapToCpProperties(response, property, models) {
       if (jobTitle.length)
         obj.position = jobTitle.join(', ')      
 
-      let sh = shares.find(sh => sh.firstName.toLowerCase() === p.firstName.toLowerCase() && sh.lastName.toLowerCase() === p.lastName.toLowerCase())
+      let sh = shareHolders.find(sh => sh.firstName.toLowerCase() === p.firstName.toLowerCase() && sh.lastName.toLowerCase() === p.lastName.toLowerCase())
       if (sh) 
         obj.percentageOfOwnership = Math.round(sh.numberOfShares/totalShares * 100 * 100)/100
       obj.typeOfControllingEntity = {
@@ -315,7 +293,7 @@ function mapToCpProperties(response, property, models) {
       }
       people.push(obj)
     })
-    shares.forEach(sh => {
+    shareHolders.forEach(sh => {
       let { firstName, lastName, numberOfShares } = sh
       let person = people.find(p => firstName === p.firstName && lastName === p.lastName)    
       if (person) return
