@@ -1,8 +1,8 @@
 import { Configuration, OpenAIApi} from 'openai'
 import AWS from 'aws-sdk'
 import Promise from 'bluebird'
-import { omitBy, uniqBy, mergeWith, isEqual, cloneDeep, isArray, size } from 'lodash'
-import { IPBUser, Bot, IPBReq, Model } from './types'
+import { omitBy, uniqBy, mergeWith, isEqual, cloneDeep, size } from 'lodash'
+import { IPBUser, Bot, IPBReq, Model, Logger } from './types'
 import validateModels from '@tradle/validate-model'
 import { TYPE, TYPES } from '@tradle/constants'
 const {
@@ -13,6 +13,7 @@ const {
 
 import { isSubClassOf } from './utils'
 import { countTokens } from './docUtils'
+import { logger } from './lambda/mqtt/onmessage'
 const {
   isEnumProperty,
 } = validateModels.utils
@@ -26,7 +27,7 @@ const APPLICATION_SUBMISSION = 'tradle.ApplicationSubmission'
 const samplesS3 = new AWS.S3()
 const UTF8 = 'utf-8'
 
-export async function getChatGPTMessage({req, bot, conf, message, model, otherProperties }:{req: IPBReq, bot: Bot, conf: any, message: any, model: any, otherProperties?:any}) {
+export async function getChatGPTMessage({req, bot, conf, message, model, otherProperties, logger }:{req: IPBReq, bot: Bot, conf: any, message: any, model: any, otherProperties?:any, logger: Logger}) {
   const {openApiKey, AIGovernanceAndSupportFolder, providerSetup, AIGovernanceAndSupportBucket} = conf
   if (!openApiKey) return
 
@@ -36,7 +37,7 @@ export async function getChatGPTMessage({req, bot, conf, message, model, otherPr
 
   let { user, application, payload } = req
   if (model.id !== SIMPLE_MESSAGE)
-    return await getChatGPTResponseForForm({message, openai, model, models, otherProperties})
+    return await getChatGPTResponseForForm({message, openai, model, models, otherProperties, logger})
 
   let query = {
     orderBy: {
@@ -162,7 +163,7 @@ export async function getChatGPTMessage({req, bot, conf, message, model, otherPr
     }
   }
 }
-async function getChatGPTResponseForForm({message, openai, model, models, otherProperties}:{message: any, openai:any, model: Model, models: any, otherProperties?: any}) {
+async function getChatGPTResponseForForm({message, openai, model, models, otherProperties, logger}:{message: any, openai:any, model: Model, models: any, otherProperties?: any, logger: Logger}) {
   // let properties = model && omitBy(model.properties, (value, key) => key.startsWith('_')).map(p => p.name).join(', ')
   let properties = model.properties
   let props = {}
@@ -264,25 +265,30 @@ async function getChatGPTResponseForForm({message, openai, model, models, otherP
     // }
   }
   if (responses.length)
-    return makeResponse(responses, props)
+    return makeResponse(responses, props, logger)
 }
-function makeResponse(responses, props) {
+function makeResponse(responses, props, logger) {
   let result = cloneDeep(props)
-  let propKeys = Object.keys(props)
+logger.debug(`openAiInterface: response props: ${JSON.stringify(props)}`)  
   for (let i=0; i<responses.length; i++) {
     let res = responses[i]
     for (let p in res) {
-      if (propKeys.indexOf(p) === -1)
+      if (!Object.prototype.hasOwnProperty.call(props, p))
         delete res[p]
     }
     // result = mergeObjects(res, result)
     result = mergeWith(result, res, (a,b) => {
-      if (isArray(a))
-        mergeObjectsArray(a, b)
-        // return arrayUnique(a.concat(b))
-      if (typeof a === 'string') {
-        if (!a.length) return b
-        if (!b.length) return a
+      try {
+        if (Array.isArray(a))
+          mergeObjectsArray(a, b)
+          // return arrayUnique(a.concat(b))
+        if (typeof a === 'string') {
+          if (!a.length) return b
+          if (!b.length) return a
+        }
+      } catch (err) {
+        logger.debug(`openAiInterface: response a: ${JSON.stringify(a)}, b: ${JSON.stringify(b)}`)  
+        
       }
     })
   }
@@ -406,11 +412,14 @@ function mergeObjectsArray(arr1, arr2) {
       mergedArray.push(obj1);
     }
   });
-
-  // Add any remaining objects from second array to merged array
-  arr2.forEach((obj2) => {
-    mergedArray.push(obj2);
-  });
+  if (Array.isArray(arr2)) {
+    // Add any remaining objects from second array to merged array
+    arr2.forEach((obj2) => {
+      mergedArray.push(obj2);
+    });
+  }
+  else
+    logger.debug(`Merge arrays: ${arr2} is not an array`)
 
   return mergedArray;
 }

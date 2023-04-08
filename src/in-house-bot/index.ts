@@ -966,7 +966,7 @@ const approveWhenTheTimeComes = (components: IBotComponents): PluginLifecycle.Me
 }
 
 const banter = (components: IBotComponents) => {
-  const { bot, productsAPI, conf, applications } = components
+  const { bot, productsAPI, conf, applications, logger } = components
   const handleSimpleMessage = async (req) => {
     const { user, application, object } = req
     const { message } = object
@@ -995,7 +995,7 @@ const banter = (components: IBotComponents) => {
     const { models } = bot
     if (conf.bot['openApiKey']  &&  !conf.bot['dontUseExternalAI']) {
       try {
-        msg = await getChatGPTMessage({req, bot, conf: conf.bot, message, model: models[SIMPLE_MESSAGE]});
+        msg = await getChatGPTMessage({req, bot, conf: conf.bot, message, model: models[SIMPLE_MESSAGE], logger});
         if (application) {
           // application.conversation.messages = allMessages
           await applications.updateApplication(application)

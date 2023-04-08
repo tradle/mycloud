@@ -121,7 +121,7 @@ export class PrefillWithChatGPT {
     if (otherProperties)
       params.otherProperties = otherProperties
     params.model = model
-
+    params.logger = this.logger
     try {          
       this.logger.debug(`ChatGPT document for property: ${prop}`)
 
@@ -135,7 +135,7 @@ export class PrefillWithChatGPT {
             : normalizeResponse({response, model, models})
     } catch (err) {
       debugger
-      this.logger.error('textract detectDocumentText failed', err)
+      this.logger.error('ChatGPT failed', err)
     }
   }
 }
