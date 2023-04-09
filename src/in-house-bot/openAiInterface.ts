@@ -248,7 +248,7 @@ async function getChatGPTResponseForForm({message, openai, model, models, otherP
       {role: 'user', content: `${message[i]}`}
     ]
 
-    let response = await getResponse({openai, messages})
+    let response = await getResponse({openai, messages, logger})
     try {
       let val = response.content.trim()
       let v = JSON.parse(val)
@@ -294,7 +294,7 @@ logger.debug(`openAiInterface: response props: ${JSON.stringify(props)}`)
 
   return result
 }
-async function getResponse({openai, messages, requestID}:{openai: any, messages: any, requestID?: string}) {
+async function getResponse({openai, messages, requestID, logger}:{openai: any, messages: any, requestID?: string, logger: Logger}) {
   if (requestID)
     messages[0].content += `\nThis is the previously failed messages with ID ${requestID}`
   try {
@@ -317,10 +317,10 @@ async function getResponse({openai, messages, requestID}:{openai: any, messages:
           return message.slice(idx, idx1)
         }
       }
-      console.log(status, data);
+      logger.debug(status, data);
       debugger
     } else {
-      console.log(`Error with OpenAI API request: ${error.message}`);
+      logger.debug(`Error with OpenAI API request: ${error.message}`);
     }
     if (data.error.message.startsWith('This model\'s maximum context length is 4096 tokens')) {
       // let messegesStr = messages.map(m => m.content).join(' ')
