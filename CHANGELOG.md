@@ -2,12 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.69](https://github.com/tradle/mycloud/compare/v4.0.68...v4.0.69) (2023-04-01)
+## [4.0.70](https://github.com/tradle/mycloud/compare/v4.0.69...v4.0.70) (2023-04-06)
 
 
-### Bug Fixes
+### Features
 
-* pdf processing  with  sharp - try converting to image with different resolution ([74accb2](https://github.com/tradle/mycloud/commit/74accb2))
+* prefill with external AI ([eca8529](https://github.com/tradle/mycloud/commit/eca8529))
+* processing PDF files ([de00fec](https://github.com/tradle/mycloud/commit/de00fec))
+* processing PDF files; prefill with external AI ([92a678c](https://github.com/tradle/mycloud/commit/92a678c))
 
 
 
