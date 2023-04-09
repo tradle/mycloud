@@ -752,7 +752,7 @@ export const loadComponentsAndPlugins = ({
       'facetecZoom',
       'finastra',
       'reuse',
-      'document-ocr',
+      // 'document-ocr',
       'prefillWithChatGPT',
       'bundleUpload',
       'draftApplication',

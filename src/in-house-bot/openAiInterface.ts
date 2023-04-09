@@ -13,7 +13,6 @@ const {
 
 import { isSubClassOf } from './utils'
 import { countTokens } from './docUtils'
-import { logger } from './lambda/mqtt/onmessage'
 const {
   isEnumProperty,
 } = validateModels.utils
@@ -280,7 +279,7 @@ logger.debug(`openAiInterface: response props: ${JSON.stringify(props)}`)
     result = mergeWith(result, res, (a,b) => {
       try {
         if (Array.isArray(a))
-          mergeObjectsArray(a, b)
+          mergeObjectsArray(a, b, logger)
           // return arrayUnique(a.concat(b))
         if (typeof a === 'string') {
           if (!a.length) return b
@@ -388,7 +387,7 @@ async function addModeration (openai, message, msgs, language){
   ]
 }
 
-function mergeObjectsArray(arr1, arr2) {
+function mergeObjectsArray(arr1, arr2, logger) {
   const mergedArray = [];
   const keysToMerge = ["positions", "shares"]; // Array properties to merge
 
