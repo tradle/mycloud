@@ -255,6 +255,7 @@ async function getChatGPTResponseForForm({message, openai, model, models, otherP
       if (!isEqual(props, v))
         responses.push(v)
     } catch (err) {
+      logger.debug(`openAiInterface: ChatGPT request failed for: ${message[0]}`, err)  
       debugger
     }
     // for (let i=0; i<NUMBER_OF_ATTEMPTS && (typeof response === 'string'); i++) {
@@ -295,8 +296,10 @@ logger.debug(`openAiInterface: response props: ${JSON.stringify(props)}`)
   return result
 }
 async function getResponse({openai, messages, requestID, logger}:{openai: any, messages: any, requestID?: string, logger: Logger}) {
-  if (requestID)
+  if (requestID)  {
     messages[0].content += `\nThis is the previously failed messages with ID ${requestID}`
+    logger.debug(`openAiInterface: Error with OpenAI API: previous message failed`);
+  }
   try {
     let completion = await openai.createChatCompletion({
       model: "gpt-3.5-turbo",
@@ -317,13 +320,13 @@ async function getResponse({openai, messages, requestID, logger}:{openai: any, m
           return message.slice(idx, idx1)
         }
       }
-      logger.debug(status, data);
+      logger.debug(`openAiInterface: Error with OpenAI API: status=${status}, ${data.message}`);
       debugger
     } else {
-      logger.debug(`Error with OpenAI API request: ${error.message}`);
+      logger.debug(`openAiInterface: Error with OpenAI API request: ${error.message}`);
     }
     if (data.error.message.startsWith('This model\'s maximum context length is 4096 tokens')) {
-      // let messegesStr = messages.map(m => m.content).join(' ')
+      logger.debug(`openAiInterface: Error with OpenAI API request: ${data.message}`);
       debugger
     }
   }
@@ -418,7 +421,7 @@ function mergeObjectsArray(arr1, arr2, logger) {
     });
   }
   else
-    logger.debug(`Merge arrays: ${arr2} is not an array`)
+    logger.debug(`openAiInterface: Merge arrays: ${arr2} is not an array`)
 
   return mergedArray;
 }

@@ -94,7 +94,6 @@ export class PrefillWithChatGPT {
     else base64 = payload[prop].url
    
     let ret = await getPDFContent(base64, this.logger)
-    let message
     let params:any = {
       req, 
       bot: this.bot, 
@@ -102,13 +101,13 @@ export class PrefillWithChatGPT {
     }
     let chunks = []
     if (!ret) {
-      this.logger.debug(`Conversion to image for property: ${prop} failed`)  
+      this.logger.debug(`aiCorporateData: Conversion to image for property: ${prop} failed`)  
       return
     }
     if (typeof ret[0] === 'string') 
       chunks = ret
     else {
-      this.logger.debug(`Textract document for property: ${prop}`)
+      this.logger.debug(`aiCorporateData: Textract document for property: ${prop}`)
       let result = await Promise.all(ret.map(r =>  doTextract(r, this.logger)))
       result.forEach((r:any) => chunks.push(r.message.slice(1, r.message.length - 1)))      
     }
@@ -123,11 +122,11 @@ export class PrefillWithChatGPT {
     params.model = model
     params.logger = this.logger
     try {          
-      this.logger.debug(`ChatGPT document for property: ${prop}`)
+      this.logger.debug(`aiCorporateData: ChatGPT document for property: ${prop}`)
 
       let response = await getChatGPTMessage(params)
       if (!response) {
-        this.logger.debug(`ChatGPT: there was no response for ${prop}; number of pages: ${pages.length}`)
+        this.logger.debug(`aiCorporateData: no response from ChatGPT for ${prop}; number of pages: ${pages.length}`)
         return
       }
       return otherProperties && otherProperties.properties 
@@ -135,7 +134,7 @@ export class PrefillWithChatGPT {
             : normalizeResponse({response, model, models})
     } catch (err) {
       debugger
-      this.logger.error('ChatGPT failed', err)
+      this.logger.error('aiCorporateData: ChatGPT failed', err)
     }
   }
 }
@@ -165,11 +164,11 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
         if (checkIfDocumentChanged({dbRes, payload, property: 'companyFormationDocument', models}))
           changed.push('companyFormationDocument')
         else
-          logger.debug(`Document for "companyFormationDocument" didn't change`)  
+          logger.debug(`aiCorporateData: Document for "companyFormationDocument" didn't change`)  
         if (articlesOfAssociationDocument && checkIfDocumentChanged({dbRes, payload, property: 'articlesOfAssociationDocument', models}))
           changed.push('articlesOfAssociationDocument')
           else
-          logger.debug(`Document for "articlesOfAssociationDocument" didn't change`)  
+          logger.debug(`aiCorporateData: Document for "articlesOfAssociationDocument" didn't change`)  
       }
       else {
         changed.push('companyFormationDocument')
@@ -182,10 +181,10 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
         let prop = changed[i]
         let check
         try {
-          logger.debug(`reading document for property: ${prop}`)
+          logger.debug(`aiCorporateData: reading document for property: ${prop}`)
           let response = await prefillWithChatGPT.exec({payload, prop, req})
           if (!response) {
-            logger.debug(`no response for document set in property: ${prop}`)
+            logger.debug(`aiCorporateData: no response for document set in property: ${prop}`)
             debugger
             // return
           }
@@ -263,14 +262,12 @@ function mapToCpProperties(response, property, models, logger) {
       let { firstName, lastName, jobTitle, companyName } = p
       let obj
       let typeOfControllingEntity
-      let isPerson
       if (firstName && lastName) {
         obj = {
           firstName,
           lastName     
         }
         typeOfControllingEntity = models[TYPE_OF_CP].enum.find(e => e.id === 'person')
-        isPerson = true
       }
       else if (companyName) {
         obj = {
@@ -289,7 +286,7 @@ function mapToCpProperties(response, property, models, logger) {
       }
       else if (!Array.isArray(jobTitle)) {
         jobTitle = [jobTitle]
-logger.debug(`ChatGPT response for articlesOfAssociation: ${jobTitle} is not an array`)        
+logger.debug(`aiCorporateData: ChatGPT response for 'articlesOfAssociation': ${jobTitle} is not an array`)        
       }
       let jobTitleL = jobTitle.map(jt => jt.toLowerCase())
       let pIdx = smEnum.findIndex(e => {

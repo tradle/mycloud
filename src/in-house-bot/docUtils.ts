@@ -226,8 +226,8 @@ const MAX_TOKENS = 3000
 async function getContent(pdfBuffer, logger) {
   // let outputDirectory = '/tmp'
   let pages = await pdfParse(pdfBuffer, {pagerender: renderPage.bind(this)})
-
   let len = pages.length
+logger.debug(`docUtils.pdfParse: number of PDF pages: ${len}`)
 
   for (let i=len-1; i>=0; i--)
     if (!pages[i].trim().length) 
@@ -247,6 +247,8 @@ async function getContent(pdfBuffer, logger) {
 
     pages.push(bytes)
   }
+logger.debug(`docUtils.pdfParse: number of PDF pages: ${len}`)
+
   return pages.length > 1 ? pages : [pdfBuffer]
 }
 
