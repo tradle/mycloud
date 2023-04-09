@@ -87,7 +87,7 @@ export class PrefillWithChatGPT {
     this.logger = logger
     this.botConf = botConf
   }
-  public async exec({payload, prop, req, check}) {
+  public async exec({payload, prop, req}) {
     // Form now only 1 doc will be processed
     let base64
     if (Array.isArray(payload[prop])) base64 = payload[prop][0].url
@@ -127,11 +127,11 @@ export class PrefillWithChatGPT {
 
       let response = await getChatGPTMessage(params)
       if (!response) {
-        debugger
+        this.logger.debug(`ChatGPT: there was no response for ${prop}; number of pages: ${pages.length}`)
         return
       }
       return otherProperties && otherProperties.properties 
-            ? mapToCpProperties(response, prop, models) 
+            ? mapToCpProperties(response, prop, models, this.logger) 
             : normalizeResponse({response, model, models})
     } catch (err) {
       debugger
@@ -183,7 +183,7 @@ export const createPlugin: CreatePlugin<void> = (components, { conf, logger }) =
         let check
         try {
           logger.debug(`reading document for property: ${prop}`)
-          let response = await prefillWithChatGPT.exec({payload, prop, req, check})
+          let response = await prefillWithChatGPT.exec({payload, prop, req})
           if (!response) {
             logger.debug(`no response for document set in property: ${prop}`)
             debugger
@@ -248,7 +248,7 @@ function checkIfDocumentChanged({dbRes, payload, property, models}) {
   // return true
 }
 
-function mapToCpProperties(response, property, models) {
+function mapToCpProperties(response, property, models, logger) {
   // let { properties } = models[LEGAL_ENTITY_CP]
   let { shareHolders, directors } = response
   if (!shareHolders.length  &&  !directors.length) return
@@ -257,14 +257,39 @@ function mapToCpProperties(response, property, models) {
     return a + b.numberOfShares
   }, 0)  
   let smEnum = models[SENIOR_MANAGER_POSITION].enum
-  let typeOfControllingEntity = models[TYPE_OF_CP].enum.find(e => e.id === 'person')
   if (JSON.stringify(directors) !== JSON.stringify(MAPS[property].properties.directors) ||
       JSON.stringify(shareHolders) !== JSON.stringify(MAPS[property].properties.shares)) {
     directors.forEach(p => {
-      let { firstName, lastName, jobTitle } = p
-      let obj:any = {
-        firstName,
-        lastName     
+      let { firstName, lastName, jobTitle, companyName } = p
+      let obj
+      let typeOfControllingEntity
+      let isPerson
+      if (firstName && lastName) {
+        obj = {
+          firstName,
+          lastName     
+        }
+        typeOfControllingEntity = models[TYPE_OF_CP].enum.find(e => e.id === 'person')
+        isPerson = true
+      }
+      else if (companyName) {
+        obj = {
+          companyName
+        }
+        typeOfControllingEntity = models[TYPE_OF_CP].enum.find(e => e.id === 'legalEntity')
+      }
+      else return
+
+      obj.typeOfControllingEntity = {
+        id: `${TYPE_OF_CP}_${typeOfControllingEntity.id}`,
+        title: typeOfControllingEntity.title
+      }
+      if (!jobTitle) {
+        jobTitle = []
+      }
+      else if (!Array.isArray(jobTitle)) {
+        jobTitle = [jobTitle]
+logger.debug(`ChatGPT response for articlesOfAssociation: ${jobTitle} is not an array`)        
       }
       let jobTitleL = jobTitle.map(jt => jt.toLowerCase())
       let pIdx = smEnum.findIndex(e => {
@@ -287,10 +312,6 @@ function mapToCpProperties(response, property, models) {
       let sh = shareHolders.find(sh => sh.firstName.toLowerCase() === p.firstName.toLowerCase() && sh.lastName.toLowerCase() === p.lastName.toLowerCase())
       if (sh) 
         obj.percentageOfOwnership = Math.round(sh.numberOfShares/totalShares * 100 * 100)/100
-      obj.typeOfControllingEntity = {
-        id: `${TYPE_OF_CP}_${typeOfControllingEntity.id}`,
-        title: typeOfControllingEntity.title
-      }
       people.push(obj)
     })
     shareHolders.forEach(sh => {
