@@ -29,10 +29,21 @@ const MONEY = 'tradle.Money'
 // }
 export async function getPDFContent (dataUrl, logger) {
   let pref = dataUrl.substring(0, dataUrl.indexOf(',') + 1)
+  // let filePath = `dataUrl.txt`
+  // fs.writeFile(filePath, dataUrl, (err) => {
+  //   if (err) {
+  //     console.error(err);
+  //   } else {
+  //     console.log('Data saved to file successfully');
+  //   }
+  // });
 
   let buffer: any = DataURI.decode(dataUrl)
+  let bufStr = buffer.toString('base64')
+logger.debug(`First 100 characters: ${bufStr.slice(0, 100)}`)
+logger.debug(`Last 100 characters: ${bufStr.slice(-100)}`)
   let isPDF = pref.indexOf('application/pdf') !== -1
-  if (isPDF) 
+  if (isPDF)
     return await getContent(buffer, logger)
   else
     return [DataURI.decode(dataUrl)]
@@ -228,12 +239,13 @@ async function getContent(pdfBuffer, logger) {
   let pages = await pdfParse(pdfBuffer, {pagerender: renderPage.bind(this)})
   let len = pages.length
 logger.debug(`docUtils.pdfParse: number of PDF pages: ${len}`)
+logger.debug(`docUtils.pdfParse: pages`, JSON.stringify(pages))
 
   for (let i=len-1; i>=0; i--)
-    if (!pages[i].trim().length) 
+    if (!pages[i].trim().length)
       pages.splice(i, 1)
   len = pages.length
-  if (len) 
+  if (len)
     return pages
 
   const readPdf = await PDFDocument.load(pdfBuffer);
@@ -254,7 +266,7 @@ logger.debug(`docUtils.pdfParse: number of PDF pages: ${len}`)
 
 export function combinePages(pages) {
   let newPages = []
-  let cnt = 0  
+  let cnt = 0
   let start = 0
   let len = pages.length
   let newPage = ''
@@ -264,10 +276,10 @@ export function combinePages(pages) {
     if (cnt < MAX_TOKENS) {
       newPage += pages[i]
       if (i === len - 1)
-        newPages.push(newPage)          
+        newPages.push(newPage)
       continue
-    }    
-    newPages.push(newPage)          
+    }
+    newPages.push(newPage)
     newPage = pages[i]
     start = i
     cnt = pageTokens
@@ -276,6 +288,7 @@ export function combinePages(pages) {
 }
 
 async function renderPage(pageData) {
+  console.log('in renderPage', pageData)
   //check documents https://mozilla.github.io/pdf.js/
   //ret.text = ret.text ? ret.text : "";
 
@@ -314,12 +327,12 @@ async function renderPage(pageData) {
       text += ' ' + item.str;
     else
       text += '\n' + item.str;
-     
+
     lastY = item.transform[5];
-  }            
+  }
   if (!text.length)
     return ''
-  return `${text}`;  
+  return `${text}`;
 }
 
 const {encode} = require('gpt-3-encoder');
@@ -375,7 +388,7 @@ export function countTokens(text) {
 
 // export async function checkAndResizeResizeImage (dataUrl, logger) {
 //   let pref = dataUrl.substring(0, dataUrl.indexOf(',') + 1)
-  
+
 //   let buffer: any = DataURI.decode(dataUrl)
 //   let buf
 //   let isPDF = pref.indexOf('application/pdf') !== -1
@@ -387,11 +400,11 @@ export function countTokens(text) {
 //       logger.error('document-ocr failed', err)
 //       return {}
 //     }
-//   } 
+//   }
 //   else
 //     buf = DataURI.decode(dataUrl)
-  
-//   return await imageResize({buf, pref, logger, isPDF})  
+
+//   return await imageResize({buf, pref, logger, isPDF})
 // }
 // async function imageResize ({buf, pref, logger, maxWidth, isPDF}:{buf:Buffer, pref: string, maxWidth?:number, logger: Logger, isPDF?: boolean}) {
 //   let isTooBig = buf.length > MAX_FILE_SIZE
@@ -423,7 +436,7 @@ export function countTokens(text) {
 //         // resizedBuf = await sharp(buf, {sequentialRead: true}).rotate(-90).resize(width, height).toFile('/tmp/f.png')
 //         resizedBuf = await sharp(buf, {sequentialRead: true}).rotate(-90).resize(width, height).toBuffer()
 //         // const rotatedImage = await sharp(buf, {sequentialRead: true}).rotate(-90).toBuffer();
-//         // resizedBuf = await sharp(rotatedImage).resize(width, height).toBuffer();                
+//         // resizedBuf = await sharp(rotatedImage).resize(width, height).toBuffer();
 //       } catch (err) {
 //         logger.debug('error rotating and resizing image', err)
 //         return
