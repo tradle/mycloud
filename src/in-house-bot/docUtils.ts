@@ -240,7 +240,7 @@ async function getContent(pdfBuffer, logger) {
   let { pages } = ret
   let len = pages.length
 logger.debug(`docUtils.pdfParse: number of PDF pages: ${len}`)
-logger.debug(`docUtils.pdfParse: pages`, JSON.stringify(pages))
+logger.debug(`docUtils.pdfParse: pages`, pages[0])
 
   for (let i=len-1; i>=0; i--)
     if (!pages[i].trim().length)

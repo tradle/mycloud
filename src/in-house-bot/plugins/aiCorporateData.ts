@@ -122,10 +122,12 @@ export class PrefillWithChatGPT {
     params.model = model
     params.logger = this.logger
     try {          
-      this.logger.debug(`aiCorporateData: ChatGPT document for property: ${prop}`)
+      this.logger.debug(`aiCorporateData: ChatGPT document for property: ${prop}. firstPage: ${pages.length}`)
 
       let response = await getChatGPTMessage(params)
-      if (!response) {
+      if (response) 
+        this.logger.debug(`aiCorporateData: got response from ChatGPT for ${prop}; ${JSON.stringify(response, null, 2)}`)
+      else {  
         this.logger.debug(`aiCorporateData: no response from ChatGPT for ${prop}; number of pages: ${pages.length}`)
         return
       }
