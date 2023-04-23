@@ -236,7 +236,8 @@ async function convertPdfToPng(pdf, logger) {
 const MAX_TOKENS = 3000
 async function getContent(pdfBuffer, logger) {
   // let outputDirectory = '/tmp'
-  let pages = await pdfParse(pdfBuffer, {pagerender: renderPage.bind(this)})
+  let ret = await pdfParse(pdfBuffer, {pagerender: renderPage.bind(this)})
+  let { pages } = ret
   let len = pages.length
 logger.debug(`docUtils.pdfParse: number of PDF pages: ${len}`)
 logger.debug(`docUtils.pdfParse: pages`, JSON.stringify(pages))
@@ -247,7 +248,7 @@ logger.debug(`docUtils.pdfParse: pages`, JSON.stringify(pages))
   len = pages.length
   if (len)
     return pages
-
+logger.debug('docUtils')
   const readPdf = await PDFDocument.load(pdfBuffer);
   const { length } = readPdf.getPages();
   pages = []
@@ -288,7 +289,7 @@ export function combinePages(pages) {
 }
 
 async function renderPage(pageData) {
-  console.log('in renderPage', pageData)
+  // console.log('in renderPage', pageData)
   //check documents https://mozilla.github.io/pdf.js/
   //ret.text = ret.text ? ret.text : "";
 
