@@ -255,8 +255,9 @@ async function getChatGPTResponseForForm({message, openai, model, models, otherP
       if (!isEqual(props, v))
         responses.push(v)
     } catch (err) {
-      logger.debug(`openAiInterface: ChatGPT request failed for: ${message[0]}`, err)  
+      logger.debug(`openAiInterface: ChatGPT request failed for chunk ${i} JSON: ${response.content.trim()}`, err)  
       debugger
+      return
     }
     // for (let i=0; i<NUMBER_OF_ATTEMPTS && (typeof response === 'string'); i++) {
     //   await Promise.delay(1500)
