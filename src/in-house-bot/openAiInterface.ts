@@ -239,7 +239,6 @@ async function getChatGPTResponseForForm({message, openai, model, models, otherP
 
   let responses = []
   for (let i=0; i<message.length; i++) {
-
   let sysCnt = countTokens(sysMessage)
   let msgCnt = countTokens(message[i])
     if (!message[i].length) continue
@@ -247,17 +246,18 @@ async function getChatGPTResponseForForm({message, openai, model, models, otherP
       {role: 'system', content: sysMessage},
       {role: 'user', content: `${message[i]}`}
     ]
-
+    logger.debug(`openAiInterface: ChatGPT request ${i}`)
     let response = await getResponse({openai, messages, logger})
+    logger.debug(`openAiInterface: got response from ChatGPT ${response.content.trim()}`)
     try {
       let val = response.content.trim()
       let v = JSON.parse(val)
       if (!isEqual(props, v))
         responses.push(v)
     } catch (err) {
-      logger.debug(`openAiInterface: ChatGPT request failed for chunk ${i} JSON: ${response.content.trim()}`, err)  
+      logger.debug(`openAiInterface: ChatGPT request failed for chunk ${i};`, err)  
       debugger
-      return
+      // return
     }
     // for (let i=0; i<NUMBER_OF_ATTEMPTS && (typeof response === 'string'); i++) {
     //   await Promise.delay(1500)
