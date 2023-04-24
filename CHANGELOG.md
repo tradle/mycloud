@@ -2,7 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.0.79](https://github.com/tradle/mycloud/compare/v4.0.78...v4.0.79) (2023-04-24)
+## [4.0.80](https://github.com/tradle/mycloud/compare/v4.0.79...v4.0.80) (2023-04-24)
+
+
+### Bug Fixes
+
+* bad param list ([aa0361e](https://github.com/tradle/mycloud/commit/aa0361e))
+
+
+### Features
+
+* prefill forms with external AI ([a605d5b](https://github.com/tradle/mycloud/commit/a605d5b))
 
 
 
