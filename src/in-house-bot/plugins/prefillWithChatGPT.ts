@@ -127,6 +127,7 @@ export class PrefillWithChatGPT {
         params.model = models[map[payload[TYPE]]]
       else
         params.model = model
+      params.logger = this.logger  
       let response = await getChatGPTMessage(params)
       if (!response) {
         debugger
