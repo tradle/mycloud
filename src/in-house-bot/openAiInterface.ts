@@ -13,6 +13,7 @@ const {
 
 import { isSubClassOf } from './utils'
 import { countTokens } from './docUtils'
+import { runWithTimeout } from '../utils'
 const {
   isEnumProperty,
 } = validateModels.utils
@@ -28,17 +29,18 @@ const UTF8 = 'utf-8'
 
 export async function getChatGPTMessage({req, bot, conf, message, model, otherProperties, logger }:{req: IPBReq, bot: Bot, conf: any, message: any, model: any, otherProperties?:any, logger: Logger}) {
   const {openApiKey, AIGovernanceAndSupportFolder, providerSetup, AIGovernanceAndSupportBucket} = conf
-  if (!openApiKey) return
+  if (!openApiKey || !openApiKey.length) return
 
-  let api = new Configuration({apiKey: openApiKey})
-  const openai = new OpenAIApi(api)
   const { models } = bot
 
   let { user, application, payload } = req
   if (model.id !== SIMPLE_MESSAGE)
-    return await getChatGPTResponseForForm({message, openai, model, models, otherProperties, logger})
+    return await getChatGPTResponseForForm({message, openApiKey, model, models, otherProperties, logger})
 
-  let query = {
+    let api = new Configuration({apiKey: openApiKey[0]})
+    const openai = new OpenAIApi(api)
+
+    let query = {
     orderBy: {
       property: '_time',
       desc: false
@@ -162,7 +164,7 @@ export async function getChatGPTMessage({req, bot, conf, message, model, otherPr
     }
   }
 }
-async function getChatGPTResponseForForm({message, openai, model, models, otherProperties, logger}:{message: any, openai:any, model: Model, models: any, otherProperties?: any, logger: Logger}) {
+async function getChatGPTResponseForForm({message, openApiKey, model, models, otherProperties, logger}:{message: any, openApiKey:string[], model: Model, models: any, otherProperties?: any, logger: Logger}) {
   // let properties = model && omitBy(model.properties, (value, key) => key.startsWith('_')).map(p => p.name).join(', ')
   let properties = model.properties
   let props = {}
@@ -238,32 +240,60 @@ async function getChatGPTResponseForForm({message, openai, model, models, otherP
     let sysMessage = JSON.stringify(sysMessageJson)
 
   let responses = []
-  for (let i=0; i<message.length; i++) {
+  let i = 0
+  let batch = 1
+  while(true) {
+    let kidx = 0
+    let promises = []
+    logger.debug(`openAiInterface: ChatGPT request ${batch}`)
+
+    for (; i<message.length; i++) {
+      if (kidx === openApiKey.length)
+        break
+
   let sysCnt = countTokens(sysMessage)
   let msgCnt = countTokens(message[i])
-    if (!message[i].length) continue
-    let messages = [
-      {role: 'system', content: sysMessage},
-      {role: 'user', content: `${message[i]}`}
-    ]
-    logger.debug(`openAiInterface: ChatGPT request ${i}`)
-    let response = await getResponse({openai, messages, logger})
-    logger.debug(`openAiInterface: got response from ChatGPT ${response.content.trim()}`)
-    try {
-      let val = response.content.trim()
-      let v = JSON.parse(val)
-      if (!isEqual(props, v))
-        responses.push(v)
-    } catch (err) {
-      logger.debug(`openAiInterface: ChatGPT request failed for chunk ${i};`, err)  
-      debugger
-      // return
+      if (!message[i].length) continue
+      let messages = [
+        {role: 'system', content: sysMessage},
+        {role: 'user', content: `${message[i]}`}
+      ]
+      let apiKey = openApiKey[kidx++]
+      let api = new Configuration({apiKey})
+      const openai = new OpenAIApi(api)
+      
+      // logger.debug(`openAiInterface: ChatGPT request ${i}`)
+      promises.push(getResponse({openai, messages, logger}))
+      // let response = await getResponse({openai, messages, logger})
+      // let response = await runWithTimeout(() => getResponse({openai, messages, logger}), {millis: 180000})
+      // logger.debug(`openAiInterface: got response from ChatGPT ${response.content.trim()}`)
+      // try {
+      //   let val = response.content.trim()
+      //   let v = JSON.parse(val)
+      //   if (!isEqual(props, v))
+      //     responses.push(v)
+      // } catch (err) {
+      //   logger.debug(`openAiInterface: ChatGPT request failed for chunk ${i};`, err)  
+      //   debugger
+      //   // return
+      // }
     }
-    // for (let i=0; i<NUMBER_OF_ATTEMPTS && (typeof response === 'string'); i++) {
-    //   await Promise.delay(1500)
-    //   response = await getResponse({openai, messages, requestID: response})
-    //   responses.push(json)
-    // }
+    let response = await runWithTimeout(() => Promise.all(promises), {millis: 180000})
+    logger.debug(`openAiInterface: ChatGPT response received ${batch++}`)    
+    for (let j=0; j<response.length; j++) {
+      try {
+        let val = response[j].content.trim()
+        let v = JSON.parse(val)
+        if (!isEqual(props, v))
+          responses.push(v)
+      } catch (err) {
+        logger.debug(`openAiInterface: ChatGPT request failed for chunk ${i};`, err)  
+        debugger
+        // return
+      }
+    }
+    if (i === message.length) 
+      break
   }
   if (responses.length)
     return makeResponse(responses, props, logger)
